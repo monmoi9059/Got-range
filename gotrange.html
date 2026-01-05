@@ -404,9 +404,10 @@ class GameState {
 
         this.player = { pos: new Vector3(300, 300, 0), vel: new Vector3(0,0,0), animTime: 0 };
         this.ball = { pos: new Vector3(0,0,0), vel: new Vector3(0,0,0), active: false, rotation: 0 };
-        this.camera = { zoom: 800, height: 300, targetZoom: 800 };
+        this.camera = { zoom: 800, height: 180, targetZoom: 800 };
 
         this.session = {
+            resetStage: 0,
             distanceLevel: 1,
             consecutiveMisses: 0,
             streak: 0,
@@ -703,13 +704,36 @@ const Game = {
 
     attemptReset() {
         const s = this.state;
+        const btn = document.getElementById('btnReset');
+        if (s.session.resetStage === 0) {
+            s.session.resetStage = 1;
+            btn.innerText = "SÛR ? (CLIQUEZ ENCORE)";
+            btn.style.background = "#FF0000";
+            return;
+        }
+
+        // Reset Logic
+        s.data = {
+            tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+            unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
+        };
+        s.save();
+
+        s.session.resetStage = 0;
         s.session.distanceLevel = 1;
         s.session.consecutiveMisses = 0;
         s.player.pos = new Vector3(300, 300, 0);
         s.state = 'IDLE';
-        s.session.feedback = "RESET";
-        s.session.feedbackTimer = 30;
+        s.session.feedback = "RESET!";
+        s.session.feedbackTimer = 60;
+
+        btn.innerText = "RÉINITIALISER PROGRESSION";
+        btn.style.background = "#8B0000";
         UI.update();
+        UI.closeAll();
+        UI.populateShop(); // refresh shop UI with reset data
     }
 };
 
@@ -1101,14 +1125,48 @@ const Renderer = {
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
         }
 
-        // Shot Meter
+        // Shot Meter (NBA 2K Style)
         if(state.state === 'JUMPING') {
-            const meterY = p.y - 120*s;
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 5*s;
-            ctx.beginPath(); ctx.arc(p.x + 40*s, meterY, 20*s, 0, Math.PI*2); ctx.stroke();
-            const progress = (Math.abs(state.player.vel.z) / 9);
-            ctx.fillStyle = progress < 0.2 ? '#00FF00' : '#FF0000';
-            ctx.beginPath(); ctx.moveTo(p.x+40*s, meterY); ctx.arc(p.x+40*s, meterY, 15*s, 0, Math.PI*2 * (1-progress)); ctx.fill();
+            const maxVz = 9;
+            const curVz = Math.abs(state.player.vel.z);
+            let progress = 1.0 - (curVz / maxVz);
+            progress = Math.max(0, Math.min(1, progress));
+
+            const groundY = p.y + (state.player.pos.z * s);
+            const meterY = groundY - (130 * s * sizeMod.h);
+            const cx = p.x + (60 * s);
+            const radius = 50 * s;
+
+            // Background Arc
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 10*s;
+            ctx.lineCap = 'round';
+            ctx.arc(cx, meterY, radius, 0, -Math.PI / 2, true);
+            ctx.stroke();
+
+            // Green Window Calculation
+            const damp = 6.0 + (state.data.stats.aim - 1);
+            const pen = Math.min(4.0, 1.0 + (state.session.distanceLevel * 0.04));
+            const thresh = (0.25 * damp) / (state.data.difficulty * pen);
+            const greenStart = 1.0 - (thresh / maxVz);
+
+            // Green Zone
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0,255,0,0.6)';
+            ctx.lineWidth = 10*s;
+            ctx.arc(cx, meterY, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true);
+            ctx.stroke();
+
+            // Filling Arc (The actual meter)
+            ctx.beginPath();
+            if (progress > greenStart) ctx.strokeStyle = '#00FF00';
+            else if (progress > 0.6) ctx.strokeStyle = '#FFFF00';
+            else ctx.strokeStyle = '#FF4500';
+
+            ctx.lineWidth = 8*s;
+            ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true);
+            ctx.stroke();
         }
     },
 
