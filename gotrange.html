@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Taco Basket Ball - Québec Édition</title>
+    <title>Taco Basket Ball - Québec Édition (Remastered)</title>
     <style>
         html, body {
             margin: 0;
@@ -14,11 +14,11 @@
             background-color: #1a1a1a;
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none; 
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
         }
-        
+
         #game-container {
             position: absolute;
             top: 50%;
@@ -27,6 +27,7 @@
             height: 600px;
             background: #000;
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transform-origin: center;
         }
 
         canvas {
@@ -39,19 +40,32 @@
             box-sizing: border-box;
         }
 
-        #ui {
+        /* UI Overlay Elements */
+        #ui-layer {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
-            text-shadow: 2px 2px 0 #000;
-            z-index: 10;
-            text-align: left;
         }
 
+        .hud-text {
+            position: absolute;
+            font-weight: 900;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+        }
+
+        #title { top: 20px; left: 20px; font-size: 42px; color: #FFD700; text-shadow: 3px 3px 0 #8B0000; font-style: italic; }
+        #score-box { top: 70px; left: 20px; font-size: 1.2em; text-align: left; }
+        #strikes-box { top: 20px; right: 20px; font-size: 1.5em; color: #FF4500; }
+        #court-name { top: 60px; right: 20px; font-size: 1.5em; color: rgba(255,255,255,0.7); font-style: italic; text-align: right; text-transform: uppercase; }
+
+        /* Controls */
         #controls {
             position: absolute;
-            bottom: 125px;
+            bottom: 20px;
             left: 0;
             width: 100%;
             text-align: center;
@@ -69,35 +83,22 @@
             padding: 8px 18px;
             cursor: pointer;
             font-weight: 800;
-            display: inline-block;
             border-radius: 6px;
             box-shadow: 0 4px 0 #B8860B;
             transition: transform 0.1s, background 0.1s;
             font-size: 16px;
             text-transform: uppercase;
-            text-shadow: none;
         }
         .ui-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #B8860B; }
         .ui-btn:hover { background: #fff; }
-        
-        h1 { 
-            margin: 0; 
-            font-size: 42px; 
-            color: #FFD700;
-            text-shadow: 3px 3px 0 #8B0000;
-            font-weight: 900;
-            font-style: italic;
-        }
-        p { margin: 5px 0; color: #fff; font-weight: bold; font-size: 1.2em; }
-        .stat-label { color: #00FF00; }
-        .highscore-label { color: #FFD700; }
-        
+
+        /* Modals */
         .modal {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%) scale(0.9);
             width: 550px;
             max-height: 85%;
             overflow-y: auto;
@@ -109,227 +110,132 @@
             z-index: 100;
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 15px;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
         }
-        
-        .modal::-webkit-scrollbar { width: 10px; }
-        .modal::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
-        .modal::-webkit-scrollbar-thumb { background: #DAA520; border-radius: 5px; }
+        .modal.open { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
+        /* Modal Content Styling */
         .modal-header { color: #FFD700; margin-bottom: 20px; font-size: 2.2em; text-shadow: 2px 2px #d32f2f; font-weight: 800; border-bottom: 2px solid #555; padding-bottom: 10px; }
-        
-        .upgrade-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.1));
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-        }
-        .difficulty-row {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #FFD700;
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: left;
-        }
+        .upgrade-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); margin: 10px 0; padding: 15px; border-radius: 8px; border: 1px solid #444; text-align: left; }
+        .difficulty-row { background: rgba(0, 0, 0, 0.6); border: 1px solid #FFD700; margin: 15px 0; padding: 15px; border-radius: 8px; text-align: left; }
         input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: #FFD700; }
-        
+
         .ach-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #555;
-            margin: 8px 0;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: left;
-            opacity: 0.7;
-            transition: 0.3s;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.5); border: 1px solid #555;
+            margin: 8px 0; padding: 12px; border-radius: 8px; text-align: left;
+            opacity: 0.7; transition: 0.3s;
         }
         .ach-row.unlocked {
-            border-color: #00FF00;
-            background: linear-gradient(to right, rgba(0, 100, 0, 0.4), rgba(0, 50, 0, 0.2));
-            opacity: 1;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
+            border-color: #00FF00; background: linear-gradient(to right, rgba(0, 100, 0, 0.4), rgba(0, 50, 0, 0.2));
+            opacity: 1; box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
         }
         .ach-icon { font-size: 28px; margin-right: 15px; }
-        .ach-info h4 { margin: 0; color: #aaa; font-size: 1.1em; }
-        .ach-row.unlocked .ach-info h4 { color: #FFD700; }
-        .ach-info span { font-size: 0.9em; color: #ccc; }
 
-        .btn {
-            background: linear-gradient(to bottom, #228B22, #006400);
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            border-radius: 4px;
-            box-shadow: 0 3px 0 #004d00;
-        }
-        .btn:active { transform: translateY(3px); box-shadow: none; }
-        .btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; transform: none; color: #888; }
-        .btn-close { background: #d32f2f; padding: 12px 30px; font-size: 1.2em; margin-top: 20px; width: 100%; box-shadow: 0 4px 0 #8B0000; }
-        
-        .skin-viewer {
-            margin-top: 20px;
-            border-top: 2px solid #555;
-            padding-top: 15px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            padding: 15px;
-        }
-        .skin-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin: 10px 0;
-        }
+        .skin-viewer { margin-top: 20px; border-top: 2px solid #555; padding-top: 15px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px; }
+        .skin-nav { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0; }
         .selector-label { width: 180px; font-size: 1.2em; color: #FFD700; font-weight: bold; text-transform: uppercase; }
 
+        .btn { background: linear-gradient(to bottom, #228B22, #006400); color: white; border: none; padding: 8px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; box-shadow: 0 3px 0 #004d00; }
+        .btn:active { transform: translateY(3px); box-shadow: none; }
+        .btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; transform: none; color: #888; }
+        .btn-close { background: #d32f2f; width: 100%; margin-top: 20px; box-shadow: 0 4px 0 #8B0000; }
+
+        /* Notifications */
         #notification {
             position: absolute;
-            bottom: 250px; 
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 150px; left: 50%; transform: translateX(-50%);
             background: linear-gradient(to right, #000, #333);
-            border: 2px solid #FFD700;
-            color: #FFD700;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.2em;
-            font-weight: bold;
-            display: none;
-            z-index: 200;
-            text-align: center;
+            border: 2px solid #FFD700; color: #FFD700;
+            padding: 15px 40px; border-radius: 50px;
+            font-size: 1.2em; font-weight: bold;
+            display: none; z-index: 200; text-align: center;
             box-shadow: 0 0 25px #FFD700;
             animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        @keyframes popUp {
-            from { bottom: 150px; opacity: 0; }
-            to { bottom: 250px; opacity: 1; }
-        }
-        #courtNameDisplay {
-            position: absolute;
-            top: 60px;
-            right: 20px;
-            font-size: 1.5em;
-            color: rgba(255,255,255,0.7);
-            font-weight: 900;
-            pointer-events: none;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            text-transform: uppercase;
-            font-style: italic;
-            text-align: right;
-        }
-        #strikes {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #FF4500;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
-        }
-        #contest-ui {
-            display: none;
-            position: absolute;
-            top: 150px;
-            left: 20px;
-            font-size: 1.2em;
-            color: #fff;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
-        }
+        @keyframes popUp { from { bottom: 100px; opacity: 0; } to { bottom: 150px; opacity: 1; } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #333; }
+        ::-webkit-scrollbar-thumb { background: #DAA520; border-radius: 5px; }
+
+        /* Helper Classes */
+        .text-green { color: #00FF00; }
+        .text-gold { color: #FFD700; }
+        .text-red { color: #FF0000; }
+        .w-100 { width: 100%; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="ui">
-        <h1>TACO BASKET BALL</h1>
-        <p>Tacos: <span id="scoreVal" class="stat-label">0</span></p>
-        <div id="classic-stats">
-            <p>Distance: <span id="distVal" class="stat-label">10 ft</span></p>
-            <p>Record: <span id="highScoreVal" class="highscore-label">10 ft</span></p>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="title" class="hud-text">TACO BASKET BALL</div>
+        <div id="score-box" class="hud-text">
+            <p>Tacos: <span id="scoreVal" class="text-green">0</span></p>
+            <div id="classic-stats">
+                <p>Distance: <span id="distVal" class="text-green">10 ft</span></p>
+                <p>Record: <span id="highScoreVal" class="text-gold">10 ft</span></p>
+            </div>
+        </div>
+        <div id="strikes-box" class="hud-text">MISS: <span id="missVal">0</span>/2</div>
+        <div id="court-name" class="hud-text">COUR ARRIÈRE</div>
+
+        <div id="notification">
+            <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
+            <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
         </div>
     </div>
-    <div id="strikes">MISS: <span id="missVal">0</span>/2</div>
-    <div id="courtNameDisplay">COUR ARRIÈRE DE LÉVIS</div>
-    <div id="contest-ui">
-        <p style="color:#FFFF00; font-size:1.5em;">TEMPS: <span id="contestTime">60</span>s</p>
-        <p>SCORE: <span id="contestScore" style="color:#00FF00">0</span></p>
-        <p>STATION: <span id="contestRack">1</span>/5</p>
-    </div>
+
     <div id="controls">
-        <div class="ui-btn" onclick="toggleMode()">MODE: <span id="modeBtnText">CLASSIQUE</span></div>
-        <div class="ui-btn" onclick="openShop()">BOUTIQUE [P]</div>
-        <div class="ui-btn" onclick="openAchievements()">TROPHÉES [O]</div>
-        <div class="ui-btn" onclick="openStats()">STATS [S]</div>
-    </div>
-    <div id="notification">
-        <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
-        <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
+        <div class="ui-btn" onclick="Game.toggleMode()">MODE: <span id="modeBtnText">CLASSIQUE</span></div>
+        <div class="ui-btn" onclick="UI.openShop()">BOUTIQUE [P]</div>
+        <div class="ui-btn" onclick="UI.openAchievements()">TROPHÉES [O]</div>
+        <div class="ui-btn" onclick="UI.openStats()">STATS [S]</div>
     </div>
 
-    <!-- MODALS -->
-    <div id="statsUI" class="modal">
-        <div class="modal-header">STATISTIQUES À VIE</div>
-        <div style="text-align:left; padding: 10px; font-size: 1.2em;">
-            <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
-            <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
-            <p style="overflow:hidden;">Ratés: <span id="statMisses" style="color:#FF0000; float:right">0</span></p>
-            <p style="overflow:hidden;">Précision: <span id="statAccuracy" style="color:#FFD700; float:right">0%</span></p>
-            <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
-            <hr style="border-color:#555; margin:15px 0;">
-            <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
-        </div>
-        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button class="btn btn-close" onclick="closeStats()">FERMER</button>
-    </div>
-
+    <!-- UI TEMPLATES (Populated by JS) -->
     <div id="shopUI" class="modal">
         <div class="modal-header">TACO MERCADO</div>
-        <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
-        <div class="difficulty-row">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
-            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
-            <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
-        </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><button id="btnBuyIncome" class="btn" onclick="buyUpgrade('income')">Acheter (5)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><button id="btnBuyAim" class="btn" onclick="buyUpgrade('aim')">Acheter (10)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><button id="btnBuyLuck" class="btn" onclick="buyUpgrade('luck')">Acheter (15)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><button id="btnBuyMoonwalk" class="btn" onclick="buyUpgrade('moonwalk')">Acheter (25)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><button id="btnBuyExtraLives" class="btn" onclick="buyUpgrade('extraLives')">Acheter (1000)</button></div>
-        <div class="skin-viewer">
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
-            <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
-            <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
-        </div>
-        <button class="btn btn-close" onclick="closeShop()">FERMER</button>
+        <p>Tacos: <span id="shopTacos" class="text-gold" style="font-size: 1.2em;">0</span></p>
+        <div id="shop-content"></div>
+        <button class="btn btn-close" onclick="UI.closeAll()">FERMER</button>
     </div>
 
     <div id="achUI" class="modal">
         <div class="modal-header">SALLE DES TROPHÉES</div>
-        <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
+        <div id="achList" style="text-align: left;"></div>
+        <button class="btn btn-close" onclick="UI.closeAll()">FERMER</button>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <div id="statsUI" class="modal">
+        <div class="modal-header">STATISTIQUES</div>
+        <div id="statsContent" style="text-align:left; font-size:1.2em; padding:10px;"></div>
+        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="Game.attemptReset()">RÉINITIALISER PROGRESSION</button>
+        <button class="btn btn-close" onclick="UI.closeAll()">FERMER</button>
+    </div>
 </div>
 
 <script>
-    // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
-    var ACHIEVEMENTS = [
+/**
+ * TACO BASKET BALL - REMASTERED
+ * Organized into Classes for cleaner architecture.
+ */
+
+// --- 1. CONFIGURATION & DATA ---
+const CONSTANTS = {
+    GRAVITY: 0.5,
+    HOOP_POS: { x: 600, y: 150, z: 130 },
+    CANVAS_WIDTH: 800,
+    CANVAS_HEIGHT: 600
+};
+
+const DATA = {
+    ACHIEVEMENTS: [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 10 },
         { id: 'veteran', name: 'Vétéran', desc: 'Marquer 100 paniers au total', reward: 150 },
         { id: 'ball_hog', name: 'Ball Hog', desc: 'Tirer 500 fois', reward: 100 },
@@ -364,9 +270,8 @@
         { id: 'urban_legend', name: 'Légende Urbaine', desc: 'Jouer sur le Terrain de Rue', reward: 50 },
         { id: 'ice_cold', name: 'Glace', desc: 'Jouer sur la Patinoire', reward: 100 },
         { id: 'astronaut_training', name: 'Cadet Spatial', desc: 'Jouer sur la Lune', reward: 150 }
-    ];
-
-    var COURT_ZONES = [
+    ],
+    COURT_ZONES: [
         { limit: 50, name: "COUR ARRIÈRE", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
         { limit: 100, name: "PARC DE LA PAIX", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
         { limit: 200, name: "VIEUX-LÉVIS", type: 'castle', ground1: '#8B0000', ground2: '#A52A2A', sky1: '#4682B4', sky2: '#87CEEB' },
@@ -380,41 +285,8 @@
         { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
         { limit: 8000, name: "LE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
         { limit: 9999999, name: "DIMENSION TACO", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
-    ];
-
-    var SCALE_OBJECTS = [
-        { limit: 15, name: "Voiture Compacte", icon: "🚗" },
-        { limit: 25, name: "Orignal (2m)", icon: "🦌" },
-        { limit: 30, name: "Ligne de 3 points", icon: "🏀" },
-        { limit: 40, name: "Autobus Scolaire", icon: "🚌" },
-        { limit: 60, name: "Piste de Bowling", icon: "🎳" },
-        { limit: 94, name: "Terrain NBA", icon: "🏀" },
-        { limit: 150, name: "Baleine Bleue", icon: "🐋" },
-        { limit: 195, name: "Tour de Pise", icon: "🇮🇹" },
-        { limit: 230, name: "Envergure Boeing 747", icon: "✈️" },
-        { limit: 272, name: "Chute Montmorency", icon: "🌊" }, 
-        { limit: 305, name: "Statue de la Liberté", icon: "🗽" },
-        { limit: 350, name: "Château Frontenac", icon: "🏰" },
-        { limit: 450, name: "Pyramide de Gizeh", icon: "🔺" },
-        { limit: 600, name: "Space Needle", icon: "🛸" },
-        { limit: 984, name: "Tour Eiffel", icon: "🇫🇷" },
-        { limit: 1454, name: "Empire State Building", icon: "🏙️" },
-        { limit: 1815, name: "Tour CN", icon: "🗼" },
-        { limit: 2200, name: "Pont de Québec (Travée)", icon: "🌉" },
-        { limit: 2717, name: "Burj Khalifa", icon: "🏢" },
-        { limit: 5280, name: "Un Mille (1.6km)", icon: "🛣️" },
-        { limit: 10000, name: "Piste Aéroport", icon: "🛫" },
-        { limit: 14410, name: "Mont Rainier", icon: "🏔️" },
-        { limit: 20310, name: "Mont Denali", icon: "⛰️" },
-        { limit: 29029, name: "Mont Everest", icon: "🗻" },
-        { limit: 35000, name: "Altitude de Croisière", icon: "✈️" },
-        { limit: 100000, name: "Stratosphère", icon: "🎈" },
-        { limit: 328000, name: "Ligne de Kármán (Espace)", icon: "🌌" },
-        { limit: 1300000, name: "Station Spatiale (ISS)", icon: "🛰️" },
-        { limit: 9999999, name: "La Lune", icon: "🌑" }
-    ];
-
-    var SKINS_DB = [
+    ],
+    SKINS_DB: [
         { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 0 },
         { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500 },
         { id: 'rat_mariachi', animal: 'rat', name: 'El Mariachi', cost: 1000 },
@@ -454,974 +326,862 @@
         { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 3000 },
         { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
         { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 }
-    ];
+    ],
+    ANIMALS: ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon']
+};
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon'];
+// --- 2. CORE CLASSES ---
 
-    var decors = [];
-    for(let i=0; i<300; i++) {
-        const dist = Math.random() * 10000; 
-        const pathX = 600 - (dist * 0.7);
-        const pathY = 150 + (dist * 0.7);
-        const scatter = (Math.random() - 0.5) * 1200; 
-        decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
+class Vector3 {
+    constructor(x, y, z) { this.x = x; this.y = y; this.z = z; }
+    add(v) { this.x+=v.x; this.y+=v.y; this.z+=v.z; return this; }
+    copy() { return new Vector3(this.x, this.y, this.z); }
+}
+
+class Particle {
+    constructor(x, y, z, color, type) {
+        this.x = x; this.y = y; this.z = z;
+        this.color = color;
+        this.type = type; // 'confetti', 'dust', 'trail'
+        this.vx = (Math.random() - 0.5) * 10;
+        this.vy = (Math.random() - 0.5) * 10;
+        this.vz = (Math.random() * 5) + 2;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.02 + 0.01;
+        if(type === 'dust') { this.vz = Math.random() * 2; this.decay = 0.05; }
+        if(type === 'trail') { this.vx *= 0.1; this.vy *= 0.1; this.vz = 0; this.decay = 0.1; }
+    }
+    update() {
+        this.x += this.vx; this.y += this.vy; this.z += this.vz;
+        if(this.type !== 'trail') this.vz -= CONSTANTS.GRAVITY * 0.5;
+        this.life -= this.decay;
+        // Bounce floor
+        if(this.z < 0) { this.z = 0; this.vz *= -0.5; this.vx *= 0.8; this.vy *= 0.8; }
+    }
+}
+
+class BackgroundElement {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        // Place elements far behind the hoop (High Positive Distance)
+        // Hoop is at (600, 150). Player at (300, 300).
+        // Vector Hoop->Player is (-300, 150).
+        // "Behind Hoop" is (300 + d, 150 - d).
+
+        const dist = 1000 + Math.random() * 4000;
+        this.x = 600 + dist * 0.7 + (Math.random() - 0.5) * 2000;
+        this.y = 150 - dist * 0.7; // "Up and Right" in world space, which is "Forward/North"
+        this.z = 200 + Math.random() * 500;
+
+        this.type = Math.random() > 0.5 ? 'cloud' : 'bird';
+        this.speed = (Math.random() * 2 + 1) * (Math.random() > 0.5 ? 1 : -1);
+    }
+    update() {
+        this.x += this.speed;
+        // Reset if drifted too far laterally
+        // (Simplified reset for now)
+    }
+}
+
+class GameState {
+    constructor() {
+        const saved = JSON.parse(localStorage.getItem('tacoSaveData'));
+        const def = {
+            tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+            unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
+        };
+        this.data = saved || def;
+        // Fix migrations
+        if(!this.data.unlockedAchievements) this.data.unlockedAchievements = [];
+        if(!this.data.stats) this.data.stats = def.stats;
+
+        this.mode = 'CLASSIC'; // CLASSIC or CONTEST
+        this.state = 'IDLE'; // IDLE, JUMPING, SHOOTING, RESETTING, GAMEOVER
+
+        this.player = { pos: new Vector3(300, 300, 0), vel: new Vector3(0,0,0), animTime: 0 };
+        this.ball = { pos: new Vector3(0,0,0), vel: new Vector3(0,0,0), active: false, rotation: 0 };
+        this.camera = { zoom: 800, height: 300, targetZoom: 800 };
+
+        this.session = {
+            distanceLevel: 1,
+            consecutiveMisses: 0,
+            streak: 0,
+            feedback: '',
+            feedbackTimer: 0,
+            screenShake: 0
+        };
+
+        this.contest = { timer: 60, score: 0, rack: 1, ballsInRack: 0 };
+
+        this.particles = [];
+        this.decor = [];
+        this.bgElements = [];
+
+        // Init Decor
+        for(let i=0; i<300; i++) {
+            const dist = Math.random() * 10000;
+            const pathX = 600 - (dist * 0.7);
+            const pathY = 150 + (dist * 0.7);
+            const scatter = (Math.random() - 0.5) * 1200;
+            this.decor.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
+        }
+        for(let i=0; i<40; i++) this.bgElements.push(new BackgroundElement());
     }
 
-    var mountains = [];
-    for(let i=0; i<15; i++) { mountains.push({ x: i * 80 - 100, h: 100 + Math.random() * 150, color: `hsl(25, ${30 + Math.random()*20}%, ${20 + Math.random()*10}%)` }); }
+    save() { localStorage.setItem('tacoSaveData', JSON.stringify(this.data)); }
+}
 
-    // --- 2. GLOBAL VARIABLES ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const scoreEl = document.getElementById('scoreVal');
-    const distEl = document.getElementById('distVal');
-    const highScoreEl = document.getElementById('highScoreVal');
-    const shopUI = document.getElementById('shopUI');
-    const achUI = document.getElementById('achUI');
-    const statsUI = document.getElementById('statsUI');
-    const notif = document.getElementById('notification');
-    const courtNameEl = document.getElementById('courtNameDisplay');
-    const missValEl = document.getElementById('missVal');
-    const container = document.getElementById('game-container');
-    const contestUI = document.getElementById('contest-ui');
-    const strikesEl = document.getElementById('strikes');
+const Game = {
+    state: null,
+    canvas: null,
+    ctx: null,
+    lastTime: 0,
 
-    canvas.width = 800;
-    canvas.height = 600;
+    init() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = CONSTANTS.CANVAS_WIDTH;
+        this.canvas.height = CONSTANTS.CANVAS_HEIGHT;
+        this.state = new GameState();
 
-    let viewingAnimalIndex = 0;
-    let viewingSkinIndex = 0;
-    let currentGameMode = 'CLASSIC';
-    let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
-    let distanceLevel = 1;
-    let state = 'IDLE'; 
-    let feedback = "";
-    let feedbackTimer = 0;
-    let consecutiveMisses = 0;
-    let currentStreak = 0;
-    let spacePressed = false;
-    let cameraZoom = 800;
-    let cameraHeight = 300; 
-    let resetStage = 0; 
+        window.addEventListener('resize', this.resize.bind(this));
+        this.resize();
 
-    // Physique
-    const GRAVITY = 0.5;
-    const HOOP_POS = { x: 600, y: 150, z: 130 }; 
-    let player3D = { x: 300, y: 300, z: 0, vz: 0 };
-    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
+        Input.init();
+        this.loop(0);
+        UI.update();
+    },
 
-    const defaultData = {
-        tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-        stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-        lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
-    };
-
-    let savedData = localStorage.getItem('tacoSaveData');
-    let playerData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
-    
-    // Migration logic to fix old saves
-    if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
-    if(!playerData.stats.income) playerData.stats.income = 1;
-    if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
-    if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
-    if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
-    if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
-
-    highScoreEl.innerText = playerData.highScore + " pi";
-
-    // --- 3. HELPER FUNCTIONS ---
-    function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
-    function getScaleObject(dist) { return SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
-    function getCourtDetails(dist) { return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; }
-    function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
-    
-    function resizeGame() {
+    resize() {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
-        const scale = Math.min(winW / 800, winH / 600) * 0.95; 
-        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
-    }
-    window.addEventListener('resize', resizeGame);
+        const scale = Math.min(winW / 800, winH / 600) * 0.95;
+        document.getElementById('game-container').style.transform = `translate(-50%, -50%) scale(${scale})`;
+    },
 
-    function project(x, y, z) {
-        const dxToHoop = HOOP_POS.x - player3D.x;
-        const dyToHoop = HOOP_POS.y - player3D.y;
+    loop(timestamp) {
+        requestAnimationFrame(this.loop.bind(this));
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = Math.min((timestamp - this.lastTime) / 16.666, 4); // Cap dt
+        this.lastTime = timestamp;
+
+        this.update(dt);
+        Renderer.draw(this.ctx, this.state);
+    },
+
+    update(dt) {
+        const s = this.state;
+
+        // Background Elements
+        s.bgElements.forEach(bg => bg.update());
+
+        // Particles
+        s.particles.forEach(p => p.update());
+        s.particles = s.particles.filter(p => p.life > 0);
+
+        // Screen Shake decay
+        if(s.session.screenShake > 0) s.session.screenShake *= 0.9;
+        if(s.session.feedbackTimer > 0) s.session.feedbackTimer -= dt;
+
+        // Anim Time
+        s.player.animTime += dt * 0.1;
+
+        // Game Logic
+        if (s.state === 'JUMPING') {
+            s.player.pos.z += s.player.vel.z * dt;
+            s.player.vel.z -= CONSTANTS.GRAVITY * dt;
+            if (s.player.pos.z <= 0) {
+                s.player.pos.z = 0; s.player.vel.z = 0;
+                this.handleFail("MARCHÉ!");
+            }
+        }
+
+        if (s.state === 'SHOOTING') {
+            // Player lands
+            if (s.player.pos.z > 0) {
+                s.player.pos.z += s.player.vel.z * dt;
+                s.player.vel.z -= CONSTANTS.GRAVITY * dt;
+                if(s.player.pos.z < 0) s.player.pos.z = 0;
+            }
+
+            if (s.ball.active) {
+                // Ball Physics
+                s.ball.pos.x += s.ball.vel.x * dt;
+                s.ball.pos.y += s.ball.vel.y * dt;
+                s.ball.pos.z += s.ball.vel.z * dt;
+                s.ball.vel.z -= CONSTANTS.GRAVITY * dt;
+                s.ball.rotation += 0.2 * dt;
+
+                // Trail
+                if(Math.random() < 0.3) this.spawnParticle(s.ball.pos, 'trail');
+
+                // Check collision with hoop
+                const hoopDist = Math.hypot(s.ball.pos.x - CONSTANTS.HOOP_POS.x, s.ball.pos.y - CONSTANTS.HOOP_POS.y);
+
+                // Simple distance check for make
+                if (Math.abs(s.ball.pos.z - CONSTANTS.HOOP_POS.z) < 10 && hoopDist < 25) {
+                    this.handleScore();
+                    return;
+                }
+
+                // Ground hit
+                if (s.ball.pos.z <= 0) {
+                    s.ball.pos.z = 0;
+                    s.ball.active = false;
+                    this.spawnParticles(s.ball.pos, 10, '#888', 'dust');
+                    this.handleMiss();
+                }
+
+                // Too far
+                const distFromPlayer = Math.hypot(s.ball.pos.x - s.player.pos.x, s.ball.pos.y - s.player.pos.y);
+                if (distFromPlayer > 5000) { s.ball.active = false; this.handleMiss(); }
+            }
+        }
+
+        // Camera Lerp
+        const dxToHoop = CONSTANTS.HOOP_POS.x - s.player.pos.x;
+        const dyToHoop = CONSTANTS.HOOP_POS.y - s.player.pos.y;
         const distToHoop = Math.sqrt(dxToHoop*dxToHoop + dyToHoop*dyToHoop);
         let idealZoom = 380 * (400 + distToHoop) / Math.max(100, distToHoop);
         idealZoom = Math.min(1000, Math.max(400, idealZoom));
-        cameraZoom = idealZoom; cameraHeight = 84000 / cameraZoom;
+
+        // Smooth camera
+        s.camera.zoom += (idealZoom - s.camera.zoom) * 0.05 * dt;
+    },
+
+    spawnParticle(pos, type) {
+        this.state.particles.push(new Particle(pos.x, pos.y, pos.z, '#FFF', type));
+    },
+
+    spawnParticles(pos, count, color, type) {
+        for(let i=0; i<count; i++) {
+            this.state.particles.push(new Particle(pos.x, pos.y, pos.z, color, type));
+        }
+    },
+
+    startJump() {
+        if(this.state.state !== 'IDLE') return;
+        this.state.state = 'JUMPING';
+        this.state.player.vel.z = 9;
+        this.state.session.feedback = "";
+    },
+
+    releaseShot() {
+        if(this.state.state !== 'JUMPING') return;
+        const timingError = this.state.player.vel.z; // Higher is earlier release
+        this.shoot(timingError);
+    },
+
+    shoot(timingError) {
+        const s = this.state;
+        s.state = 'SHOOTING';
+        s.data.lifetimeStats.shots++;
+
+        // Calculation
+        let aimBonus = (s.data.stats.aim - 1);
+        let dampener = 6.0 + aimBonus;
+        const distPenalty = 1.0 + Math.pow(s.session.distanceLevel, 1.25) * 0.06;
+        let accuracy = (timingError / dampener) * s.data.difficulty * distPenalty;
+
+        // Setup Ball
+        s.ball.active = true;
+        s.ball.pos = s.player.pos.copy();
+        s.ball.pos.z += 120; // Release height
+
+        const dx = CONSTANTS.HOOP_POS.x - s.player.pos.x;
+        const dy = CONSTANTS.HOOP_POS.y - s.player.pos.y;
+        const flightTime = Math.min(120, 40 + (s.session.distanceLevel * 0.8));
+
+        s.ball.vel.x = dx / flightTime;
+        s.ball.vel.y = dy / flightTime;
+        s.ball.vel.z = (CONSTANTS.HOOP_POS.z - s.ball.pos.z + 0.5 * CONSTANTS.GRAVITY * flightTime * (flightTime - 1)) / flightTime;
+
+        // Apply inaccuracy
+        let isMiss = Math.abs(accuracy) > 0.25;
+        if(isMiss) {
+             const luckChance = (s.data.stats.luck - 1) * 0.05;
+             if(Math.random() < luckChance) {
+                 isMiss = false; s.session.feedback = "CHANCEUX!";
+                 Achievements.check('lucky');
+             } else {
+                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
+                 const len = Math.hypot(dx, dy);
+                 s.ball.vel.x += (-dy/len) * scatter;
+                 s.ball.vel.y += (dx/len) * scatter;
+                 s.ball.vel.z -= Math.abs(accuracy) * 5;
+                 s.session.feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRIQUE";
+             }
+        }
+    },
+
+    handleScore() {
+        const s = this.state;
+        s.ball.active = false;
+        s.data.lifetimeStats.makes++;
+        s.session.streak++;
+        s.session.consecutiveMisses = 0;
+
+        // Effects
+        this.spawnParticles(CONSTANTS.HOOP_POS, 50, '#FFD700', 'confetti');
+        s.session.screenShake = 10;
+        s.session.feedback = s.session.streak >= 3 ? `SÉRIE DE ${s.session.streak} 🔥` : "SWISH!";
+        s.session.feedbackTimer = 60;
+
+        // Rewards
+        const baseReward = 1 * s.session.distanceLevel * s.data.difficulty;
+        const multiplier = 1 + (s.data.stats.income - 1) * 0.5;
+        let reward = Math.ceil(baseReward * multiplier);
+        if (s.session.streak > 1) reward += s.session.streak * 2;
+        s.data.tacos += reward;
+
+        // Progression
+        const jump = s.data.stats.moonwalk || 1;
+        s.session.distanceLevel += jump;
+
+        Achievements.check('score');
+        s.save();
+        UI.update();
+
+        s.state = 'RESETTING';
+        setTimeout(() => this.nextLevel(), 1000);
+    },
+
+    handleMiss() {
+        const s = this.state;
+        s.ball.active = false;
+        s.data.lifetimeStats.misses++;
+        s.session.streak = 0;
+        s.session.consecutiveMisses++;
+
+        s.session.screenShake = 5;
+
+        const maxMisses = 2 + (s.data.stats.extraLives || 0);
+        if (s.session.consecutiveMisses >= maxMisses) {
+            this.handleFail("TERMINÉ !");
+        } else {
+            s.session.feedback = "DERNIÈRE CHANCE !";
+            s.session.feedbackTimer = 60;
+            s.state = 'RESETTING';
+            setTimeout(() => {
+                s.state = 'IDLE'; s.player.pos.z = 0; s.player.vel.z = 0;
+            }, 1000);
+        }
+        UI.update();
+    },
+
+    handleFail(msg) {
+        this.state.session.feedback = msg;
+        this.state.session.feedbackTimer = 120;
+        this.state.state = 'GAMEOVER';
+        setTimeout(() => UI.openShop(), 1500);
+    },
+
+    nextLevel() {
+        const s = this.state;
+        // Move player
+        const jump = s.data.stats.moonwalk || 1;
+        s.player.pos.x -= 15 * jump;
+        s.player.pos.y += 15 * jump;
+        s.player.pos.z = 0;
+        s.player.vel.z = 0;
+
+        s.state = 'IDLE';
+        UI.update();
+    },
+
+    toggleMode() {
+        // Simple toggle for now, can expand later
+        const s = this.state;
+        s.mode = s.mode === 'CLASSIC' ? 'CONTEST' : 'CLASSIC';
+        document.getElementById('modeBtnText').innerText = s.mode;
+        this.attemptReset(); // Reset when changing modes
+    },
+
+    attemptReset() {
+        const s = this.state;
+        s.session.distanceLevel = 1;
+        s.session.consecutiveMisses = 0;
+        s.player.pos = new Vector3(300, 300, 0);
+        s.state = 'IDLE';
+        s.session.feedback = "RESET";
+        s.session.feedbackTimer = 30;
+        UI.update();
+    }
+};
+
+const Achievements = {
+    check(context) {
+        const s = Game.state;
+        const d = s.data;
+        const dist = 10 + (s.session.distanceLevel * 5);
+
+        const unlock = (id) => {
+            if(!d.unlockedAchievements.includes(id)) {
+                d.unlockedAchievements.push(id);
+                const ach = DATA.ACHIEVEMENTS.find(a => a.id === id);
+                if(ach) {
+                    d.tacos += ach.reward;
+                    UI.notify(ach.name, ach.reward);
+                }
+            }
+        };
+
+        if (context === 'score') {
+            unlock('rookie');
+            if(d.lifetimeStats.makes >= 100) unlock('veteran');
+            if(dist >= 50) unlock('sniper');
+            if(d.difficulty >= 2) unlock('hard_mode');
+        }
+    }
+};
+
+const UI = {
+    viewingAnimalIndex: 0,
+    viewingSkinIndex: 0,
+
+    update() {
+        const s = Game.state;
+        document.getElementById('scoreVal').innerText = s.data.tacos;
+        if(s.mode === 'CLASSIC') {
+            const dist = 10 + (s.session.distanceLevel * 5);
+            document.getElementById('distVal').innerText = dist + " pi";
+            const max = 2 + (s.data.stats.extraLives || 0);
+            document.getElementById('missVal').innerText = s.session.consecutiveMisses + "/" + max;
+            document.getElementById('highScoreVal').innerText = s.data.highScore + " pi";
+
+            // Find court name
+            const zone = DATA.COURT_ZONES.find(z => dist < z.limit) || DATA.COURT_ZONES[DATA.COURT_ZONES.length-1];
+            document.getElementById('court-name').innerText = zone.name;
+        } else {
+             document.getElementById('court-name').innerText = "CONCOURS";
+        }
+    },
+    notify(name, reward) {
+        const n = document.getElementById('notification');
+        document.getElementById('notifText').innerText = `${name} (+${reward})`;
+        n.style.display = 'block';
+        setTimeout(() => n.style.display = 'none', 3000);
+    },
+    openShop() { document.getElementById('shopUI').classList.add('open'); this.populateShop(); Game.state.state = 'SHOP'; },
+    openAchievements() { document.getElementById('achUI').classList.add('open'); this.populateAch(); Game.state.state = 'ACHIEVEMENTS'; },
+    openStats() { document.getElementById('statsUI').classList.add('open'); this.populateStats(); Game.state.state = 'STATS'; },
+    closeAll() {
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+        if(Game.state.state !== 'GAMEOVER') Game.state.state = 'IDLE';
+    },
+
+    // --- Shop Logic ---
+    populateShop() {
+        const d = Game.state.data;
+        document.getElementById('shopTacos').innerText = d.tacos;
+        const container = document.getElementById('shop-content');
+        container.innerHTML = '';
+
+        // Difficulty Slider
+        const diffRow = document.createElement('div'); diffRow.className = 'difficulty-row';
+        diffRow.innerHTML = `<div><strong>DIFFICULTÉ:</strong> <span id="diffLabel" class="${d.difficulty>1?'text-gold':'text-green'}">x${d.difficulty.toFixed(1)}</span></div><input type="range" min="1" max="3" step="0.5" value="${d.difficulty}" onchange="UI.setDifficulty(this.value)">`;
+        container.appendChild(diffRow);
+
+        // Upgrades
+        const upgrades = [
+            { id: 'income', name: "Sirop d'Érable", desc: "Tacos x0.5/niv", costBase: 25 },
+            { id: 'aim', name: "Visée Assistée", desc: "Meilleure précision", costBase: 50 },
+            { id: 'luck', name: "Taco Grease", desc: "Chance rebond", costBase: 75 },
+            { id: 'moonwalk', name: "Moonwalk", desc: "Distance sautée", costBase: 150 },
+            { id: 'extraLives', name: "Vie Extra", desc: "Coups manqués permis", costBase: 1000, multi: 2 }
+        ];
+
+        upgrades.forEach(u => {
+            const lvl = d.stats[u.id] || (u.id==='extraLives'?0:1);
+            const cost = u.multi ? Math.floor(u.costBase * Math.pow(u.multi, lvl)) : Math.floor(u.costBase * Math.pow(lvl, 2));
+            const row = document.createElement('div'); row.className = 'upgrade-row';
+            row.innerHTML = `<div><strong class="text-gold">${u.name}</strong> (Niv ${lvl})<br><small style="color:#aaa">${u.desc}</small></div><button class="btn" onclick="UI.buyUpgrade('${u.id}')" ${d.tacos < cost ? 'disabled' : ''}>Acheter (${cost})</button>`;
+            container.appendChild(row);
+        });
+
+        // Skin Viewer
+        const viewer = document.createElement('div'); viewer.className = 'skin-viewer';
+        const animal = DATA.ANIMALS[this.viewingAnimalIndex];
+        const skins = DATA.SKINS_DB.filter(s => s.animal === animal);
+        const skin = skins[this.viewingSkinIndex];
+
+        viewer.innerHTML = `
+            <div class="skin-nav"><button class="btn" onclick="UI.changeAnimal(-1)">&lt;</button><span class="selector-label">${animal}</span><button class="btn" onclick="UI.changeAnimal(1)">&gt;</button></div>
+            <div class="skin-nav"><button class="btn" onclick="UI.changeSkin(-1)">&lt;</button><span class="selector-label">${skin.name}</span><button class="btn" onclick="UI.changeSkin(1)">&gt;</button></div>
+            <button class="btn w-100" onclick="UI.buySkin('${skin.id}')" ${(!d.unlockedSkins.includes(skin.id) && d.tacos < skin.cost) ? 'disabled' : ''}>
+                ${d.currentSkin === skin.id ? 'ÉQUIPÉ' : (d.unlockedSkins.includes(skin.id) ? 'ÉQUIPER' : `ACHETER (${skin.cost})`)}
+            </button>
+        `;
+        container.appendChild(viewer);
+    },
+
+    setDifficulty(val) {
+        Game.state.data.difficulty = parseFloat(val);
+        Game.state.save();
+        this.populateShop();
+    },
+
+    buyUpgrade(id) {
+        const d = Game.state.data;
+        // Re-calc cost (duplicated logic, strictly should be method)
+        const u = { costBase: (id==='income'?25:id==='aim'?50:id==='luck'?75:id==='moonwalk'?150:1000) };
+        const lvl = d.stats[id];
+        const cost = id==='extraLives' ? Math.floor(1000 * Math.pow(2, lvl)) : Math.floor(u.costBase * Math.pow(lvl, 2));
+
+        if(d.tacos >= cost) {
+            d.tacos -= cost;
+            d.stats[id]++;
+            Game.state.save();
+            this.update();
+            this.populateShop();
+        }
+    },
+
+    changeAnimal(dir) {
+        this.viewingAnimalIndex += dir;
+        if(this.viewingAnimalIndex < 0) this.viewingAnimalIndex = DATA.ANIMALS.length - 1;
+        if(this.viewingAnimalIndex >= DATA.ANIMALS.length) this.viewingAnimalIndex = 0;
+        this.viewingSkinIndex = 0;
+        this.populateShop();
+    },
+
+    changeSkin(dir) {
+        const animal = DATA.ANIMALS[this.viewingAnimalIndex];
+        const skins = DATA.SKINS_DB.filter(s => s.animal === animal);
+        this.viewingSkinIndex += dir;
+        if(this.viewingSkinIndex < 0) this.viewingSkinIndex = skins.length - 1;
+        if(this.viewingSkinIndex >= skins.length) this.viewingSkinIndex = 0;
+        this.populateShop();
+    },
+
+    buySkin(id) {
+        const d = Game.state.data;
+        const skin = DATA.SKINS_DB.find(s => s.id === id);
+        if(d.unlockedSkins.includes(id)) {
+            d.currentSkin = id;
+        } else if (d.tacos >= skin.cost) {
+            d.tacos -= skin.cost;
+            d.unlockedSkins.push(id);
+            d.currentSkin = id;
+        }
+        Game.state.save();
+        this.populateShop();
+    },
+
+    populateAch() {
+        const list = document.getElementById('achList');
+        list.innerHTML = '';
+        DATA.ACHIEVEMENTS.forEach(ach => {
+            const unlocked = Game.state.data.unlockedAchievements.includes(ach.id);
+            list.innerHTML += `<div class="ach-row ${unlocked?'unlocked':''}"><div><span class="ach-icon">${unlocked?'🏆':'🔒'}</span> <strong>${ach.name}</strong><br><small>${ach.desc}</small></div>${unlocked?'<span class="text-green">✓</span>':''}</div>`;
+        });
+    },
+
+    populateStats() {
+        const ls = Game.state.data.lifetimeStats;
+        document.getElementById('statsContent').innerHTML = `
+            <p>Tirs: ${ls.shots}</p>
+            <p>Paniers: ${ls.makes}</p>
+            <p>Ratés: ${ls.misses}</p>
+            <p>Précision: ${ls.shots>0 ? ((ls.makes/ls.shots)*100).toFixed(1) : 0}%</p>
+        `;
+    }
+};
+
+const Input = {
+    init() {
+        window.addEventListener('keydown', e => {
+            if(e.code === 'Space') { if(Game.state.state === 'IDLE') Game.startJump(); }
+            if(e.code === 'KeyP') UI.openShop();
+            if(e.code === 'KeyO') UI.openAchievements();
+            if(e.code === 'KeyS') UI.openStats();
+            if(e.code === 'Escape') UI.closeAll();
+        });
+        window.addEventListener('keyup', e => {
+            if(e.code === 'Space') { if(Game.state.state === 'JUMPING') Game.releaseShot(); }
+        });
+        window.addEventListener('mousedown', e => {
+            if(e.target.closest('.ui-btn') || e.target.closest('.modal')) return;
+            if(Game.state.state === 'IDLE') Game.startJump();
+        });
+        window.addEventListener('mouseup', () => { if(Game.state.state === 'JUMPING') Game.releaseShot(); });
+    }
+};
+
+const Renderer = {
+    project(v, s) {
+        const cam = s.camera;
+        const dxToHoop = CONSTANTS.HOOP_POS.x - s.player.pos.x;
+        const dyToHoop = CONSTANTS.HOOP_POS.y - s.player.pos.y;
+
         const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
         const rotation = -angleToHoop - Math.PI/2;
-        const dx = x - player3D.x; const dy = y - player3D.y;
+
+        const dx = v.x - s.player.pos.x;
+        const dy = v.y - s.player.pos.y;
+
         const rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
         const ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
-        const cameraOffset = 400; const depth = cameraOffset - ry;
-        if (depth <= 0) return null; 
-        const scale = cameraZoom / depth;
-        const screenX = canvas.width / 2 + (rx * scale);
-        const horizonY = (canvas.height - 120) * 0.5; 
-        const screenY = horizonY + (cameraHeight - z) * scale;
-        return { x: screenX, y: screenY, scale: scale, depth: depth };
-    }
 
-    // --- 4. DRAWING FUNCTIONS ---
-    function drawFlightTracker() {
-        const h = 120;
-        const y = canvas.height - h;
-        ctx.fillStyle = '#111'; ctx.fillRect(0, y, canvas.width, h);
-        ctx.fillStyle = '#222'; ctx.fillRect(0, y + h/2, canvas.width, h/2);
-        const dist = 10 + (distanceLevel * 5);
-        const scaleObj = getScaleObject(dist);
-        ctx.font = "bold 20px 'Segoe UI'"; ctx.fillStyle = "#FFD700"; ctx.textAlign = "center";
-        if (currentGameMode === 'CLASSIC') {
-            ctx.fillText(`Distance: ${dist} pi`, canvas.width/2, y + 30);
-            ctx.font = "italic 16px 'Segoe UI'"; ctx.fillStyle = "#aaa";
-            ctx.fillText(`(Équivalent: ${scaleObj.name})`, canvas.width/2, y + 55);
-        } else {
-             ctx.fillText(`CONCOURS 3 POINTS`, canvas.width/2, y + 30);
+        const cameraOffset = 400;
+        const depth = cameraOffset - ry;
+
+        if (depth <= 0) return null;
+
+        const scale = cam.zoom / depth;
+        const screenX = CONSTANTS.CANVAS_WIDTH / 2 + (rx * scale);
+
+        // Screenshake
+        const shakeX = (Math.random()-0.5) * s.session.screenShake;
+        const shakeY = (Math.random()-0.5) * s.session.screenShake;
+
+        const horizonY = (CONSTANTS.CANVAS_HEIGHT - 120) * 0.5;
+        const screenY = horizonY + (cam.height - v.z) * scale;
+
+        return { x: screenX + shakeX, y: screenY + shakeY, scale: scale, depth: depth };
+    },
+
+    getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; },
+
+    draw(ctx, s) {
+        ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
+
+        const currentDist = 10 + (s.session.distanceLevel * 5);
+        const court = DATA.COURT_ZONES.find(z => currentDist < z.limit) || DATA.COURT_ZONES[DATA.COURT_ZONES.length-1];
+
+        // Sky
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height * 0.6);
+        skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2);
+        ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        // BG Elements (Parallax)
+        s.bgElements.forEach(bg => {
+            // Simple parallax logic: shift position based on camera but slower
+            const paraX = bg.x + (s.player.pos.x * 0.5);
+            const proj = this.project(new Vector3(s.player.pos.x + bg.x, s.player.pos.y + bg.y, bg.z), s);
+            if(proj) {
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                if(bg.type === 'bird') {
+                     ctx.beginPath(); ctx.moveTo(proj.x, proj.y); ctx.lineTo(proj.x-5*proj.scale, proj.y-2*proj.scale); ctx.lineTo(proj.x+5*proj.scale, proj.y-2*proj.scale); ctx.fill();
+                } else {
+                     ctx.beginPath(); ctx.arc(proj.x, proj.y, 40*proj.scale, 0, Math.PI*2); ctx.fill();
+                }
+            }
+        });
+
+        // Floor
+        const horizonY = (ctx.canvas.height - 120) * 0.5;
+        const groundGrad = ctx.createLinearGradient(0, horizonY, 0, ctx.canvas.height);
+        groundGrad.addColorStop(0, court.ground1); groundGrad.addColorStop(1, court.ground2);
+        ctx.fillStyle = groundGrad; ctx.fillRect(0, horizonY, ctx.canvas.width, ctx.canvas.height - horizonY);
+
+        let renderList = [];
+
+        // Decors
+        s.decor.forEach(d => {
+             const proj = this.project(new Vector3(d.x, d.y, 0), s);
+             const dist = Math.hypot(d.x - CONSTANTS.HOOP_POS.x, d.y - CONSTANTS.HOOP_POS.y);
+             const zone = DATA.COURT_ZONES.find(z => dist < z.limit) || DATA.COURT_ZONES[DATA.COURT_ZONES.length-1];
+             if(proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zone: zone });
+        });
+
+        // Hoop
+        const hoopProj = this.project(new Vector3(CONSTANTS.HOOP_POS.x, CONSTANTS.HOOP_POS.y, CONSTANTS.HOOP_POS.z), s);
+        if(hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
+
+        // Player
+        const playerProj = this.project(s.player.pos, s);
+        if(playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
+
+        // Shadow
+        const shadowProj = this.project(new Vector3(s.player.pos.x, s.player.pos.y, 0), s);
+        if(shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
+
+        // Ball
+        if(s.ball.active) {
+            const ballProj = this.project(s.ball.pos, s);
+            if(ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
         }
-        const margin = 100; const lineY = y + 80; const lineLen = canvas.width - (margin * 2);
-        ctx.strokeStyle = '#555'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(margin, lineY); ctx.lineTo(margin + lineLen, lineY); ctx.stroke();
-        ctx.font = "30px Arial"; ctx.textAlign="center";
-        ctx.fillText("⛹️", margin, lineY + 10); ctx.fillText("🏀", margin + lineLen, lineY + 10);
-        if (currentGameMode === 'CLASSIC') { ctx.globalAlpha = 0.3; ctx.font = "60px Arial"; ctx.fillText(scaleObj.icon, canvas.width/2, lineY); ctx.globalAlpha = 1.0; }
-        if(state === 'SHOOTING' && ball.active) {
-            const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
-            const totalDist = Math.sqrt(dx*dx + dy*dy);
-            const ballDx = ball.x - player3D.x; const ballDy = ball.y - player3D.y;
-            const currentDist = Math.sqrt(ballDx*ballDx + ballDy*ballDy);
-            let progress = currentDist / totalDist;
-            const zFactor = ball.z / 300;
-            const ballX = margin + (progress * lineLen);
-            const ballY = lineY - (zFactor * 50);
-            ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(ballX, ballY, 5, 0, Math.PI*2); ctx.fill();
-        }
-    }
 
-    function drawBallSprite(x, y, scale) {
-        let color1 = '#ff6600'; let color2 = '#cc5500';
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { color1 = '#FFFFFF'; color2 = '#0000FF'; }
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 1 * scale;
-        const grad = ctx.createRadialGradient(x - 2*scale, y - 2*scale, 1*scale, x, y, 8*scale);
-        grad.addColorStop(0, color1); grad.addColorStop(1, color2);
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.stroke();
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
-        ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
-    }
-    
-    function drawBall(p) {
-        if (!p) return;
-        drawBallSprite(p.x, p.y, p.scale);
-    }
+        // Particles
+        s.particles.forEach(p => {
+             const proj = this.project(new Vector3(p.x, p.y, p.z), s);
+             if(proj) renderList.push({ type: 'particle', depth: proj.depth, proj: proj, obj: p });
+        });
 
-    function drawLimb(x1, y1, x2, y2, width, color) {
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
-        ctx.beginPath(); ctx.moveTo(x1 - dx, y1 + dy); ctx.lineTo(x2 - dx, y2 + dy); ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
-        ctx.lineTo(x1 + dx, y1 - dy); ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2); ctx.closePath();
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2); grad.addColorStop(0, color); grad.addColorStop(1, '#000000'); 
-        ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-    }
+        // Sort & Draw
+        renderList.sort((a,b) => b.depth - a.depth);
+        renderList.forEach(item => {
+            if(item.type === 'hoop') this.drawHoop(ctx, item.proj);
+            if(item.type === 'player') this.drawPlayer(ctx, item.proj, s);
+            if(item.type === 'shadow') this.drawShadow(ctx, item.proj);
+            if(item.type === 'ball') this.drawBall(ctx, item.proj, s);
+            if(item.type === 'decor') this.drawDecor(ctx, item.proj, item.zone);
+            if(item.type === 'particle') this.drawParticle(ctx, item.proj, item.obj);
+        });
 
-    function drawRoundedRect(x, y, w, h, r, color) {
-        ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
-        const grad = ctx.createRadialGradient(x + w/2, y + h/2, 5, x + w/2, y + h/2, w); grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-        ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-    }
+        this.drawUI(ctx, s);
+    },
 
-    function drawDecor(p, type) { 
-        if (!p) return; 
+    drawHoop(ctx, p) {
         const s = p.scale;
-        if(type === 'grass') { 
-            ctx.fillStyle = '#F4C430'; 
-            ctx.beginPath(); ctx.arc(p.x, p.y - 20*s, 30*s, Math.PI, 0); ctx.fill();
-            ctx.strokeStyle = '#D2691E'; ctx.lineWidth = 2*s; ctx.stroke();
-            ctx.fillStyle = '#32CD32'; for(let i=0; i<5; i++) { ctx.beginPath(); ctx.arc(p.x - 25*s + (i*12*s), p.y - 45*s, 8*s, 0, Math.PI*2); ctx.fill(); }
-            ctx.fillStyle = '#FFA500'; ctx.beginPath(); ctx.arc(p.x - 30*s, p.y - 25*s, 15*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x-40*s, p.y-35*s); ctx.lineTo(p.x-45*s, p.y-50*s); ctx.lineTo(p.x-30*s, p.y-38*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x-20*s, p.y-38*s); ctx.lineTo(p.x-15*s, p.y-50*s); ctx.lineTo(p.x-25*s, p.y-35*s); ctx.fill();
-            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x + 25*s, p.y - 25*s); ctx.quadraticCurveTo(p.x + 40*s, p.y - 40*s, p.x + 45*s, p.y - 10*s); ctx.stroke();
-            ctx.fillStyle = '#FFA500';
-            ctx.beginPath(); ctx.arc(p.x - 20*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x - 5*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 10*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 25*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-        } 
-        else if(type === 'tree') {
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x - 5*s, p.y, 10*s, -20*s);
-            ctx.fillStyle = '#006400';
-            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 15*s); ctx.lineTo(p.x + 30*s, p.y - 15*s); ctx.lineTo(p.x, p.y - 80*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 40*s); ctx.lineTo(p.x + 25*s, p.y - 40*s); ctx.lineTo(p.x, p.y - 100*s); ctx.fill();
-        }
-        else if (type === 'water') {
-             ctx.fillStyle = '#FF0000'; ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, 0, Math.PI*2); ctx.fill();
-             ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x, p.y, 5*s, 0, Math.PI*2); ctx.fill();
-        }
-        else if (type === 'castle') {
-            ctx.strokeStyle = '#222'; ctx.lineWidth = 3*s;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - 50*s); ctx.stroke();
-            ctx.fillStyle = '#FFFFE0'; ctx.beginPath(); ctx.arc(p.x, p.y - 55*s, 8*s, 0, Math.PI*2); ctx.fill();
-        }
-        else if (type === 'mountain') {
-            ctx.fillStyle = '#808080'; ctx.beginPath(); ctx.arc(p.x, p.y, 20*s, Math.PI, 0); ctx.fill();
-            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x, p.y, 20*s, 3.5, 5.9); ctx.fill();
-        }
-        else if (type === 'space') {
-            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(p.x, p.y - 30*s, 15*s, 0, Math.PI*2); ctx.fill();
-        }
-    }
-    
-    function drawShadow(p) { if(!p) return; ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2); ctx.fill(); }
+        const bbW = 60 * s; const bbH = 40 * s;
+        const bbX = p.x - bbW/2; const bbY = p.y - bbH - 10*s;
 
-    function drawHoop(p) {
-        if (!p) return;
-        const s = p.scale;
-        const baseP = project(HOOP_POS.x, HOOP_POS.y, 0);
-        if(baseP) { ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s, p.y, 4*s, baseP.y - p.y); }
-        const bbW = 60 * s; const bbH = 40 * s; const bbX = p.x - bbW/2; const bbY = p.y - bbH - 10*s;
+        ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s, p.y, 4*s, 500*s);
         ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(bbX, bbY, bbW, bbH);
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s; ctx.strokeRect(bbX, bbY, bbW, bbH);
         ctx.fillStyle = '#CE1126'; ctx.fillRect(bbX + bbW*0.35, bbY + bbH*0.6, bbW*0.3, bbH*0.3);
         ctx.beginPath(); ctx.ellipse(p.x, p.y, 18 * s, 5 * s, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'none'; ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
+        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
         ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y); ctx.lineTo(p.x - 10*s, p.y + 20*s); ctx.lineTo(p.x + 10*s, p.y + 20*s); ctx.lineTo(p.x + 15*s, p.y);
         ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
-    }
+    },
 
-    function drawPlayer(p) {
-        if (!p) return;
+    drawPlayer(ctx, p, state) {
         const s = p.scale;
-        const skin = playerData.currentSkin;
-        let currentAnimal = 'rat';
-        const skinObj = SKINS_DB.find(x => x.id === skin);
-        if(skinObj) currentAnimal = skinObj.animal;
+        const skinId = state.data.currentSkin;
+        const skinData = DATA.SKINS_DB.find(x => x.id === skinId);
+        const animal = skinData ? skinData.animal : 'rat';
 
+        // Squash & Stretch
+        let sy = 1, sx = 1;
+        if(state.state === 'JUMPING' && state.player.vel.z > 0) { sy = 1.1; sx = 0.9; }
+        if(state.state === 'JUMPING' && state.player.vel.z < 0) { sy = 0.95; sx = 1.05; }
+        // Idle breathe
+        if(state.state === 'IDLE') { sy = 1 + Math.sin(state.player.animTime) * 0.02; }
+
+        // Setup sizes
         let sizeMod = { w: 1, h: 1, head: 1 };
-        switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'raccoon': sizeMod = { w: 0.9, h: 0.9, head: 0.95 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; break;
-            case 'penguin': sizeMod = { w: 1.1, h: 0.8, head: 1.0 }; break;
-            case 'beaver': sizeMod = { w: 1.1, h: 0.9, head: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
-        }
+        // (Simplified size logic from original)
+        if(animal === 'bear') sizeMod = { w: 1.4, h: 1.1, head: 1.2 };
 
-        // 1. Setup Base Colors
-        let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
-        let bellyColor = null, hasSpots = false, hasBlackEars = false;
-
-        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; } 
-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; } 
-        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
-        else if(currentAnimal === 'beaver') { furColor = '#5D4037'; tailColor = '#3E2723'; }
-        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
-        else if(currentAnimal === 'penguin') { furColor = '#111'; tailColor = '#111'; bellyColor = '#fff'; }
-        else if(currentAnimal === 'raccoon') { furColor = '#777'; tailColor = '#333'; }
-
-        // Default clothes to fur color (naked)
-        torsoColor = furColor; legColor = furColor; armColor = furColor;
-
-        // 2. Apply Skin Overrides
-        if(skin.includes('lumberjack')) { 
-            torsoColor = '#b30000'; // Red Plaidish
-            legColor = '#00008b';   // Blue Jeans
-            armColor = '#b30000';   // Sleeves
-        }
-        else if(skin.includes('mariachi')) { torsoColor='#1a1a1a'; legColor='#1a1a1a'; armColor='#1a1a1a'; }
-        else if(skin.includes('luchador')) { legColor = '#008000'; } // Green tights
-        else if(skin.includes('astronaut')) { torsoColor='#fff'; legColor='#fff'; armColor='#fff'; }
-        else if(skin.includes('alien')) { furColor = '#32CD32'; tailColor='#32CD32'; torsoColor=furColor; legColor=furColor; armColor=furColor; }
-        else if(skin.includes('zombie')) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; } // Green skin, ragged pants
-        else if(skin.includes('ninja')) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; }
-        else if(skin.includes('robot')) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; }
-        
-        let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
-        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
-        let legLen = 30 * s * sizeMod.h;
+        let bodyW = 20 * s * sizeMod.w * sx;
+        let bodyH = 40 * s * sizeMod.h * sy;
+        let legLen = 30 * s;
         let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head); 
-        let headRadius = 12 * s * sizeMod.head;
+        let headY = torsoY - (10 * s * sizeMod.head);
 
-        // 3. Draw Back Accessories (Cape, Wings) - Layer -1
-        if(skin.includes('vampire') || skin.includes('king') || skin.includes('wizard')) {
-            ctx.fillStyle = skin.includes('vampire') ? '#000' : (skin.includes('king') ? '#800080' : '#000080');
-            ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
-        }
-        if(skin.includes('angel')) {
-            ctx.fillStyle = '#FFF'; 
-            ctx.beginPath(); ctx.ellipse(p.x - 20*s, torsoY + 10*s, 10*s, 20*s, -0.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
-        }
+        // Colors
+        let fur = '#555';
+        if(animal==='rat') fur='#696969';
+        if(animal==='cat') fur='#808080';
+        if(animal==='dog') fur='#8B4513';
+        if(animal==='rabbit') fur='#FFF';
 
-        // 4. Draw Legs (Layer 0)
-        drawLimb(p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s*sizeMod.w, legColor);
-        drawLimb(p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s*sizeMod.w, legColor);
+        let torsoColor = fur;
+        if(skinId.includes('lumberjack')) torsoColor = '#b30000';
 
-        // 5. Arms Logic (Layer 1 - Before Body/Torso to appear behind)
-        let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
-        let upperArmLen = 20 * s * sizeMod.h * 0.6; let foreArmLen = 20 * s * sizeMod.h * 0.6;
-        let wristAngle = 0;
-        
-        if (state === 'SHOOTING') {
-            // Arms go up and slightly in - symmetrical
-            leftArmAngle = -Math.PI/2 + 0.2; 
-            rightArmAngle = -Math.PI/2 - 0.2;
-            leftForeArmAngle = -Math.PI/2 + 0.4;
-            rightForeArmAngle = -Math.PI/2 - 0.4;
-            wristAngle = 1.0;
-        } else if (state === 'JUMPING') {
-             // Calculate lift (0 to 1)
-            let lift = Math.max(0, (9 - player3D.vz) / 9);
-            // Interpolate from Idle to Shooting
-            leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
-            rightArmAngle = (Math.PI/2 + 0.2) + ((-Math.PI/2 - 0.2) - (Math.PI/2 + 0.2)) * lift;
-            leftForeArmAngle = (Math.PI/2 - 0.1) + ((-Math.PI/2 + 0.4) - (Math.PI/2 - 0.1)) * lift;
-            rightForeArmAngle = (Math.PI/2 + 0.1) + ((-Math.PI/2 - 0.4) - (Math.PI/2 + 0.1)) * lift;
-        } else {
-            // Idle - Symmetrical hanging down
-            leftArmAngle = Math.PI/2 - 0.2;
-            rightArmAngle = Math.PI/2 + 0.2; // Mirror
-            leftForeArmAngle = Math.PI/2 - 0.1;
-            rightForeArmAngle = Math.PI/2 + 0.1; // Mirror
-        }
+        // Draw Legs
+        this.drawLimb(ctx, p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s, fur);
+        this.drawLimb(ctx, p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s, fur);
 
-        let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
+        // Arms Animation
+        let armAngle = Math.PI/2 - 0.2;
+        if(state.state === 'JUMPING') armAngle = -Math.PI/2 - 0.2;
+        if(state.state === 'IDLE') armAngle += Math.sin(state.player.animTime) * 0.1;
 
-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor);
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor);
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0)); 
-            ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isRight) { // Stick for Hockey?
-                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
-            }
-            if (isRight && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
-            ctx.restore();
-        };
+        // Body
+        this.drawRoundedRect(ctx, p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
 
-        if(currentAnimal === 'penguin') { 
-            drawLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor);
-            drawLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor);
-        } else {
-             drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-             drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-        }
+        // Head
+        ctx.fillStyle = fur;
+        ctx.beginPath(); ctx.arc(p.x, headY, 12*s*sizeMod.head, 0, Math.PI*2); ctx.fill();
 
-        // 6. Draw Body (Layer 2)
-        drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
-        // Spots/Stripes on Body
-        if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
-        if(bellyColor && currentAnimal === 'penguin') { ctx.fillStyle=bellyColor; ctx.fillRect(p.x-5*s, torsoY+5*s, 10*s, 30*s); }
-        // Lumberjack Plaid Pattern (New)
-        if(skin.includes('lumberjack')) {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+20*s); ctx.lineTo(p.x+bodyW/2, torsoY+20*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+30*s); ctx.lineTo(p.x+bodyW/2, torsoY+30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
-        }
-
-        // 7. Draw Tail (Layer 3 - On Top/Butt)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'penguin' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = (currentAnimal === 'beaver' ? 10 : 4) * s;
-            ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s); // Start at butt
-            ctx.quadraticCurveTo(p.x + 15*s, p.y - legLen + 5*s, p.x + 20*s, p.y - legLen - 10*s); ctx.stroke();
-            if(currentAnimal === 'beaver') { // Flat tail texture
-                 ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s; 
-                 ctx.beginPath(); ctx.moveTo(p.x + 5*s, p.y - legLen); ctx.lineTo(p.x + 15*s, p.y - legLen); ctx.stroke();
-            }
-        }
-        
-        // 8. Draw Head & Ears (Layer 4)
-        // Ears first so they are behind head circle
-        ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
-        if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
-        
-        if(currentAnimal === 'rat') {
-            // Big round ears
-            ctx.beginPath(); ctx.arc(p.x - 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
-            // Removed black outline for rat ears per request
-            ctx.beginPath(); ctx.arc(p.x + 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'cat') {
-            // Pointy ears
-            ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-8*s); ctx.lineTo(p.x-15*s, headY-20*s); ctx.lineTo(p.x-15*s, headY); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-8*s); ctx.lineTo(p.x+15*s, headY-20*s); ctx.lineTo(p.x+15*s, headY); ctx.fill();
-        } else if (currentAnimal === 'rabbit') {
-            // Long ears
+        // Ears (Simple)
+        if(animal==='rat' || animal==='bear') {
+             ctx.beginPath(); ctx.arc(p.x-12*s, headY-5*s, 7*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x+12*s, headY-5*s, 7*s, 0, Math.PI*2); ctx.fill();
+        } else if (animal==='rabbit') {
              ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'bear' || currentAnimal === 'dog') {
-            // Small round ears
-            ctx.beginPath(); ctx.arc(p.x - 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
-        }
-        if(currentAnimal === 'moose') {
-            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
-            ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-10*s); ctx.lineTo(p.x-30*s, headY-25*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x+10*s, headY-10*s); ctx.lineTo(p.x+30*s, headY-25*s); ctx.stroke();
         }
 
-        // Head Circle
-        ctx.fillStyle = furColor;
-        if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
-        ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
-        
-        // Head Accessories
-        if(skin.includes('mariachi')) { 
-            ctx.fillStyle = '#1a1a1a'; // Black sombrero
-            ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill(); // Brim
-            ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill(); // Top
+        // Shot Meter
+        if(state.state === 'JUMPING') {
+            const meterY = p.y - 120*s;
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.arc(p.x + 40*s, meterY, 20*s, 0, Math.PI*2); ctx.stroke();
+            const progress = (Math.abs(state.player.vel.z) / 9);
+            ctx.fillStyle = progress < 0.2 ? '#00FF00' : '#FF0000';
+            ctx.beginPath(); ctx.moveTo(p.x+40*s, meterY); ctx.arc(p.x+40*s, meterY, 15*s, 0, Math.PI*2 * (1-progress)); ctx.fill();
         }
-        if(skin.includes('clown')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('pirate')) { ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill(); } // Eye patch implied
-        if(skin.includes('king')) { ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s); ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill(); }
-        if(skin.includes('wizard')) { ctx.fillStyle='#000080'; ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill(); }
-        if(skin.includes('chef')) { ctx.fillStyle='#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s); }
-        if(skin.includes('hockey')) { ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, headY, headRadius+2*s, 0, Math.PI*2); ctx.stroke(); } // Helmet
-        if(skin.includes('devil')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill(); ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill(); }
-        if(skin.includes('angel')) { ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('astronaut')) { ctx.strokeStyle='#87CEEB'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('lumberjack')) { ctx.fillStyle='#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s); } // Tuque
+    },
 
-        // 9. Jersey Number (Layer 5)
-        if(!skin.includes('alien') && !skin.includes('robot')) {
-            ctx.fillStyle = "#FFF";
-            ctx.font = `bold ${12 * s}px Arial`;
+    drawLimb(ctx, x1, y1, x2, y2, width, color) {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    },
+
+    drawRoundedRect(ctx, x, y, w, h, r, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+    },
+
+    drawBall(ctx, p, s) {
+        ctx.fillStyle = '#FF6600';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 8*p.scale, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1*p.scale;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 8*p.scale, 0, Math.PI*2); ctx.stroke();
+        // Detail
+        ctx.beginPath(); ctx.arc(p.x, p.y, 8*p.scale, 0, Math.PI*2); ctx.stroke();
+    },
+
+    drawShadow(ctx, p) {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, 20*p.scale, 6*p.scale, 0, 0, Math.PI*2); ctx.fill();
+    },
+
+    drawDecor(ctx, p, zone) {
+        const s = p.scale;
+        if(zone.type === 'grass') {
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath(); ctx.arc(p.x, p.y, 15*s, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#32CD32'; ctx.beginPath(); ctx.arc(p.x, p.y-10*s, 10*s, 0, Math.PI*2); ctx.fill();
+        } else if (zone.type === 'tree') {
+            ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x-5*s, p.y-20*s, 10*s, 20*s);
+            ctx.fillStyle = '#006400'; ctx.beginPath(); ctx.moveTo(p.x-20*s, p.y-15*s); ctx.lineTo(p.x+20*s, p.y-15*s); ctx.lineTo(p.x, p.y-60*s); ctx.fill();
+        } else if (zone.type === 'castle') {
+             ctx.fillStyle = '#555'; ctx.fillRect(p.x-10*s, p.y-40*s, 20*s, 40*s);
+             ctx.beginPath(); ctx.moveTo(p.x-15*s, p.y-40*s); ctx.lineTo(p.x+15*s, p.y-40*s); ctx.lineTo(p.x, p.y-60*s); ctx.fill();
+        } else {
+             ctx.fillStyle = '#777'; ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, Math.PI, 0); ctx.fill();
+        }
+    },
+
+    drawParticle(ctx, p, obj) {
+        ctx.fillStyle = obj.color;
+        const s = p.scale;
+        if(obj.type === 'confetti') {
+            ctx.save();
+            ctx.translate(p.x, p.y); ctx.rotate(obj.life * 10);
+            ctx.fillRect(-3*s, -3*s, 6*s, 6*s);
+            ctx.restore();
+        } else {
+            ctx.globalAlpha = obj.life;
+            ctx.beginPath(); ctx.arc(p.x, p.y, (obj.type==='dust'? 5 : 2)*s, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    },
+
+    drawUI(ctx, s) {
+        if(s.session.feedbackTimer > 0) {
+            ctx.font = "900 60px 'Arial Black'";
+            ctx.fillStyle = s.session.feedback.includes("SWISH") || s.session.feedback.includes("SÉRIE") ? "#00FF00" : "#FFF";
+            if(s.session.feedback.includes("CHANCE")) ctx.fillStyle = "#FFD700";
             ctx.textAlign = "center";
-            ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
-        }
-
-        // 10. Shot Meter (Layer 6)
-        if (state === 'JUMPING') {
-            const maxVz = 9; const curVz = Math.abs(player3D.vz);
-            let progress = 1.0 - (curVz / maxVz); progress = Math.max(0, Math.min(1, progress));
-            const groundY = p.y + (player3D.z * s); 
-            const meterY = groundY - (130 * s * sizeMod.h); 
-            const cx = p.x + (60 * s); const radius = 50 * s;
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s; ctx.lineCap = 'round';
-            ctx.arc(cx, meterY, radius, 0, -Math.PI / 2, true); ctx.stroke();
-            const damp = 6.0 + (playerData.stats.aim - 1);
-            const pen = Math.min(4.0, 1.0 + (distanceLevel * 0.04));
-            const thresh = (0.25 * damp) / (playerData.difficulty * pen);
-            const greenStart = 1.0 - (thresh / maxVz);
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
-            ctx.arc(cx, meterY, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true); ctx.stroke();
-            ctx.beginPath();
-            if (progress > greenStart) ctx.strokeStyle = '#00FF00'; else if (progress > 0.6) ctx.strokeStyle = '#FFFF00'; else ctx.strokeStyle = '#FF4500'; 
-            ctx.lineWidth = 8*s; ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
+            ctx.strokeStyle = "#000"; ctx.lineWidth = 3;
+            ctx.fillText(s.session.feedback, ctx.canvas.width/2, 200);
+            ctx.strokeText(s.session.feedback, ctx.canvas.width/2, 200);
         }
     }
+};
 
-    function drawBackground() {
-        const currentDist = 10 + (distanceLevel * 5);
-        const court = getCourtDetails(currentDist);
-        const horizonY = (canvas.height - 120) * 0.5;
-
-        // Sky
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
-        skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2); 
-        ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Current Floor Fill
-        const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
-        currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-        ctx.fillStyle = currentZoneGrad; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
-
-        // Past Floors
-        const getProjectedY = (gDist) => {
-            if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
-            const ratio = gDist / currentDist;
-            const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-            const p = project(wx, wy, 0); return p ? p.y : canvas.height;
-        };
-
-        for (let i = 0; i < COURT_ZONES.length; i++) {
-            const z = COURT_ZONES[i];
-            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-            let zEnd = z.limit;
-            if (zStart >= currentDist) break; 
-            let drawEnd = Math.min(zEnd, currentDist);
-            const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd); 
-            if ((yBottom - yTop) > 0.5) {
-                const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad; ctx.fillRect(0, yTop, canvas.width, (yBottom - yTop) + 2); 
-            }
-        }
-
-        mountains.forEach(m => {
-            const shift = (player3D.x + player3D.y) * 0.05;
-            const xPos = ((m.x - shift) % (canvas.width + 200)) - 100;
-            ctx.beginPath(); ctx.moveTo(xPos, horizonY); ctx.lineTo(xPos + 60, horizonY - m.h); ctx.lineTo(xPos + 120, horizonY);
-            ctx.fillStyle = m.color; ctx.fill();
-        });
-        ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(canvas.width, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
-
-        // 3D OBJECTS
-        let renderList = [];
-        decors.forEach(d => { 
-            const proj = project(d.x, d.y, 0); 
-            const dDist = Math.sqrt(Math.pow(d.x - HOOP_POS.x, 2) + Math.pow(d.y - HOOP_POS.y, 2));
-            const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
-            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: decorZone.type }); 
-        });
-        
-        const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z); if (hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
-        const playerProj = project(player3D.x, player3D.y, player3D.z); if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
-        const shadowProj = project(player3D.x, player3D.y, 0); if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
-        
-        if (state === 'SHOOTING' && ball.active) {
-            const ballProj = project(ball.x, ball.y, ball.z); 
-            if (ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
-        }
-
-        renderList.sort((a, b) => b.depth - a.depth);
-        renderList.forEach(obj => {
-            if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType); 
-            if (obj.type === 'hoop') drawHoop(obj.proj);
-            if (obj.type === 'shadow') drawShadow(obj.proj);
-            if (obj.type === 'player') drawPlayer(obj.proj);
-            if (obj.type === 'ball') drawBall(obj.proj);
-        });
-
-        if (feedbackTimer > 0) {
-            ctx.save(); ctx.font = "900 60px 'Arial Black'";
-            ctx.fillStyle = feedback === "MUY BIEN!" || feedback === "CHANCEUX!" || feedback === "Swish" || feedback.includes('MONEY') || feedback === "SUR LA LIGNE!" || feedback === "OUF!" || feedback.includes('SÉRIE') ? "#00FF00" : "#FF0000";
-            if (feedback === "DERNIÈRE CHANCE !") ctx.fillStyle = "#FFA500"; 
-            ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center";
-            ctx.fillText(feedback, canvas.width/2, 200); ctx.strokeText(feedback, canvas.width/2, 200);
-            ctx.restore(); 
-        }
-    }
-    
-    // Achievement Logic Helpers
-    function unlockAchievement(id) {
-        if (!playerData.unlockedAchievements.includes(id)) {
-            playerData.unlockedAchievements.push(id);
-            const ach = ACHIEVEMENTS.find(a => a.id === id);
-            if(ach) { 
-                playerData.tacos += ach.reward; 
-                saveData(); 
-                showNotification(ach.name, ach.reward); 
-                updateUI(); 
-            }
-        }
-    }
-
-    function checkAchievements(context) {
-        const dist = 10 + (distanceLevel * 5);
-        const ls = playerData.lifetimeStats;
-        if (context === 'score') {
-            unlockAchievement('rookie');
-            if (ls.makes >= 100) unlockAchievement('veteran');
-             if (dist >= 25) unlockAchievement('amateur'); if (dist >= 50) unlockAchievement('sniper');
-            if (dist >= 75) unlockAchievement('pro'); 
-            if (dist >= 100) { unlockAchievement('parking_lot'); unlockAchievement('urban_legend'); }
-            if (dist >= 125) unlockAchievement('longshot'); if (dist >= 150) unlockAchievement('levis_legend');
-            if (dist >= 300) unlockAchievement('chateau');
-            if (dist >= 1000) unlockAchievement('mountain');
-            if (dist >= 2000) unlockAchievement('astronaut');
-            if (dist >= 5000) unlockAchievement('demigod');
-            if (playerData.difficulty >= 3) unlockAchievement('daredevil');
-            if (playerData.difficulty >= 2) unlockAchievement('hard_mode');
-        }
-        if(context === 'shot_stats') {
-             if(ls.shots >= 500) unlockAchievement('ball_hog');
-             if(ls.misses >= 50) unlockAchievement('bricklayer');
-        }
-        if(context === 'contest') {
-             if(contestData.score > 10) unlockAchievement('contest_winner');
-             if(contestData.score > 20) unlockAchievement('contest_perfect');
-        }
-        if (context === 'shop') {
-            if (playerData.unlockedSkins.length >= 5) unlockAchievement('fashionista');
-            if (playerData.unlockedSkins.length >= 10) unlockAchievement('wardrobe_malfunction');
-            if (playerData.unlockedSkins.length >= 15) unlockAchievement('collector');
-            if (playerData.stats.income >= 5) unlockAchievement('sweet_tooth');
-            if (playerData.stats.aim >= 5) unlockAchievement('hawkeye');
-            if (playerData.stats.luck >= 5) unlockAchievement('leprechaun');
-            if (playerData.stats.moonwalk >= 5) unlockAchievement('moonwalker_pro');
-            const animalsOwned = new Set();
-            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB.find(x => x.id === skinId); if(s) animalsOwned.add(s.animal); });
-            if(animalsOwned.size >= 3) unlockAchievement('zoo');
-        }
-        if (context === 'lucky') unlockAchievement('lucky');
-        if (context === 'skin') {
-            const s = playerData.currentSkin;
-            if(s.includes('robot') || s.includes('alien') || s.includes('astronaut')) unlockAchievement('cosplay');
-            if(s.includes('lumberjack') || s.includes('hockey')) unlockAchievement('eh');
-            if(s.includes('zombie') || s.includes('vampire') || s.includes('devil')) unlockAchievement('spooky');
-            if(s.includes('poutine')) unlockAchievement('poutine_chef');
-        }
-        if (playerData.tacos >= 100) unlockAchievement('pocket_change');
-        if (playerData.tacos >= 500) unlockAchievement('tycoon');
-        if (playerData.tacos >= 2000) unlockAchievement('millionaire');
-    }
-
-    function showNotification(name, reward) {
-        const notifText = document.getElementById('notifText');
-        notifText.innerText = `${name} (+${reward} Tacos)`;
-        notif.style.display = 'block'; setTimeout(() => { notif.style.display = 'none'; }, 3000);
-    }
-
-    function renderAchievements() {
-        const list = document.getElementById('achList');
-        list.innerHTML = '';
-        ACHIEVEMENTS.forEach(ach => {
-            const unlocked = playerData.unlockedAchievements.includes(ach.id);
-            const div = document.createElement('div');
-            div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
-            list.appendChild(div);
-        });
-    }
-
-    // --- GAME ACTIONS ---
-    function startJump() { if (state !== 'IDLE') return; state = 'JUMPING'; player3D.vz = 9; feedback = ""; }
-    function releaseShot() { if (state !== 'JUMPING') return; const timingError = player3D.vz; shoot(timingError); }
-    function retryShot() { player3D.z = 0; player3D.vz = 0; state = 'IDLE'; }
-
-    function shoot(timingError) {
-        state = 'SHOOTING';
-        playerData.lifetimeStats.shots++;
-        checkAchievements('shot_stats');
-        let aimBonus = (playerData.stats.aim - 1);
-        let baseDampener = 6.0;
-        if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        let dampener = baseDampener + aimBonus; if (dampener > 36.0) dampener = 36.0;
-        const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        const accuracy = (timingError / dampener) * playerData.difficulty * distPenalty; 
-        const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
-        ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120; 
-        ball.active = true;
-        const flightTime = Math.min(120, 40 + (distanceLevel * 0.8)); 
-        ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
-        let isMiss = Math.abs(accuracy) > 0.25;
-        if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
-        if (isMiss) {
-            const luckChance = (playerData.stats.luck - 1) * 0.05;
-            if (Math.random() < luckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); } 
-            else {
-                const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
-                const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
-                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracy) * 5; 
-                feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
-            }
-        }
-    }
-
-    function handleScore() { 
-        ball.active = false; playerData.lifetimeStats.makes++; currentStreak++; 
-        if(currentGameMode === 'CONTEST') {
-            const isMoneyBall = (contestData.ballsInRack === 4);
-            const points = isMoneyBall ? 2 : 1;
-            contestData.score += points;
-            if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500); 
-        } else {
-            consecutiveMisses = 0;
-            if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000); 
-        }
-    }
-
-    function handleMiss() {
-        if(state === 'GAMEOVER') return;
-        playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
-        if(currentGameMode === 'CONTEST') {
-            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500); 
-        } else {
-            consecutiveMisses++; updateUI();
-            const maxMisses = 2 + (playerData.stats.extraLives || 0);
-            if (consecutiveMisses >= maxMisses) {
-                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(openShop, 1500);
-            } else {
-                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
-            }
-        }
-    }
-
-    function update(dt) {
-        if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
-        if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
-            if(contestData.timer > 0) {
-                contestData.timer -= (1/60) * dt; 
-                if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
-                if(Math.floor(contestData.timer) !== parseInt(document.getElementById('contestTime').innerText)) { updateContestUI(); }
-            }
-        }
-        if (state === 'JUMPING') {
-            player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-            if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; setTimeout(openShop, 1500); }
-        }
-        if (state === 'SHOOTING') {
-            if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
-            if (ball.active) {
-                const prevZ = ball.z;
-                ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
-                if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
-                    const distToHoopCenter = Math.sqrt(Math.pow(ball.x - HOOP_POS.x, 2) + Math.pow(ball.y - HOOP_POS.y, 2));
-                    if (distToHoopCenter < 25) { handleScore(); return; }
-                }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(ball.x - player3D.x, 2) + Math.pow(ball.y - player3D.y, 2));
-                if (ball.z < -50 || currentDist > distToHoop + 5000) { ball.active = false; handleMiss(); return; }
-                if (ball.z <= 0) { ball.z = 0; ball.active = false; handleMiss(); return; }
-            }
-        }
-        if (feedbackTimer > 0) feedbackTimer -= 1 * dt;
-    }
-
-    // --- HELPER FUNCTIONS ---
-    function nextLevel() {
-        if(currentGameMode === 'CONTEST') {
-            contestData.ballsInRack++;
-            if(contestData.ballsInRack >= 5) {
-                contestData.rack++; contestData.ballsInRack = 0;
-                if(contestData.rack > 5) { endContest(); return; } 
-                else { setPlayerPositionForRack(contestData.rack); }
-            }
-            updateContestUI(); state = 'IDLE';
-        } else {
-            const baseReward = 1 * distanceLevel * playerData.difficulty;
-            const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
-            let reward = Math.ceil(baseReward * multiplier);
-            if (currentStreak > 1) reward += currentStreak * 2;
-            playerData.tacos += reward;
-            const jump = playerData.stats.moonwalk || 1; distanceLevel += jump;
-            const currentDistanceVal = 10 + (distanceLevel * 5);
-            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
-            saveData(); checkAchievements('score');
-            player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
-        }
-    }
-
-    function endContest() {
-        state = 'GAMEOVER'; feedback = "TERMINÉ !"; feedbackTimer = 120;
-        const reward = contestData.score * 10; playerData.tacos += reward;
-        checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
-    }
-
-    function updateUI() {
-        scoreEl.innerText = playerData.tacos;
-        if(currentGameMode === 'CLASSIC') {
-            distEl.innerText = (10 + (distanceLevel * 5)) + " pi";
-            const maxMisses = 2 + (playerData.stats.extraLives || 0);
-            missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
-            const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
-        } else { courtNameEl.innerText = "CONCOURS 3 POINTS"; }
-    }
-
-    function setPlayerPositionForRack(rackNum) {
-        if(rackNum === 1) { player3D.x = 200; player3D.y = 500; }
-        else if(rackNum === 2) { player3D.x = 250; player3D.y = 400; }
-        else if(rackNum === 3) { player3D.x = 300; player3D.y = 300; }
-        else if(rackNum === 4) { player3D.x = 350; player3D.y = 200; }
-        else if(rackNum === 5) { player3D.x = 400; player3D.y = 100; }
-        player3D.z = 0; player3D.vz = 0;
-    }
-
-    function updateContestUI() {
-        document.getElementById('contestTime').innerText = Math.ceil(contestData.timer);
-        document.getElementById('contestScore').innerText = contestData.score;
-        document.getElementById('contestRack').innerText = contestData.rack;
-    }
-
-    function resetGame() { 
-        if(currentGameMode === 'CONTEST') { startContest(); } 
-        else {
-            distanceLevel = 1; consecutiveMisses = 0; 
-            player3D = { x: 300, y: 300, z: 0, vz: 0 }; 
-            document.getElementById('classic-stats').style.display = 'block';
-            strikesEl.style.display = 'block';
-            contestUI.style.display = 'none';
-            state = 'IDLE'; updateUI(); 
-        }
-    }
-
-    // --- UI FUNCTIONS ---
-    window.openShop = function() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
-        document.getElementById('diffSlider').value = playerData.difficulty;
-        updateDifficulty(); updateShopUI();
-    }
-    window.openAchievements = function() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
-    }
-    window.openStats = function() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'STATS';
-        shopUI.style.display = 'none';
-        achUI.style.display = 'none';
-        statsUI.style.display = 'block';
-        const ls = playerData.lifetimeStats;
-        document.getElementById('statShots').innerText = ls.shots;
-        document.getElementById('statMakes').innerText = ls.makes;
-        document.getElementById('statMisses').innerText = ls.misses;
-        document.getElementById('statContests').innerText = ls.contests;
-        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
-        let acc = 0;
-        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
-        document.getElementById('statAccuracy').innerText = acc + "%";
-    }
-    window.attemptReset = function() {
-        const btn = document.getElementById('btnReset');
-        if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
-        playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame(); 
-        resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
-    }
-    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
-    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
-    window.closeStats = function() { 
-        state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
-        const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
-        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); 
-    }
-    window.updateDifficulty = function() {
-        const val = parseFloat(document.getElementById('diffSlider').value);
-        playerData.difficulty = val;
-        const label = document.getElementById('diffLabel');
-        label.innerText = `x${val.toFixed(1)} Tacos`;
-        if(val === 1) { label.innerText = "NORMAL (x1.0)"; label.style.color = "#00FF00"; }
-        else if (val < 2.5) { label.innerText = `DIFFICILE (x${val.toFixed(1)})`; label.style.color = "#FFFF00"; }
-        else { label.innerText = `LÉVIS LEGEND (x${val.toFixed(1)})`; label.style.color = "#FF0000"; }
-        saveData();
-    }
-    window.getUpgradeCost = function(statName) {
-        const lvl = playerData.stats[statName];
-        if (statName === 'income') return Math.floor(25 * Math.pow(lvl, 2));
-        if (statName === 'aim') return Math.floor(50 * Math.pow(lvl, 2));
-        if (statName === 'luck') return Math.floor(75 * Math.pow(lvl, 2));
-        if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
-        if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
-        return 999;
-    }
-    window.buyUpgrade = function(stat) {
-        const cost = getUpgradeCost(stat);
-        if (playerData.tacos >= cost) {
-            playerData.tacos -= cost; playerData.stats[stat]++; saveData(); updateShopUI(); updateUI(); checkAchievements('shop');
-        }
-    }
-    window.changeAnimal = function(dir) {
-        viewingAnimalIndex += dir;
-        if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
-        if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
-        viewingSkinIndex = 0; updateShopUI();
-    }
-    window.changeSkin = function(dir) {
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        viewingSkinIndex += dir;
-        if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
-        if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
-        updateShopUI();
-    }
-    window.buyOrEquipSkin = function() {
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
-        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); } 
-        else if (playerData.tacos >= skin.cost) {
-            playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
-            checkAchievements('shop'); checkAchievements('skin');
-        }
-        saveData(); updateShopUI(); updateUI();
-    }
-    window.updateShopUI = function() {
-        document.getElementById('shopTacos').innerText = playerData.tacos;
-        document.getElementById('lvlIncome').innerText = playerData.stats.income;
-        document.getElementById('btnBuyIncome').innerText = `Acheter (${getUpgradeCost('income')})`;
-        document.getElementById('btnBuyIncome').disabled = playerData.tacos < getUpgradeCost('income');
-        document.getElementById('lvlAim').innerText = playerData.stats.aim;
-        document.getElementById('btnBuyAim').innerText = `Acheter (${getUpgradeCost('aim')})`;
-        document.getElementById('btnBuyAim').disabled = playerData.tacos < getUpgradeCost('aim');
-        document.getElementById('lvlLuck').innerText = playerData.stats.luck;
-        document.getElementById('btnBuyLuck').innerText = `Acheter (${getUpgradeCost('luck')})`;
-        document.getElementById('btnBuyLuck').disabled = playerData.tacos < getUpgradeCost('luck');
-        document.getElementById('lvlMoonwalk').innerText = playerData.stats.moonwalk;
-        document.getElementById('btnBuyMoonwalk').innerText = `Acheter (${getUpgradeCost('moonwalk')})`;
-        document.getElementById('btnBuyMoonwalk').disabled = playerData.tacos < getUpgradeCost('moonwalk');
-        document.getElementById('lvlExtraLives').innerText = playerData.stats.extraLives || 0;
-        document.getElementById('btnBuyExtraLives').innerText = `Acheter (${getUpgradeCost('extraLives')})`;
-        document.getElementById('btnBuyExtraLives').disabled = playerData.tacos < getUpgradeCost('extraLives');
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
-        document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
-        document.getElementById('skinName').innerText = skin.name;
-        const btn = document.getElementById('btnEquipSkin');
-        const status = document.getElementById('skinStatus');
-        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        const isEquipped = playerData.currentSkin === skin.id;
-        if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; } 
-        else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; } 
-        else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
-    }
-    window.toggleMode = function() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONCOURS"; } 
-        else { currentGameMode = 'CLASSIC'; document.getElementById('modeBtnText').innerText = "CLASSIQUE"; }
-        resetGame();
-    }
-    
-    // --- GAME LOOP ---
-    function draw() { 
-        drawBackground(); 
-        drawFlightTracker(); 
-    }
-
-    let lastTime = 0;
-    function loop(timestamp) {
-        requestAnimationFrame(loop);
-        if (!lastTime) lastTime = timestamp;
-        const elapsed = timestamp - lastTime;
-        let dt = elapsed / 16.666; 
-        if(dt > 4) dt = 4;
-        lastTime = timestamp;
-        update(dt);
-        draw();
-    }
-    
-    // Start buttons
-    window.addEventListener('keydown', (e) => {
-        if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
-        if(state === 'STATS') { if(e.code === 'Escape') closeStats(); return; }
-        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats();
-        if (e.code === 'Space' && !spacePressed) { spacePressed = true; if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump(); }
-    });
-    window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
-    window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return; 
-        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
-    });
-    window.addEventListener('mouseup', () => { if (state === 'JUMPING') releaseShot(); });
-
-    // Initial resize call
-    resizeGame();
-    // Start loop
-    requestAnimationFrame(loop);
+window.onload = () => Game.init();
 </script>
 </body>
 </html>
