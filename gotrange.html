@@ -1081,7 +1081,6 @@ const Renderer = {
 
         // Setup sizes
         let sizeMod = { w: 1, h: 1, head: 1 };
-        // (Simplified size logic from original)
         if(animal === 'bear') sizeMod = { w: 1.4, h: 1.1, head: 1.2 };
 
         let bodyW = 20 * s * sizeMod.w * sx;
@@ -1104,13 +1103,50 @@ const Renderer = {
         this.drawLimb(ctx, p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s, fur);
         this.drawLimb(ctx, p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s, fur);
 
-        // Arms Animation
-        let armAngle = Math.PI/2 - 0.2;
-        if(state.state === 'JUMPING') armAngle = -Math.PI/2 - 0.2;
-        if(state.state === 'IDLE') armAngle += Math.sin(state.player.animTime) * 0.1;
+        // Arms Logic
+        // Define joint positions for more complex animation
+        const shoulderY = torsoY + 5*s;
+        const shoulderX = 12 * s; // offset from center
+        const armLen = 20 * s;
+
+        // Default Angles (Idle)
+        let lUpperAngle = Math.PI/2 - 0.2;
+        let lLowerAngle = Math.PI/2 - 0.1;
+        let rUpperAngle = Math.PI/2 + 0.2;
+        let rLowerAngle = Math.PI/2 + 0.1;
+        let rWristAngle = 0;
+
+        if (state.state === 'SHOOTING') {
+            // Jordan/Curry Follow Through
+            // Right Arm (Shooter): High, extended, wrist flopped
+            rUpperAngle = -Math.PI/2 - 0.4; // Up and slightly forward
+            rLowerAngle = -Math.PI/2 - 0.4; // Straight extension
+            rWristAngle = Math.PI/1.5;      // Goose neck (flop down)
+
+            // Left Arm (Guide): Up but to side
+            lUpperAngle = -Math.PI/2 + 0.5;
+            lLowerAngle = -Math.PI/2 + 0.2;
+        } else if (state.state === 'JUMPING') {
+            // Charging shot (arms up)
+            lUpperAngle = -Math.PI/2 + 0.2;
+            lLowerAngle = -Math.PI/2 + 0.4;
+            rUpperAngle = -Math.PI/2 - 0.2;
+            rLowerAngle = -Math.PI/2 - 0.4;
+        } else if(state.state === 'IDLE') {
+            // Breathe
+            const breathe = Math.sin(state.player.animTime) * 0.1;
+            lUpperAngle += breathe;
+            rUpperAngle -= breathe;
+        }
+
+        // Draw Left Arm (Behind Body)
+        this.drawArm(ctx, p.x - shoulderX, shoulderY, lUpperAngle, lLowerAngle, armLen, fur, false);
 
         // Body
         this.drawRoundedRect(ctx, p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
+
+        // Draw Right Arm (In Front of Body)
+        this.drawArm(ctx, p.x + shoulderX, shoulderY, rUpperAngle, rLowerAngle, armLen, fur, true, rWristAngle);
 
         // Head
         ctx.fillStyle = fur;
@@ -1168,6 +1204,25 @@ const Renderer = {
             ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true);
             ctx.stroke();
         }
+    },
+
+    drawArm(ctx, sx, sy, a1, a2, len, color, isRight, wristAngle = 0) {
+        // Upper Arm
+        const elbow = this.getJoint(sx, sy, len, a1);
+        ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(elbow.x, elbow.y); ctx.stroke();
+
+        // Forearm
+        const wrist = this.getJoint(elbow.x, elbow.y, len, a2);
+        ctx.beginPath(); ctx.moveTo(elbow.x, elbow.y); ctx.lineTo(wrist.x, wrist.y); ctx.stroke();
+
+        // Hand/Wrist
+        ctx.save();
+        ctx.translate(wrist.x, wrist.y);
+        ctx.rotate(a2 + wristAngle);
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill(); // Hand circle
+        ctx.restore();
     },
 
     drawLimb(ctx, x1, y1, x2, y2, width, color) {
