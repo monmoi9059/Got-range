@@ -612,6 +612,16 @@ class AchievementSystem {
         // 8. MISC
         if (triggerType === 'lucky_bounce') this.unlock('lucky');
     }
+
+    checkAll() {
+        this.check('score');
+        this.check('distance');
+        this.check('balance_update');
+        this.check('stat_update');
+        this.check('skin_update');
+        this.check('skin_equip');
+        this.check('shot_result', { made: false }); // General stats check
+    }
 }
 
 // --- 4. RENDERER CLASS ---
@@ -811,7 +821,7 @@ class Renderer {
         let player = this.game.player;
         let playerProj = this.project(player.x, player.y, player.z);
         if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
-        
+
         let shadowProj = this.project(player.x, player.y, 0);
         if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
 
@@ -1148,7 +1158,7 @@ class Renderer {
         // Distance / Text
         let dist = 10 + (this.game.distanceLevel * 5);
         let scaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
-        
+
         this.ctx.font = "bold 20px 'Segoe UI'"; this.ctx.fillStyle = "#FFD700"; this.ctx.textAlign = "center";
         
         if (this.game.mode === 'CLASSIC') {
@@ -1175,7 +1185,7 @@ class Renderer {
         this.ctx.font = "30px Arial"; this.ctx.textAlign="center";
         this.ctx.fillText("⛹️", margin, lineY + 10);
         this.ctx.fillText("🏀", margin + lineLen, lineY + 10);
-        
+
         if (this.game.mode === 'CLASSIC') {
             this.ctx.globalAlpha = 0.3; this.ctx.font = "60px Arial";
             this.ctx.fillText(scaleObj.icon, this.width/2, lineY);
@@ -1539,6 +1549,9 @@ class Game {
         // Init
         this.bindInput();
         this.ui.update();
+        // Initial Achievement Check (Retroactive for saved data)
+        this.achievements.checkAll();
+
         this.loopId = requestAnimationFrame((t) => this.loop(t));
 
         // Global Access for UI
