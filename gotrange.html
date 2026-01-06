@@ -284,7 +284,7 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        @media (hover: none) and (pointer: coarse) {
+        @media screen and (max-width: 1024px), screen and (max-height: 700px) {
             #mobile-shoot-btn { display: block; }
             #controls .ui-btn { padding: 6px 12px; font-size: 14px; } /* Smaller buttons on mobile */
         }
@@ -1510,6 +1510,17 @@
         e.preventDefault();
         if (state === "JUMPING") releaseShot();
     }, { passive: false });
+
+    // Mouse fallback for testing or hybrid devices
+    mobileBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        if (state === "GAMEOVER") openShop();
+        else if (state === "IDLE") startJump();
+    });
+    mobileBtn.addEventListener("mouseup", (e) => {
+        e.preventDefault();
+        if (state === "JUMPING") releaseShot();
+    });
 
 
     // Initial resize call
