@@ -981,29 +981,338 @@ class Renderer {
         ctx.beginPath(); ctx.moveTo(p.x - 8*s, p.y); ctx.quadraticCurveTo(p.x, p.y + 4*s, p.x + 8*s, p.y); ctx.stroke();
     }
 
+    getSkinVisuals(skinId, animal) {
+        let v = {
+            fur: '#777', torso: '#777', legs: '#777', arm: '#777',
+            hat: null, back: null, tail: null,
+            sizeMod: { w: 1, h: 1, head: 1 },
+            headType: 'circle', earType: 'round', bodyType: 'default',
+            hasJersey: true, bodyPattern: null
+        };
+
+        // Animal Base Config (Back View Colors)
+        if (animal === 'rat') {
+            v.fur = '#696969'; v.sizeMod = { w: 0.7, h: 0.7, head: 0.8 };
+            v.headType = 'circle'; v.earType = 'round_large'; v.tail = 'rat_tail';
+        }
+        else if (animal === 'cat') {
+            v.fur = '#FFA500'; v.sizeMod = { w: 0.8, h: 0.8, head: 0.8 };
+            v.headType = 'oval_wide'; v.earType = 'pointy'; v.tail = 'cat_tail';
+        }
+        else if (animal === 'dog') {
+            v.fur = '#8B4513'; v.sizeMod = { w: 0.9, h: 0.9, head: 0.9 };
+            v.headType = 'circle'; v.earType = 'floppy'; v.tail = 'dog_tail';
+        }
+        else if (animal === 'bear') {
+            v.fur = '#4B3621'; v.sizeMod = { w: 1.4, h: 1.1, head: 1.2 };
+            v.headType = 'circle'; v.earType = 'round'; v.bodyType = 'broad';
+        }
+        else if (animal === 'rabbit') {
+            v.fur = '#EEE8AA'; v.sizeMod = { w: 0.8, h: 0.8, head: 0.9 };
+            v.earType = 'long'; v.headType = 'oval'; v.tail = 'rabbit_tail';
+        }
+        else if (animal === 'beaver') {
+            v.fur = '#8B4513'; v.sizeMod = { w: 0.9, h: 0.9, head: 0.9 };
+            v.tail = 'beaver'; v.headType = 'circle'; v.earType = 'round'; v.bodyType = 'broad';
+        }
+        else if (animal === 'moose') {
+            v.fur = '#8B4513'; v.sizeMod = { w: 1.2, h: 1.3, head: 1.1 };
+            v.hat = 'antlers'; v.headType = 'snout_long_back'; v.earType = 'pointy_side'; v.bodyType = 'broad';
+        }
+        else if (animal === 'penguin') {
+            v.fur = '#222'; v.sizeMod = { w: 0.9, h: 0.8, head: 0.8 };
+            v.bodyType = 'egg'; v.earType = 'none';
+        }
+        else if (animal === 'raccoon') {
+            v.fur = '#777'; v.sizeMod = { w: 0.8, h: 0.8, head: 0.8 };
+            v.earType = 'pointy'; v.tail = 'raccoon_tail';
+        }
+
+        v.torso = v.fur; v.legs = v.fur; v.arm = v.fur;
+
+        // Skins
+        if (skinId.includes('lumberjack')) {
+            v.torso = '#CC0000'; v.legs = '#333399';
+            v.bodyPattern = 'flannel'; v.hat = 'beanie_orange';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('mariachi')) {
+            v.torso = '#222'; v.legs = '#222'; v.arm = '#222';
+            v.hat = 'sombrero';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('luchador')) {
+            v.torso = '#FFD700'; v.legs = '#008000';
+            v.back = 'cape_red'; v.hat = 'mask_lucha_back';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('alien')) {
+            v.fur = '#32CD32'; v.torso='#32CD32'; v.legs='#32CD32'; v.arm='#32CD32';
+            v.hat = 'antenna_alien';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('zombie')) {
+            v.fur = '#556B2F'; v.torso='#4B5320'; v.legs='#2F4F4F';
+            v.bodyPattern = 'tattered';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('astronaut')) {
+            v.fur = '#EEE'; v.torso='#FFF'; v.legs='#FFF'; v.arm='#FFF';
+            v.hat = 'helmet_bubble'; v.back = 'backpack_life_support';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('ninja')) {
+            v.fur = '#111'; v.torso='#111'; v.legs='#111'; v.arm='#111';
+            v.hat = 'hood_ninja'; v.back = 'sword_ninja';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('robot')) {
+            v.fur = '#C0C0C0'; v.torso='#A9A9A9'; v.legs='#A9A9A9'; v.arm='#A9A9A9';
+            v.hat = 'antenna_robot';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('pirate')) {
+            v.torso = '#FFF'; v.legs = '#333';
+            v.hat = 'pirate_hat';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('clown')) {
+            v.torso = '#FFFF00'; v.legs = '#FF00FF'; v.arm = '#00FFFF';
+            v.hat = 'clown_wig';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('vampire')) {
+            v.torso = '#000'; v.legs = '#000'; v.arm = '#000';
+            v.back = 'cape_black_red'; v.hat = 'hair_widow';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('chef')) {
+            v.torso = '#FFF'; v.legs = '#000'; v.arm = '#FFF'; v.hat = 'hat_chef';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('hockey')) {
+            v.torso = '#FFF'; v.legs = '#000'; v.hat = 'mask_hockey_straps';
+        }
+        else if (skinId.includes('king') || skinId.includes('royal')) {
+            v.torso = '#800080'; v.legs = '#800080'; v.hat = 'crown'; v.back = 'cape_royal';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('wizard') || skinId.includes('magic')) {
+            v.torso = '#4B0082'; v.legs = '#4B0082';
+            v.hat = (skinId.includes('magic')) ? 'hat_top' : 'hat_wizard';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('devil')) {
+            v.fur = '#DC143C'; v.torso='#DC143C'; v.legs='#DC143C'; v.arm='#DC143C';
+            v.hat = 'horns'; v.tail = 'tail_devil';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('angel')) {
+            v.fur = '#FFF'; v.torso='#FFF'; v.legs='#FFF'; v.arm='#FFF';
+            v.hat = 'halo'; v.back = 'wings_angel';
+            v.hasJersey = false;
+        }
+        else if (skinId.includes('poutine')) {
+            v.torso = '#F5DEB3'; v.legs = '#8B4513'; v.bodyPattern = 'messy_poutine';
+            v.hasJersey = false;
+        }
+        else if (skinId === 'cat_tuxedo') { v.fur = '#111'; v.torso = '#111'; }
+        else if (skinId === 'dog_dalmation') { v.fur = '#FFF'; v.bodyPattern = 'spots'; }
+        else if (skinId === 'dog_pug') { v.fur = '#F5DEB3'; v.hat = 'mask_pug_straps'; }
+        else if (skinId === 'bear_panda') { v.fur = '#FFF'; v.torso = '#FFF'; v.legs = '#000'; v.arm = '#000'; }
+        else if (skinId === 'rabbit_jack') { v.fur = '#CD853F'; v.hat = 'ears_long'; }
+        else if (skinId === 'penguin_emperor') { v.torso = '#333'; }
+        else if (skinId === 'raccoon_bandit') { v.hat = 'hat_bandit_knot'; v.bodyPattern = 'striped_shirt'; v.hasJersey = false; }
+
+        return v;
+    }
+
+    drawHat(type, x, y, s) {
+        let ctx = this.ctx;
+        if(type === 'beanie_orange') {
+            ctx.fillStyle = '#FF4500'; ctx.beginPath(); ctx.arc(x, y - 5*s, 14*s, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#FFA500'; ctx.fillRect(x - 14*s, y - 8*s, 28*s, 6*s);
+        } else if (type === 'sombrero') {
+            ctx.fillStyle = '#D2691E'; ctx.beginPath(); ctx.ellipse(x, y - 5*s, 25*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y - 10*s, 10*s, Math.PI, 0); ctx.fill();
+            ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2*s; ctx.stroke();
+        } else if (type === 'antenna_alien') {
+            ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y-20*s); ctx.stroke();
+            ctx.fillStyle = '#00FF00'; ctx.beginPath(); ctx.arc(x, y-20*s, 4*s, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'antenna_robot') {
+            ctx.fillStyle = '#888'; ctx.fillRect(x-2*s, y-15*s, 4*s, 10*s);
+            ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(x, y-18*s, 3*s, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'helmet_bubble') {
+            ctx.fillStyle = 'rgba(200, 200, 255, 0.3)'; ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.arc(x, y, 16*s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            // Backpack reflection on back?
+        } else if (type === 'pirate_hat') {
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(x-20*s, y); ctx.quadraticCurveTo(x, y-15*s, x+20*s, y); ctx.fill();
+            // No skull on back of hat
+        } else if (type === 'clown_wig') {
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.arc(x-12*s, y, 8*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x+12*s, y, 8*s, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'hair_widow') {
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(x-12*s, y-5*s); ctx.lineTo(x, y+5*s); ctx.lineTo(x+12*s, y-5*s); ctx.lineTo(x, y-15*s); ctx.fill();
+        } else if (type === 'hat_chef') {
+            ctx.fillStyle = '#FFF'; ctx.fillRect(x-10*s, y-20*s, 20*s, 15*s);
+            ctx.beginPath(); ctx.arc(x, y-20*s, 12*s, Math.PI, 0); ctx.fill();
+        } else if (type === 'crown') {
+            ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.moveTo(x-10*s, y-5*s); ctx.lineTo(x-10*s, y-20*s); ctx.lineTo(x-5*s, y-10*s); ctx.lineTo(x, y-25*s); ctx.lineTo(x+5*s, y-10*s); ctx.lineTo(x+10*s, y-20*s); ctx.lineTo(x+10*s, y-5*s); ctx.fill();
+        } else if (type === 'hat_wizard') {
+            ctx.fillStyle = '#4B0082'; ctx.beginPath(); ctx.moveTo(x-15*s, y-5*s); ctx.lineTo(x+15*s, y-5*s); ctx.lineTo(x, y-35*s); ctx.fill();
+        } else if (type === 'horns') {
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.moveTo(x-8*s, y-8*s); ctx.quadraticCurveTo(x-12*s, y-15*s, x-5*s, y-12*s); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(x+8*s, y-8*s); ctx.quadraticCurveTo(x+12*s, y-15*s, x+5*s, y-12*s); ctx.fill();
+        } else if (type === 'halo') {
+            ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3*s; ctx.beginPath(); ctx.ellipse(x, y-15*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.stroke();
+        } else if (type === 'ears_long') {
+            ctx.fillStyle = '#CD853F'; ctx.beginPath(); ctx.ellipse(x-5*s, y-20*s, 4*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x+5*s, y-20*s, 4*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'hat_top') {
+            ctx.fillStyle = '#000'; ctx.fillRect(x-10*s, y-25*s, 20*s, 20*s); ctx.fillRect(x-15*s, y-5*s, 30*s, 2*s);
+        } else if (type === 'hat_bandit_knot') {
+             ctx.fillStyle = '#333'; ctx.fillRect(x-5*s, y-5*s, 10*s, 4*s); // Knot of mask
+        } else if (type === 'antlers') {
+             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 3*s;
+             ctx.beginPath(); ctx.moveTo(x-5*s, y-8*s); ctx.lineTo(x-20*s, y-20*s); ctx.moveTo(x+5*s, y-8*s); ctx.lineTo(x+20*s, y-20*s); ctx.stroke();
+        } else if (type === 'hood_ninja') {
+             ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x, y, 13*s, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'mask_lucha_back') {
+             ctx.fillStyle = '#008000'; ctx.beginPath(); ctx.arc(x, y, 12*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = '#FFD700'; ctx.fillRect(x-2*s, y-5*s, 4*s, 15*s); // Lacing
+        } else if (type === 'mask_hockey_straps') {
+             ctx.fillStyle = '#333'; ctx.fillRect(x-10*s, y-2*s, 20*s, 4*s); // Strap
+        } else if (type === 'mask_pug_straps') {
+             ctx.fillStyle = '#333'; ctx.fillRect(x-11*s, y, 22*s, 2*s);
+        }
+    }
+
+    drawHead(type, x, y, r, s, color) {
+        let ctx = this.ctx;
+        ctx.fillStyle = color;
+
+        // Base Head (Back View)
+        if (type.includes('oval')) {
+            ctx.beginPath(); ctx.ellipse(x, y, r*1.2, r*0.9, 0, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+        }
+
+        // For 'snout_long_back' (Moose), maybe show little side bits
+        if (type === 'snout_long_back') {
+            ctx.beginPath(); ctx.ellipse(x, y+r*0.5, r*0.8, r*0.4, 0, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    drawEars(type, x, y, r, s, color) {
+        let ctx = this.ctx;
+        ctx.fillStyle = color;
+        if (type === 'round' || type === 'round_large') {
+            let size = (type === 'round_large') ? r*0.6 : r*0.4;
+            ctx.beginPath(); ctx.arc(x - r*0.8, y - r*0.8, size, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + r*0.8, y - r*0.8, size, 0, Math.PI*2); ctx.fill();
+        }
+        else if (type === 'pointy') {
+            ctx.beginPath(); ctx.moveTo(x - r*0.4, y - r*0.5); ctx.lineTo(x - r*1.2, y - r*1.2); ctx.lineTo(x - r*0.9, y - r*0.2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(x + r*0.4, y - r*0.5); ctx.lineTo(x + r*1.2, y - r*1.2); ctx.lineTo(x + r*0.9, y - r*0.2); ctx.fill();
+        }
+        else if (type === 'long') {
+            ctx.beginPath(); ctx.ellipse(x - r*0.5, y - r*1.5, r*0.3, r*1.2, -0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.5, y - r*1.5, r*0.3, r*1.2, 0.2, 0, Math.PI*2); ctx.fill();
+        }
+        else if (type === 'floppy') {
+            ctx.beginPath(); ctx.ellipse(x - r, y, r*0.4, r*0.8, 0.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r, y, r*0.4, r*0.8, -0.5, 0, Math.PI*2); ctx.fill();
+        }
+        else if (type === 'pointy_side') {
+             // Moose ears
+             ctx.beginPath(); ctx.ellipse(x - r, y - r*0.2, r*0.6, r*0.3, -0.5, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(x + r, y - r*0.2, r*0.6, r*0.3, 0.5, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    drawBodyDetail(type, x, y, w, h, s) {
+        let ctx = this.ctx;
+        if(type === 'flannel') {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(x-w/2 + 4*s, y, 4*s, h); ctx.fillRect(x-w/2 + 12*s, y, 4*s, h);
+            ctx.fillRect(x-w/2, y + 10*s, w, 4*s); ctx.fillRect(x-w/2, y + 25*s, w, 4*s);
+        } else if (type === 'striped_shirt') {
+             ctx.fillStyle = '#000'; for(let i=0; i<4; i++) ctx.fillRect(x-w/2, y + (i*10*s), w, 3*s);
+        } else if (type === 'spots') {
+             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x-2*s, y+10*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(x+4*s, y+25*s, 2*s, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'tattered') {
+             ctx.fillStyle = 'rgba(0,0,0,0.4)';
+             ctx.beginPath(); ctx.moveTo(x-5*s, y+10*s); ctx.lineTo(x, y+15*s); ctx.lineTo(x+5*s, y+10*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(x+2*s, y+25*s); ctx.lineTo(x+8*s, y+30*s); ctx.lineTo(x+4*s, y+35*s); ctx.fill();
+        } else if (type === 'messy_poutine') {
+             ctx.fillStyle = '#8B4513'; // Gravy on back too? sure
+             ctx.beginPath(); ctx.arc(x-3*s, y+10*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    drawTail(type, x, y, s) {
+        let ctx = this.ctx;
+        if(type === 'tail_devil') {
+            ctx.strokeStyle = '#DC143C'; ctx.lineWidth = 4*s;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x-15*s, y+10*s, x-20*s, y-5*s); ctx.stroke();
+            ctx.fillStyle = '#DC143C'; ctx.beginPath(); ctx.moveTo(x-20*s, y-5*s); ctx.lineTo(x-25*s, y-10*s); ctx.lineTo(x-15*s, y-10*s); ctx.fill();
+        } else if (type === 'beaver') {
+            ctx.fillStyle = '#5D4037';
+            ctx.beginPath(); ctx.ellipse(x, y+10*s, 15*s, 20*s, 0, 0, Math.PI*2); ctx.fill(); // Tail down
+            ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s;
+            ctx.beginPath(); ctx.moveTo(x-5*s, y+5*s); ctx.lineTo(x+5*s, y+15*s); ctx.stroke();
+        } else if (type === 'rat_tail') {
+            ctx.strokeStyle = 'pink'; ctx.lineWidth = 3*s;
+            ctx.beginPath(); ctx.moveTo(x, y+10*s); ctx.quadraticCurveTo(x+10*s, y+20*s, x+5*s, y+30*s); ctx.stroke();
+        } else if (type === 'cat_tail' || type === 'dog_tail' || type === 'raccoon_tail') {
+            ctx.strokeStyle = (type==='raccoon_tail') ? '#555' : ((type==='cat_tail')?'#FFA500':'#8B4513'); ctx.lineWidth = 4*s;
+            ctx.beginPath(); ctx.moveTo(x, y+10*s); ctx.quadraticCurveTo(x-10*s, y+20*s, x-5*s, y+30*s); ctx.stroke();
+        } else if (type === 'rabbit_tail') {
+            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(x, y+10*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    drawBack(type, x, y, s) {
+        let ctx = this.ctx;
+        if (type.includes('cape')) {
+            ctx.fillStyle = (type.includes('red')) ? 'red' : (type.includes('royal') ? '#DAA520' : 'black');
+            ctx.beginPath(); ctx.moveTo(x-8*s, y); ctx.lineTo(x+8*s, y); ctx.lineTo(x+12*s, y+40*s); ctx.lineTo(x-12*s, y+40*s); ctx.fill();
+        } else if (type === 'wings_angel') {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath(); ctx.ellipse(x-15*s, y+10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x+15*s, y+10*s, 10*s, 20*s, -0.5, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'sword_ninja') {
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 3*s; ctx.beginPath(); ctx.moveTo(x-10*s, y-10*s); ctx.lineTo(x+15*s, y+30*s); ctx.stroke();
+            ctx.fillStyle = '#333'; ctx.fillRect(x-12*s, y-15*s, 4*s, 10*s); // Handle
+        } else if (type === 'backpack_life_support') {
+            ctx.fillStyle = '#DDD'; ctx.fillRect(x-10*s, y, 20*s, 25*s);
+            ctx.strokeStyle = '#999'; ctx.strokeRect(x-10*s, y, 20*s, 25*s);
+        }
+    }
+
     drawPlayer(p) {
         if (!p) return;
         let s = p.scale;
         let ctx = this.ctx;
         let skin = this.game.storage.data.currentSkin;
-        let currentAnimal = 'rat';
         let skinObj = SKINS_DB.find(x => x.id === skin);
-        if(skinObj) currentAnimal = skinObj.animal;
+        let currentAnimal = skinObj ? skinObj.animal : 'rat';
 
-        let sizeMod = { w: 1, h: 1, head: 1 };
-        // Simple sizing map
-        if(currentAnimal === 'rat') sizeMod = { w: 0.7, h: 0.7, head: 0.8 };
-        else if(currentAnimal === 'bear') sizeMod = { w: 1.4, h: 1.1, head: 1.2 };
-        else if(currentAnimal === 'moose') sizeMod = { w: 1.2, h: 1.3, head: 1.1 };
-        else sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; // Fallback
+        // Get Skin Configuration
+        const vis = this.getSkinVisuals(skin, currentAnimal);
+        const sizeMod = vis.sizeMod;
 
-        // Colors setup (simplified for brevity but preserving key visual styles)
-        let furColor = '#555', torsoColor = '#555', legColor = '#555', armColor = '#555';
-        if(currentAnimal === 'rat') furColor = '#696969';
-        if(currentAnimal === 'dog') furColor = '#8B4513';
-        if(skin.indexOf('alien') > -1) furColor = '#32CD32';
-
-        torsoColor = furColor; legColor = furColor; armColor = furColor;
+        // Colors
+        let furColor = vis.fur;
+        let torsoColor = vis.torso;
+        let legColor = vis.legs;
+        let armColor = vis.arm;
         
         // Geometry
         let bodyW = 20 * s * sizeMod.w;
@@ -1017,26 +1326,23 @@ class Renderer {
         this.drawLimb(p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s*sizeMod.w, legColor);
         this.drawLimb(p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s*sizeMod.w, legColor);
 
-        // Arms - Calculate angles
+        // Arms Logic
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
         let wristAngle = 0;
 
         if (this.game.state === 'SHOOTING') {
-            // Shooting Pose (Follow Through)
             leftArmAngle = -Math.PI/2 + 0.2;
             rightArmAngle = -Math.PI/2 - 0.2;
             leftForeArmAngle = -Math.PI/2 + 0.4;
             rightForeArmAngle = -Math.PI/2 - 0.4;
-            wristAngle = 1.0; // Goose neck
+            wristAngle = 1.0;
         } else if (this.game.state === 'JUMPING') {
-            // Jump windup/release
             let lift = Math.max(0, (9 - this.game.player.vz) / 9);
             leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
             rightArmAngle = (Math.PI/2 + 0.2) + ((-Math.PI/2 - 0.2) - (Math.PI/2 + 0.2)) * lift;
             leftForeArmAngle = (Math.PI/2 - 0.1) + ((-Math.PI/2 + 0.4) - (Math.PI/2 - 0.1)) * lift;
             rightForeArmAngle = (Math.PI/2 + 0.1) + ((-Math.PI/2 - 0.4) - (Math.PI/2 + 0.1)) * lift;
         } else {
-            // Idle
             leftArmAngle = Math.PI/2 - 0.2;
             rightArmAngle = Math.PI/2 + 0.2;
             leftForeArmAngle = Math.PI/2 - 0.1;
@@ -1049,20 +1355,18 @@ class Renderer {
         let upperArmLen = 20 * s * sizeMod.h * 0.6;
         let foreArmLen = 20 * s * sizeMod.h * 0.6;
 
-        // Draw Arms Function
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             let elbow = this.getJoint(sx, sy, upperArmLen, angle1);
             this.drawLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor);
             let wrist = this.getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             this.drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor);
-
-            // Hand/Wrist
             ctx.save();
             ctx.translate(wrist.x, wrist.y);
             ctx.rotate(angle2 + (isRight ? wristAngle : 0));
             ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-
-            // Ball if holding
+            // Ball is drawn in main scene loop if needed, but here we might want to show it in hand
+            // BUT, since back view, the ball in hand might be obscured by body if held in front?
+            // Actually, shooting arm goes up, so ball is visible.
             if (isRight && this.game.state !== 'SHOOTING' && this.game.state !== 'GAMEOVER') {
                 this.drawBall({x:0, y:5*s, scale:s});
             }
@@ -1073,21 +1377,50 @@ class Renderer {
         drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // Body
-        this.drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
+        if (vis.bodyType === 'egg') {
+            // Penguin style - big oval
+            ctx.fillStyle = torsoColor;
+            ctx.beginPath(); ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW*0.9, bodyH*0.6, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (vis.bodyType === 'broad') {
+            // Bear/Moose style - Trapezoid
+            ctx.fillStyle = torsoColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - bodyW*0.7, torsoY); // Top Left
+            ctx.lineTo(p.x + bodyW*0.7, torsoY); // Top Right
+            ctx.lineTo(p.x + bodyW*0.5, torsoY + bodyH); // Bottom Right
+            ctx.lineTo(p.x - bodyW*0.5, torsoY + bodyH); // Bottom Left
+            ctx.fill();
+        }
+        else {
+            // Default Rectangle
+            this.drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
+        }
+
+        if(vis.bodyPattern) this.drawBodyDetail(vis.bodyPattern, p.x, torsoY, bodyW, bodyH, s);
+
+        // Jersey Number (Drawn on Back of Body)
+        if(vis.hasJersey) {
+            ctx.fillStyle = "#FFF";
+            ctx.font = `bold ${12 * s}px Arial`;
+            ctx.textAlign = "center";
+            ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
+        }
+
+        // Back Accessories (On top of body)
+        if(vis.back) this.drawBack(vis.back, p.x, torsoY + 5*s, s);
+        if(vis.tail) this.drawTail(vis.tail, p.x, torsoY + bodyH - 5*s, s);
+
+        // Ears (Behind Head? No, from back view ears are usually visible sticking out sides of head)
+        if(vis.earType && vis.hat !== 'helmet_bubble' && vis.hat !== 'clown_wig') {
+            this.drawEars(vis.earType, p.x, headY, headRadius, s, furColor);
+        }
 
         // Head
-        ctx.fillStyle = furColor;
-        ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+        this.drawHead(vis.headType, p.x, headY, headRadius, s, furColor);
 
-        // Ears (simple)
-        ctx.beginPath(); ctx.arc(p.x - 10*s, headY - 10*s, 6*s, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 10*s, 6*s, 0, Math.PI*2); ctx.fill();
-
-        // Jersey Number
-        ctx.fillStyle = "#FFF";
-        ctx.font = `bold ${12 * s}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
+        // Hat (On Top of Head)
+        if(vis.hat) this.drawHat(vis.hat, p.x, headY, s);
 
         // Shot Meter
         if (this.game.state === 'JUMPING') {
