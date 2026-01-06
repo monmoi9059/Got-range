@@ -248,9 +248,87 @@
             text-shadow: 2px 2px 0 #000;
             pointer-events: none;
         }
+
+        #mobile-shoot-btn {
+            display: none; /* Hidden on desktop by default */
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ff8c00, #d35400);
+            border: 4px solid #8B4500;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 50;
+            touch-action: manipulation;
+        }
+        /* Basketball Lines */
+        #mobile-shoot-btn::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.4);
+            left: 0;
+            top: 0;
+            background:
+                linear-gradient(to right, transparent 45%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.6) 55%, transparent 55%),
+                linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.6) 55%, transparent 55%);
+        }
+        #mobile-shoot-btn:active {
+            transform: translateY(-50%) scale(0.95);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        @media screen and (max-width: 1024px), screen and (max-height: 700px) {
+            #mobile-shoot-btn { display: block; }
+            #controls .ui-btn { padding: 6px 12px; font-size: 14px; } /* Smaller buttons on mobile */
+        }
+
+        #rotate-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #FFD700;
+            text-align: center;
+        }
+        .rotate-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+
+        @media screen and (max-width: 900px) and (orientation: portrait) {
+            #rotate-overlay { display: flex; }
+            #game-container { display: none; }
+        }
+
+        @keyframes rotatePhone {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
     </style>
 </head>
 <body>
+
+<div id="rotate-overlay">
+    <div class="rotate-icon">📱 ➡️ 💻</div>
+    <h1>MODE PAYSAGE REQUIS</h1>
+    <p>Pour une meilleure expérience, veuillez tourner votre appareil.</p>
+</div>
 
 <div id="game-container">
     <div id="ui">
@@ -274,6 +352,9 @@
         <div class="ui-btn" onclick="openAchievements()">TROPHÉES [O]</div>
         <div class="ui-btn" onclick="openStats()">STATS [S]</div>
     </div>
+
+    <div id="mobile-shoot-btn"></div>
+
     <div id="notification">
         <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
         <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
@@ -1417,6 +1498,30 @@
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
     window.addEventListener('mouseup', () => { if (state === 'JUMPING') releaseShot(); });
+    // Mobile Controls
+    const mobileBtn = document.getElementById("mobile-shoot-btn");
+    mobileBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault(); // Prevent scrolling/zooming
+        if (state === "GAMEOVER") openShop();
+        else if (state === "IDLE") startJump();
+    }, { passive: false });
+
+    mobileBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        if (state === "JUMPING") releaseShot();
+    }, { passive: false });
+
+    // Mouse fallback for testing or hybrid devices
+    mobileBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        if (state === "GAMEOVER") openShop();
+        else if (state === "IDLE") startJump();
+    });
+    mobileBtn.addEventListener("mouseup", (e) => {
+        e.preventDefault();
+        if (state === "JUMPING") releaseShot();
+    });
+
 
     // Initial resize call
     resizeGame();
