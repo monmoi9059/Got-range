@@ -617,6 +617,143 @@
         drawBallSprite(p.x, p.y, p.scale);
     }
 
+    // --- FUR & ANATOMY HELPERS ---
+    function drawFuzzyPath(points, color, scale, close = true) {
+        if(points.length < 2) return;
+        ctx.beginPath();
+        const fuzz = 3 * scale;
+
+        for (let i = 0; i < points.length; i++) {
+            const p1 = points[i];
+            const p2 = points[(i + 1) % points.length];
+            if (!close && i === points.length - 1) break;
+
+            const dist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+            const segments = Math.max(2, Math.floor(dist / (4 * scale)));
+
+            if(i===0) ctx.moveTo(p1.x, p1.y);
+
+            for(let j=1; j<=segments; j++) {
+                const t = j / segments;
+                const tx = p1.x + (p2.x - p1.x) * t;
+                const ty = p1.y + (p2.y - p1.y) * t;
+                const noiseX = (Math.random() - 0.5) * fuzz;
+                const noiseY = (Math.random() - 0.5) * fuzz;
+                ctx.lineTo(tx + noiseX, ty + noiseY);
+            }
+        }
+        if(close) ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+        // Add texture
+        ctx.save();
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 1 * scale;
+        const b = getBounds(points);
+        const area = (b.maxX - b.minX) * (b.maxY - b.minY);
+        const dens = Math.floor(area / (100 * scale * scale)); // Approximate density
+        for(let k=0; k<dens; k++) {
+            const rx = b.minX + Math.random() * (b.maxX - b.minX);
+            const ry = b.minY + Math.random() * (b.maxY - b.minY);
+            if(isPointInPoly(rx, ry, points)) {
+                ctx.beginPath(); ctx.moveTo(rx, ry);
+                ctx.lineTo(rx + (Math.random()-0.5)*5*scale, ry + 5*scale);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    function getBounds(points) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
+        return {minX, minY, maxX, maxY};
+    }
+
+    function isPointInPoly(x, y, points) {
+        let inside = false;
+        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+            const xi = points[i].x, yi = points[i].y;
+            const xj = points[j].x, yj = points[j].y;
+            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry) {
+        if(!isFurry) {
+            drawLimb(x1, y1, x2, y2, width, color);
+            return;
+        }
+        // Construct polygon for limb
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const dx = Math.sin(angle) * (width / 2);
+        const dy = Math.cos(angle) * (width / 2);
+
+        const p1 = {x: x1 - dx, y: y1 + dy};
+        const p2 = {x: x2 - dx, y: y2 + dy};
+        const p3 = {x: x2 + dx, y: y2 - dy};
+        const p4 = {x: x1 + dx, y: y1 - dy};
+
+        drawFuzzyPath([p1, p2, p3, p4], color, scale, true);
+
+        // Add shadow gradient overlay for depth
+        ctx.save();
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
+        ctx.clip();
+        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.restore();
+    }
+
+    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry) {
+        // Hourglass / Tapered shape
+        // Shoulders
+        const sW = w * 1.1;
+        const hW = w * 1.0; // Hips
+        const wW = w * 0.85; // Waist
+
+        const shoulderY = topY;
+        const waistY = topY + h * 0.55;
+        const hipY = topY + h;
+
+        const points = [
+            {x: cx - sW/2, y: shoulderY},     // Top Left
+            {x: cx + sW/2, y: shoulderY},     // Top Right
+            {x: cx + wW/2, y: waistY},        // Waist Right
+            {x: cx + hW/2, y: hipY},          // Hip Right
+            {x: cx - hW/2, y: hipY},          // Hip Left
+            {x: cx - wW/2, y: waistY}         // Waist Left
+        ];
+
+        if (isFurry) {
+            drawFuzzyPath(points, color, scale, true);
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x + 10*scale, points[0].y); // Round corner start
+            ctx.lineTo(points[1].x - 10*scale, points[1].y);
+            ctx.quadraticCurveTo(points[1].x, points[1].y, points[1].x, points[1].y + 10*scale);
+            ctx.lineTo(points[2].x, points[2].y);
+            ctx.lineTo(points[3].x, points[3].y - 10*scale);
+            ctx.quadraticCurveTo(points[3].x, points[3].y, points[3].x - 10*scale, points[3].y);
+            ctx.lineTo(points[4].x + 10*scale, points[4].y);
+            ctx.quadraticCurveTo(points[4].x, points[4].y, points[4].x, points[4].y - 10*scale);
+            ctx.lineTo(points[5].x, points[5].y);
+            ctx.lineTo(points[0].x, points[0].y + 10*scale);
+            ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
+            ctx.closePath();
+
+            const grad = ctx.createRadialGradient(cx, topY + h/2, 5*scale, cx, topY + h/2, w);
+            grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+        }
+    }
+
     function drawLimb(x1, y1, x2, y2, width, color) {
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
@@ -717,14 +854,17 @@
             case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
         }
 
+        // Determine if Furry
+        const isFurry = !skin.includes('robot') && !skin.includes('astronaut') && !skin.includes('alien') && !skin.includes('ninja');
+
         // 1. Setup Base Colors
         let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
         let bellyColor = null, hasSpots = false, hasBlackEars = false;
 
         if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
         else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; } 
-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; } 
+        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
+        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
         else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
         else if(currentAnimal === 'beaver') { furColor = '#5D4037'; tailColor = '#3E2723'; }
         else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
@@ -735,7 +875,7 @@
         torsoColor = furColor; legColor = furColor; armColor = furColor;
 
         // 2. Apply Skin Overrides
-        if(skin.includes('lumberjack')) { 
+        if(skin.includes('lumberjack')) {
             torsoColor = '#b30000'; // Red Plaidish
             legColor = '#00008b';   // Blue Jeans
             armColor = '#b30000';   // Sleeves
@@ -747,12 +887,12 @@
         else if(skin.includes('zombie')) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; } // Green skin, ragged pants
         else if(skin.includes('ninja')) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; }
         else if(skin.includes('robot')) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; }
-        
+
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
         let legLen = 30 * s * sizeMod.h;
         let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head); 
+        let headY = torsoY - (10 * s * sizeMod.head);
         let headRadius = 12 * s * sizeMod.head;
 
         // 3. Draw Back Accessories (Cape, Wings) - Layer -1
@@ -761,23 +901,29 @@
             ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
         }
         if(skin.includes('angel')) {
-            ctx.fillStyle = '#FFF'; 
+            ctx.fillStyle = '#FFF';
             ctx.beginPath(); ctx.ellipse(p.x - 20*s, torsoY + 10*s, 10*s, 20*s, -0.5, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
         }
 
-        // 4. Draw Legs (Layer 0)
-        drawLimb(p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s*sizeMod.w, legColor);
-        drawLimb(p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s*sizeMod.w, legColor);
+        // 4. Draw Legs (Layer 0) - NEW SEGMENTED & FUZZY
+        const kneeY = p.y - (legLen * 0.5);
+        const legFurry = isFurry && (legColor === furColor);
+        // Left
+        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry);
+        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry);
+        // Right
+        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry);
+        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry);
 
         // 5. Arms Logic (Layer 1 - Before Body/Torso to appear behind)
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
         let upperArmLen = 20 * s * sizeMod.h * 0.6; let foreArmLen = 20 * s * sizeMod.h * 0.6;
         let wristAngle = 0;
-        
+
         if (state === 'SHOOTING') {
             // Arms go up and slightly in - symmetrical
-            leftArmAngle = -Math.PI/2 + 0.2; 
+            leftArmAngle = -Math.PI/2 + 0.2;
             rightArmAngle = -Math.PI/2 - 0.2;
             leftForeArmAngle = -Math.PI/2 + 0.4;
             rightForeArmAngle = -Math.PI/2 - 0.4;
@@ -802,11 +948,13 @@
         let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
+            const armFurry = isFurry && (armColor === furColor);
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor, s, armFurry);
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor);
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0)); 
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor, s, armFurry);
+
+            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
             ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
             if (wristAngle > 0.5 && isRight) { // Stick for Hockey?
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
@@ -815,16 +963,18 @@
             ctx.restore();
         };
 
-        if(currentAnimal === 'penguin') { 
-            drawLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor);
-            drawLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor);
+        if(currentAnimal === 'penguin') {
+            drawFuzzyLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor, s, true);
+            drawFuzzyLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true);
         } else {
              drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
              drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
         }
 
-        // 6. Draw Body (Layer 2)
-        drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
+        // 6. Draw Body (Layer 2) - NEW ANATOMY
+        const bodyFurry = isFurry && (torsoColor === furColor);
+        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry);
+
         // Spots/Stripes on Body
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
@@ -844,33 +994,42 @@
             ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s); // Start at butt
             ctx.quadraticCurveTo(p.x + 15*s, p.y - legLen + 5*s, p.x + 20*s, p.y - legLen - 10*s); ctx.stroke();
             if(currentAnimal === 'beaver') { // Flat tail texture
-                 ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s; 
+                 ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s;
                  ctx.beginPath(); ctx.moveTo(p.x + 5*s, p.y - legLen); ctx.lineTo(p.x + 15*s, p.y - legLen); ctx.stroke();
             }
         }
-        
+
         // 8. Draw Head & Ears (Layer 4)
         // Ears first so they are behind head circle
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
-        
+
+        // Helper for fuzzy circles
+        const drawFuzzyCircle = (cx, cy, r, c) => {
+            if(!isFurry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); return; }
+            const points = []; const segs = 16;
+            for(let i=0; i<segs; i++) { const a = (i/segs)*Math.PI*2; points.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r}); }
+            drawFuzzyPath(points, c, s, true);
+        };
+
         if(currentAnimal === 'rat') {
             // Big round ears
-            ctx.beginPath(); ctx.arc(p.x - 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
-            // Removed black outline for rat ears per request
-            ctx.beginPath(); ctx.arc(p.x + 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
+            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle);
+            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle);
         } else if (currentAnimal === 'cat') {
-            // Pointy ears
-            ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-8*s); ctx.lineTo(p.x-15*s, headY-20*s); ctx.lineTo(p.x-15*s, headY); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-8*s); ctx.lineTo(p.x+15*s, headY-20*s); ctx.lineTo(p.x+15*s, headY); ctx.fill();
+            // Pointy ears - Use fuzzy path for triangles
+            const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
+            const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
+            drawFuzzyPath(earL, ctx.fillStyle, s, true);
+            drawFuzzyPath(earR, ctx.fillStyle, s, true);
         } else if (currentAnimal === 'rabbit') {
-            // Long ears
-             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
+            // Long ears - Ellipses, approximated
+             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill(); // Keep simple or improve later
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
         } else if (currentAnimal === 'bear' || currentAnimal === 'dog') {
             // Small round ears
-            ctx.beginPath(); ctx.arc(p.x - 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
+            drawFuzzyCircle(p.x - 10*s, headY - 8*s, 5*s, ctx.fillStyle);
+            drawFuzzyCircle(p.x + 10*s, headY - 8*s, 5*s, ctx.fillStyle);
         }
         if(currentAnimal === 'moose') {
             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
@@ -879,12 +1038,12 @@
         }
 
         // Head Circle
-        ctx.fillStyle = furColor;
-        if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
-        ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
-        
+        let headColor = furColor;
+        if(skin.includes('alien')) headColor = '#32CD32';
+        drawFuzzyCircle(p.x, headY, headRadius, headColor);
+
         // Head Accessories
-        if(skin.includes('mariachi')) { 
+        if(skin.includes('mariachi')) {
             ctx.fillStyle = '#1a1a1a'; // Black sombrero
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill(); // Brim
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill(); // Top
@@ -907,7 +1066,6 @@
             ctx.textAlign = "center";
             ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
         }
-
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
             const maxVz = 9; const curVz = Math.abs(player3D.vz);
