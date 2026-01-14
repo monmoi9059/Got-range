@@ -618,10 +618,16 @@
     }
 
     // --- FUR & ANATOMY HELPERS ---
-    function drawFuzzyPath(points, color, scale, close = true) {
+    function drawFuzzyPath(points, color, scale, close = true, seed = 1) {
         if(points.length < 2) return;
         ctx.beginPath();
         const fuzz = 3 * scale;
+
+        // Simple seeded random function
+        const pseudoRand = (idx) => {
+            let t = (seed + idx) * 0.123456789;
+            return Math.sin(t) * 43758.5453123 - Math.floor(Math.sin(t) * 43758.5453123);
+        };
 
         for (let i = 0; i < points.length; i++) {
             const p1 = points[i];
@@ -637,8 +643,8 @@
                 const t = j / segments;
                 const tx = p1.x + (p2.x - p1.x) * t;
                 const ty = p1.y + (p2.y - p1.y) * t;
-                const noiseX = (Math.random() - 0.5) * fuzz;
-                const noiseY = (Math.random() - 0.5) * fuzz;
+                const noiseX = (pseudoRand(i * 100 + j) - 0.5) * fuzz;
+                const noiseY = (pseudoRand(i * 100 + j + 5000) - 0.5) * fuzz;
                 ctx.lineTo(tx + noiseX, ty + noiseY);
             }
         }
@@ -655,11 +661,14 @@
         const area = (b.maxX - b.minX) * (b.maxY - b.minY);
         const dens = Math.floor(area / (100 * scale * scale)); // Approximate density
         for(let k=0; k<dens; k++) {
-            const rx = b.minX + Math.random() * (b.maxX - b.minX);
-            const ry = b.minY + Math.random() * (b.maxY - b.minY);
+            const r1 = pseudoRand(k * 10 + 200);
+            const r2 = pseudoRand(k * 10 + 300);
+            const rx = b.minX + r1 * (b.maxX - b.minX);
+            const ry = b.minY + r2 * (b.maxY - b.minY);
             if(isPointInPoly(rx, ry, points)) {
                 ctx.beginPath(); ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random()-0.5)*5*scale, ry + 5*scale);
+                const r3 = pseudoRand(k * 10 + 400);
+                ctx.lineTo(rx + (r3-0.5)*5*scale, ry + 5*scale);
                 ctx.stroke();
             }
         }
@@ -683,7 +692,7 @@
         return inside;
     }
 
-    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry) {
+    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1) {
         if(!isFurry) {
             drawLimb(x1, y1, x2, y2, width, color);
             return;
@@ -698,7 +707,7 @@
         const p3 = {x: x2 + dx, y: y2 - dy};
         const p4 = {x: x1 + dx, y: y1 - dy};
 
-        drawFuzzyPath([p1, p2, p3, p4], color, scale, true);
+        drawFuzzyPath([p1, p2, p3, p4], color, scale, true, seed);
 
         // Add shadow gradient overlay for depth
         ctx.save();
@@ -710,7 +719,7 @@
         ctx.restore();
     }
 
-    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry) {
+    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1) {
         // Hourglass / Tapered shape
         // Shoulders
         const sW = w * 1.1;
@@ -731,7 +740,7 @@
         ];
 
         if (isFurry) {
-            drawFuzzyPath(points, color, scale, true);
+            drawFuzzyPath(points, color, scale, true, seed);
         } else {
             ctx.beginPath();
             ctx.moveTo(points[0].x + 10*scale, points[0].y); // Round corner start
@@ -909,12 +918,12 @@
         // 4. Draw Legs (Layer 0) - NEW SEGMENTED & FUZZY
         const kneeY = p.y - (legLen * 0.5);
         const legFurry = isFurry && (legColor === furColor);
-        // Left
-        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry);
-        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry);
-        // Right
-        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry);
-        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry);
+        // Left (Seeds 1, 2)
+        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry, 1);
+        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry, 2);
+        // Right (Seeds 3, 4)
+        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry, 3);
+        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry, 4);
 
         // 5. Arms Logic (Layer 1 - Before Body/Torso to appear behind)
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
@@ -949,10 +958,11 @@
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
+            const seedBase = isRight ? 10 : 20;
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor, s, armFurry);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor, s, armFurry, seedBase);
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor, s, armFurry);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor, s, armFurry, seedBase + 1);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
             ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
@@ -964,8 +974,8 @@
         };
 
         if(currentAnimal === 'penguin') {
-            drawFuzzyLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor, s, true);
-            drawFuzzyLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true);
+            drawFuzzyLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor, s, true, 30);
+            drawFuzzyLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true, 31);
         } else {
              drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
              drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
@@ -973,7 +983,7 @@
 
         // 6. Draw Body (Layer 2) - NEW ANATOMY
         const bodyFurry = isFurry && (torsoColor === furColor);
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry);
+        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40);
 
         // Spots/Stripes on Body
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
@@ -1005,31 +1015,31 @@
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
 
         // Helper for fuzzy circles
-        const drawFuzzyCircle = (cx, cy, r, c) => {
+        const drawFuzzyCircle = (cx, cy, r, c, seed = 50) => {
             if(!isFurry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); return; }
             const points = []; const segs = 16;
             for(let i=0; i<segs; i++) { const a = (i/segs)*Math.PI*2; points.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r}); }
-            drawFuzzyPath(points, c, s, true);
+            drawFuzzyPath(points, c, s, true, seed);
         };
 
         if(currentAnimal === 'rat') {
             // Big round ears
-            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle);
-            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle);
+            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51);
+            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52);
         } else if (currentAnimal === 'cat') {
             // Pointy ears - Use fuzzy path for triangles
             const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
             const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
-            drawFuzzyPath(earL, ctx.fillStyle, s, true);
-            drawFuzzyPath(earR, ctx.fillStyle, s, true);
+            drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
+            drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
         } else if (currentAnimal === 'rabbit') {
             // Long ears - Ellipses, approximated
              ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill(); // Keep simple or improve later
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
         } else if (currentAnimal === 'bear' || currentAnimal === 'dog') {
             // Small round ears
-            drawFuzzyCircle(p.x - 10*s, headY - 8*s, 5*s, ctx.fillStyle);
-            drawFuzzyCircle(p.x + 10*s, headY - 8*s, 5*s, ctx.fillStyle);
+            drawFuzzyCircle(p.x - 10*s, headY - 8*s, 5*s, ctx.fillStyle, 55);
+            drawFuzzyCircle(p.x + 10*s, headY - 8*s, 5*s, ctx.fillStyle, 56);
         }
         if(currentAnimal === 'moose') {
             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
@@ -1040,7 +1050,7 @@
         // Head Circle
         let headColor = furColor;
         if(skin.includes('alien')) headColor = '#32CD32';
-        drawFuzzyCircle(p.x, headY, headRadius, headColor);
+        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60);
 
         // Head Accessories
         if(skin.includes('mariachi')) {
