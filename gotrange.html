@@ -416,45 +416,63 @@
     ];
 
     var SKINS_DB = [
+        // RATS
         { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 0 },
-        { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500 },
-        { id: 'rat_mariachi', animal: 'rat', name: 'El Mariachi', cost: 1000 },
-        { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500 },
-        { id: 'rat_alien', animal: 'rat', name: 'Alien', cost: 3000 },
-        { id: 'rat_zombie', animal: 'rat', name: 'Zombie', cost: 3000 },
-        { id: 'rat_astronaut', animal: 'rat', name: 'Astronaute', cost: 5000 },
-        { id: 'rat_ninja', animal: 'rat', name: 'Ninja', cost: 5000 },
-        { id: 'rat_robot', animal: 'rat', name: 'Robot', cost: 5000 },
-        { id: 'rat_pirate', animal: 'rat', name: 'Pirate', cost: 1500 },
-        { id: 'rat_clown', animal: 'rat', name: 'Clown', cost: 1500 },
-        { id: 'rat_vampire', animal: 'rat', name: 'Vampire', cost: 3000 },
-        { id: 'rat_chef', animal: 'rat', name: 'Chef', cost: 750 },
-        { id: 'rat_hockey', animal: 'rat', name: 'Joueur Hockey', cost: 7500 },
-        { id: 'rat_poutine', animal: 'rat', name: 'Poutine', cost: 7500 },
-        { id: 'rat_king', animal: 'rat', name: 'Roi', cost: 10000 },
-        { id: 'rat_wizard', animal: 'rat', name: 'Sorcier', cost: 10000 },
-        { id: 'rat_devil', animal: 'rat', name: 'Diable', cost: 15000 },
-        { id: 'rat_angel', animal: 'rat', name: 'Ange', cost: 15000 },
+        { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie', hatColor: '#FF0000' },
+        { id: 'rat_mariachi', animal: 'rat', name: 'El Mariachi', cost: 1000, jerseyColor: '#1a1a1a', shortsColor: '#1a1a1a', legType: 'pants', shoesColor: '#000', pattern: 'suit', headAccessory: 'sombrero', hatColor: '#1a1a1a' },
+        { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500, jerseyColor: '#008000', shortsColor: '#008000', legType: 'pants', shoesColor: '#000', socksColor: '#FFF' },
+        { id: 'rat_alien', animal: 'rat', name: 'Alien', cost: 3000, jerseyColor: '#C0C0C0', shortsColor: '#C0C0C0', sleeveColor: '#C0C0C0', legType: 'pants', shoesColor: '#555' },
+        { id: 'rat_zombie', animal: 'rat', name: 'Zombie', cost: 3000, jerseyColor: '#5D4037', shortsColor: '#3E2723', legType: 'pants', shoesColor: '#111' },
+        { id: 'rat_astronaut', animal: 'rat', name: 'Astronaute', cost: 5000, jerseyColor: '#FFF', shortsColor: '#FFF', sleeveColor: '#FFF', legType: 'pants', shoesColor: '#AAA', headAccessory: 'helmet', hatColor: '#87CEEB' },
+        { id: 'rat_ninja', animal: 'rat', name: 'Ninja', cost: 5000, jerseyColor: '#111', shortsColor: '#111', sleeveColor: '#111', legType: 'pants', headAccessory: 'headband', hatColor: '#F00' },
+        { id: 'rat_robot', animal: 'rat', name: 'Robot', cost: 5000, jerseyColor: '#808080', shortsColor: '#808080', sleeveColor: '#808080', legType: 'pants' },
+        { id: 'rat_pirate', animal: 'rat', name: 'Pirate', cost: 1500, jerseyColor: '#FFF', shortsColor: '#000', legType: 'pants', shoesColor: '#000', headAccessory: 'eyepatch' },
+        { id: 'rat_clown', animal: 'rat', name: 'Clown', cost: 1500, jerseyColor: '#FFD700', shortsColor: '#FF4500', shoesColor: '#F00', headAccessory: 'red_nose' },
+        { id: 'rat_vampire', animal: 'rat', name: 'Vampire', cost: 3000, jerseyColor: '#FFF', shortsColor: '#000', legType: 'pants', shoesColor: '#000', backAccessory: 'cape', backColor: '#000' },
+        { id: 'rat_chef', animal: 'rat', name: 'Chef', cost: 750, jerseyColor: '#FFF', shortsColor: '#000', shoesColor: '#000', headAccessory: 'chef_hat' },
+        { id: 'rat_hockey', animal: 'rat', name: 'Joueur Hockey', cost: 7500, jerseyColor: '#CC0000', shortsColor: '#000', legType: 'pants', shoesColor: '#FFF', headAccessory: 'helmet', hatColor: '#FFF' },
+        { id: 'rat_poutine', animal: 'rat', name: 'Poutine', cost: 7500, jerseyColor: '#8B4513', shortsColor: '#F4C430', shoesColor: '#8B4513' },
+        { id: 'rat_king', animal: 'rat', name: 'Roi', cost: 10000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', shoesColor: '#FFD700', headAccessory: 'crown', backAccessory: 'cape', backColor: '#800080' },
+        { id: 'rat_wizard', animal: 'rat', name: 'Sorcier', cost: 10000, jerseyColor: '#000080', shortsColor: '#000080', legType: 'pants', shoesColor: '#000', headAccessory: 'wizard_hat', backAccessory: 'cape', backColor: '#000080' },
+        { id: 'rat_devil', animal: 'rat', name: 'Diable', cost: 15000, jerseyColor: '#800000', shortsColor: '#800000', legType: 'pants', shoesColor: '#000', headAccessory: 'horns' },
+        { id: 'rat_angel', animal: 'rat', name: 'Ange', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', shoesColor: '#FFD700', headAccessory: 'halo', backAccessory: 'wings' },
+
+        // CATS
         { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
         { id: 'cat_tabby', animal: 'cat', name: 'Tigré', cost: 1000 },
         { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000 },
+
+        // DOGS
         { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
-        { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000 },
+        { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000, hasSpots: true },
         { id: 'dog_pug', animal: 'dog', name: 'Carlin', cost: 1500 },
+
+        // BEARS
         { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
         { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000 },
-        { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000 },
+        { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#FFF' },
+
+        // RABBITS
         { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250 },
         { id: 'rabbit_jack', animal: 'rabbit', name: 'Lièvre', cost: 1000 },
-        { id: 'rabbit_magic', animal: 'rabbit', name: 'Magicien', cost: 2500 },
+        { id: 'rabbit_magic', animal: 'rabbit', name: 'Magicien', cost: 2500, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', shoesColor: '#FFF', headAccessory: 'wizard_hat', hatColor: '#000' },
+
+        // BEAVERS
         { id: 'beaver_classic', animal: 'beaver', name: 'Classique', cost: 500 },
-        { id: 'beaver_lumber', animal: 'beaver', name: 'Bûcheron', cost: 1500 },
+        { id: 'beaver_lumber', animal: 'beaver', name: 'Bûcheron', cost: 1500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie' },
+
+        // MOOSE
         { id: 'moose_classic', animal: 'moose', name: 'Classique', cost: 750 },
-        { id: 'moose_royal', animal: 'moose', name: 'Royal', cost: 5000 },
+        { id: 'moose_royal', animal: 'moose', name: 'Royal', cost: 5000, headAccessory: 'crown', backAccessory: 'cape', backColor: '#800080' },
+
+        // PENGUIN
         { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 750 },
-        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 3000 },
+        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 3000, headAccessory: 'crown' },
+
+        // RACCOON
         { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
-        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 },
+        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500, jerseyColor: '#000', shortsColor: '#000', pattern: 'stripes', headAccessory: 'beanie', hatColor: '#000' },
+
         // NBA LEGENDS (Humans)
         { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, jerseyColor: '#002B5C', shortsColor: '#E31837', number: '2', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
         { id: 'human_lebron', animal: 'human', name: 'The King', cost: 25000, jerseyColor: '#6F263D', shortsColor: '#FFB81C', number: '23', numberColor: '#FFB81C', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFB81C', sleeveRight: '#6F263D', socksColor: '#FFF', shoesColor: '#111' },
@@ -902,27 +920,26 @@
         torsoColor = furColor; legColor = furColor; armColor = furColor;
         thighColor = legColor; calfColor = legColor;
 
-        // 2. Apply Skin Overrides
-        if (currentAnimal === 'human') {
-            torsoColor = skinObj.jerseyColor || '#FFF';
-            thighColor = skinObj.shortsColor || torsoColor;
-            calfColor = furColor;
-            armColor = furColor;
-            legColor = thighColor;
-        }
-        else if(skin.includes('lumberjack')) {
-            torsoColor = '#b30000';
-            legColor = '#00008b';
-            armColor = '#b30000';
-            thighColor = legColor; calfColor = legColor;
-        }
-        else if(skin.includes('mariachi')) { torsoColor='#1a1a1a'; legColor='#1a1a1a'; armColor='#1a1a1a'; thighColor='#1a1a1a'; calfColor='#1a1a1a'; }
-        else if(skin.includes('luchador')) { legColor = '#008000'; thighColor='#008000'; calfColor='#008000'; }
-        else if(skin.includes('astronaut')) { torsoColor='#fff'; legColor='#fff'; armColor='#fff'; thighColor='#fff'; calfColor='#fff'; }
-        else if(skin.includes('alien')) { furColor = '#32CD32'; tailColor='#32CD32'; torsoColor=furColor; legColor=furColor; armColor=furColor; thighColor=furColor; calfColor=furColor; }
-        else if(skin.includes('zombie')) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; thighColor='#8B4513'; calfColor='#8B4513'; }
-        else if(skin.includes('ninja')) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; thighColor='#111'; calfColor='#111'; }
-        else if(skin.includes('robot')) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; thighColor='#808080'; calfColor='#808080'; }
+        // 2. Apply Skin Overrides (Data Driven)
+        // Biological overrides first
+        if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
+        if (skinObj.hasSpots) hasSpots = true;
+
+        if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
+        if (skin.includes('zombie')) { furColor = '#98FB98'; }
+        if (skin.includes('robot')) { furColor = '#C0C0C0'; }
+
+        // Clothing overrides
+        torsoColor = skinObj.jerseyColor || furColor;
+        thighColor = skinObj.shortsColor || furColor;
+        calfColor = furColor; // Default exposed calf
+
+        // Arms: Default to fur, check for sleeves
+        armColor = furColor;
+        if (skinObj.sleeveColor) armColor = skinObj.sleeveColor;
+
+        // Legs: If "trousers" (long pants), calf follows thigh color
+        if (skinObj.legType === 'pants') calfColor = thighColor;
 
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
@@ -932,14 +949,18 @@
         let headRadius = 12 * s * sizeMod.head;
 
         // 3. Draw Back Accessories
-        if(skin.includes('vampire') || skin.includes('king') || skin.includes('wizard')) {
-            ctx.fillStyle = skin.includes('vampire') ? '#000' : (skin.includes('king') ? '#800080' : '#000080');
+        if (skinObj.backAccessory === 'cape') {
+            ctx.fillStyle = skinObj.backColor || '#000';
             ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
         }
-        if(skin.includes('angel')) {
-            ctx.fillStyle = '#FFF';
+        if (skinObj.backAccessory === 'wings') {
+            ctx.fillStyle = skinObj.backColor || '#FFF';
             ctx.beginPath(); ctx.ellipse(p.x - 20*s, torsoY + 10*s, 10*s, 20*s, -0.5, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
+        }
+        if (skinObj.backAccessory === 'backpack') {
+             ctx.fillStyle = skinObj.backColor || '#555';
+             ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
         }
 
         // 4. Draw Legs
@@ -1058,12 +1079,27 @@
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
         if(bellyColor && currentAnimal === 'penguin') { ctx.fillStyle=bellyColor; ctx.fillRect(p.x-5*s, torsoY+5*s, 10*s, 30*s); }
-        if(skin.includes('lumberjack')) {
+        // Pattern Rendering
+        if(skinObj.pattern === 'plaid') {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
              ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+20*s); ctx.lineTo(p.x+bodyW/2, torsoY+20*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+30*s); ctx.lineTo(p.x+bodyW/2, torsoY+30*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
+        }
+        else if(skinObj.pattern === 'stripes') { // Referee or Bandit
+             ctx.fillStyle = '#000';
+             ctx.fillRect(p.x-5*s, torsoY, 10*s, bodyH); // Center stripe
+             ctx.fillRect(p.x-15*s, torsoY, 5*s, bodyH); // Left stripe
+             ctx.fillRect(p.x+10*s, torsoY, 5*s, bodyH); // Right stripe
+        }
+        else if(skinObj.pattern === 'suit') { // Tuxedo button
+             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 15*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x, torsoY + 25*s, 2*s, 0, Math.PI*2); ctx.fill();
+             // Bowtie
+             ctx.fillStyle = 'red';
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x-5*s, torsoY+2*s); ctx.lineTo(p.x-5*s, torsoY+8*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x+5*s, torsoY+2*s); ctx.lineTo(p.x+5*s, torsoY+8*s); ctx.fill();
         }
 
         // 7. Draw Tail (Layer 3)
@@ -1142,21 +1178,47 @@
         }
 
         // Head Accessories
-        if(skin.includes('mariachi')) {
-            ctx.fillStyle = '#1a1a1a';
+        if (skinObj.headAccessory === 'sombrero') {
+            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        if(skin.includes('clown')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('pirate')) { ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('king')) { ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s); ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill(); }
-        if(skin.includes('wizard')) { ctx.fillStyle='#000080'; ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill(); }
-        if(skin.includes('chef')) { ctx.fillStyle='#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s); }
-        if(skin.includes('hockey')) { ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, headY, headRadius+2*s, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('devil')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill(); ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill(); }
-        if(skin.includes('angel')) { ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('astronaut')) { ctx.strokeStyle='#87CEEB'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('lumberjack')) { ctx.fillStyle='#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s); }
+        else if (skinObj.headAccessory === 'crown') {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s);
+            ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'wizard_hat') {
+            ctx.fillStyle = skinObj.hatColor || '#000080';
+            ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'chef_hat') {
+             ctx.fillStyle = '#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s);
+        }
+        else if (skinObj.headAccessory === 'helmet') {
+             ctx.strokeStyle = skinObj.hatColor || '#87CEEB'; ctx.lineWidth=2*s;
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke();
+             if(skinObj.hatColor === '#FFF') { // Hockey mask fill
+                 ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
+             }
+        }
+        else if (skinObj.headAccessory === 'horns') {
+             ctx.fillStyle = 'red';
+             ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'halo') {
+             ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke();
+        }
+        else if (skinObj.headAccessory === 'beanie') {
+             ctx.fillStyle = skinObj.hatColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
+        }
+        else if (skinObj.headAccessory === 'red_nose') {
+             ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'eyepatch') {
+             ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
 
         // 9. Jersey Number (Layer 5)
         if(!skin.includes('alien') && !skin.includes('robot')) {
