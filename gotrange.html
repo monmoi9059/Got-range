@@ -455,12 +455,15 @@
         { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
         { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 },
         // NBA LEGENDS (Humans)
-        { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, jerseyColor: '#002B5C', shortsColor: '#E31837', number: '2', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000' },
-        { id: 'human_lebron', animal: 'human', name: 'The King', cost: 25000, jerseyColor: '#6F263D', shortsColor: '#FFB81C', number: '23', numberColor: '#FFB81C', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFB81C' },
-        { id: 'human_magic', animal: 'human', name: 'Magic', cost: 30000, jerseyColor: '#FDB927', shortsColor: '#552583', number: '32', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000' },
-        { id: 'human_drj', animal: 'human', name: 'The Doctor', cost: 35000, jerseyColor: '#FFF', shortsColor: '#002B5C', number: '32', numberColor: '#E31837', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000' },
-        { id: 'human_wilt', animal: 'human', name: 'The Stilt', cost: 40000, jerseyColor: '#ED174C', shortsColor: '#ED174C', number: '13', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFF' },
-        { id: 'human_mj', animal: 'human', name: 'The G.O.A.T.', cost: 50000, jerseyColor: '#CE1141', shortsColor: '#CE1141', number: '23', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000' }
+        { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, jerseyColor: '#002B5C', shortsColor: '#E31837', number: '2', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_lebron', animal: 'human', name: 'The King', cost: 25000, jerseyColor: '#6F263D', shortsColor: '#FFB81C', number: '23', numberColor: '#FFB81C', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFB81C', sleeveRight: '#6F263D', socksColor: '#FFF', shoesColor: '#111' },
+        { id: 'human_kobe8', animal: 'human', name: 'Frobe', cost: 30000, jerseyColor: '#552583', shortsColor: '#552583', number: '8', numberColor: '#FDB927', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000', socksColor: '#FFF', shoesColor: '#111' },
+        { id: 'human_kobe24', animal: 'human', name: 'Black Mamba', cost: 30000, jerseyColor: '#FFF', shortsColor: '#FFF', number: '24', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'bald', hairColor: '#000', sleeveRight: '#FFF', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_curry', animal: 'human', name: 'Chef Curry', cost: 30000, jerseyColor: '#000', shortsColor: '#000', number: '30', numberColor: '#FFC72C', skinTone: '#dcb98a', hairStyle: 'short', hairColor: '#000', jerseyType: 'tshirt', socksColor: '#FFF', shoesColor: '#1D428A' },
+        { id: 'human_magic', animal: 'human', name: 'Magic', cost: 30000, jerseyColor: '#FDB927', shortsColor: '#552583', number: '32', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_drj', animal: 'human', name: 'The Doctor', cost: 35000, jerseyColor: '#FFF', shortsColor: '#002B5C', number: '32', numberColor: '#E31837', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_wilt', animal: 'human', name: 'The Stilt', cost: 40000, jerseyColor: '#ED174C', shortsColor: '#ED174C', number: '13', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFF', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_mj', animal: 'human', name: 'The G.O.A.T.', cost: 50000, jerseyColor: '#CE1141', shortsColor: '#CE1141', number: '23', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' }
     ];
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
@@ -849,7 +852,7 @@
         ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
     }
 
-    function drawPlayer(p) {
+        function drawPlayer(p) {
         if (!p) return;
         const s = p.scale;
         const skin = playerData.currentSkin;
@@ -941,10 +944,44 @@
         // 4. Draw Legs
         const kneeY = p.y - (legLen * 0.5);
         const legFurry = isFurry && (legColor === furColor);
-        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1);
-        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, calfColor, s, legFurry, 2);
-        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3);
-        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, calfColor, s, legFurry, 4);
+        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
+        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
+
+        // Calves & Socks/Shoes
+        const drawLowerLeg = (xTop, xBot, isRight) => {
+             const calfBaseColor = calfColor;
+             // Draw Base Calf
+             drawFuzzyLimb(xTop, kneeY, xBot, p.y, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
+
+             // Socks & Shoes Overlay
+             if(skinObj.socksColor || skinObj.shoesColor) {
+                 const shoeH = 5 * s; const sockH = 7 * s;
+                 const ankleY = p.y - shoeH; const sockY = ankleY - sockH;
+
+                 // Interpolate X for sock/shoe top
+                 const getXAtY = (y) => {
+                     const t = (y - kneeY) / (p.y - kneeY);
+                     return xTop + (xBot - xTop) * t;
+                 };
+
+                 if(skinObj.socksColor) {
+                     const sockTopX = getXAtY(sockY);
+                     const ankleX = getXAtY(ankleY);
+                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, 5.8*s*sizeMod.w, skinObj.socksColor, s, false, 0);
+                 }
+                 if(skinObj.shoesColor) {
+                     const ankleX = getXAtY(ankleY);
+                     drawFuzzyLimb(ankleX, ankleY, xBot, p.y, 6*s*sizeMod.w, skinObj.shoesColor, s, false, 0);
+                     // Shoe Foot
+                     ctx.fillStyle = skinObj.shoesColor;
+                     ctx.beginPath(); ctx.ellipse(xBot, p.y + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+        };
+
+        drawLowerLeg(p.x - 9*s, p.x - 10*s, false); // Left
+        drawLowerLeg(p.x + 9*s, p.x + 10*s, true); // Right
+
 
         // 5. Arms Logic
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
@@ -972,13 +1009,32 @@
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
+
+            let thisUpperColor = armColor;
+            let thisForeColor = armColor;
+
+            // T-Shirt Logic
+            if(skinObj.jerseyType === 'tshirt') {
+                thisUpperColor = torsoColor;
+            }
+
+            // Sleeve Logic
+            if(isRight && skinObj.sleeveRight) {
+                thisUpperColor = skinObj.sleeveRight;
+                thisForeColor = skinObj.sleeveRight;
+            }
+            if(!isRight && skinObj.sleeveLeft) {
+                thisUpperColor = skinObj.sleeveLeft;
+                thisForeColor = skinObj.sleeveLeft;
+            }
+
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor, s, armFurry, seedBase);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor, s, armFurry, seedBase + 1);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
-            ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
             if (wristAngle > 0.5 && isRight) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
