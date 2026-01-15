@@ -292,6 +292,7 @@
             <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
         </div>
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
+        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
@@ -1544,6 +1545,30 @@
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
         highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
+    }
+    window.unlockAllSkins = function() {
+        if(resetStage === 0) {
+            const btn = document.getElementById('btnUnlock');
+            resetStage = 2; // Different stage for unlock
+            btn.innerText = "SÛR ? (CLIQUEZ ENCORE)";
+            btn.style.background = "#800080";
+            return;
+        }
+        if(resetStage === 2) {
+            SKINS_DB.forEach(skin => {
+                if(!playerData.unlockedSkins.includes(skin.id)) {
+                    playerData.unlockedSkins.push(skin.id);
+                }
+            });
+            checkAchievements('shop');
+            saveData();
+            updateShopUI();
+            const btn = document.getElementById('btnUnlock');
+            btn.innerText = "TRICHEUR !";
+            btn.disabled = true;
+            resetStage = 0;
+            showNotification("TRICHEUR !", 0);
+        }
     }
     window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
     window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
