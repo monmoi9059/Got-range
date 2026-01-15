@@ -439,18 +439,18 @@
 
         // CATS
         { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
-        { id: 'cat_tabby', animal: 'cat', name: 'Tigré', cost: 1000 },
-        { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000 },
+        { id: 'cat_tabby', animal: 'cat', name: 'Tigré', cost: 1000, furColor: '#FFA500' },
+        { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000, furColor: '#111' },
 
         // DOGS
         { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
-        { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000, hasSpots: true },
-        { id: 'dog_pug', animal: 'dog', name: 'Carlin', cost: 1500 },
+        { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000, furColor: '#FFF', hasSpots: true },
+        { id: 'dog_pug', animal: 'dog', name: 'Carlin', cost: 1500, furColor: '#d2b48c' },
 
         // BEARS
         { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
-        { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000 },
-        { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#FFF' },
+        { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000, furColor: '#FFF', legType: 'panda_limbs' },
+        { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#F0F8FF' },
 
         // RABBITS
         { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250 },
@@ -916,10 +916,6 @@
             tailColor = 'transparent';
         }
 
-        // Default clothes to fur color (naked)
-        torsoColor = furColor; legColor = furColor; armColor = furColor;
-        thighColor = legColor; calfColor = legColor;
-
         // 2. Apply Skin Overrides (Data Driven)
         // Biological overrides first
         if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
@@ -928,6 +924,10 @@
         if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
         if (skin.includes('zombie')) { furColor = '#98FB98'; }
         if (skin.includes('robot')) { furColor = '#C0C0C0'; }
+
+        // Default clothes to fur color (naked)
+        torsoColor = furColor; legColor = furColor; armColor = furColor;
+        thighColor = legColor; calfColor = legColor;
 
         // Clothing overrides
         torsoColor = skinObj.jerseyColor || furColor;
@@ -940,6 +940,11 @@
 
         // Legs: If "trousers" (long pants), calf follows thigh color
         if (skinObj.legType === 'pants') calfColor = thighColor;
+
+        // Panda Logic (Black limbs)
+        if (skinObj.legType === 'panda_limbs') {
+            legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
+        }
 
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
