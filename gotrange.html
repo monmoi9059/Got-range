@@ -498,7 +498,10 @@
         { id: 'curry', name: 'Chef Curry', cost: 5000, desc: 'Meilleur de loin, plus dur de près.', modifiers: { rangeBonus: 0.5, timingWindow: 0.9 } },
         { id: 'hook', name: 'Sky Hook', cost: 2000, desc: 'Lent mais chanceux (rebonds favorables).', modifiers: { luckBonus: 2.0, speed: 0.8 } },
         { id: 'yeet', name: 'Le Yeet', cost: 1000, desc: 'Tir rapide mais imprécis.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
-        { id: 'grandmama', name: 'Grand Mama', cost: 3000, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } }
+        { id: 'grandmama', name: 'Grand Mama', cost: 3000, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
+        { id: 'granny', name: 'La Grand-Mère', cost: 4000, desc: 'Très lent, mais très précis (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3 } },
+        { id: 'statue', name: 'La Statue', cost: 2500, desc: 'Tir ultra rapide, mais peu chanceux.', modifiers: { speed: 1.8, luckBonus: 0.5 } },
+        { id: 'fade', name: 'Fadeaway', cost: 6000, desc: 'Bonus de distance, timing difficile.', modifiers: { rangeBonus: 0.7, timingWindow: 0.8 } }
     ];
 
     var decors = [];
@@ -1052,6 +1055,18 @@
                 leftArmAngle = -Math.PI/2 - 0.3; rightArmAngle = -Math.PI/2 + 0.3;
                 leftForeArmAngle = -Math.PI/2 + 1.5; rightForeArmAngle = -Math.PI/2 + 1.5;
                 wristAngle = 0.2;
+            } else if (styleId === 'granny') {
+                leftArmAngle = Math.PI/2 - 0.2; rightArmAngle = Math.PI/2 + 0.2;
+                leftForeArmAngle = Math.PI/2 - 0.5; rightForeArmAngle = Math.PI/2 + 0.5;
+                wristAngle = 0; // Ball released from below
+            } else if (styleId === 'statue') {
+                leftArmAngle = -Math.PI/3; rightArmAngle = -Math.PI/3;
+                leftForeArmAngle = -Math.PI/2; rightForeArmAngle = -Math.PI/2; // T-Rex arms
+                wristAngle = 0.5;
+            } else if (styleId === 'fade') {
+                leftArmAngle = -Math.PI/2 - 0.4; rightArmAngle = -Math.PI/2 - 0.6; // Leaning back
+                leftForeArmAngle = -Math.PI/2; rightForeArmAngle = -Math.PI/2;
+                wristAngle = 1.5;
             } else {
                 leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
                 leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
