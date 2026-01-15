@@ -315,6 +315,12 @@
             <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
+
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
+            <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
+            <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
         </div>
         <button class="btn btn-close" onclick="closeShop()">FERMER</button>
     </div>
@@ -487,6 +493,14 @@
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
 
+    var SHOOTING_STYLES = [
+        { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
+        { id: 'curry', name: 'Chef Curry', cost: 5000, desc: 'Meilleur de loin, plus dur de près.', modifiers: { rangeBonus: 0.5, timingWindow: 0.9 } },
+        { id: 'hook', name: 'Sky Hook', cost: 2000, desc: 'Lent mais chanceux (rebonds favorables).', modifiers: { luckBonus: 2.0, speed: 0.8 } },
+        { id: 'yeet', name: 'Le Yeet', cost: 1000, desc: 'Tir rapide mais imprécis.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
+        { id: 'grandmama', name: 'Grand Mama', cost: 3000, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } }
+    ];
+
     var decors = [];
     for(let i=0; i<300; i++) {
         const dist = Math.random() * 10000;
@@ -520,6 +534,7 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingStyleIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
     let distanceLevel = 1;
@@ -543,7 +558,8 @@
         tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
+        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
+        unlockedStyles: ['classic'], currentStyle: 'classic'
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -556,7 +572,10 @@
     if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
     if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
     if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic'; window.playerData = playerData;
+    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
+    if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
+    if(!playerData.currentStyle) playerData.currentStyle = 'classic';
+    window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
 
@@ -1016,9 +1035,28 @@
         let wristAngle = 0;
 
         if (state === 'SHOOTING') {
-            leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
-            leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
-            wristAngle = 1.0;
+            const styleId = playerData.currentStyle || 'classic';
+            if (styleId === 'curry') {
+                leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.4;
+                leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.1;
+                wristAngle = 1.2;
+            } else if (styleId === 'hook') {
+                leftArmAngle = 0.2; rightArmAngle = -Math.PI + 0.2;
+                leftForeArmAngle = 0.5; rightForeArmAngle = -Math.PI - 0.5;
+                wristAngle = 0.5;
+            } else if (styleId === 'yeet') {
+                leftArmAngle = 0.2; rightArmAngle = -Math.PI/2 + 0.8;
+                leftForeArmAngle = 0.5; rightForeArmAngle = -Math.PI/2 + 0.8;
+                wristAngle = 0.5;
+            } else if (styleId === 'grandmama') {
+                leftArmAngle = -Math.PI/2 - 0.3; rightArmAngle = -Math.PI/2 + 0.3;
+                leftForeArmAngle = -Math.PI/2 + 1.5; rightForeArmAngle = -Math.PI/2 + 1.5;
+                wristAngle = 0.2;
+            } else {
+                leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
+                leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
+                wristAngle = 1.0;
+            }
         } else if (state === 'JUMPING') {
             let lift = Math.max(0, (9 - player3D.vz) / 9);
             leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
@@ -1425,22 +1463,40 @@
         state = 'SHOOTING';
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
+
+        const styleId = playerData.currentStyle || 'classic';
+        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const mods = style.modifiers;
+
         let aimBonus = (playerData.stats.aim - 1);
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        let dampener = baseDampener + aimBonus; if (dampener > 36.0) dampener = 36.0;
+        let dampener = baseDampener + aimBonus;
+
+        if(mods.timingWindow) dampener *= mods.timingWindow;
+        if (dampener > 36.0) dampener = 36.0;
+
         const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        const accuracy = (timingError / dampener) * playerData.difficulty * distPenalty;
+        let finalDistPenalty = distPenalty;
+        if(mods.rangeBonus) finalDistPenalty = 1.0 + (distPenalty - 1.0) * (1.0 - mods.rangeBonus);
+
+        const accuracy = (timingError / dampener) * playerData.difficulty * finalDistPenalty;
         const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
         ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120;
         ball.active = true;
-        const flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
+
+        let flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
+        if(mods.speed) flightTime /= mods.speed;
+
         ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
         let isMiss = Math.abs(accuracy) > 0.25;
         if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
         if (isMiss) {
             const luckChance = (playerData.stats.luck - 1) * 0.05;
-            if (Math.random() < luckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
+            let finalLuckChance = luckChance;
+            if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
+
+            if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
             else {
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
@@ -1695,6 +1751,26 @@
         }
         saveData(); updateShopUI(); updateUI();
     }
+    window.changeShootingStyle = function(dir) {
+        viewingStyleIndex += dir;
+        if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
+        if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
+        updateShopUI();
+    }
+    window.buyOrEquipShootingStyle = function() {
+        const style = SHOOTING_STYLES[viewingStyleIndex];
+        if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic']; // Safety
+        const isUnlocked = playerData.unlockedStyles.includes(style.id);
+
+        if (isUnlocked) {
+            playerData.currentStyle = style.id;
+        } else if (playerData.tacos >= style.cost) {
+            playerData.tacos -= style.cost;
+            playerData.unlockedStyles.push(style.id);
+            playerData.currentStyle = style.id;
+        }
+        saveData(); updateShopUI(); updateUI();
+    }
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
         document.getElementById('lvlIncome').innerText = playerData.stats.income;
@@ -1712,6 +1788,8 @@
         document.getElementById('lvlExtraLives').innerText = playerData.stats.extraLives || 0;
         document.getElementById('btnBuyExtraLives').innerText = `Acheter (${getUpgradeCost('extraLives')})`;
         document.getElementById('btnBuyExtraLives').disabled = playerData.tacos < getUpgradeCost('extraLives');
+
+        // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         const skin = animalSkins[viewingSkinIndex];
@@ -1724,6 +1802,19 @@
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Style UI
+        const style = SHOOTING_STYLES[viewingStyleIndex];
+        document.getElementById('styleName').innerText = style.name;
+        document.getElementById('styleDesc').innerText = style.desc;
+        const btnStyle = document.getElementById('btnEquipStyle');
+        const statusStyle = document.getElementById('styleStatus');
+        const isUnlockedStyle = playerData.unlockedStyles ? playerData.unlockedStyles.includes(style.id) : (style.id === 'classic');
+        const isEquippedStyle = playerData.currentStyle === style.id;
+
+        if (isEquippedStyle) { statusStyle.innerText = "Équipé"; btnStyle.style.display = 'none'; }
+        else if (isUnlockedStyle) { statusStyle.innerText = "Possédé"; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Équiper"; btnStyle.disabled = false; }
+        else { statusStyle.innerText = `Coût: ${style.cost} Tacos`; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Acheter"; btnStyle.disabled = playerData.tacos < style.cost; }
     }
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
