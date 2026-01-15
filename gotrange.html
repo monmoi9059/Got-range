@@ -14,11 +14,11 @@
             background-color: #1a1a1a;
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none; 
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
         }
-        
+
         #game-container {
             position: absolute;
             top: 50%;
@@ -79,10 +79,10 @@
         }
         .ui-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #B8860B; }
         .ui-btn:hover { background: #fff; }
-        
-        h1 { 
-            margin: 0; 
-            font-size: 42px; 
+
+        h1 {
+            margin: 0;
+            font-size: 42px;
             color: #FFD700;
             text-shadow: 3px 3px 0 #8B0000;
             font-weight: 900;
@@ -91,7 +91,7 @@
         p { margin: 5px 0; color: #fff; font-weight: bold; font-size: 1.2em; }
         .stat-label { color: #00FF00; }
         .highscore-label { color: #FFD700; }
-        
+
         .modal {
             display: none;
             position: absolute;
@@ -110,13 +110,13 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 15px;
         }
-        
+
         .modal::-webkit-scrollbar { width: 10px; }
         .modal::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
         .modal::-webkit-scrollbar-thumb { background: #DAA520; border-radius: 5px; }
 
         .modal-header { color: #FFD700; margin-bottom: 20px; font-size: 2.2em; text-shadow: 2px 2px #d32f2f; font-weight: 800; border-bottom: 2px solid #555; padding-bottom: 10px; }
-        
+
         .upgrade-row {
             display: flex;
             justify-content: space-between;
@@ -136,7 +136,7 @@
             text-align: left;
         }
         input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: #FFD700; }
-        
+
         .ach-row {
             display: flex;
             justify-content: space-between;
@@ -175,7 +175,7 @@
         .btn:active { transform: translateY(3px); box-shadow: none; }
         .btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; transform: none; color: #888; }
         .btn-close { background: #d32f2f; padding: 12px 30px; font-size: 1.2em; margin-top: 20px; width: 100%; box-shadow: 0 4px 0 #8B0000; }
-        
+
         .skin-viewer {
             margin-top: 20px;
             border-top: 2px solid #555;
@@ -195,7 +195,7 @@
 
         #notification {
             position: absolute;
-            bottom: 250px; 
+            bottom: 250px;
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(to right, #000, #333);
@@ -392,7 +392,7 @@
         { limit: 150, name: "Baleine Bleue", icon: "🐋" },
         { limit: 195, name: "Tour de Pise", icon: "🇮🇹" },
         { limit: 230, name: "Envergure Boeing 747", icon: "✈️" },
-        { limit: 272, name: "Chute Montmorency", icon: "🌊" }, 
+        { limit: 272, name: "Chute Montmorency", icon: "🌊" },
         { limit: 305, name: "Statue de la Liberté", icon: "🗽" },
         { limit: 350, name: "Château Frontenac", icon: "🏰" },
         { limit: 450, name: "Pyramide de Gizeh", icon: "🔺" },
@@ -453,17 +453,24 @@
         { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 750 },
         { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 3000 },
         { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
-        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 }
+        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 },
+        // NBA LEGENDS (Humans)
+        { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, jerseyColor: '#002B5C', shortsColor: '#E31837', number: '2', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000' },
+        { id: 'human_lebron', animal: 'human', name: 'The King', cost: 25000, jerseyColor: '#6F263D', shortsColor: '#FFB81C', number: '23', numberColor: '#FFB81C', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFB81C' },
+        { id: 'human_magic', animal: 'human', name: 'Magic', cost: 30000, jerseyColor: '#FDB927', shortsColor: '#552583', number: '32', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000' },
+        { id: 'human_drj', animal: 'human', name: 'The Doctor', cost: 35000, jerseyColor: '#FFF', shortsColor: '#002B5C', number: '32', numberColor: '#E31837', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000' },
+        { id: 'human_wilt', animal: 'human', name: 'The Stilt', cost: 40000, jerseyColor: '#ED174C', shortsColor: '#ED174C', number: '13', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FFF' },
+        { id: 'human_mj', animal: 'human', name: 'The G.O.A.T.', cost: 50000, jerseyColor: '#CE1141', shortsColor: '#CE1141', number: '23', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon'];
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
 
     var decors = [];
     for(let i=0; i<300; i++) {
-        const dist = Math.random() * 10000; 
+        const dist = Math.random() * 10000;
         const pathX = 600 - (dist * 0.7);
         const pathY = 150 + (dist * 0.7);
-        const scatter = (Math.random() - 0.5) * 1200; 
+        const scatter = (Math.random() - 0.5) * 1200;
         decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
     }
 
@@ -494,19 +501,19 @@
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
     let distanceLevel = 1;
-    let state = 'IDLE'; 
+    let state = 'IDLE';
     let feedback = "";
     let feedbackTimer = 0;
     let consecutiveMisses = 0;
     let currentStreak = 0;
     let spacePressed = false;
     let cameraZoom = 800;
-    let cameraHeight = 300; 
-    let resetStage = 0; 
+    let cameraHeight = 300;
+    let resetStage = 0;
 
     // Physique
     const GRAVITY = 0.5;
-    const HOOP_POS = { x: 600, y: 150, z: 130 }; 
+    const HOOP_POS = { x: 600, y: 150, z: 130 };
     let player3D = { x: 300, y: 300, z: 0, vz: 0 };
     let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
 
@@ -519,7 +526,7 @@
 
     let savedData = localStorage.getItem('tacoSaveData');
     let playerData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
-    
+
     // Migration logic to fix old saves
     if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
     if(!playerData.stats.income) playerData.stats.income = 1;
@@ -527,7 +534,7 @@
     if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
     if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
     if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
+    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic'; window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
 
@@ -536,11 +543,11 @@
     function getScaleObject(dist) { return SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
     function getCourtDetails(dist) { return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; }
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
-    
+
     function resizeGame() {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
-        const scale = Math.min(winW / 800, winH / 600) * 0.95; 
+        const scale = Math.min(winW / 800, winH / 600) * 0.95;
         container.style.transform = `translate(-50%, -50%) scale(${scale})`;
     }
     window.addEventListener('resize', resizeGame);
@@ -558,10 +565,10 @@
         const rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
         const ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
         const cameraOffset = 400; const depth = cameraOffset - ry;
-        if (depth <= 0) return null; 
+        if (depth <= 0) return null;
         const scale = cameraZoom / depth;
         const screenX = canvas.width / 2 + (rx * scale);
-        const horizonY = (canvas.height - 120) * 0.5; 
+        const horizonY = (canvas.height - 120) * 0.5;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -611,7 +618,7 @@
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
         ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
     }
-    
+
     function drawBall(p) {
         if (!p) return;
         drawBallSprite(p.x, p.y, p.scale);
@@ -768,7 +775,7 @@
         const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
         ctx.beginPath(); ctx.moveTo(x1 - dx, y1 + dy); ctx.lineTo(x2 - dx, y2 + dy); ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
         ctx.lineTo(x1 + dx, y1 - dy); ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2); ctx.closePath();
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2); grad.addColorStop(0, color); grad.addColorStop(1, '#000000'); 
+        const grad = ctx.createLinearGradient(x1, y1, x2, y2); grad.addColorStop(0, color); grad.addColorStop(1, '#000000');
         ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
     }
 
@@ -778,21 +785,21 @@
         ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
     }
 
-    function drawDecor(p, type) { 
-        if (!p) return; 
+    function drawDecor(p, type) {
+        if (!p) return;
         const s = p.scale;
-        if(type === 'grass') { 
-            ctx.fillStyle = '#F4C430'; 
+        if(type === 'grass') {
+            ctx.fillStyle = '#F4C430';
             ctx.beginPath(); ctx.arc(p.x, p.y - 20*s, 30*s, Math.PI, 0); ctx.fill();
             ctx.strokeStyle = '#D2691E'; ctx.lineWidth = 2*s; ctx.stroke();
             ctx.fillStyle = '#32CD32'; for(let i=0; i<5; i++) { ctx.beginPath(); ctx.arc(p.x - 25*s + (i*12*s), p.y - 45*s, 8*s, 0, Math.PI*2); ctx.fill(); }
             ctx.fillStyle = '#FFA500'; ctx.beginPath(); ctx.arc(p.x - 30*s, p.y - 25*s, 15*s, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x-40*s, p.y-35*s); ctx.lineTo(p.x-45*s, p.y-50*s); ctx.lineTo(p.x-30*s, p.y-38*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x-20*s, p.y-38*s); ctx.lineTo(p.x-15*s, p.y-50*s); ctx.lineTo(p.x-25*s, p.y-35*s); ctx.fill();
-            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
+            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(p.x + 25*s, p.y - 25*s); ctx.quadraticCurveTo(p.x + 40*s, p.y - 40*s, p.x + 45*s, p.y - 10*s); ctx.stroke();
             ctx.fillStyle = '#FFA500';
@@ -800,7 +807,7 @@
             ctx.beginPath(); ctx.arc(p.x - 5*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x + 10*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x + 25*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-        } 
+        }
         else if(type === 'tree') {
             ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x - 5*s, p.y, 10*s, -20*s);
             ctx.fillStyle = '#006400';
@@ -824,7 +831,7 @@
             ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(p.x, p.y - 30*s, 15*s, 0, Math.PI*2); ctx.fill();
         }
     }
-    
+
     function drawShadow(p) { if(!p) return; ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2); ctx.fill(); }
 
     function drawHoop(p) {
@@ -846,9 +853,9 @@
         if (!p) return;
         const s = p.scale;
         const skin = playerData.currentSkin;
-        let currentAnimal = 'rat';
-        const skinObj = SKINS_DB.find(x => x.id === skin);
-        if(skinObj) currentAnimal = skinObj.animal;
+        let skinObj = SKINS_DB.find(x => x.id === skin);
+        if(!skinObj) skinObj = SKINS_DB[0];
+        const currentAnimal = skinObj.animal;
 
         let sizeMod = { w: 1, h: 1, head: 1 };
         switch(currentAnimal) {
@@ -861,13 +868,16 @@
             case 'beaver': sizeMod = { w: 1.1, h: 0.9, head: 1.0 }; break;
             case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
             case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
+            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9 }; break;
         }
 
         // Determine if Furry
-        const isFurry = !skin.includes('robot') && !skin.includes('astronaut') && !skin.includes('alien') && !skin.includes('ninja');
+        let isFurry = !skin.includes('robot') && !skin.includes('astronaut') && !skin.includes('alien') && !skin.includes('ninja');
+        if (currentAnimal === 'human') isFurry = false;
 
         // 1. Setup Base Colors
         let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
+        let thighColor = '#555', calfColor = '#555';
         let bellyColor = null, hasSpots = false, hasBlackEars = false;
 
         if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
@@ -879,23 +889,36 @@
         else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
         else if(currentAnimal === 'penguin') { furColor = '#111'; tailColor = '#111'; bellyColor = '#fff'; }
         else if(currentAnimal === 'raccoon') { furColor = '#777'; tailColor = '#333'; }
+        else if(currentAnimal === 'human') {
+            furColor = skinObj.skinTone || '#8d5524';
+            tailColor = 'transparent';
+        }
 
         // Default clothes to fur color (naked)
         torsoColor = furColor; legColor = furColor; armColor = furColor;
+        thighColor = legColor; calfColor = legColor;
 
         // 2. Apply Skin Overrides
-        if(skin.includes('lumberjack')) {
-            torsoColor = '#b30000'; // Red Plaidish
-            legColor = '#00008b';   // Blue Jeans
-            armColor = '#b30000';   // Sleeves
+        if (currentAnimal === 'human') {
+            torsoColor = skinObj.jerseyColor || '#FFF';
+            thighColor = skinObj.shortsColor || torsoColor;
+            calfColor = furColor;
+            armColor = furColor;
+            legColor = thighColor;
         }
-        else if(skin.includes('mariachi')) { torsoColor='#1a1a1a'; legColor='#1a1a1a'; armColor='#1a1a1a'; }
-        else if(skin.includes('luchador')) { legColor = '#008000'; } // Green tights
-        else if(skin.includes('astronaut')) { torsoColor='#fff'; legColor='#fff'; armColor='#fff'; }
-        else if(skin.includes('alien')) { furColor = '#32CD32'; tailColor='#32CD32'; torsoColor=furColor; legColor=furColor; armColor=furColor; }
-        else if(skin.includes('zombie')) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; } // Green skin, ragged pants
-        else if(skin.includes('ninja')) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; }
-        else if(skin.includes('robot')) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; }
+        else if(skin.includes('lumberjack')) {
+            torsoColor = '#b30000';
+            legColor = '#00008b';
+            armColor = '#b30000';
+            thighColor = legColor; calfColor = legColor;
+        }
+        else if(skin.includes('mariachi')) { torsoColor='#1a1a1a'; legColor='#1a1a1a'; armColor='#1a1a1a'; thighColor='#1a1a1a'; calfColor='#1a1a1a'; }
+        else if(skin.includes('luchador')) { legColor = '#008000'; thighColor='#008000'; calfColor='#008000'; }
+        else if(skin.includes('astronaut')) { torsoColor='#fff'; legColor='#fff'; armColor='#fff'; thighColor='#fff'; calfColor='#fff'; }
+        else if(skin.includes('alien')) { furColor = '#32CD32'; tailColor='#32CD32'; torsoColor=furColor; legColor=furColor; armColor=furColor; thighColor=furColor; calfColor=furColor; }
+        else if(skin.includes('zombie')) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; thighColor='#8B4513'; calfColor='#8B4513'; }
+        else if(skin.includes('ninja')) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; thighColor='#111'; calfColor='#111'; }
+        else if(skin.includes('robot')) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; thighColor='#808080'; calfColor='#808080'; }
 
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
@@ -904,7 +927,7 @@
         let headY = torsoY - (10 * s * sizeMod.head);
         let headRadius = 12 * s * sizeMod.head;
 
-        // 3. Draw Back Accessories (Cape, Wings) - Layer -1
+        // 3. Draw Back Accessories
         if(skin.includes('vampire') || skin.includes('king') || skin.includes('wizard')) {
             ctx.fillStyle = skin.includes('vampire') ? '#000' : (skin.includes('king') ? '#800080' : '#000080');
             ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
@@ -915,42 +938,32 @@
             ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
         }
 
-        // 4. Draw Legs (Layer 0) - NEW SEGMENTED & FUZZY
+        // 4. Draw Legs
         const kneeY = p.y - (legLen * 0.5);
         const legFurry = isFurry && (legColor === furColor);
-        // Left (Seeds 1, 2)
-        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry, 1);
-        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry, 2);
-        // Right (Seeds 3, 4)
-        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, legColor, s, legFurry, 3);
-        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, legColor, s, legFurry, 4);
+        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1);
+        drawFuzzyLimb(p.x - 9*s, kneeY, p.x - 10*s, p.y, 6*s*sizeMod.w, calfColor, s, legFurry, 2);
+        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3);
+        drawFuzzyLimb(p.x + 9*s, kneeY, p.x + 10*s, p.y, 6*s*sizeMod.w, calfColor, s, legFurry, 4);
 
-        // 5. Arms Logic (Layer 1 - Before Body/Torso to appear behind)
+        // 5. Arms Logic
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
         let upperArmLen = 20 * s * sizeMod.h * 0.6; let foreArmLen = 20 * s * sizeMod.h * 0.6;
         let wristAngle = 0;
 
         if (state === 'SHOOTING') {
-            // Arms go up and slightly in - symmetrical
-            leftArmAngle = -Math.PI/2 + 0.2;
-            rightArmAngle = -Math.PI/2 - 0.2;
-            leftForeArmAngle = -Math.PI/2 + 0.4;
-            rightForeArmAngle = -Math.PI/2 - 0.4;
+            leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
+            leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
             wristAngle = 1.0;
         } else if (state === 'JUMPING') {
-             // Calculate lift (0 to 1)
             let lift = Math.max(0, (9 - player3D.vz) / 9);
-            // Interpolate from Idle to Shooting
             leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
             rightArmAngle = (Math.PI/2 + 0.2) + ((-Math.PI/2 - 0.2) - (Math.PI/2 + 0.2)) * lift;
             leftForeArmAngle = (Math.PI/2 - 0.1) + ((-Math.PI/2 + 0.4) - (Math.PI/2 - 0.1)) * lift;
             rightForeArmAngle = (Math.PI/2 + 0.1) + ((-Math.PI/2 - 0.4) - (Math.PI/2 + 0.1)) * lift;
         } else {
-            // Idle - Symmetrical hanging down
-            leftArmAngle = Math.PI/2 - 0.2;
-            rightArmAngle = Math.PI/2 + 0.2; // Mirror
-            leftForeArmAngle = Math.PI/2 - 0.1;
-            rightForeArmAngle = Math.PI/2 + 0.1; // Mirror
+            leftArmAngle = Math.PI/2 - 0.2; rightArmAngle = Math.PI/2 + 0.2;
+            leftForeArmAngle = Math.PI/2 - 0.1; rightForeArmAngle = Math.PI/2 + 0.1;
         }
 
         let shoulderY = torsoY + (5*s);
@@ -966,7 +979,7 @@
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
             ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isRight) { // Stick for Hockey?
+            if (wristAngle > 0.5 && isRight) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
             if (isRight && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
@@ -981,15 +994,13 @@
              drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
         }
 
-        // 6. Draw Body (Layer 2) - NEW ANATOMY
+        // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40);
 
-        // Spots/Stripes on Body
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
         if(bellyColor && currentAnimal === 'penguin') { ctx.fillStyle=bellyColor; ctx.fillRect(p.x-5*s, torsoY+5*s, 10*s, 30*s); }
-        // Lumberjack Plaid Pattern (New)
         if(skin.includes('lumberjack')) {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
              ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
@@ -998,23 +1009,21 @@
              ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
         }
 
-        // 7. Draw Tail (Layer 3 - On Top/Butt)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'penguin' && !skin.includes('astronaut') && !skin.includes('robot')) {
+        // 7. Draw Tail (Layer 3)
+        if(currentAnimal !== 'bear' && currentAnimal !== 'penguin' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
             ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = (currentAnimal === 'beaver' ? 10 : 4) * s;
-            ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s); // Start at butt
+            ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s);
             ctx.quadraticCurveTo(p.x + 15*s, p.y - legLen + 5*s, p.x + 20*s, p.y - legLen - 10*s); ctx.stroke();
-            if(currentAnimal === 'beaver') { // Flat tail texture
+            if(currentAnimal === 'beaver') {
                  ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s;
                  ctx.beginPath(); ctx.moveTo(p.x + 5*s, p.y - legLen); ctx.lineTo(p.x + 15*s, p.y - legLen); ctx.stroke();
             }
         }
 
         // 8. Draw Head & Ears (Layer 4)
-        // Ears first so they are behind head circle
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
 
-        // Helper for fuzzy circles
         const drawFuzzyCircle = (cx, cy, r, c, seed = 50) => {
             if(!isFurry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); return; }
             const points = []; const segs = 16;
@@ -1023,23 +1032,28 @@
         };
 
         if(currentAnimal === 'rat') {
-            // Big round ears
             drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51);
             drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52);
         } else if (currentAnimal === 'cat') {
-            // Pointy ears - Use fuzzy path for triangles
             const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
             const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
             drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
             drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
         } else if (currentAnimal === 'rabbit') {
-            // Long ears - Ellipses, approximated
-             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill(); // Keep simple or improve later
+             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
         } else if (currentAnimal === 'bear' || currentAnimal === 'dog') {
-            // Small round ears
             drawFuzzyCircle(p.x - 10*s, headY - 8*s, 5*s, ctx.fillStyle, 55);
             drawFuzzyCircle(p.x + 10*s, headY - 8*s, 5*s, ctx.fillStyle, 56);
+        } else if (currentAnimal === 'human') {
+            // Human Ears
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            if(skinObj.hairStyle === 'afro') {
+                 ctx.fillStyle = skinObj.hairColor || '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
+            }
         }
         if(currentAnimal === 'moose') {
             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
@@ -1052,36 +1066,54 @@
         if(skin.includes('alien')) headColor = '#32CD32';
         drawFuzzyCircle(p.x, headY, headRadius, headColor, 60);
 
+        // Human Hair
+        if(currentAnimal === 'human') {
+             if(skinObj.hairStyle === 'short') {
+                 ctx.fillStyle = skinObj.hairColor || '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, Math.PI, 0); ctx.fill();
+             }
+             if(skinObj.hairStyle === 'headband') {
+                 ctx.fillStyle = skinObj.hairColor || '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, Math.PI, 0); ctx.fill();
+                 ctx.strokeStyle = skinObj.headbandColor || '#FFF'; ctx.lineWidth = 4*s;
+                 ctx.beginPath(); ctx.moveTo(p.x-11*s, headY-5*s); ctx.lineTo(p.x+11*s, headY-5*s); ctx.stroke();
+             }
+             if(skinObj.hairStyle === 'bald') {
+                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 3*s, 0, Math.PI*2); ctx.fill();
+             }
+        }
+
         // Head Accessories
         if(skin.includes('mariachi')) {
-            ctx.fillStyle = '#1a1a1a'; // Black sombrero
-            ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill(); // Brim
-            ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill(); // Top
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
         if(skin.includes('clown')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('pirate')) { ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill(); } // Eye patch implied
+        if(skin.includes('pirate')) { ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('king')) { ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s); ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill(); }
         if(skin.includes('wizard')) { ctx.fillStyle='#000080'; ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill(); }
         if(skin.includes('chef')) { ctx.fillStyle='#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s); }
-        if(skin.includes('hockey')) { ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, headY, headRadius+2*s, 0, Math.PI*2); ctx.stroke(); } // Helmet
+        if(skin.includes('hockey')) { ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, headY, headRadius+2*s, 0, Math.PI*2); ctx.stroke(); }
         if(skin.includes('devil')) { ctx.fillStyle='red'; ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill(); ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill(); }
         if(skin.includes('angel')) { ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke(); }
         if(skin.includes('astronaut')) { ctx.strokeStyle='#87CEEB'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.includes('lumberjack')) { ctx.fillStyle='#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s); } // Tuque
+        if(skin.includes('lumberjack')) { ctx.fillStyle='#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s); }
 
         // 9. Jersey Number (Layer 5)
         if(!skin.includes('alien') && !skin.includes('robot')) {
-            ctx.fillStyle = "#FFF";
+            ctx.fillStyle = skinObj.numberColor || "#FFF";
             ctx.font = `bold ${12 * s}px Arial`;
             ctx.textAlign = "center";
-            ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
+            ctx.fillText(skinObj.number || "23", p.x, torsoY + bodyH * 0.6);
         }
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
             const maxVz = 9; const curVz = Math.abs(player3D.vz);
             let progress = 1.0 - (curVz / maxVz); progress = Math.max(0, Math.min(1, progress));
-            const groundY = p.y + (player3D.z * s); 
-            const meterY = groundY - (130 * s * sizeMod.h); 
+            const groundY = p.y + (player3D.z * s);
+            const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s; ctx.lineCap = 'round';
             ctx.arc(cx, meterY, radius, 0, -Math.PI / 2, true); ctx.stroke();
@@ -1092,11 +1124,10 @@
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
             ctx.arc(cx, meterY, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true); ctx.stroke();
             ctx.beginPath();
-            if (progress > greenStart) ctx.strokeStyle = '#00FF00'; else if (progress > 0.6) ctx.strokeStyle = '#FFFF00'; else ctx.strokeStyle = '#FF4500'; 
+            if (progress > greenStart) ctx.strokeStyle = '#00FF00'; else if (progress > 0.6) ctx.strokeStyle = '#FFFF00'; else ctx.strokeStyle = '#FF4500';
             ctx.lineWidth = 8*s; ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
         }
     }
-
     function drawBackground() {
         const currentDist = 10 + (distanceLevel * 5);
         const court = getCourtDetails(currentDist);
@@ -1104,9 +1135,9 @@
 
         // Sky
         const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
-        skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2); 
+        skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2);
         ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         // Current Floor Fill
         const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
         currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
@@ -1124,13 +1155,13 @@
             const z = COURT_ZONES[i];
             let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
             let zEnd = z.limit;
-            if (zStart >= currentDist) break; 
+            if (zStart >= currentDist) break;
             let drawEnd = Math.min(zEnd, currentDist);
-            const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd); 
+            const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd);
             if ((yBottom - yTop) > 0.5) {
                 const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
                 grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad; ctx.fillRect(0, yTop, canvas.width, (yBottom - yTop) + 2); 
+                ctx.fillStyle = grad; ctx.fillRect(0, yTop, canvas.width, (yBottom - yTop) + 2);
             }
         }
 
@@ -1144,25 +1175,25 @@
 
         // 3D OBJECTS
         let renderList = [];
-        decors.forEach(d => { 
-            const proj = project(d.x, d.y, 0); 
+        decors.forEach(d => {
+            const proj = project(d.x, d.y, 0);
             const dDist = Math.sqrt(Math.pow(d.x - HOOP_POS.x, 2) + Math.pow(d.y - HOOP_POS.y, 2));
             const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
-            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: decorZone.type }); 
+            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: decorZone.type });
         });
-        
+
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z); if (hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
         const playerProj = project(player3D.x, player3D.y, player3D.z); if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
         const shadowProj = project(player3D.x, player3D.y, 0); if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
-        
+
         if (state === 'SHOOTING' && ball.active) {
-            const ballProj = project(ball.x, ball.y, ball.z); 
+            const ballProj = project(ball.x, ball.y, ball.z);
             if (ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
         }
 
         renderList.sort((a, b) => b.depth - a.depth);
         renderList.forEach(obj => {
-            if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType); 
+            if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType);
             if (obj.type === 'hoop') drawHoop(obj.proj);
             if (obj.type === 'shadow') drawShadow(obj.proj);
             if (obj.type === 'player') drawPlayer(obj.proj);
@@ -1172,23 +1203,23 @@
         if (feedbackTimer > 0) {
             ctx.save(); ctx.font = "900 60px 'Arial Black'";
             ctx.fillStyle = feedback === "MUY BIEN!" || feedback === "CHANCEUX!" || feedback === "Swish" || feedback.includes('MONEY') || feedback === "SUR LA LIGNE!" || feedback === "OUF!" || feedback.includes('SÉRIE') ? "#00FF00" : "#FF0000";
-            if (feedback === "DERNIÈRE CHANCE !") ctx.fillStyle = "#FFA500"; 
+            if (feedback === "DERNIÈRE CHANCE !") ctx.fillStyle = "#FFA500";
             ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center";
             ctx.fillText(feedback, canvas.width/2, 200); ctx.strokeText(feedback, canvas.width/2, 200);
-            ctx.restore(); 
+            ctx.restore();
         }
     }
-    
+
     // Achievement Logic Helpers
     function unlockAchievement(id) {
         if (!playerData.unlockedAchievements.includes(id)) {
             playerData.unlockedAchievements.push(id);
             const ach = ACHIEVEMENTS.find(a => a.id === id);
-            if(ach) { 
-                playerData.tacos += ach.reward; 
-                saveData(); 
-                showNotification(ach.name, ach.reward); 
-                updateUI(); 
+            if(ach) {
+                playerData.tacos += ach.reward;
+                saveData();
+                showNotification(ach.name, ach.reward);
+                updateUI();
             }
         }
     }
@@ -1200,7 +1231,7 @@
             unlockAchievement('rookie');
             if (ls.makes >= 100) unlockAchievement('veteran');
              if (dist >= 25) unlockAchievement('amateur'); if (dist >= 50) unlockAchievement('sniper');
-            if (dist >= 75) unlockAchievement('pro'); 
+            if (dist >= 75) unlockAchievement('pro');
             if (dist >= 100) { unlockAchievement('parking_lot'); unlockAchievement('urban_legend'); }
             if (dist >= 125) unlockAchievement('longshot'); if (dist >= 150) unlockAchievement('levis_legend');
             if (dist >= 300) unlockAchievement('chateau');
@@ -1275,38 +1306,38 @@
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
         let dampener = baseDampener + aimBonus; if (dampener > 36.0) dampener = 36.0;
         const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        const accuracy = (timingError / dampener) * playerData.difficulty * distPenalty; 
+        const accuracy = (timingError / dampener) * playerData.difficulty * distPenalty;
         const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
-        ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120; 
+        ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120;
         ball.active = true;
-        const flightTime = Math.min(120, 40 + (distanceLevel * 0.8)); 
+        const flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
         ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
         let isMiss = Math.abs(accuracy) > 0.25;
         if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
         if (isMiss) {
             const luckChance = (playerData.stats.luck - 1) * 0.05;
-            if (Math.random() < luckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); } 
+            if (Math.random() < luckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
             else {
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
-                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracy) * 5; 
+                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracy) * 5;
                 feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
             }
         }
     }
 
-    function handleScore() { 
-        ball.active = false; playerData.lifetimeStats.makes++; currentStreak++; 
+    function handleScore() {
+        ball.active = false; playerData.lifetimeStats.makes++; currentStreak++;
         if(currentGameMode === 'CONTEST') {
             const isMoneyBall = (contestData.ballsInRack === 4);
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500); 
+            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500);
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000); 
+            feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000);
         }
     }
 
@@ -1314,7 +1345,7 @@
         if(state === 'GAMEOVER') return;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
-            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500); 
+            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
@@ -1330,7 +1361,7 @@
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
-                contestData.timer -= (1/60) * dt; 
+                contestData.timer -= (1/60) * dt;
                 if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
                 if(Math.floor(contestData.timer) !== parseInt(document.getElementById('contestTime').innerText)) { updateContestUI(); }
             }
@@ -1363,7 +1394,7 @@
             contestData.ballsInRack++;
             if(contestData.ballsInRack >= 5) {
                 contestData.rack++; contestData.ballsInRack = 0;
-                if(contestData.rack > 5) { endContest(); return; } 
+                if(contestData.rack > 5) { endContest(); return; }
                 else { setPlayerPositionForRack(contestData.rack); }
             }
             updateContestUI(); state = 'IDLE';
@@ -1412,15 +1443,15 @@
         document.getElementById('contestRack').innerText = contestData.rack;
     }
 
-    function resetGame() { 
-        if(currentGameMode === 'CONTEST') { startContest(); } 
+    function resetGame() {
+        if(currentGameMode === 'CONTEST') { startContest(); }
         else {
-            distanceLevel = 1; consecutiveMisses = 0; 
-            player3D = { x: 300, y: 300, z: 0, vz: 0 }; 
+            distanceLevel = 1; consecutiveMisses = 0;
+            player3D = { x: 300, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'block';
             strikesEl.style.display = 'block';
             contestUI.style.display = 'none';
-            state = 'IDLE'; updateUI(); 
+            state = 'IDLE'; updateUI();
         }
     }
 
@@ -1455,15 +1486,15 @@
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame(); 
+        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
     }
     window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
     window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
-    window.closeStats = function() { 
+    window.closeStats = function() {
         state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
         const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
-        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); 
+        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
     }
     window.updateDifficulty = function() {
         const val = parseFloat(document.getElementById('diffSlider').value);
@@ -1509,7 +1540,7 @@
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         const skin = animalSkins[viewingSkinIndex];
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); } 
+        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); }
         else if (playerData.tacos >= skin.cost) {
             playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
             checkAchievements('shop'); checkAchievements('skin');
@@ -1542,21 +1573,21 @@
         const status = document.getElementById('skinStatus');
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
         const isEquipped = playerData.currentSkin === skin.id;
-        if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; } 
-        else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; } 
+        if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
+        else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
     }
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONCOURS"; } 
+        if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONCOURS"; }
         else { currentGameMode = 'CLASSIC'; document.getElementById('modeBtnText').innerText = "CLASSIQUE"; }
         resetGame();
     }
-    
+
     // --- GAME LOOP ---
-    function draw() { 
-        drawBackground(); 
-        drawFlightTracker(); 
+    function draw() {
+        drawBackground();
+        drawFlightTracker();
     }
 
     let lastTime = 0;
@@ -1564,13 +1595,13 @@
         requestAnimationFrame(loop);
         if (!lastTime) lastTime = timestamp;
         const elapsed = timestamp - lastTime;
-        let dt = elapsed / 16.666; 
+        let dt = elapsed / 16.666;
         if(dt > 4) dt = 4;
         lastTime = timestamp;
         update(dt);
         draw();
     }
-    
+
     // Start buttons
     window.addEventListener('keydown', (e) => {
         if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
@@ -1581,7 +1612,7 @@
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return; 
+        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
     window.addEventListener('mouseup', () => { if (state === 'JUMPING') releaseShot(); });
