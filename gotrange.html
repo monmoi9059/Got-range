@@ -280,6 +280,34 @@
              clip-path: polygon(0 0, 25% 0, 25% 100%, 0 100%);
         }
         .mb-curve.right { transform: scaleX(-1); }
+
+        #startup-ui {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+        }
+        .startup-btn {
+            background: linear-gradient(to bottom, #FF8C00, #FF4500);
+            border: 3px solid #FFF;
+            color: white;
+            font-size: 1.5em;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 900;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 0 5px 0 #8B0000;
+            transition: transform 0.1s;
+        }
+        .startup-btn:active { transform: translateY(5px); box-shadow: none; }
+        .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
     </style>
 </head>
 <body>
@@ -314,6 +342,15 @@
     <div id="mobileShootBtn" class="mobile-shoot-btn">
         <div class="mb-curve"></div>
         <div class="mb-curve right"></div>
+    </div>
+
+    <div id="startup-ui">
+        <h1 style="font-size: 4em; margin-bottom: 200px;">TACO BASKET BALL</h1>
+        <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
+        <div>
+            <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
+            <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
+        </div>
     </div>
 
     <!-- MODALS -->
@@ -693,7 +730,7 @@ let lastDisplayedContestTime = -1;
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
         unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
-        mobileControls: false
+        mobileControls: false, platformChosen: false
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -710,7 +747,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
-    if(typeof playerData.mobileControls === 'undefined') playerData.mobileControls = (navigator.maxTouchPoints > 0);
+    if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
@@ -2340,8 +2378,38 @@ let lastDisplayedContestTime = -1;
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
-        if(playerData.mobileControls) btn.style.display = 'block';
+        if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
         else btn.style.display = 'none';
+    }
+    window.choosePlatform = function(mode) {
+        playerData.mobileControls = (mode === 'mobile');
+        playerData.platformChosen = true;
+        saveData();
+        startGame();
+    }
+    function checkStartup() {
+        if(!playerData.platformChosen) {
+            state = 'STARTUP';
+            document.getElementById('startup-ui').style.display = 'flex';
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('strikes').style.display = 'none';
+            document.getElementById('courtNameDisplay').style.display = 'none';
+            document.getElementById('classic-stats').style.display = 'none';
+        } else {
+            startGame();
+        }
+    }
+    function startGame() {
+        state = 'IDLE';
+        document.getElementById('startup-ui').style.display = 'none';
+        document.getElementById('ui').style.display = 'block';
+        document.getElementById('controls').style.display = 'flex';
+        document.getElementById('strikes').style.display = 'block';
+        document.getElementById('courtNameDisplay').style.display = 'block';
+        document.getElementById('classic-stats').style.display = 'block';
+        updateUI();
+        updateMobileControlsUI();
     }
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
@@ -2399,9 +2467,53 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- GAME LOOP ---
+    function drawStartupScene() {
+        // Draw background but force camera to specific spot
+        // Temporarily override player3D for camera calculation in drawBackground/project
+        const savedP = { x: player3D.x, y: player3D.y, z: player3D.z };
+        const savedState = state;
+
+        // Setup scene position
+        player3D.x = 600; // Aligned with hoop X
+        player3D.y = 550; // Distance from hoop
+        player3D.z = 0;
+
+        drawBackground(); // Draws environment based on temp player3D
+
+        // Draw Specific Elements for the Scene
+        // 1. Hoop (Already drawn by drawBackground if visible, but let's ensure it's the focus)
+        // drawBackground automatically draws hoop if in range. At y=550, dist to hoop (y=150) is 400. Hoop is visible.
+
+        // 2. Taco Cat sitting on the rim/backboard?
+        // Hoop is at 600, 150, 130.
+        // Let's put Taco Cat at 600, 150, 180 (On top of backboard) or floating.
+        // Or "going through net" as requested.
+        // Cat in net: 600, 150, 130 (Hoop Z).
+
+        const catProj = project(600, 150, 160);
+        if(catProj) {
+            // Render Taco Cat
+            drawDecor({...catProj, scale: catProj.scale * 2.5}, 'tacocat', 'default', 0.5);
+        }
+
+        // 3. Fire Ball going through net
+        const ballProj = project(600, 160, 120); // Slightly below rim
+        if(ballProj) {
+            // Draw Ball
+            drawBallSprite(ballProj.x, ballProj.y, ballProj.scale * 1.5, true);
+        }
+
+        // Restore
+        player3D.x = savedP.x; player3D.y = savedP.y; player3D.z = savedP.z;
+    }
+
     function draw() {
-        drawBackground();
-        drawFlightTracker();
+        if (state === 'STARTUP') {
+            drawStartupScene();
+        } else {
+            drawBackground();
+            drawFlightTracker();
+        }
     }
 
     let lastTime = 0;
@@ -2447,7 +2559,7 @@ let lastDisplayedContestTime = -1;
 
     // Initial resize call
     resizeGame();
-    updateMobileControlsUI();
+    checkStartup();
     // Start loop
     requestAnimationFrame(loop);
 </script>
