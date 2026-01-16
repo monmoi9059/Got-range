@@ -248,6 +248,66 @@
             text-shadow: 2px 2px 0 #000;
             pointer-events: none;
         }
+
+        /* Mobile Controls */
+        .mobile-shoot-btn {
+            position: fixed;
+            right: 30px;
+            bottom: 40%;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #FFA500, #FF4500);
+            border: 4px solid #331a00;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 9999;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            user-select: none;
+        }
+        .mobile-shoot-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .mobile-shoot-btn::before { /* Horizontal Line */
+            content: ''; position: absolute; top: 48%; left: 0; width: 100%; height: 4%; background: #331a00; opacity: 0.8;
+        }
+        .mobile-shoot-btn::after { /* Vertical Line */
+            content: ''; position: absolute; left: 48%; top: 0; height: 100%; width: 4%; background: #331a00; opacity: 0.8;
+        }
+        .mb-curve {
+             position: absolute; top: 5%; bottom: 5%; left: 5%; right: 5%;
+             border-radius: 50%; border: 4px solid #331a00; opacity: 0.8;
+             clip-path: polygon(0 0, 25% 0, 25% 100%, 0 100%);
+        }
+        .mb-curve.right { transform: scaleX(-1); }
+
+        #startup-ui {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            text-align: center;
+        }
+        .startup-btn {
+            background: linear-gradient(to bottom, #FF8C00, #FF4500);
+            border: 3px solid #FFF;
+            color: white;
+            font-size: 1.5em;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 900;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 0 5px 0 #8B0000;
+            transition: transform 0.1s;
+        }
+        .startup-btn:active { transform: translateY(5px); box-shadow: none; }
+        .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
     </style>
 </head>
 <body>
@@ -279,6 +339,22 @@
         <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
     </div>
 
+    <div id="mobileShootBtn" class="mobile-shoot-btn">
+        <div class="mb-curve"></div>
+        <div class="mb-curve right"></div>
+    </div>
+
+    <div id="startup-ui">
+        <h1 style="font-size: 4em; margin: 0; position: absolute; top: 10%; width: 100%;">TACO BASKET BALL</h1>
+        <div style="position: absolute; bottom: 10%; width: 100%;">
+            <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
+            <div>
+                <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
+                <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODALS -->
     <div id="statsUI" class="modal">
         <div class="modal-header">STATISTIQUES À VIE</div>
@@ -293,6 +369,7 @@
         </div>
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
         <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
+        <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
@@ -654,7 +731,8 @@ let lastDisplayedContestTime = -1;
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
         unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
-        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false
+        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
+        mobileControls: false, platformChosen: false
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -671,6 +749,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
+    if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
@@ -2176,6 +2256,8 @@ let lastDisplayedContestTime = -1;
         let acc = 0;
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
+        const btnMob = document.getElementById('btnToggleMobile');
+        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
     }
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
@@ -2290,6 +2372,47 @@ let lastDisplayedContestTime = -1;
         playerData.isLefty = !playerData.isLefty;
         saveData(); updateShopUI();
     }
+    window.toggleMobileControls = function() {
+        playerData.mobileControls = !playerData.mobileControls;
+        saveData(); updateShopUI(); updateMobileControlsUI();
+        const btn = document.getElementById('btnToggleMobile');
+        if(btn) btn.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+    }
+    window.updateMobileControlsUI = function() {
+        const btn = document.getElementById('mobileShootBtn');
+        if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
+        else btn.style.display = 'none';
+    }
+    window.choosePlatform = function(mode) {
+        playerData.mobileControls = (mode === 'mobile');
+        playerData.platformChosen = true;
+        saveData();
+        startGame();
+    }
+    function checkStartup() {
+        if(!playerData.platformChosen) {
+            state = 'STARTUP';
+            document.getElementById('startup-ui').style.display = 'flex';
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('strikes').style.display = 'none';
+            document.getElementById('courtNameDisplay').style.display = 'none';
+            document.getElementById('classic-stats').style.display = 'none';
+        } else {
+            startGame();
+        }
+    }
+    function startGame() {
+        state = 'IDLE';
+        document.getElementById('startup-ui').style.display = 'none';
+        document.getElementById('ui').style.display = 'block';
+        document.getElementById('controls').style.display = 'flex';
+        document.getElementById('strikes').style.display = 'block';
+        document.getElementById('courtNameDisplay').style.display = 'block';
+        document.getElementById('classic-stats').style.display = 'block';
+        updateUI();
+        updateMobileControlsUI();
+    }
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
         document.getElementById('lvlIncome').innerText = playerData.stats.income;
@@ -2346,9 +2469,55 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- GAME LOOP ---
+    function drawStartupScene() {
+        // Dark Background
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate positions for 2D Composition (Giant Cat + Hoop)
+        // We will mock project() returns manually or just draw directly using screen coordinates
+        // since we want a specific poster layout regardless of 3D camera.
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = 2.0; // Base scale
+
+        // 1. Hoop (Right side of center)
+        const hoopX = centerX + 150;
+        const hoopY = centerY + 50;
+        const hoopP = { x: hoopX, y: hoopY, scale: scale * 1.5 };
+
+        // Draw Hoop Manually (reuse drawHoop logic but simplified or just call it if it's robust)
+        // drawHoop depends on projection for the pole... let's mock it
+        ctx.fillStyle = '#444'; ctx.fillRect(hoopX - 5, hoopY, 10, 300); // Pole
+        // Backboard/Rim
+        const bbW = 60 * hoopP.scale; const bbH = 40 * hoopP.scale; const bbX = hoopX - bbW/2; const bbY = hoopY - bbH - 10*hoopP.scale;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(bbX, bbY, bbW, bbH);
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*hoopP.scale; ctx.strokeRect(bbX, bbY, bbW, bbH);
+        ctx.fillStyle = '#CE1126'; ctx.fillRect(bbX + bbW*0.35, bbY + bbH*0.6, bbW*0.3, bbH*0.3);
+        ctx.beginPath(); ctx.ellipse(hoopX, hoopY, 18 * hoopP.scale, 5 * hoopP.scale, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * hoopP.scale; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hoopX - 15*hoopP.scale, hoopY); ctx.lineTo(hoopX - 10*hoopP.scale, hoopY + 20*hoopP.scale); ctx.lineTo(hoopX + 10*hoopP.scale, hoopY + 20*hoopP.scale); ctx.lineTo(hoopX + 15*hoopP.scale, hoopY);
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1*hoopP.scale; ctx.stroke();
+
+        // 2. Giant Taco Cat (Left side of center)
+        const catX = centerX - 150;
+        const catY = centerY + 50;
+        const catP = { x: catX, y: catY, scale: scale * 3.5 }; // Giant
+        drawDecor(catP, 'tacocat', 'default', 0.5);
+
+        // 3. Fire Ball (In the hoop)
+        const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
+        drawBallSprite(ballP.x, ballP.y, ballP.scale, true);
+    }
+
     function draw() {
-        drawBackground();
-        drawFlightTracker();
+        if (state === 'STARTUP') {
+            drawStartupScene();
+        } else {
+            drawBackground();
+            drawFlightTracker();
+        }
     }
 
     let lastTime = 0;
@@ -2364,6 +2533,16 @@ let lastDisplayedContestTime = -1;
     }
 
     // Start buttons
+    const mobBtn = document.getElementById('mobileShootBtn');
+    mobBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
+    }, {passive: false});
+    mobBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (state === 'JUMPING') releaseShot();
+    }, {passive: false});
+
     window.addEventListener('keydown', (e) => {
         if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
@@ -2374,12 +2553,17 @@ let lastDisplayedContestTime = -1;
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
         if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+        if (state === 'IDLE' && playerData.mobileControls) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
-    window.addEventListener('mouseup', () => { if (state === 'JUMPING') releaseShot(); });
+    window.addEventListener('mouseup', () => {
+        if (state === 'JUMPING' && playerData.mobileControls) return;
+        if (state === 'JUMPING') releaseShot();
+    });
 
     // Initial resize call
     resizeGame();
+    checkStartup();
     // Start loop
     requestAnimationFrame(loop);
 </script>
