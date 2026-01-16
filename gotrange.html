@@ -947,7 +947,7 @@ let lastDisplayedContestTime = -1;
              ctx.stroke();
 
              // Small Flower
-             if (Math.random() > 0.7) {
+             if (seed > 0.7) {
                  ctx.fillStyle = '#FFF';
                  ctx.beginPath(); ctx.arc(p.x, p.y - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
                  ctx.fillStyle = '#FFD700';
@@ -1700,21 +1700,6 @@ let lastDisplayedContestTime = -1;
              ctx.shadowBlur = 0;
         }
 
-        // CLOUDS
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        clouds.forEach(c => {
-             c.x += c.speed;
-             if(c.x > canvas.width + 200) c.x = -200;
-             let xPos = c.x;
-             let yPos = c.y;
-             ctx.beginPath();
-             c.puffs.forEach(p => {
-                 ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
-                 ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
-             });
-             ctx.fill();
-        });
-
         // BACKGROUND MOUNTAINS
         mountainLayers.forEach(layer => {
              const shift = (player3D.x + player3D.y) * layer.speed;
@@ -1735,6 +1720,21 @@ let lastDisplayedContestTime = -1;
              drawLayer(startX);
              drawLayer(startX + loopWidth);
              if(startX + loopWidth < 0) drawLayer(startX + loopWidth * 2);
+        });
+
+        // CLOUDS
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        clouds.forEach(c => {
+             c.x += c.speed;
+             if(c.x > canvas.width + 200) c.x = -200;
+             let xPos = c.x;
+             let yPos = c.y;
+             ctx.beginPath();
+             c.puffs.forEach(p => {
+                 ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
+                 ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
+             });
+             ctx.fill();
         });
 
         ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
