@@ -321,6 +321,7 @@
             <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
             <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
+            <button id="btnToggleHand" class="btn" style="width:100%; margin-top:10px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
         </div>
         <button class="btn btn-close" onclick="closeShop()">FERMER</button>
     </div>
@@ -562,7 +563,7 @@
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
         unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
-        unlockedStyles: ['classic'], currentStyle: 'classic'
+        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -578,6 +579,7 @@
     if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
     if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
+    if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
@@ -1079,26 +1081,42 @@
         const idle = DEFAULT_IDLE;
         const lerp = (a, b, t) => a + (b - a) * t;
 
+        // Calculate generic (Right-Handed) angles first
+        let r_la, r_ra, r_lfa, r_rfa, r_w;
+
         if (state === 'SHOOTING') {
-            leftArmAngle = anim.release.la;
-            rightArmAngle = anim.release.ra;
-            leftForeArmAngle = anim.release.lfa;
-            rightForeArmAngle = anim.release.rfa;
-            wristAngle = anim.release.w;
+            r_la = anim.release.la; r_ra = anim.release.ra;
+            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
+            r_w = anim.release.w;
         } else if (state === 'JUMPING') {
             let lift = Math.max(0, (9 - player3D.vz) / 9);
             lift = Math.min(1.0, lift); // Clamp
-            leftArmAngle = lerp(idle.la, anim.set.la, lift);
-            rightArmAngle = lerp(idle.ra, anim.set.ra, lift);
-            leftForeArmAngle = lerp(idle.lfa, anim.set.lfa, lift);
-            rightForeArmAngle = lerp(idle.rfa, anim.set.rfa, lift);
-            wristAngle = lerp(idle.w, anim.set.w, lift);
+            r_la = lerp(idle.la, anim.set.la, lift);
+            r_ra = lerp(idle.ra, anim.set.ra, lift);
+            r_lfa = lerp(idle.lfa, anim.set.lfa, lift);
+            r_rfa = lerp(idle.rfa, anim.set.rfa, lift);
+            r_w = lerp(idle.w, anim.set.w, lift);
         } else {
-            leftArmAngle = idle.la;
-            rightArmAngle = idle.ra;
-            leftForeArmAngle = idle.lfa;
-            rightForeArmAngle = idle.rfa;
-            wristAngle = idle.w;
+            r_la = idle.la; r_ra = idle.ra;
+            r_lfa = idle.lfa; r_rfa = idle.rfa;
+            r_w = idle.w;
+        }
+
+        const isLefty = playerData.isLefty;
+        if (isLefty) {
+            // Mirror logic: Left Arm takes Right Arm's mirrored angles
+            // Mirror Angle = PI - Angle
+            leftArmAngle = Math.PI - r_ra;
+            rightArmAngle = Math.PI - r_la;
+            leftForeArmAngle = Math.PI - r_rfa;
+            rightForeArmAngle = Math.PI - r_lfa;
+            wristAngle = -r_w;
+        } else {
+            leftArmAngle = r_la;
+            rightArmAngle = r_ra;
+            leftForeArmAngle = r_lfa;
+            rightForeArmAngle = r_rfa;
+            wristAngle = r_w;
         }
 
         let shoulderY = torsoY + (5*s);
@@ -1107,6 +1125,7 @@
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
+            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
 
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
@@ -1116,7 +1135,7 @@
                 thisUpperColor = torsoColor;
             }
 
-            // Sleeve Logic
+            // Sleeve Logic (Physical side based)
             if(isRight && skinObj.sleeveRight) {
                 thisUpperColor = skinObj.sleeveRight;
                 thisForeColor = skinObj.sleeveRight;
@@ -1131,12 +1150,12 @@
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
 
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
+            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isRight) {
+            if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
-            if (isRight && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
+            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
             ctx.restore();
         };
 
@@ -1804,6 +1823,10 @@
         }
         saveData(); updateShopUI(); updateUI();
     }
+    window.toggleHandedness = function() {
+        playerData.isLefty = !playerData.isLefty;
+        saveData(); updateShopUI();
+    }
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
         document.getElementById('lvlIncome').innerText = playerData.stats.income;
@@ -1848,6 +1871,9 @@
         if (isEquippedStyle) { statusStyle.innerText = "Équipé"; btnStyle.style.display = 'none'; }
         else if (isUnlockedStyle) { statusStyle.innerText = "Possédé"; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Équiper"; btnStyle.disabled = false; }
         else { statusStyle.innerText = `Coût: ${style.cost} Tacos`; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Acheter"; btnStyle.disabled = playerData.tacos < style.cost; }
+
+        const btnHand = document.getElementById('btnToggleHand');
+        btnHand.innerText = playerData.isLefty ? "MAIN: GAUCHER" : "MAIN: DROITIER";
     }
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
