@@ -698,6 +698,13 @@
 
         const dX = pathX + scatter;
         const dY = pathY + scatter;
+
+        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
+        // Player Width ~30 units. Safety = 1.5x (~45).
+        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
+        const sum = dX + dY;
+        if (sum > 540 && sum < 810) continue;
+
         const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
         const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
         let variant = 'default';
@@ -716,9 +723,17 @@
         const dist = prevLimit + Math.random() * range;
         const pathX = 600 - (dist * 0.7);
         const pathY = 150 + (dist * 0.7);
-        const scatter = (Math.random() - 0.5) * 1000;
 
-        decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
+        let dX, dY;
+        let attempts = 0;
+        do {
+            const scatter = (Math.random() - 0.5) * 1000;
+            dX = pathX + scatter;
+            dY = pathY + scatter;
+            attempts++;
+        } while (attempts < 10 && (dX + dY > 540 && dX + dY < 810));
+
+        decors.push({ x: dX, y: dY, dist: dist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
     }
 
     var clouds = [];
