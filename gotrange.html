@@ -552,6 +552,9 @@
     const container = document.getElementById('game-container');
     const contestUI = document.getElementById('contest-ui');
     const strikesEl = document.getElementById('strikes');
+const contestTimeEl = document.getElementById('contestTime');
+const contestScoreEl = document.getElementById('contestScore');
+const contestRackEl = document.getElementById('contestRack');
 
     canvas.width = 800;
     canvas.height = 600;
@@ -561,6 +564,7 @@
     let viewingStyleIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
+let lastDisplayedContestTime = -1;
     let distanceLevel = 1;
     var state = 'IDLE';
     let feedback = "";
@@ -1719,7 +1723,7 @@
             if(contestData.timer > 0) {
                 contestData.timer -= (1/60) * dt;
                 if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
-                if(Math.floor(contestData.timer) !== parseInt(document.getElementById('contestTime').innerText)) { updateContestUI(); }
+                if(Math.ceil(contestData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
             }
         }
         if (state === 'JUMPING') {
@@ -1796,9 +1800,28 @@
     }
 
     function updateContestUI() {
-        document.getElementById('contestTime').innerText = Math.ceil(contestData.timer);
-        document.getElementById('contestScore').innerText = contestData.score;
-        document.getElementById('contestRack').innerText = contestData.rack;
+        const newTime = Math.ceil(contestData.timer);
+        contestTimeEl.innerText = newTime;
+        lastDisplayedContestTime = newTime;
+        contestScoreEl.innerText = contestData.score;
+        contestRackEl.innerText = contestData.rack;
+    }
+
+    function startContest() {
+        contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true };
+        lastDisplayedContestTime = -1;
+        currentStreak = 0;
+
+        document.getElementById('classic-stats').style.display = 'none';
+        strikesEl.style.display = 'none';
+        contestUI.style.display = 'block';
+
+        setPlayerPositionForRack(1);
+
+        state = 'IDLE';
+        updateUI();
+        updateContestUI();
+        playerData.lifetimeStats.contests++;
     }
 
     function resetGame() {
