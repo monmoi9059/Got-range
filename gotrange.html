@@ -315,6 +315,13 @@
             <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
+
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
+            <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
+            <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
+            <button id="btnToggleHand" class="btn" style="width:100%; margin-top:10px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
         </div>
         <button class="btn btn-close" onclick="closeShop()">FERMER</button>
     </div>
@@ -487,6 +494,27 @@
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
 
+    var SHOOTING_STYLES = [
+        { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
+        { id: 'curry', name: 'Chef Curry', cost: 5000, desc: 'Meilleur de loin, plus dur de près.', modifiers: { rangeBonus: 0.5, timingWindow: 0.9 } },
+        { id: 'hook', name: 'Sky Hook', cost: 2000, desc: 'Lent mais chanceux (rebonds favorables).', modifiers: { luckBonus: 2.0, speed: 0.8 } },
+        { id: 'yeet', name: 'Le Yeet', cost: 1000, desc: 'Tir rapide mais imprécis.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
+        { id: 'grandmama', name: 'Grand Mama', cost: 3000, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
+        { id: 'granny', name: 'La Grand-Mère', cost: 4000, desc: 'Très lent, mais très précis (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3 } },
+        { id: 'statue', name: 'La Statue', cost: 2500, desc: 'Tir ultra rapide, mais peu chanceux.', modifiers: { speed: 1.8, luckBonus: 0.5 } },
+        { id: 'fade', name: 'Fadeaway', cost: 6000, desc: 'Bonus de distance, timing difficile.', modifiers: { rangeBonus: 0.7, timingWindow: 0.8 } },
+        { id: 'marion', name: 'La Matrice', cost: 4000, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, luckBonus: 0.7, timingWindow: 0.7 } },
+        { id: 'noah', name: 'La Tornade', cost: 3500, desc: 'Rotation bizarre à deux mains.', modifiers: { luckBonus: 1.5, speed: 0.9 } },
+        { id: 'dirk', name: 'Le Flamant', cost: 8000, desc: 'Tir sur une jambe. Précision légendaire.', modifiers: { rangeBonus: 0.6, timingWindow: 1.1 } },
+        { id: 'bird', name: 'La Légende', cost: 7000, desc: 'Catapulte derrière la tête. Lent mais fiable.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
+        { id: 'floater', name: 'La Larme', cost: 5000, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2, luckBonus: 1.3, rangeBonus: 0.2 } },
+        { id: 'broken', name: 'Le Bug', cost: 500, desc: 'Chaotique et imprévisible.', modifiers: { luckBonus: 3.0, timingWindow: 0.4 } },
+        { id: 'joker', name: 'Le Joker', cost: 7500, desc: 'Tir paresseux mais efficace.', modifiers: { speed: 0.85, timingWindow: 1.1, luckBonus: 1.2 } },
+        { id: 'ray', name: 'Jesus', cost: 8000, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, rangeBonus: 0.4, timingWindow: 0.9 } },
+        { id: 'bowling', name: 'La Quille', cost: 2000, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6, luckBonus: 2.5 } },
+        { id: 'hadouken', name: 'Boule de Feu', cost: 9000, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, rangeBonus: 0.8, timingWindow: 0.6 } }
+    ];
+
     var decors = [];
     for(let i=0; i<300; i++) {
         const dist = Math.random() * 10000;
@@ -520,10 +548,11 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingStyleIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
     let distanceLevel = 1;
-    let state = 'IDLE';
+    var state = 'IDLE';
     let feedback = "";
     let feedbackTimer = 0;
     let consecutiveMisses = 0;
@@ -536,14 +565,19 @@
     // Physique
     const GRAVITY = 0.5;
     const HOOP_POS = { x: 600, y: 150, z: 130 };
-    let player3D = { x: 300, y: 300, z: 0, vz: 0 };
+    var player3D = { x: 300, y: 300, z: 0, vz: 0 };
     let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
+
+    // Expose for debugging
+    window.player3D = player3D;
+    window.state = state;
 
     const defaultData = {
         tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
+        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
+        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -556,7 +590,11 @@
     if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
     if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
     if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic'; window.playerData = playerData;
+    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
+    if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
+    if(!playerData.currentStyle) playerData.currentStyle = 'classic';
+    if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
+    window.playerData = playerData;
 
     highScoreEl.innerText = playerData.highScore + " pi";
 
@@ -969,25 +1007,43 @@
         }
 
         // 4. Draw Legs
-        const kneeY = p.y - (legLen * 0.5);
+        const baseKneeY = p.y - (legLen * 0.5);
+        let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
+        let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
+        let lFootX = p.x - 10*s, lFootY = p.y;
+        let rFootX = p.x + 10*s, rFootY = p.y;
+
+        // Special Leg Logic (Dirk Fadeaway)
+        if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
+            const lift = Math.min(1.0, Math.max(0, (9 - player3D.vz) / 9));
+            const kickH = 20 * s * lift;
+            const kickW = 15 * s * lift;
+            if (playerData.isLefty) {
+                 lKneeY -= kickH; lKneeX -= kickW; lFootX -= kickW; lFootY -= kickH*0.8;
+            } else {
+                 rKneeY -= kickH; rKneeX += kickW; rFootX += kickW; rFootY -= kickH*0.8;
+            }
+        }
+
         const legFurry = isFurry && (legColor === furColor);
-        drawFuzzyLimb(p.x - 8*s, p.y - legLen, p.x - 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + 8*s, p.y - legLen, p.x + 9*s, kneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
+        drawFuzzyLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
+        drawFuzzyLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
 
         // Calves & Socks/Shoes
-        const drawLowerLeg = (xTop, xBot, isRight) => {
+        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
              // Draw Base Calf
-             drawFuzzyLimb(xTop, kneeY, xBot, p.y, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
+             drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
 
              // Socks & Shoes Overlay
              if(skinObj.socksColor || skinObj.shoesColor) {
                  const shoeH = 5 * s; const sockH = 7 * s;
-                 const ankleY = p.y - shoeH; const sockY = ankleY - sockH;
+                 // Calculate local Y relative to the foot Y
+                 const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
 
-                 // Interpolate X for sock/shoe top
+                 // Interpolate X/Y
                  const getXAtY = (y) => {
-                     const t = (y - kneeY) / (p.y - kneeY);
+                     const t = (y - yTop) / (yBot - yTop);
                      return xTop + (xBot - xTop) * t;
                  };
 
@@ -998,16 +1054,16 @@
                  }
                  if(skinObj.shoesColor) {
                      const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(ankleX, ankleY, xBot, p.y, 6*s*sizeMod.w, skinObj.shoesColor, s, false, 0);
+                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, 6*s*sizeMod.w, skinObj.shoesColor, s, false, 0);
                      // Shoe Foot
                      ctx.fillStyle = skinObj.shoesColor;
-                     ctx.beginPath(); ctx.ellipse(xBot, p.y + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+                     ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
                  }
              }
         };
 
-        drawLowerLeg(p.x - 9*s, p.x - 10*s, false); // Left
-        drawLowerLeg(p.x + 9*s, p.x + 10*s, true); // Right
+        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
+        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
 
 
         // 5. Arms Logic
@@ -1015,19 +1071,156 @@
         let upperArmLen = 20 * s * sizeMod.h * 0.6; let foreArmLen = 20 * s * sizeMod.h * 0.6;
         let wristAngle = 0;
 
+        // Animation Keyframes
+        const DEFAULT_IDLE = { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0 };
+        const ANIM_DATA = {
+            classic: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 }, // Pocket (Tucked behind)
+                set: { la: -Math.PI/2 + 0.2, ra: -Math.PI/2 - 0.2, lfa: -Math.PI/2 + 0.4, rfa: -Math.PI/2 - 0.4, w: 0 },
+                release: { la: -Math.PI/2 + 0.2, ra: -Math.PI/2 - 0.2, lfa: -Math.PI/2 + 0.4, rfa: -Math.PI/2 - 0.4, w: 1.0 }
+            },
+            curry: {
+                ready: { la: 0.2, ra: 2.8, lfa: 1.0, rfa: -2.3, w: 0 },
+                set: { la: -1.2, ra: -1.5, lfa: -2.0, rfa: -2.2, w: 0.5 }, // Chest/Chin load (lower than classic)
+                release: { la: -Math.PI/2 + 0.1, ra: -Math.PI/2 - 0.4, lfa: -Math.PI/2 + 0.2, rfa: -Math.PI/2 - 0.2, w: 1.5 } // High release
+            },
+            hook: {
+                ready: { la: 1.5, ra: 1.0, lfa: 1.5, rfa: 1.5, w: 0 }, // Side/Low
+                set: { la: 0.2, ra: 0.0, lfa: 0.5, rfa: -0.5, w: 0 }, // Side windup
+                release: { la: 0.5, ra: -Math.PI + 0.2, lfa: 0.8, rfa: -Math.PI - 0.5, w: 0.5 } // Sky hook
+            },
+            yeet: {
+                ready: { la: 1.5, ra: 2.8, lfa: 1.5, rfa: -2.0, w: 0 }, // Back/Low
+                set: { la: -2.5, ra: -2.8, lfa: -0.5, rfa: -0.5, w: 0 }, // Way back
+                release: { la: 0.2, ra: -Math.PI/2 + 0.8, lfa: 0.5, rfa: -Math.PI/2 + 0.8, w: 0.5 }
+            },
+            grandmama: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.2, ra: -2.2, lfa: -1.5, rfa: -1.5, w: 0 }, // L Shape
+                release: { la: -Math.PI/2 - 0.3, ra: -Math.PI/2 + 0.3, lfa: -Math.PI/2 + 1.5, rfa: -Math.PI/2 + 1.5, w: 0.2 }
+            },
+            granny: {
+                ready: { la: 1.2, ra: 1.2, lfa: 1.5, rfa: 1.5, w: 0 }, // Low
+                set: { la: 1.2, ra: 1.5, lfa: 1.0, rfa: 1.2, w: 0 }, // Down between legs
+                release: { la: -0.2, ra: 0.2, lfa: -0.5, rfa: -0.5, w: 0 } // Underhand toss
+            },
+            statue: {
+                ready: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0 },
+                set: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0 }, // Fixed
+                release: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0.5 } // Fixed
+            },
+            fade: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.0, ra: -2.2, lfa: -1.5, rfa: -1.8, w: 0 },
+                release: { la: -Math.PI/2 - 0.4, ra: -Math.PI/2 - 0.6, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.5 }
+            },
+            marion: {
+                ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.5, w: 0 }, // T-Rex chest load
+                set: { la: -1.0, ra: -1.2, lfa: -2.5, rfa: -2.5, w: 0 }, // Chest push position
+                release: { la: -0.5, ra: -0.8, lfa: -0.5, rfa: -0.5, w: 0.2 } // Short arm push
+            },
+            noah: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -1.5, ra: -1.5, lfa: 0.5, rfa: -0.5, w: 1.0 }, // Hands twisted sideways
+                release: { la: -0.8, ra: -0.8, lfa: -0.2, rfa: -0.2, w: 0 } // Push out
+            },
+            dirk: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.5, ra: -2.5, lfa: -1.2, rfa: -1.2, w: 0 }, // High set
+                release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.0 } // High release
+            },
+            bird: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.8, ra: -3.0, lfa: -0.5, rfa: -0.8, w: 0.5 }, // Way behind head
+                release: { la: -Math.PI/2 + 0.2, ra: -Math.PI/2 - 0.2, lfa: -Math.PI/2 + 0.4, rfa: -Math.PI/2 - 0.4, w: 1.0 }
+            },
+            floater: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: 0.5, ra: -2.5, lfa: 0.5, rfa: -1.5, w: 0 }, // Right hand up high
+                release: { la: 0.5, ra: -2.0, lfa: 0.5, rfa: -1.0, w: 1.5 } // Push
+            },
+            broken: {
+                ready: { la: 0.0, ra: 0.0, lfa: 0.0, rfa: 0.0, w: 0 }, // Scarecrow
+                set: { la: -2.5, ra: 1.0, lfa: 1.5, rfa: -2.5, w: 0 }, // Random flail
+                release: { la: 1.5, ra: -2.5, lfa: -2.5, rfa: 1.5, w: 0 } // Random flail
+            },
+            joker: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.8, ra: -2.8, lfa: -2.0, rfa: -2.0, w: 0 }, // Behind head lazy
+                release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 0.5 } // Flick
+            },
+            ray: {
+                ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
+                set: { la: -2.2, ra: -2.2, lfa: -1.8, rfa: -1.8, w: 0 }, // Perfect V
+                release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.5 } // Follow through
+            },
+            bowling: {
+                ready: { la: 0.2, ra: 1.5, lfa: 1.0, rfa: 0.5, w: 0 }, // Low side
+                set: { la: 0.2, ra: 2.5, lfa: 1.0, rfa: 2.5, w: 0 }, // Backswing
+                release: { la: 0.2, ra: -1.5, lfa: 1.0, rfa: -0.2, w: 0 } // Forward swing
+            },
+            hadouken: {
+                ready: { la: 1.5, ra: 1.5, lfa: 2.5, rfa: 0.5, w: 0 }, // Hands at hip
+                set: { la: 1.5, ra: 1.5, lfa: 2.8, rfa: 0.3, w: 0 }, // Charging
+                release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0 } // Thrust forward
+            }
+        };
+
+        const currentStyle = playerData.currentStyle || 'classic';
+        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
+        const idle = DEFAULT_IDLE;
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        // Calculate generic (Right-Handed) angles first
+        let r_la, r_ra, r_lfa, r_rfa, r_w;
+
         if (state === 'SHOOTING') {
-            leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
-            leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
-            wristAngle = 1.0;
+            r_la = anim.release.la; r_ra = anim.release.ra;
+            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
+            r_w = anim.release.w;
         } else if (state === 'JUMPING') {
             let lift = Math.max(0, (9 - player3D.vz) / 9);
-            leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
-            rightArmAngle = (Math.PI/2 + 0.2) + ((-Math.PI/2 - 0.2) - (Math.PI/2 + 0.2)) * lift;
-            leftForeArmAngle = (Math.PI/2 - 0.1) + ((-Math.PI/2 + 0.4) - (Math.PI/2 - 0.1)) * lift;
-            rightForeArmAngle = (Math.PI/2 + 0.1) + ((-Math.PI/2 - 0.4) - (Math.PI/2 + 0.1)) * lift;
+            lift = Math.min(1.0, lift); // Clamp
+
+            // Start from 'ready' pose for smoother/snappier transition
+            const startPose = anim.ready || idle;
+
+            // Special interpolation for wrapped angles (to avoid side swing)
+            const lerpAngle = (a, b, t) => {
+                // If crossing PI/0 boundary significantly, adjust
+                if (Math.abs(b - a) > Math.PI) {
+                    if (b > a) a += 2 * Math.PI;
+                    else b += 2 * Math.PI;
+                }
+                return a + (b - a) * t;
+            };
+
+            r_la = lerpAngle(startPose.la, anim.set.la, lift);
+            r_ra = lerpAngle(startPose.ra, anim.set.ra, lift);
+            r_lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
+            r_rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
+            r_w = lerp(startPose.w, anim.set.w, lift);
         } else {
-            leftArmAngle = Math.PI/2 - 0.2; rightArmAngle = Math.PI/2 + 0.2;
-            leftForeArmAngle = Math.PI/2 - 0.1; rightForeArmAngle = Math.PI/2 + 0.1;
+            r_la = idle.la; r_ra = idle.ra;
+            r_lfa = idle.lfa; r_rfa = idle.rfa;
+            r_w = idle.w;
+        }
+
+        const isLefty = playerData.isLefty;
+        if (isLefty) {
+            // Mirror logic: Left Arm takes Right Arm's mirrored angles
+            // Mirror Angle = PI - Angle
+            leftArmAngle = Math.PI - r_ra;
+            rightArmAngle = Math.PI - r_la;
+            leftForeArmAngle = Math.PI - r_rfa;
+            rightForeArmAngle = Math.PI - r_lfa;
+            wristAngle = -r_w;
+        } else {
+            leftArmAngle = r_la;
+            rightArmAngle = r_ra;
+            leftForeArmAngle = r_lfa;
+            rightForeArmAngle = r_rfa;
+            wristAngle = r_w;
         }
 
         let shoulderY = torsoY + (5*s);
@@ -1036,6 +1229,7 @@
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
+            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
 
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
@@ -1045,7 +1239,7 @@
                 thisUpperColor = torsoColor;
             }
 
-            // Sleeve Logic
+            // Sleeve Logic (Physical side based)
             if(isRight && skinObj.sleeveRight) {
                 thisUpperColor = skinObj.sleeveRight;
                 thisForeColor = skinObj.sleeveRight;
@@ -1060,12 +1254,12 @@
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
 
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0));
+            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isRight) {
+            if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
-            if (isRight && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
+            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
             ctx.restore();
         };
 
@@ -1425,22 +1619,40 @@
         state = 'SHOOTING';
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
+
+        const styleId = playerData.currentStyle || 'classic';
+        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const mods = style.modifiers;
+
         let aimBonus = (playerData.stats.aim - 1);
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        let dampener = baseDampener + aimBonus; if (dampener > 36.0) dampener = 36.0;
+        let dampener = baseDampener + aimBonus;
+
+        if(mods.timingWindow) dampener *= mods.timingWindow;
+        if (dampener > 36.0) dampener = 36.0;
+
         const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        const accuracy = (timingError / dampener) * playerData.difficulty * distPenalty;
+        let finalDistPenalty = distPenalty;
+        if(mods.rangeBonus) finalDistPenalty = 1.0 + (distPenalty - 1.0) * (1.0 - mods.rangeBonus);
+
+        const accuracy = (timingError / dampener) * playerData.difficulty * finalDistPenalty;
         const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
         ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120;
         ball.active = true;
-        const flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
+
+        let flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
+        if(mods.speed) flightTime /= mods.speed;
+
         ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
         let isMiss = Math.abs(accuracy) > 0.25;
         if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
         if (isMiss) {
             const luckChance = (playerData.stats.luck - 1) * 0.05;
-            if (Math.random() < luckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
+            let finalLuckChance = luckChance;
+            if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
+
+            if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
             else {
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
@@ -1695,6 +1907,30 @@
         }
         saveData(); updateShopUI(); updateUI();
     }
+    window.changeShootingStyle = function(dir) {
+        viewingStyleIndex += dir;
+        if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
+        if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
+        updateShopUI();
+    }
+    window.buyOrEquipShootingStyle = function() {
+        const style = SHOOTING_STYLES[viewingStyleIndex];
+        if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic']; // Safety
+        const isUnlocked = playerData.unlockedStyles.includes(style.id);
+
+        if (isUnlocked) {
+            playerData.currentStyle = style.id;
+        } else if (playerData.tacos >= style.cost) {
+            playerData.tacos -= style.cost;
+            playerData.unlockedStyles.push(style.id);
+            playerData.currentStyle = style.id;
+        }
+        saveData(); updateShopUI(); updateUI();
+    }
+    window.toggleHandedness = function() {
+        playerData.isLefty = !playerData.isLefty;
+        saveData(); updateShopUI();
+    }
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
         document.getElementById('lvlIncome').innerText = playerData.stats.income;
@@ -1712,6 +1948,8 @@
         document.getElementById('lvlExtraLives').innerText = playerData.stats.extraLives || 0;
         document.getElementById('btnBuyExtraLives').innerText = `Acheter (${getUpgradeCost('extraLives')})`;
         document.getElementById('btnBuyExtraLives').disabled = playerData.tacos < getUpgradeCost('extraLives');
+
+        // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         const skin = animalSkins[viewingSkinIndex];
@@ -1724,6 +1962,22 @@
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Style UI
+        const style = SHOOTING_STYLES[viewingStyleIndex];
+        document.getElementById('styleName').innerText = style.name;
+        document.getElementById('styleDesc').innerText = style.desc;
+        const btnStyle = document.getElementById('btnEquipStyle');
+        const statusStyle = document.getElementById('styleStatus');
+        const isUnlockedStyle = playerData.unlockedStyles ? playerData.unlockedStyles.includes(style.id) : (style.id === 'classic');
+        const isEquippedStyle = playerData.currentStyle === style.id;
+
+        if (isEquippedStyle) { statusStyle.innerText = "Équipé"; btnStyle.style.display = 'none'; }
+        else if (isUnlockedStyle) { statusStyle.innerText = "Possédé"; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Équiper"; btnStyle.disabled = false; }
+        else { statusStyle.innerText = `Coût: ${style.cost} Tacos`; btnStyle.style.display = 'inline-block'; btnStyle.innerText = "Acheter"; btnStyle.disabled = playerData.tacos < style.cost; }
+
+        const btnHand = document.getElementById('btnToggleHand');
+        btnHand.innerText = playerData.isLefty ? "MAIN: GAUCHER" : "MAIN: DROITIER";
     }
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
