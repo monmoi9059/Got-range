@@ -570,7 +570,7 @@ let lastDisplayedContestTime = -1;
     let feedback = "";
     let feedbackTimer = 0;
     let consecutiveMisses = 0;
-    let currentStreak = 0;
+    var currentStreak = 0;
     let spacePressed = false;
     let cameraZoom = 800;
     let cameraHeight = 300;
@@ -579,7 +579,8 @@ let lastDisplayedContestTime = -1;
     // Physique
     const GRAVITY = 0.5;
     var player3D = { x: 300, y: 300, z: 0, vz: 0 };
-    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
+    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false };
+    var particles = [];
 
     // Expose for debugging
     window.player3D = player3D;
@@ -678,25 +679,37 @@ let lastDisplayedContestTime = -1;
             const zFactor = ball.z / 300;
             const ballX = margin + (progress * lineLen);
             const ballY = lineY - (zFactor * 50);
-            ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(ballX, ballY, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = ball.isFire ? '#FF4500' : '#ff6600';
+            ctx.beginPath(); ctx.arc(ballX, ballY, 5, 0, Math.PI*2); ctx.fill();
         }
     }
 
-    function drawBallSprite(x, y, scale) {
+    function drawBallSprite(x, y, scale, isFire = false) {
         let color1 = '#ff6600'; let color2 = '#cc5500';
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { color1 = '#FFFFFF'; color2 = '#0000FF'; }
+        else if (isFire) { color1 = '#FFFF00'; color2 = '#FF0000'; }
+
         ctx.strokeStyle = '#000'; ctx.lineWidth = 1 * scale;
         const grad = ctx.createRadialGradient(x - 2*scale, y - 2*scale, 1*scale, x, y, 8*scale);
         grad.addColorStop(0, color1); grad.addColorStop(1, color2);
         ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.stroke();
+
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
+        else if (isFire) { ctx.strokeStyle = '#FFFF00'; ctx.lineWidth = 2 * scale; }
+
         ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
     }
 
     function drawBall(p) {
         if (!p) return;
-        drawBallSprite(p.x, p.y, p.scale);
+        drawBallSprite(p.x, p.y, p.scale, ball.isFire);
+    }
+
+    function drawSmoke(p, alpha) {
+        const s = p.scale;
+        ctx.fillStyle = `rgba(220, 220, 220, ${alpha * 0.6})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
     }
 
     // --- FUR & ANATOMY HELPERS ---
@@ -1274,7 +1287,9 @@ let lastDisplayedContestTime = -1;
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
-            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
+            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+                drawBallSprite(0, 5*s, s, (currentStreak >= 5));
+            }
             ctx.restore();
         };
 
@@ -1533,6 +1548,11 @@ let lastDisplayedContestTime = -1;
             if (ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
         }
 
+        particles.forEach(p => {
+             const proj = project(p.x, p.y, p.z);
+             if(proj) renderList.push({ type: 'smoke', depth: proj.depth, proj: proj, alpha: p.alpha });
+        });
+
         renderList.sort((a, b) => b.depth - a.depth);
         renderList.forEach(obj => {
             if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType);
@@ -1540,6 +1560,7 @@ let lastDisplayedContestTime = -1;
             if (obj.type === 'shadow') drawShadow(obj.proj);
             if (obj.type === 'player') drawPlayer(obj.proj);
             if (obj.type === 'ball') drawBall(obj.proj);
+            if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha);
         });
 
         if (feedbackTimer > 0) {
@@ -1664,6 +1685,7 @@ let lastDisplayedContestTime = -1;
         const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
         ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120;
         ball.active = true;
+        ball.isFire = (currentStreak >= 5);
 
         let flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
         if(mods.speed) flightTime /= mods.speed;
@@ -1717,7 +1739,21 @@ let lastDisplayedContestTime = -1;
         }
     }
 
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.z += p.vz * dt;
+            p.life -= dt;
+            p.scale += 0.05 * dt;
+            p.alpha = p.life / p.maxLife;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+    }
+
     function update(dt) {
+        updateParticles(dt);
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
@@ -1733,6 +1769,22 @@ let lastDisplayedContestTime = -1;
         if (state === 'SHOOTING') {
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
             if (ball.active) {
+                if (ball.isFire) {
+                     // Emit smoke: 0.5s duration -> 30 frames
+                     if (Math.random() < 0.8 * dt) {
+                         particles.push({
+                             x: ball.x + (Math.random()-0.5)*15,
+                             y: ball.y + (Math.random()-0.5)*15,
+                             z: ball.z + (Math.random()-0.5)*15,
+                             vx: (Math.random()-0.5)*2,
+                             vy: (Math.random()-0.5)*2,
+                             vz: 1 + Math.random()*2,
+                             life: 30, maxLife: 30,
+                             scale: 0.5 + Math.random()*0.5, alpha: 1.0
+                         });
+                     }
+                }
+
                 const prevZ = ball.z;
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
                 if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
@@ -1762,6 +1814,12 @@ let lastDisplayedContestTime = -1;
             const baseReward = 1 * distanceLevel * playerData.difficulty;
             const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
             let reward = Math.ceil(baseReward * multiplier);
+
+            // New Streak Multiplier: +0.1x per shot in row
+            if (currentStreak > 0) {
+                reward = Math.ceil(reward * (1 + currentStreak * 0.1));
+            }
+
             if (currentStreak > 1) reward += currentStreak * 2;
             playerData.tacos += reward;
             const jump = playerData.stats.moonwalk || 1; distanceLevel += jump;
