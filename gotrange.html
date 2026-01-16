@@ -345,11 +345,13 @@
     </div>
 
     <div id="startup-ui">
-        <h1 style="font-size: 4em; margin-bottom: 200px;">TACO BASKET BALL</h1>
-        <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
-        <div>
-            <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
-            <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
+        <h1 style="font-size: 4em; margin: 0; position: absolute; top: 10%; width: 100%;">TACO BASKET BALL</h1>
+        <div style="position: absolute; bottom: 10%; width: 100%;">
+            <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
+            <div>
+                <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
+                <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
+            </div>
         </div>
     </div>
 
@@ -2468,43 +2470,45 @@ let lastDisplayedContestTime = -1;
 
     // --- GAME LOOP ---
     function drawStartupScene() {
-        // Draw background but force camera to specific spot
-        // Temporarily override player3D for camera calculation in drawBackground/project
-        const savedP = { x: player3D.x, y: player3D.y, z: player3D.z };
-        const savedState = state;
+        // Dark Background
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Setup scene position
-        player3D.x = 600; // Aligned with hoop X
-        player3D.y = 550; // Distance from hoop
-        player3D.z = 0;
+        // Calculate positions for 2D Composition (Giant Cat + Hoop)
+        // We will mock project() returns manually or just draw directly using screen coordinates
+        // since we want a specific poster layout regardless of 3D camera.
 
-        drawBackground(); // Draws environment based on temp player3D
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = 2.0; // Base scale
 
-        // Draw Specific Elements for the Scene
-        // 1. Hoop (Already drawn by drawBackground if visible, but let's ensure it's the focus)
-        // drawBackground automatically draws hoop if in range. At y=550, dist to hoop (y=150) is 400. Hoop is visible.
+        // 1. Hoop (Right side of center)
+        const hoopX = centerX + 150;
+        const hoopY = centerY + 50;
+        const hoopP = { x: hoopX, y: hoopY, scale: scale * 1.5 };
 
-        // 2. Taco Cat sitting on the rim/backboard?
-        // Hoop is at 600, 150, 130.
-        // Let's put Taco Cat at 600, 150, 180 (On top of backboard) or floating.
-        // Or "going through net" as requested.
-        // Cat in net: 600, 150, 130 (Hoop Z).
+        // Draw Hoop Manually (reuse drawHoop logic but simplified or just call it if it's robust)
+        // drawHoop depends on projection for the pole... let's mock it
+        ctx.fillStyle = '#444'; ctx.fillRect(hoopX - 5, hoopY, 10, 300); // Pole
+        // Backboard/Rim
+        const bbW = 60 * hoopP.scale; const bbH = 40 * hoopP.scale; const bbX = hoopX - bbW/2; const bbY = hoopY - bbH - 10*hoopP.scale;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(bbX, bbY, bbW, bbH);
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*hoopP.scale; ctx.strokeRect(bbX, bbY, bbW, bbH);
+        ctx.fillStyle = '#CE1126'; ctx.fillRect(bbX + bbW*0.35, bbY + bbH*0.6, bbW*0.3, bbH*0.3);
+        ctx.beginPath(); ctx.ellipse(hoopX, hoopY, 18 * hoopP.scale, 5 * hoopP.scale, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * hoopP.scale; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hoopX - 15*hoopP.scale, hoopY); ctx.lineTo(hoopX - 10*hoopP.scale, hoopY + 20*hoopP.scale); ctx.lineTo(hoopX + 10*hoopP.scale, hoopY + 20*hoopP.scale); ctx.lineTo(hoopX + 15*hoopP.scale, hoopY);
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1*hoopP.scale; ctx.stroke();
 
-        const catProj = project(600, 150, 160);
-        if(catProj) {
-            // Render Taco Cat
-            drawDecor({...catProj, scale: catProj.scale * 2.5}, 'tacocat', 'default', 0.5);
-        }
+        // 2. Giant Taco Cat (Left side of center)
+        const catX = centerX - 150;
+        const catY = centerY + 50;
+        const catP = { x: catX, y: catY, scale: scale * 3.5 }; // Giant
+        drawDecor(catP, 'tacocat', 'default', 0.5);
 
-        // 3. Fire Ball going through net
-        const ballProj = project(600, 160, 120); // Slightly below rim
-        if(ballProj) {
-            // Draw Ball
-            drawBallSprite(ballProj.x, ballProj.y, ballProj.scale * 1.5, true);
-        }
-
-        // Restore
-        player3D.x = savedP.x; player3D.y = savedP.y; player3D.z = savedP.z;
+        // 3. Fire Ball (In the hoop)
+        const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
+        drawBallSprite(ballP.x, ballP.y, ballP.scale, true);
     }
 
     function draw() {
