@@ -535,6 +535,8 @@
     var mountains = [];
     for(let i=0; i<15; i++) { mountains.push({ x: i * 80 - 100, h: 100 + Math.random() * 150, color: `hsl(25, ${30 + Math.random()*20}%, ${20 + Math.random()*10}%)` }); }
 
+    var bgCache = null;
+
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -610,12 +612,14 @@
     function getScaleObject(dist) { return SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
     function getCourtDetails(dist) { return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; }
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
+    function invalidateBackgroundCache() { bgCache = null; }
 
     function resizeGame() {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
         const scale = Math.min(winW / 800, winH / 600) * 0.95;
         container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        invalidateBackgroundCache();
     }
     window.addEventListener('resize', resizeGame);
 
@@ -1454,41 +1458,52 @@
         }
     }
     function drawBackground() {
-        const currentDist = 10 + (distanceLevel * 5);
-        const court = getCourtDetails(currentDist);
         const horizonY = (canvas.height - 120) * 0.5;
 
-        // Sky
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
-        skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2);
-        ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!bgCache || bgCache.distanceLevel !== distanceLevel) {
+            bgCache = { distanceLevel: distanceLevel, pastFloors: [] };
+            const currentDist = 10 + (distanceLevel * 5);
+            const court = getCourtDetails(currentDist);
 
-        // Current Floor Fill
-        const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
-        currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-        ctx.fillStyle = currentZoneGrad; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+            // Sky
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+            skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2);
+            bgCache.sky = skyGrad;
 
-        // Past Floors
-        const getProjectedY = (gDist) => {
-            if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
-            const ratio = gDist / currentDist;
-            const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-            const p = project(wx, wy, 0); return p ? p.y : canvas.height;
-        };
+            // Current Floor
+            const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+            currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
+            bgCache.currentFloor = currentZoneGrad;
 
-        for (let i = 0; i < COURT_ZONES.length; i++) {
-            const z = COURT_ZONES[i];
-            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-            let zEnd = z.limit;
-            if (zStart >= currentDist) break;
-            let drawEnd = Math.min(zEnd, currentDist);
-            const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd);
-            if ((yBottom - yTop) > 0.5) {
-                const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad; ctx.fillRect(0, yTop, canvas.width, (yBottom - yTop) + 2);
+            // Past Floors
+            const getProjectedY = (gDist) => {
+                if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
+                const ratio = gDist / currentDist;
+                const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
+                const p = project(wx, wy, 0); return p ? p.y : canvas.height;
+            };
+
+            for (let i = 0; i < COURT_ZONES.length; i++) {
+                const z = COURT_ZONES[i];
+                let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+                let zEnd = z.limit;
+                if (zStart >= currentDist) break;
+                let drawEnd = Math.min(zEnd, currentDist);
+                const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd);
+                if ((yBottom - yTop) > 0.5) {
+                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                    bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
+                }
             }
         }
+
+        // DRAW FROM CACHE
+        ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+        bgCache.pastFloors.forEach(f => {
+            ctx.fillStyle = f.grad; ctx.fillRect(0, f.y, canvas.width, f.h);
+        });
 
         mountains.forEach(m => {
             const shift = (player3D.x + player3D.y) * 0.05;
@@ -1750,6 +1765,7 @@
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
+            invalidateBackgroundCache();
         }
     }
 
@@ -1776,6 +1792,7 @@
         else if(rackNum === 4) { player3D.x = 350; player3D.y = 200; }
         else if(rackNum === 5) { player3D.x = 400; player3D.y = 100; }
         player3D.z = 0; player3D.vz = 0;
+        invalidateBackgroundCache();
     }
 
     function updateContestUI() {
@@ -1793,6 +1810,7 @@
             strikesEl.style.display = 'block';
             contestUI.style.display = 'none';
             state = 'IDLE'; updateUI();
+            invalidateBackgroundCache();
         }
     }
 
