@@ -515,13 +515,21 @@
         { id: 'hadouken', name: 'Boule de Feu', cost: 9000, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, rangeBonus: 0.8, timingWindow: 0.6 } }
     ];
 
+    const HOOP_POS = { x: 600, y: 150, z: 130 };
+
     var decors = [];
     for(let i=0; i<300; i++) {
         const dist = Math.random() * 10000;
         const pathX = 600 - (dist * 0.7);
         const pathY = 150 + (dist * 0.7);
         const scatter = (Math.random() - 0.5) * 1200;
-        decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
+
+        const dX = pathX + scatter;
+        const dY = pathY + scatter;
+        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
+        const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+
+        decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type });
     }
 
     var mountains = [];
@@ -564,7 +572,6 @@
 
     // Physique
     const GRAVITY = 0.5;
-    const HOOP_POS = { x: 600, y: 150, z: 130 };
     var player3D = { x: 300, y: 300, z: 0, vz: 0 };
     let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
 
@@ -1495,9 +1502,7 @@
         let renderList = [];
         decors.forEach(d => {
             const proj = project(d.x, d.y, 0);
-            const dDist = Math.sqrt(Math.pow(d.x - HOOP_POS.x, 2) + Math.pow(d.y - HOOP_POS.y, 2));
-            const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
-            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: decorZone.type });
+            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: d.zoneType });
         });
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z); if (hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
