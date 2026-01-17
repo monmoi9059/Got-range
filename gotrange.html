@@ -2279,6 +2279,9 @@ let lastDisplayedContestTime = -1;
         let flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
         if(mods.speed) flightTime /= mods.speed;
 
+        // Enforce minimum arc (parabola)
+        flightTime = Math.max(32, flightTime);
+
         ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
         let isMiss = Math.abs(accuracy) > 0.25;
         if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
