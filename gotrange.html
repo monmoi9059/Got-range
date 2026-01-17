@@ -541,21 +541,9 @@
         { id: 'rabbit_jack', animal: 'rabbit', name: 'Lièvre', cost: 1000, furColor: '#FFFFFF' },
         { id: 'rabbit_magic', animal: 'rabbit', name: 'Magicien', cost: 2500, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', shoesColor: '#FFF', headAccessory: 'wizard_hat', hatColor: '#000', backProp: 'staff' },
 
-        // BEAVERS
-        { id: 'beaver_classic', animal: 'beaver', name: 'Classique', cost: 500 },
-        { id: 'beaver_lumber', animal: 'beaver', name: 'Bûcheron', cost: 1500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie', backProp: 'axe', clothingDetail: 'suspenders' },
-
         // MOOSE
         { id: 'moose_classic', animal: 'moose', name: 'Classique', cost: 750 },
         { id: 'moose_royal', animal: 'moose', name: 'Royal', cost: 5000, headAccessory: 'crown', backAccessory: 'cape', backColor: '#800080' },
-
-        // PENGUIN
-        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 750 },
-        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 3000, headAccessory: 'crown' },
-
-        // RACCOON
-        { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
-        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500, jerseyColor: '#000', shortsColor: '#000', pattern: 'stripes', headAccessory: 'beanie', hatColor: '#000' },
 
         // NBA LEGENDS (Humans)
         { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, jerseyColor: '#002B5C', shortsColor: '#E31837', number: '2', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', sleeveRight: '#E31837' },
@@ -569,7 +557,7 @@
         { id: 'human_mj', animal: 'human', name: 'The G.O.A.T.', cost: 50000, jerseyColor: '#CE1141', shortsColor: '#CE1141', number: '23', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'human'];
 
     var SHOOTING_STYLES = [
         { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
@@ -1401,10 +1389,7 @@ let lastDisplayedContestTime = -1;
             case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8 }; break;
             case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
             case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'raccoon': sizeMod = { w: 0.9, h: 0.9, head: 0.95 }; break;
             case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; break;
-            case 'penguin': sizeMod = { w: 1.1, h: 0.8, head: 1.0 }; break;
-            case 'beaver': sizeMod = { w: 1.1, h: 0.9, head: 1.0 }; break;
             case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
             case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
             case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9 }; break;
@@ -1426,10 +1411,7 @@ let lastDisplayedContestTime = -1;
         else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
         else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
         else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
-        else if(currentAnimal === 'beaver') { furColor = '#5D4037'; tailColor = '#3E2723'; }
         else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
-        else if(currentAnimal === 'penguin') { furColor = '#111'; tailColor = '#111'; bellyColor = '#fff'; }
-        else if(currentAnimal === 'raccoon') { furColor = '#777'; tailColor = '#333'; }
         else if(currentAnimal === 'human') {
             furColor = skinObj.skinTone || '#8d5524';
             tailColor = 'transparent';
@@ -1640,13 +1622,8 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
-        if(currentAnimal === 'penguin') {
-            drawFuzzyLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor, s, true, 30);
-            drawFuzzyLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true, 31);
-        } else {
-             drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-             drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-        }
+        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
@@ -1657,7 +1634,6 @@ let lastDisplayedContestTime = -1;
 
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
-        if(bellyColor && currentAnimal === 'penguin') { ctx.fillStyle=bellyColor; ctx.fillRect(p.x-5*s, torsoY+5*s, 10*s, 30*s); }
         // Pattern Rendering
         if(skinObj.pattern === 'plaid') {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
@@ -1702,7 +1678,7 @@ let lastDisplayedContestTime = -1;
         }
 
         // 7. Draw Tail (Layer 3)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'penguin' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
+        if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
             if (skinObj.tailType === 'devil') {
                 ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
                 ctx.beginPath(); ctx.moveTo(p.x, p.y - legLen - 5*s);
@@ -1712,13 +1688,9 @@ let lastDisplayedContestTime = -1;
                 const tx = p.x + 25*s, ty = p.y - legLen - 20*s;
                 ctx.moveTo(tx, ty); ctx.lineTo(tx - 5*s, ty + 10*s); ctx.lineTo(tx + 5*s, ty + 10*s); ctx.fill();
             } else {
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = (currentAnimal === 'beaver' ? 10 : 4) * s;
+                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
                 ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s);
                 ctx.quadraticCurveTo(p.x + 15*s, p.y - legLen + 5*s, p.x + 20*s, p.y - legLen - 10*s); ctx.stroke();
-                if(currentAnimal === 'beaver') {
-                     ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s;
-                     ctx.beginPath(); ctx.moveTo(p.x + 5*s, p.y - legLen); ctx.lineTo(p.x + 15*s, p.y - legLen); ctx.stroke();
-                }
             }
         }
 
