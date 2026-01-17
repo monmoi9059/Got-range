@@ -787,6 +787,41 @@
 
     var bgCache = null;
 
+    // --- OPTIMIZATION: Render Object Pooling ---
+    // Monomorphic class for V8 optimization
+    class RenderItem {
+        constructor() {
+            this.type = null;
+            this.depth = 0;
+            this.proj = null;
+            this.zoneType = null;
+            this.variant = null;
+            this.seed = 0;
+            this.alpha = 0;
+        }
+    }
+
+    const g_renderItemPool = [];
+    const g_renderList = [];
+    let g_poolIndex = 0;
+
+    function getRenderItem() {
+        let obj;
+        if (g_poolIndex < g_renderItemPool.length) {
+            obj = g_renderItemPool[g_poolIndex];
+        } else {
+            obj = new RenderItem();
+            g_renderItemPool.push(obj);
+        }
+        g_poolIndex++;
+        return obj;
+    }
+
+    // Pre-allocate some objects
+    for(let i=0; i<1000; i++) {
+        g_renderItemPool.push(new RenderItem());
+    }
+
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -1886,28 +1921,75 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(canvas.width, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
         // 3D OBJECTS
-        let renderList = [];
+        g_poolIndex = 0;
+        g_renderList.length = 0;
+
         decors.forEach(d => {
             const proj = project(d.x, d.y, 0);
-            if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: d.zoneType, variant: d.variant, seed: d.seed });
+            if (proj) {
+                const obj = getRenderItem();
+                obj.type = 'decor';
+                obj.depth = proj.depth;
+                obj.proj = proj;
+                obj.zoneType = d.zoneType;
+                obj.variant = d.variant;
+                obj.seed = d.seed;
+                g_renderList.push(obj);
+            }
         });
 
-        const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z); if (hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
-        const playerProj = project(player3D.x, player3D.y, player3D.z); if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
-        const shadowProj = project(player3D.x, player3D.y, 0); if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
+        const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
+        if (hoopProj) {
+            const obj = getRenderItem();
+            obj.type = 'hoop';
+            obj.depth = hoopProj.depth;
+            obj.proj = hoopProj;
+            g_renderList.push(obj);
+        }
+
+        const playerProj = project(player3D.x, player3D.y, player3D.z);
+        if (playerProj) {
+            const obj = getRenderItem();
+            obj.type = 'player';
+            obj.depth = playerProj.depth;
+            obj.proj = playerProj;
+            g_renderList.push(obj);
+        }
+
+        const shadowProj = project(player3D.x, player3D.y, 0);
+        if (shadowProj) {
+            const obj = getRenderItem();
+            obj.type = 'shadow';
+            obj.depth = shadowProj.depth;
+            obj.proj = shadowProj;
+            g_renderList.push(obj);
+        }
 
         if (state === 'SHOOTING' && ball.active) {
             const ballProj = project(ball.x, ball.y, ball.z);
-            if (ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
+            if (ballProj) {
+                const obj = getRenderItem();
+                obj.type = 'ball';
+                obj.depth = ballProj.depth;
+                obj.proj = ballProj;
+                g_renderList.push(obj);
+            }
         }
 
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
-             if(proj) renderList.push({ type: 'smoke', depth: proj.depth, proj: proj, alpha: p.alpha });
+             if(proj) {
+                 const obj = getRenderItem();
+                 obj.type = 'smoke';
+                 obj.depth = proj.depth;
+                 obj.proj = proj;
+                 obj.alpha = p.alpha;
+                 g_renderList.push(obj);
+             }
         });
 
-        renderList.sort((a, b) => b.depth - a.depth);
-        renderList.forEach(obj => {
+        g_renderList.sort((a, b) => b.depth - a.depth);
+        g_renderList.forEach(obj => {
             if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType, obj.variant, obj.seed);
             if (obj.type === 'hoop') drawHoop(obj.proj);
             if (obj.type === 'shadow') drawShadow(obj.proj);
