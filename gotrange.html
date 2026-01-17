@@ -1634,46 +1634,6 @@ let lastDisplayedContestTime = -1;
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
 
-        // 3. Torso (Jersey) - Drawn BEFORE Shorts (Tuck in) and BEFORE Arms (Shoulder reveal)
-        const jerseyH = bodyH * 0.85;
-        // Reduce Body Width slightly
-        const reducedBodyW = bodyW * 0.9;
-        drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, jerseyColor);
-
-        // Draw Shorts (Over thighs and Over Jersey Bottom)
-        const waistY = torsoY + bodyH * 0.85;
-        const shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
-        // Widen Shorts slightly to cover skin
-        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, shortsColor);
-
-        // Draw Calves/Shoes
-        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.w, skinTone, 'calf', s);
-             // Socks
-             if(socksColor) {
-                 const sockH = 7 * s;
-                 const sockY = yBot - 5*s - sockH;
-                 const t = (sockY - yTop) / (yBot - yTop);
-                 const sockTopX = xTop + (xBot - xTop) * t;
-                 const ankleY = yBot - 5*s;
-                 const t2 = (ankleY - yTop) / (yBot - yTop);
-                 const ankleX = xTop + (xBot - xTop) * t2;
-                 drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.w, socksColor, 'standard', s);
-                 // Ribs
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
-                 for(let i=0; i<3; i++) {
-                     const ly = sockY + (i*2*s);
-                     ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
-                 }
-             }
-             // Shoes
-             if(shoesColor) {
-                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight);
-             }
-        };
-        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
-        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true);
-
         // 3. Arms Configuration
         const currentStyle = playerData.currentStyle || 'classic';
         const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
@@ -1716,7 +1676,7 @@ let lastDisplayedContestTime = -1;
         }
 
         let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 11*s; let rightShoulderX = p.x + 11*s; // Bring arms in slightly
+        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out to be visible outside jersey
         const upperArmLen = 20 * s * sizeMod.h * 0.6;
         const foreArmLen = 20 * s * sizeMod.h * 0.6;
 
@@ -1759,9 +1719,49 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
-        // Draw Arms AFTER Jersey so shoulders sit on top (or merge)
+        // Draw Arms BEFORE Jersey so they are correctly occluded by the back when reaching forward
         drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
+        // 4. Torso (Jersey)
+        const jerseyH = bodyH * 0.85;
+        // Reduce Body Width slightly
+        const reducedBodyW = bodyW * 0.9;
+        drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, jerseyColor);
+
+        // Draw Shorts (Over thighs and Over Jersey Bottom)
+        const waistY = torsoY + bodyH * 0.85;
+        const shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
+        // Widen Shorts slightly to cover skin
+        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, shortsColor);
+
+        // Draw Calves/Shoes
+        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
+             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.w, skinTone, 'calf', s);
+             // Socks
+             if(socksColor) {
+                 const sockH = 7 * s;
+                 const sockY = yBot - 5*s - sockH;
+                 const t = (sockY - yTop) / (yBot - yTop);
+                 const sockTopX = xTop + (xBot - xTop) * t;
+                 const ankleY = yBot - 5*s;
+                 const t2 = (ankleY - yTop) / (yBot - yTop);
+                 const ankleX = xTop + (xBot - xTop) * t2;
+                 drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.w, socksColor, 'standard', s);
+                 // Ribs
+                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+                 for(let i=0; i<3; i++) {
+                     const ly = sockY + (i*2*s);
+                     ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+                 }
+             }
+             // Shoes
+             if(shoesColor) {
+                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight);
+             }
+        };
+        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
+        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true);
 
         // NECK
         const neckW = 10 * s * sizeMod.w;
