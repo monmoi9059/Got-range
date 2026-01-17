@@ -1008,18 +1008,19 @@ let lastDisplayedContestTime = -1;
         const b = getBounds(points);
         const area = (b.maxX - b.minX) * (b.maxY - b.minY);
         const dens = Math.floor(area / (100 * scale * scale)); // Approximate density
+        ctx.beginPath();
         for(let k=0; k<dens; k++) {
             const r1 = pseudoRand(k * 10 + 200);
             const r2 = pseudoRand(k * 10 + 300);
             const rx = b.minX + r1 * (b.maxX - b.minX);
             const ry = b.minY + r2 * (b.maxY - b.minY);
             if(isPointInPoly(rx, ry, points)) {
-                ctx.beginPath(); ctx.moveTo(rx, ry);
+                ctx.moveTo(rx, ry);
                 const r3 = pseudoRand(k * 10 + 400);
                 ctx.lineTo(rx + (r3-0.5)*5*scale, ry + 5*scale);
-                ctx.stroke();
             }
         }
+        ctx.stroke();
         ctx.restore();
     }
 
