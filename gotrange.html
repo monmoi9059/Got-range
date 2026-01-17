@@ -573,23 +573,23 @@
 
     var SHOOTING_STYLES = [
         { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
-        { id: 'curry', name: 'Chef Curry', cost: 5000, desc: 'Meilleur de loin, plus dur de près.', modifiers: { rangeBonus: 0.5, timingWindow: 0.9 } },
-        { id: 'hook', name: 'Sky Hook', cost: 2000, desc: 'Lent mais chanceux (rebonds favorables).', modifiers: { luckBonus: 2.0, speed: 0.8 } },
-        { id: 'yeet', name: 'Le Yeet', cost: 1000, desc: 'Tir rapide mais imprécis.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
-        { id: 'grandmama', name: 'Grand Mama', cost: 3000, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
-        { id: 'granny', name: 'La Grand-Mère', cost: 4000, desc: 'Très lent, mais très précis (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3 } },
-        { id: 'statue', name: 'La Statue', cost: 2500, desc: 'Tir ultra rapide, mais peu chanceux.', modifiers: { speed: 1.8, luckBonus: 0.5 } },
-        { id: 'fade', name: 'Fadeaway', cost: 6000, desc: 'Bonus de distance, timing difficile.', modifiers: { rangeBonus: 0.7, timingWindow: 0.8 } },
-        { id: 'marion', name: 'La Matrice', cost: 4000, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, luckBonus: 0.7, timingWindow: 0.7 } },
-        { id: 'noah', name: 'La Tornade', cost: 3500, desc: 'Rotation bizarre à deux mains.', modifiers: { luckBonus: 1.5, speed: 0.9 } },
-        { id: 'dirk', name: 'Le Flamant', cost: 8000, desc: 'Tir sur une jambe. Précision légendaire.', modifiers: { rangeBonus: 0.6, timingWindow: 1.1 } },
-        { id: 'bird', name: 'La Légende', cost: 7000, desc: 'Catapulte derrière la tête. Lent mais fiable.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
-        { id: 'floater', name: 'La Larme', cost: 5000, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2, luckBonus: 1.3, rangeBonus: 0.2 } },
-        { id: 'broken', name: 'Le Bug', cost: 500, desc: 'Chaotique et imprévisible.', modifiers: { luckBonus: 3.0, timingWindow: 0.4 } },
-        { id: 'joker', name: 'Le Joker', cost: 7500, desc: 'Tir paresseux mais efficace.', modifiers: { speed: 0.85, timingWindow: 1.1, luckBonus: 1.2 } },
-        { id: 'ray', name: 'Jesus', cost: 8000, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, rangeBonus: 0.4, timingWindow: 0.9 } },
-        { id: 'bowling', name: 'La Quille', cost: 2000, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6, luckBonus: 2.5 } },
-        { id: 'hadouken', name: 'Boule de Feu', cost: 9000, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, rangeBonus: 0.8, timingWindow: 0.6 } }
+        { id: 'curry', name: 'Chef Curry', cost: 0, desc: 'Tir rapide et fluide.', modifiers: { timingWindow: 0.9 } },
+        { id: 'hook', name: 'Sky Hook', cost: 0, desc: 'Tir en crochet lent.', modifiers: { speed: 0.8 } },
+        { id: 'yeet', name: 'Le Yeet', cost: 0, desc: 'Tir rapide et chaotique.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
+        { id: 'grandmama', name: 'Grand Mama', cost: 0, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
+        { id: 'granny', name: 'La Grand-Mère', cost: 0, desc: 'Très lent, mais fenêtre facile (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3 } },
+        { id: 'statue', name: 'La Statue', cost: 0, desc: 'Tir ultra rapide et rigide.', modifiers: { speed: 1.8 } },
+        { id: 'fade', name: 'Fadeaway', cost: 0, desc: 'Timing difficile.', modifiers: { timingWindow: 0.8 } },
+        { id: 'marion', name: 'La Matrice', cost: 0, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, timingWindow: 0.7 } },
+        { id: 'noah', name: 'La Tornade', cost: 0, desc: 'Rotation bizarre à deux mains.', modifiers: { speed: 0.9 } },
+        { id: 'dirk', name: 'Le Flamant', cost: 0, desc: 'Tir sur une jambe.', modifiers: { timingWindow: 1.1 } },
+        { id: 'bird', name: 'La Légende', cost: 0, desc: 'Catapulte derrière la tête. Lent.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
+        { id: 'floater', name: 'La Larme', cost: 0, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2 } },
+        { id: 'broken', name: 'Le Bug', cost: 0, desc: 'Chaotique et imprévisible.', modifiers: { timingWindow: 0.4 } },
+        { id: 'joker', name: 'Le Joker', cost: 0, desc: 'Tir paresseux.', modifiers: { speed: 0.85, timingWindow: 1.1 } },
+        { id: 'ray', name: 'Jesus', cost: 0, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, timingWindow: 0.9 } },
+        { id: 'bowling', name: 'La Quille', cost: 0, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6 } },
+        { id: 'hadouken', name: 'Boule de Feu', cost: 0, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, timingWindow: 0.6 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
