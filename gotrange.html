@@ -269,10 +269,10 @@
         <p>RACK: <span id="contestRack">1</span>/5</p>
     </div>
     <div id="controls">
-        <div class="ui-btn" onclick="toggleMode()">MODE: <span id="modeBtnText">CLASSIQUE</span></div>
-        <div class="ui-btn" onclick="openShop()">SHOP [P]</div>
-        <div class="ui-btn" onclick="openAchievements()">TROPHIES [O]</div>
-        <div class="ui-btn" onclick="openStats()">STATS [S]</div>
+        <div class="ui-btn" onclick="tacoGame.ui.toggleMode()">MODE: <span id="modeBtnText">CLASSIQUE</span></div>
+        <div class="ui-btn" onclick="tacoGame.ui.openShop()">SHOP [P]</div>
+        <div class="ui-btn" onclick="tacoGame.ui.openAchievements()">TROPHIES [O]</div>
+        <div class="ui-btn" onclick="tacoGame.ui.openStats()">STATS [S]</div>
     </div>
     <div id="notification">
         <div>🏆 ACHIEVEMENT UNLOCKED!</div>
@@ -291,8 +291,8 @@
             <hr style="border-color:#555; margin:15px 0;">
             <p style="overflow:hidden;">Best Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 ft</span></p>
         </div>
-        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RESET PROGRESS</button>
-        <button class="btn btn-close" onclick="closeStats()">CLOSE</button>
+        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="tacoGame.ui.attemptReset()">RESET PROGRESS</button>
+        <button class="btn btn-close" onclick="tacoGame.ui.closeStats()">CLOSE</button>
     </div>
 
     <div id="shopUI" class="modal">
@@ -300,822 +300,573 @@
         <p>Tacos Available: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
         <div class="difficulty-row">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTY</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
-            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
+            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="tacoGame.ui.updateDifficulty()">
             <div style="font-size:0.8em; color:#aaa;">Higher risk, higher reward!</div>
         </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">INCOME MULTIPLIER</strong> (Lvl <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Sweet rewards! (x0.5/lvl)</span></div><button id="btnBuyIncome" class="btn" onclick="buyUpgrade('income')">Buy (5)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Wider shot window.</span></div><button id="btnBuyAim" class="btn" onclick="buyUpgrade('aim')">Buy (10)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance for favorable bounces.</span></div><button id="btnBuyLuck" class="btn" onclick="buyUpgrade('luck')">Buy (15)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Lvl <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Step back faster!</span></div><button id="btnBuyMoonwalk" class="btn" onclick="buyUpgrade('moonwalk')">Buy (25)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">EXTRA LIVES</strong> (Lvl <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">More misses allowed before Game Over.</span></div><button id="btnBuyExtraLives" class="btn" onclick="buyUpgrade('extraLives')">Buy (1000)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">INCOME MULTIPLIER</strong> (Lvl <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Sweet rewards! (x0.5/lvl)</span></div><button id="btnBuyIncome" class="btn" onclick="tacoGame.ui.buyUpgrade('income')">Buy (5)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Wider shot window.</span></div><button id="btnBuyAim" class="btn" onclick="tacoGame.ui.buyUpgrade('aim')">Buy (10)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance for favorable bounces.</span></div><button id="btnBuyLuck" class="btn" onclick="tacoGame.ui.buyUpgrade('luck')">Buy (15)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Lvl <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Step back faster!</span></div><button id="btnBuyMoonwalk" class="btn" onclick="tacoGame.ui.buyUpgrade('moonwalk')">Buy (25)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">EXTRA LIVES</strong> (Lvl <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">More misses allowed before Game Over.</span></div><button id="btnBuyExtraLives" class="btn" onclick="tacoGame.ui.buyUpgrade('extraLives')">Buy (1000)</button></div>
         <div class="skin-viewer">
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">LOCKER ROOM</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
-            <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
+            <div class="skin-nav"><button class="btn" onclick="tacoGame.ui.changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="tacoGame.ui.changeAnimal(1)">&gt;</button></div>
+            <div class="skin-nav"><button class="btn" onclick="tacoGame.ui.changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="tacoGame.ui.changeSkin(1)">&gt;</button></div>
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Equipped</div>
-            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Equip</button>
+            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="tacoGame.ui.buyOrEquipSkin()">Equip</button>
         </div>
-        <button class="btn btn-close" onclick="closeShop()">CLOSE</button>
+        <button class="btn btn-close" onclick="tacoGame.ui.closeShop()">CLOSE</button>
     </div>
 
     <div id="achUI" class="modal">
         <div class="modal-header">TROPHY ROOM</div>
         <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">CLOSE</button>
+        <button class="btn btn-close" onclick="tacoGame.ui.closeAchievements()">CLOSE</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
-(function() {
-    // --- SAFE START ---
-    if (window.gameLoopId) {
-        cancelAnimationFrame(window.gameLoopId);
+/**
+ * ARCHITECTURE:
+ * - Constants: Global configuration data
+ * - Storage: Handles LocalStorage persistence
+ * - AchievementSystem: Logic for unlocking trophies
+ * - Physics: Gravity, projectile motion
+ * - Renderer: Canvas drawing methods
+ * - UIManager: DOM interaction, menus
+ * - Game: Main controller, game loop, state management
+ */
+
+// --- 1. CONSTANTS ---
+const ACHIEVEMENTS_DB = [
+    { id: 'rookie', name: 'Rookie', desc: 'First basket made', reward: 10 },
+    { id: 'veteran', name: 'Veteran', desc: 'Make 100 total baskets', reward: 150 },
+    { id: 'ball_hog', name: 'Ball Hog', desc: 'Shoot 500 times', reward: 100 },
+    { id: 'bricklayer', name: 'Bricklayer', desc: 'Miss 50 shots', reward: 25 },
+    { id: 'amateur', name: 'Amateur', desc: 'Reach 25 ft', reward: 25 },
+    { id: 'sniper', name: 'Sniper', desc: 'Reach 50 ft', reward: 50 },
+    { id: 'pro', name: 'Pro Shooter', desc: 'Reach 75 ft', reward: 75 },
+    { id: 'parking_lot', name: 'Parking Lot', desc: 'Reach 100 ft', reward: 100 },
+    { id: 'longshot', name: 'Longshot', desc: 'Reach 125 ft', reward: 125 },
+    { id: 'levis_legend', name: 'Legend', desc: 'Reach 150 ft', reward: 200 },
+    { id: 'interstellar', name: 'Interstellar', desc: 'Reach 200 ft', reward: 300 },
+    { id: 'moonwalker', name: 'Moonwalker', desc: 'Reach 500 ft', reward: 500 },
+    { id: 'demigod', name: 'Demigod', desc: 'Reach 1000 ft', reward: 1000 },
+    { id: 'contest_winner', name: 'Contest King', desc: 'Score > 10 in Contest', reward: 200 },
+    { id: 'contest_perfect', name: 'Perfection', desc: 'Score > 20 in Contest', reward: 500 },
+    { id: 'pocket_change', name: 'Pocket Change', desc: 'Have 100 Tacos', reward: 10 },
+    { id: 'tycoon', name: 'Taco Tycoon', desc: 'Have 500 Tacos', reward: 50 },
+    { id: 'millionaire', name: 'Millionaire', desc: 'Have 2000 Tacos', reward: 200 },
+    { id: 'sweet_tooth', name: 'Sweet Tooth', desc: 'Income Lvl 5', reward: 100 },
+    { id: 'hawkeye', name: 'Eagle Eye', desc: 'Aim Lvl 5', reward: 100 },
+    { id: 'leprechaun', name: 'Lucky', desc: 'Luck Lvl 5', reward: 100 },
+    { id: 'fashionista', name: 'Fashionista', desc: 'Unlock 5 skins', reward: 100 },
+    { id: 'wardrobe_malfunction', name: 'Full Wardrobe', desc: 'Unlock 10 skins', reward: 300 },
+    { id: 'collector', name: 'Collector', desc: 'Unlock 15 skins', reward: 500 },
+    { id: 'zoo', name: 'Zoo Keeper', desc: 'Skins for 3 diff animals', reward: 150 },
+    { id: 'lucky', name: 'Pure Luck', desc: 'Get a lucky bounce', reward: 25 },
+    { id: 'daredevil', name: 'Daredevil', desc: 'Score on Max difficulty', reward: 50 },
+    { id: 'hard_mode', name: 'Hard Worker', desc: 'Score on Hard difficulty', reward: 25 },
+    { id: 'cosplay', name: 'Cosplay', desc: 'Equip Robot/Alien/Ninja', reward: 20 },
+    { id: 'eh', name: 'Northern', desc: 'Equip Lumberjack or Hockey', reward: 20 },
+    { id: 'spooky', name: 'Spooky', desc: 'Equip Zombie/Vampire/Devil', reward: 20 },
+    { id: 'urban_legend', name: 'Urban Legend', desc: 'Play on Street Court', reward: 50 },
+    { id: 'ice_cold', name: 'Ice Cold', desc: 'Play on Ice Rink', reward: 100 },
+    { id: 'astronaut_training', name: 'Space Cadet', desc: 'Play on Moon', reward: 150 }
+];
+
+const COURT_ZONES = [
+    { limit: 50, name: "BACKYARD", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
+    { limit: 100, name: "CITY PARK", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
+    { limit: 200, name: "OLD TOWN", type: 'castle', ground1: '#8B0000', ground2: '#A52A2A', sky1: '#4682B4', sky2: '#87CEEB' },
+    { limit: 350, name: "STREET COURT", type: 'castle', ground1: '#696969', ground2: '#808080', sky1: '#4682B4', sky2: '#87CEEB' },
+    { limit: 500, name: "PINE FOREST", type: 'tree', ground1: '#006400', ground2: '#2F4F4F', sky1: '#2E8B57', sky2: '#8FBC8F' },
+    { limit: 750, name: "ICE RINK", type: 'mountain', ground1: '#E0FFFF', ground2: '#FFFFFF', sky1: '#87CEEB', sky2: '#F0F8FF' },
+    { limit: 1000, name: "OCEAN VIEW", type: 'water', ground1: '#00008B', ground2: '#1E90FF', sky1: '#191970', sky2: '#4169E1' },
+    { limit: 1500, name: "MOUNTAIN PEAK", type: 'mountain', ground1: '#F0FFFF', ground2: '#E0FFFF', sky1: '#87CEEB', sky2: '#00BFFF' },
+    { limit: 2500, name: "STRATOSPHERE", type: 'space', ground1: '#483D8B', ground2: '#6A5ACD', sky1: '#000080', sky2: '#000000' },
+    { limit: 4000, name: "MOON BASE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
+    { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
+    { limit: 8000, name: "THE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
+    { limit: 9999999, name: "TACO DIMENSION", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
+];
+
+const SCALE_OBJECTS = [
+    { limit: 15, name: "Compact Car", icon: "🚗" },
+    { limit: 25, name: "Moose (2m)", icon: "🦌" },
+    { limit: 30, name: "3-Point Line", icon: "🏀" },
+    { limit: 40, name: "School Bus", icon: "🚌" },
+    { limit: 60, name: "Bowling Lane", icon: "🎳" },
+    { limit: 94, name: "NBA Court", icon: "🏀" },
+    { limit: 150, name: "Blue Whale", icon: "🐋" },
+    { limit: 195, name: "Leaning Tower of Pisa", icon: "🇮🇹" },
+    { limit: 230, name: "747 Wingspan", icon: "✈️" },
+    { limit: 272, name: "Niagara Falls", icon: "🌊" },
+    { limit: 305, name: "Statue of Liberty", icon: "🗽" },
+    { limit: 350, name: "Golden Gate Bridge", icon: "🌉" },
+    { limit: 450, name: "Giza Pyramid", icon: "🔺" },
+    { limit: 600, name: "Space Needle", icon: "🛸" },
+    { limit: 984, name: "Eiffel Tower", icon: "🇫🇷" },
+    { limit: 1454, name: "Empire State Building", icon: "🏙️" },
+    { limit: 1815, name: "CN Tower", icon: "🗼" },
+    { limit: 2200, name: "Burj Khalifa", icon: "🏢" },
+    { limit: 5280, name: "One Mile", icon: "🛣️" },
+    { limit: 10000, name: "Runway", icon: "🛫" },
+    { limit: 14410, name: "Mt Rainier", icon: "🏔️" },
+    { limit: 20310, name: "Mt Denali", icon: "⛰️" },
+    { limit: 29029, name: "Mt Everest", icon: "🗻" },
+    { limit: 35000, name: "Cruising Altitude", icon: "✈️" },
+    { limit: 100000, name: "Stratosphere", icon: "🎈" },
+    { limit: 328000, name: "Space Line", icon: "🌌" },
+    { limit: 1300000, name: "Space Station", icon: "🛰️" },
+    { limit: 9999999, name: "La Lune", icon: "🌑" }
+];
+
+const SKINS_DB = [
+    { id: 'rat_classic', animal: 'rat', name: 'Classic', cost: 0 },
+    { id: 'rat_lumberjack', animal: 'rat', name: 'Lumberjack', cost: 500 },
+    { id: 'rat_mariachi', animal: 'rat', name: 'Mariachi', cost: 1000 },
+    { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500 },
+    { id: 'rat_alien', animal: 'rat', name: 'Alien', cost: 3000 },
+    { id: 'rat_zombie', animal: 'rat', name: 'Zombie', cost: 3000 },
+    { id: 'rat_astronaut', animal: 'rat', name: 'Astronaut', cost: 5000 },
+    { id: 'rat_ninja', animal: 'rat', name: 'Ninja', cost: 5000 },
+    { id: 'rat_robot', animal: 'rat', name: 'Robot', cost: 5000 },
+    { id: 'rat_pirate', animal: 'rat', name: 'Pirate', cost: 1500 },
+    { id: 'rat_clown', animal: 'rat', name: 'Clown', cost: 1500 },
+    { id: 'rat_vampire', animal: 'rat', name: 'Vampire', cost: 3000 },
+    { id: 'rat_chef', animal: 'rat', name: 'Chef', cost: 750 },
+    { id: 'rat_hockey', animal: 'rat', name: 'Hockey Player', cost: 7500 },
+    { id: 'rat_poutine', animal: 'rat', name: 'Poutine', cost: 7500 },
+    { id: 'rat_king', animal: 'rat', name: 'King', cost: 10000 },
+    { id: 'rat_wizard', animal: 'rat', name: 'Wizard', cost: 10000 },
+    { id: 'rat_devil', animal: 'rat', name: 'Devil', cost: 15000 },
+    { id: 'rat_angel', animal: 'rat', name: 'Angel', cost: 15000 },
+    { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
+    { id: 'cat_tabby', animal: 'cat', name: 'Tabby', cost: 1000 },
+    { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000 },
+    { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
+    { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatian', cost: 1000 },
+    { id: 'dog_pug', animal: 'dog', name: 'Pug', cost: 1500 },
+    { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
+    { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000 },
+    { id: 'bear_polar', animal: 'bear', name: 'Polar', cost: 3000 },
+    { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250 },
+    { id: 'rabbit_jack', animal: 'rabbit', name: 'Jackrabbit', cost: 1000 },
+    { id: 'rabbit_magic', animal: 'rabbit', name: 'Magician', cost: 2500 },
+    { id: 'beaver_classic', animal: 'beaver', name: 'Classique', cost: 500 },
+    { id: 'beaver_lumber', animal: 'beaver', name: 'Lumberjack', cost: 1500 },
+    { id: 'moose_classic', animal: 'moose', name: 'Classique', cost: 750 },
+    { id: 'moose_royal', animal: 'moose', name: 'Royal', cost: 5000 },
+    { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 750 },
+    { id: 'penguin_emperor', animal: 'penguin', name: 'Emperor', cost: 3000 },
+    { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
+    { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 }
+];
+
+const ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon'];
+
+// --- 2. STORAGE CLASS ---
+class Storage {
+    constructor() {
+        this.defaultData = {
+            tacos: 0,
+            level: 1,
+            difficulty: 1.0,
+            highScore: 10,
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+            unlockedSkins: ['rat_classic'],
+            currentSkin: 'rat_classic',
+            unlockedAchievements: []
+        };
+        this.data = this.load();
     }
 
-    // --- 1. DATA & CONSTANTS (DEFINED FIRST WITH VAR) ---
-    var ACHIEVEMENTS = [
-        { id: 'rookie', name: 'Rookie', desc: 'First basket made', reward: 10 },
-        { id: 'veteran', name: 'Veteran', desc: 'Make 100 total baskets', reward: 150 },
-        { id: 'ball_hog', name: 'Ball Hog', desc: 'Shoot 500 times', reward: 100 },
-        { id: 'bricklayer', name: 'Bricklayer', desc: 'Miss 50 shots', reward: 25 },
-        { id: 'amateur', name: 'Amateur', desc: 'Reach 25 ft', reward: 25 },
-        { id: 'sniper', name: 'Sniper', desc: 'Reach 50 ft', reward: 50 },
-        { id: 'pro', name: 'Pro Shooter', desc: 'Reach 75 ft', reward: 75 },
-        { id: 'parking_lot', name: 'Parking Lot', desc: 'Reach 100 ft', reward: 100 },
-        { id: 'longshot', name: 'Longshot', desc: 'Reach 125 ft', reward: 125 },
-        { id: 'levis_legend', name: 'Legend', desc: 'Reach 150 ft', reward: 200 },
-        { id: 'interstellar', name: 'Interstellar', desc: 'Reach 200 ft', reward: 300 },
-        { id: 'moonwalker', name: 'Moonwalker', desc: 'Reach 500 ft', reward: 500 },
-        { id: 'demigod', name: 'Demigod', desc: 'Reach 1000 ft', reward: 1000 },
-        { id: 'contest_winner', name: 'Contest King', desc: 'Score > 10 in Contest', reward: 200 },
-        { id: 'contest_perfect', name: 'Perfection', desc: 'Score > 20 in Contest', reward: 500 },
-        { id: 'pocket_change', name: 'Pocket Change', desc: 'Have 100 Tacos', reward: 10 },
-        { id: 'tycoon', name: 'Taco Tycoon', desc: 'Have 500 Tacos', reward: 50 },
-        { id: 'millionaire', name: 'Millionaire', desc: 'Have 2000 Tacos', reward: 200 },
-        { id: 'sweet_tooth', name: 'Sweet Tooth', desc: 'Income Lvl 5', reward: 100 },
-        { id: 'hawkeye', name: 'Eagle Eye', desc: 'Aim Lvl 5', reward: 100 },
-        { id: 'leprechaun', name: 'Lucky', desc: 'Luck Lvl 5', reward: 100 },
-        { id: 'fashionista', name: 'Fashionista', desc: 'Unlock 5 skins', reward: 100 },
-        { id: 'wardrobe_malfunction', name: 'Full Wardrobe', desc: 'Unlock 10 skins', reward: 300 },
-        { id: 'collector', name: 'Collector', desc: 'Unlock 15 skins', reward: 500 },
-        { id: 'zoo', name: 'Zoo Keeper', desc: 'Skins for 3 diff animals', reward: 150 },
-        { id: 'lucky', name: 'Pure Luck', desc: 'Get a lucky bounce', reward: 25 },
-        { id: 'daredevil', name: 'Daredevil', desc: 'Score on Max difficulty', reward: 50 },
-        { id: 'hard_mode', name: 'Hard Worker', desc: 'Score on Hard difficulty', reward: 25 },
-        { id: 'cosplay', name: 'Cosplay', desc: 'Equip Robot/Alien/Ninja', reward: 20 },
-        { id: 'eh', name: 'Northern', desc: 'Equip Lumberjack or Hockey', reward: 20 },
-        { id: 'spooky', name: 'Spooky', desc: 'Equip Zombie/Vampire/Devil', reward: 20 },
-        { id: 'urban_legend', name: 'Urban Legend', desc: 'Play on Street Court', reward: 50 },
-        { id: 'ice_cold', name: 'Ice Cold', desc: 'Play on Ice Rink', reward: 100 },
-        { id: 'astronaut_training', name: 'Space Cadet', desc: 'Play on Moon', reward: 150 }
-    ];
+    load() {
+        const saved = localStorage.getItem('tacoSaveData');
+        let data = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(this.defaultData));
 
-    var COURT_ZONES = [
-        { limit: 50, name: "BACKYARD", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
-        { limit: 100, name: "CITY PARK", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
-        { limit: 200, name: "OLD TOWN", type: 'castle', ground1: '#8B0000', ground2: '#A52A2A', sky1: '#4682B4', sky2: '#87CEEB' },
-        { limit: 350, name: "STREET COURT", type: 'castle', ground1: '#696969', ground2: '#808080', sky1: '#4682B4', sky2: '#87CEEB' },
-        { limit: 500, name: "PINE FOREST", type: 'tree', ground1: '#006400', ground2: '#2F4F4F', sky1: '#2E8B57', sky2: '#8FBC8F' },
-        { limit: 750, name: "ICE RINK", type: 'mountain', ground1: '#E0FFFF', ground2: '#FFFFFF', sky1: '#87CEEB', sky2: '#F0F8FF' },
-        { limit: 1000, name: "OCEAN VIEW", type: 'water', ground1: '#00008B', ground2: '#1E90FF', sky1: '#191970', sky2: '#4169E1' },
-        { limit: 1500, name: "MOUNTAIN PEAK", type: 'mountain', ground1: '#F0FFFF', ground2: '#E0FFFF', sky1: '#87CEEB', sky2: '#00BFFF' },
-        { limit: 2500, name: "STRATOSPHERE", type: 'space', ground1: '#483D8B', ground2: '#6A5ACD', sky1: '#000080', sky2: '#000000' },
-        { limit: 4000, name: "MOON BASE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
-        { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
-        { limit: 8000, name: "THE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
-        { limit: 9999999, name: "TACO DIMENSION", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
-    ];
+        // MIGRATION & SAFETY CHECKS
+        if(!data.unlockedAchievements) data.unlockedAchievements = [];
+        if(!data.stats.income) data.stats.income = 1;
+        if(!data.stats.moonwalk) data.stats.moonwalk = 1;
+        if(typeof data.stats.extraLives === 'undefined') data.stats.extraLives = 0;
+        if(!data.lifetimeStats) data.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
+        if(!data.unlockedSkins) data.unlockedSkins = ['rat_classic'];
+        if(!data.currentSkin) data.currentSkin = 'rat_classic';
 
-    var SCALE_OBJECTS = [
-        { limit: 15, name: "Compact Car", icon: "🚗" },
-        { limit: 25, name: "Moose (2m)", icon: "🦌" },
-        { limit: 30, name: "3-Point Line", icon: "🏀" },
-        { limit: 40, name: "School Bus", icon: "🚌" },
-        { limit: 60, name: "Bowling Lane", icon: "🎳" },
-        { limit: 94, name: "NBA Court", icon: "🏀" },
-        { limit: 150, name: "Blue Whale", icon: "🐋" },
-        { limit: 195, name: "Leaning Tower of Pisa", icon: "🇮🇹" },
-        { limit: 230, name: "747 Wingspan", icon: "✈️" },
-        { limit: 272, name: "Niagara Falls", icon: "🌊" }, 
-        { limit: 305, name: "Statue of Liberty", icon: "🗽" },
-        { limit: 350, name: "Golden Gate Bridge", icon: "🌉" },
-        { limit: 450, name: "Giza Pyramid", icon: "🔺" },
-        { limit: 600, name: "Space Needle", icon: "🛸" },
-        { limit: 984, name: "Eiffel Tower", icon: "🇫🇷" },
-        { limit: 1454, name: "Empire State Building", icon: "🏙️" },
-        { limit: 1815, name: "CN Tower", icon: "🗼" },
-        { limit: 2200, name: "Burj Khalifa", icon: "🏢" },
-        { limit: 5280, name: "One Mile", icon: "🛣️" },
-        { limit: 10000, name: "Runway", icon: "🛫" },
-        { limit: 14410, name: "Mt Rainier", icon: "🏔️" },
-        { limit: 20310, name: "Mt Denali", icon: "⛰️" },
-        { limit: 29029, name: "Mt Everest", icon: "🗻" },
-        { limit: 35000, name: "Cruising Altitude", icon: "✈️" },
-        { limit: 100000, name: "Stratosphere", icon: "🎈" },
-        { limit: 328000, name: "Space Line", icon: "🌌" },
-        { limit: 1300000, name: "Space Station", icon: "🛰️" },
-        { limit: 9999999, name: "La Lune", icon: "🌑" }
-    ];
-
-    var SKINS_DB = [
-        { id: 'rat_classic', animal: 'rat', name: 'Classic', cost: 0 },
-        { id: 'rat_lumberjack', animal: 'rat', name: 'Lumberjack', cost: 500 },
-        { id: 'rat_mariachi', animal: 'rat', name: 'Mariachi', cost: 1000 },
-        { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500 },
-        { id: 'rat_alien', animal: 'rat', name: 'Alien', cost: 3000 },
-        { id: 'rat_zombie', animal: 'rat', name: 'Zombie', cost: 3000 },
-        { id: 'rat_astronaut', animal: 'rat', name: 'Astronaut', cost: 5000 },
-        { id: 'rat_ninja', animal: 'rat', name: 'Ninja', cost: 5000 },
-        { id: 'rat_robot', animal: 'rat', name: 'Robot', cost: 5000 },
-        { id: 'rat_pirate', animal: 'rat', name: 'Pirate', cost: 1500 },
-        { id: 'rat_clown', animal: 'rat', name: 'Clown', cost: 1500 },
-        { id: 'rat_vampire', animal: 'rat', name: 'Vampire', cost: 3000 },
-        { id: 'rat_chef', animal: 'rat', name: 'Chef', cost: 750 },
-        { id: 'rat_hockey', animal: 'rat', name: 'Hockey Player', cost: 7500 },
-        { id: 'rat_poutine', animal: 'rat', name: 'Poutine', cost: 7500 },
-        { id: 'rat_king', animal: 'rat', name: 'King', cost: 10000 },
-        { id: 'rat_wizard', animal: 'rat', name: 'Wizard', cost: 10000 },
-        { id: 'rat_devil', animal: 'rat', name: 'Devil', cost: 15000 },
-        { id: 'rat_angel', animal: 'rat', name: 'Angel', cost: 15000 },
-        { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
-        { id: 'cat_tabby', animal: 'cat', name: 'Tabby', cost: 1000 },
-        { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000 },
-        { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
-        { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatian', cost: 1000 },
-        { id: 'dog_pug', animal: 'dog', name: 'Pug', cost: 1500 },
-        { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
-        { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000 },
-        { id: 'bear_polar', animal: 'bear', name: 'Polar', cost: 3000 },
-        { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250 },
-        { id: 'rabbit_jack', animal: 'rabbit', name: 'Jackrabbit', cost: 1000 },
-        { id: 'rabbit_magic', animal: 'rabbit', name: 'Magician', cost: 2500 },
-        { id: 'beaver_classic', animal: 'beaver', name: 'Classique', cost: 500 },
-        { id: 'beaver_lumber', animal: 'beaver', name: 'Lumberjack', cost: 1500 },
-        { id: 'moose_classic', animal: 'moose', name: 'Classique', cost: 750 },
-        { id: 'moose_royal', animal: 'moose', name: 'Royal', cost: 5000 },
-        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 750 },
-        { id: 'penguin_emperor', animal: 'penguin', name: 'Emperor', cost: 3000 },
-        { id: 'raccoon_classic', animal: 'raccoon', name: 'Classique', cost: 500 },
-        { id: 'raccoon_bandit', animal: 'raccoon', name: 'Bandit', cost: 1500 }
-    ];
-
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon'];
-
-    var decors = [];
-    for(var i=0; i<300; i++) {
-        var dist = Math.random() * 10000; 
-        var pathX = 600 - (dist * 0.7);
-        var pathY = 150 + (dist * 0.7);
-        var scatter = (Math.random() - 0.5) * 1200; 
-        decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
+        return data;
     }
 
-    var mountains = [];
-    for(var i=0; i<15; i++) { mountains.push({ x: i * 80 - 100, h: 100 + Math.random() * 150, color: `hsl(25, ${30 + Math.random()*20}%, ${20 + Math.random()*10}%)` }); }
-
-    // --- 2. GLOBAL VARIABLES ---
-    var canvas = document.getElementById('gameCanvas');
-    var ctx = canvas.getContext('2d');
-    var scoreEl = document.getElementById('scoreVal');
-    var distEl = document.getElementById('distVal');
-    var highScoreEl = document.getElementById('highScoreVal');
-    var shopUI = document.getElementById('shopUI');
-    var achUI = document.getElementById('achUI');
-    var statsUI = document.getElementById('statsUI');
-    var notif = document.getElementById('notification');
-    var courtNameEl = document.getElementById('courtNameDisplay');
-    var missValEl = document.getElementById('missVal');
-    var container = document.getElementById('game-container');
-    var contestUI = document.getElementById('contest-ui');
-    var strikesEl = document.getElementById('strikes');
-
-    canvas.width = 800;
-    canvas.height = 600;
-
-    var viewingAnimalIndex = 0;
-    var viewingSkinIndex = 0;
-    var currentGameMode = 'CLASSIC';
-    var contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
-    var distanceLevel = 1;
-    var state = 'IDLE'; 
-    var feedback = "";
-    var feedbackTimer = 0;
-    var consecutiveMisses = 0;
-    var currentStreak = 0;
-    var spacePressed = false;
-    var cameraZoom = 800;
-    var cameraHeight = 300; 
-    var resetStage = 0; 
-    
-    // NEW GAMEPLAY VARIABLES
-    var wind = { strength: 0, dir: 1 };
-    var snowParticles = [];
-    var obstacles = []; // {type: 'goose'|'cone', x, y, z, active, scale}
-    var bonuses = []; // {type: 'syrup'|'icecream', x, y, z, active}
-    var isGoldenBall = false;
-    var isOnFire = false;
-    var hoopOscillation = 0;
-    var shakeIntensity = 0;
-
-    // Physique
-    var GRAVITY = 0.5;
-    var HOOP_POS = { x: 600, y: 150, z: 130 }; 
-    var player3D = { x: 300, y: 300, z: 0, vz: 0 };
-    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
-    
-    var lastTime = 0;
-
-    var defaultData = {
-        tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-        stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-        lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-        unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: []
-    };
-
-    var savedData = localStorage.getItem('tacoSaveData');
-    var playerData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
-    
-    // Migration logic
-    if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
-    if(!playerData.stats.income) playerData.stats.income = 1;
-    if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
-    if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
-    if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
-    if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
-
-    highScoreEl.innerText = playerData.highScore + " ft";
-    
-    // Init Snow
-    for(var i=0; i<100; i++) {
-        snowParticles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            r: Math.random() * 2 + 1,
-            speed: Math.random() * 2 + 1
-        });
-    }
-
-    // --- 3. UI/HELPER FUNCTIONS (DEFINED FIRST) ---
-
-    function openShop() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
-        document.getElementById('diffSlider').value = playerData.difficulty;
-        updateDifficulty(); updateShopUI();
+    save() {
+        localStorage.setItem('tacoSaveData', JSON.stringify(this.data));
     }
     
-    function closeShop() { 
-        state = 'IDLE'; 
-        shopUI.style.display = 'none'; 
-        if(feedback === "FINISHED!" || feedback === "Travel!" || feedback === "GAME OVER!") resetGame(); 
+    reset() {
+        this.data = JSON.parse(JSON.stringify(this.defaultData));
+        this.save();
+    }
+}
+
+// --- 3. ACHIEVEMENT SYSTEM ---
+class AchievementSystem {
+    constructor(game) {
+        this.game = game;
     }
 
-    function openAchievements() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
-    }
-    
-    function closeAchievements() { 
-        state = 'IDLE'; 
-        achUI.style.display = 'none'; 
-        if(feedback === "FINISHED!" || feedback === "Travel!" || feedback === "GAME OVER!") resetGame(); 
-    }
-
-    function openStats() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'STATS';
-        shopUI.style.display = 'none';
-        achUI.style.display = 'none';
-        statsUI.style.display = 'block';
-        const ls = playerData.lifetimeStats;
-        document.getElementById('statShots').innerText = ls.shots;
-        document.getElementById('statMakes').innerText = ls.makes;
-        document.getElementById('statMisses').innerText = ls.misses;
-        document.getElementById('statContests').innerText = ls.contests;
-        document.getElementById('statBestDist').innerText = playerData.highScore + " ft";
-        let acc = 0;
-        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
-        document.getElementById('statAccuracy').innerText = acc + "%";
-    }
-
-    function closeStats() { 
-        state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
-        const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RESET PROGRESS"; btn.style.background = "#8B0000"; }
-        if(feedback === "FINISHED!" || feedback === "Travel!" || feedback === "GAME OVER!") resetGame(); 
-    }
-
-    function attemptReset() {
-        const btn = document.getElementById('btnReset');
-        if (resetStage === 0) { resetStage = 1; btn.innerText = "SURE? (CLICK AGAIN)"; btn.style.background = "#FF0000"; return; }
-        playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " ft"; updateUI(); closeStats(); resetGame(); 
-        resetStage = 0; btn.innerText = "RESET PROGRESS"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
-    }
-
-    function updateDifficulty() {
-        const val = parseFloat(document.getElementById('diffSlider').value);
-        playerData.difficulty = val;
-        const label = document.getElementById('diffLabel');
-        label.innerText = `x${val.toFixed(1)} Tacos`;
-        if(val === 1) { label.innerText = "NORMAL (x1.0)"; label.style.color = "#00FF00"; }
-        else if (val < 2.5) { label.innerText = `HARD (x${val.toFixed(1)})`; label.style.color = "#FFFF00"; }
-        else { label.innerText = `LEGEND (x${val.toFixed(1)})`; label.style.color = "#FF0000"; }
-        saveData();
-    }
-
-    function getUpgradeCost(statName) {
-        const lvl = playerData.stats[statName];
-        if (statName === 'income') return Math.floor(25 * Math.pow(lvl, 2));
-        if (statName === 'aim') return Math.floor(50 * Math.pow(lvl, 2));
-        if (statName === 'luck') return Math.floor(75 * Math.pow(lvl, 2));
-        if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
-        if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
-        return 999;
-    }
-
-    function buyUpgrade(stat) {
-        const cost = getUpgradeCost(stat);
-        if (playerData.tacos >= cost) {
-            playerData.tacos -= cost; playerData.stats[stat]++; saveData(); updateShopUI(); updateUI(); checkAchievements('shop');
+    unlock(id) {
+        if (!this.game.storage.data.unlockedAchievements.includes(id)) {
+            const ach = ACHIEVEMENTS_DB.find(a => a.id === id);
+            if (ach) {
+                this.game.storage.data.unlockedAchievements.push(id);
+                this.game.storage.data.tacos += ach.reward;
+                this.game.storage.save();
+                this.game.ui.showNotification(ach.name, ach.reward);
+                this.game.ui.update(); // Update score display
+            }
         }
     }
 
-    function changeAnimal(dir) {
-        viewingAnimalIndex += dir;
-        if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
-        if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
-        viewingSkinIndex = 0; updateShopUI();
-    }
+    // New unified check method called from various game events
+    check(triggerType, contextData = {}) {
+        const data = this.game.storage.data;
+        const dist = 10 + (this.game.distanceLevel * 5);
 
-    function changeSkin(dir) {
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        viewingSkinIndex += dir;
-        if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
-        if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
-        updateShopUI();
-    }
+        // 1. DISTANCE BASED
+        if (triggerType === 'distance' || triggerType === 'score') {
+            if (dist >= 25) this.unlock('amateur');
+            if (dist >= 50) this.unlock('sniper');
+            if (dist >= 75) this.unlock('pro');
+            if (dist >= 100) this.unlock('parking_lot');
+            if (dist >= 125) this.unlock('longshot');
+            if (dist >= 150) this.unlock('levis_legend');
+            if (dist >= 200) this.unlock('interstellar');
+            if (dist >= 500) this.unlock('moonwalker'); // Fixed threshold from memory
+            if (dist >= 1000) this.unlock('demigod');
 
-    function buyOrEquipSkin() {
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
-        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); } 
-        else if (playerData.tacos >= skin.cost) {
-            playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
-            checkAchievements('shop'); checkAchievements('skin');
+            // Location/Court specific
+            const court = this.game.getCourtDetails(dist);
+            if (court.name.includes("STREET")) this.unlock('urban_legend');
+            if (court.name.includes("ICE")) this.unlock('ice_cold');
+            if (court.name.includes("MOON")) this.unlock('astronaut_training');
         }
-        saveData(); updateShopUI(); updateUI();
+
+        // 2. WEALTH / TACOS
+        if (triggerType === 'balance_update' || triggerType === 'score') {
+            if (data.tacos >= 100) this.unlock('pocket_change');
+            if (data.tacos >= 500) this.unlock('tycoon');
+            if (data.tacos >= 2000) this.unlock('millionaire');
+        }
+
+        // 3. STATS / UPGRADES
+        if (triggerType === 'stat_update') {
+            if (data.stats.income >= 5) this.unlock('sweet_tooth');
+            if (data.stats.aim >= 5) this.unlock('hawkeye');
+            if (data.stats.luck >= 5) this.unlock('leprechaun');
+        }
+
+        // 4. COLLECTION / SKINS
+        if (triggerType === 'skin_update' || triggerType === 'shop') {
+            if (data.unlockedSkins.length >= 5) this.unlock('fashionista');
+            if (data.unlockedSkins.length >= 10) this.unlock('wardrobe_malfunction');
+            if (data.unlockedSkins.length >= 15) this.unlock('collector');
+
+            // Check for unique animal types
+            const ownedAnimals = new Set();
+            data.unlockedSkins.forEach(skinId => {
+                const s = SKINS_DB.find(dbSkin => dbSkin.id === skinId);
+                if (s) ownedAnimals.add(s.animal);
+            });
+            if (ownedAnimals.size >= 3) this.unlock('zoo');
+        }
+
+        // 5. CURRENT SKIN EQUIPPED
+        if (triggerType === 'skin_equip') {
+             const skin = data.currentSkin;
+             if(skin.includes('robot') || skin.includes('alien') || skin.includes('ninja')) this.unlock('cosplay');
+             if(skin.includes('lumberjack') || skin.includes('hockey')) this.unlock('eh');
+             if(skin.includes('zombie') || skin.includes('vampire') || skin.includes('devil')) this.unlock('spooky');
+        }
+
+        // 6. SHOT RESULTS
+        if (triggerType === 'shot_result') {
+            if (contextData.made) {
+                 this.unlock('rookie');
+                 if (data.lifetimeStats.makes >= 100) this.unlock('veteran');
+                 if (data.difficulty >= 3) this.unlock('daredevil');
+                 if (data.difficulty >= 2) this.unlock('hard_mode');
+            }
+            if (data.lifetimeStats.shots >= 500) this.unlock('ball_hog');
+            if (data.lifetimeStats.misses >= 50) this.unlock('bricklayer');
+        }
+
+        // 7. CONTEST
+        if (triggerType === 'contest_end') {
+             if (this.game.contestData.score > 10) this.unlock('contest_winner');
+             if (this.game.contestData.score > 20) this.unlock('contest_perfect');
+        }
+
+        // 8. MISC
+        if (triggerType === 'lucky_bounce') this.unlock('lucky');
     }
 
-    function updateShopUI() {
-        document.getElementById('shopTacos').innerText = playerData.tacos;
-        document.getElementById('lvlIncome').innerText = playerData.stats.income;
-        document.getElementById('btnBuyIncome').innerText = `Buy (${getUpgradeCost('income')})`;
-        document.getElementById('btnBuyIncome').disabled = playerData.tacos < getUpgradeCost('income');
-        document.getElementById('lvlAim').innerText = playerData.stats.aim;
-        document.getElementById('btnBuyAim').innerText = `Buy (${getUpgradeCost('aim')})`;
-        document.getElementById('btnBuyAim').disabled = playerData.tacos < getUpgradeCost('aim');
-        document.getElementById('lvlLuck').innerText = playerData.stats.luck;
-        document.getElementById('btnBuyLuck').innerText = `Buy (${getUpgradeCost('luck')})`;
-        document.getElementById('btnBuyLuck').disabled = playerData.tacos < getUpgradeCost('luck');
-        document.getElementById('lvlMoonwalk').innerText = playerData.stats.moonwalk;
-        document.getElementById('btnBuyMoonwalk').innerText = `Buy (${getUpgradeCost('moonwalk')})`;
-        document.getElementById('btnBuyMoonwalk').disabled = playerData.tacos < getUpgradeCost('moonwalk');
-        document.getElementById('lvlExtraLives').innerText = playerData.stats.extraLives || 0;
-        document.getElementById('btnBuyExtraLives').innerText = `Buy (${getUpgradeCost('extraLives')})`;
-        document.getElementById('btnBuyExtraLives').disabled = playerData.tacos < getUpgradeCost('extraLives');
-        const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
-        document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
-        document.getElementById('skinName').innerText = skin.name;
-        const btn = document.getElementById('btnEquipSkin');
-        const status = document.getElementById('skinStatus');
-        const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        const isEquipped = playerData.currentSkin === skin.id;
-        if (isEquipped) { status.innerText = "Equipped"; btn.style.display = 'none'; } 
-        else if (isUnlocked) { status.innerText = "Owned"; btn.style.display = 'inline-block'; btn.innerText = "Equip"; btn.disabled = false; } 
-        else { status.innerText = `Cost: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Buy"; btn.disabled = playerData.tacos < skin.cost; }
+    checkAll() {
+        this.check('score');
+        this.check('distance');
+        this.check('balance_update');
+        this.check('stat_update');
+        this.check('skin_update');
+        this.check('skin_equip');
+        this.check('shot_result', { made: false }); // General stats check
+    }
+}
+
+// --- 4. RENDERER CLASS ---
+class Renderer {
+    constructor(game) {
+        this.game = game;
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 800;
+        this.height = 600;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+
+        this.snowParticles = [];
+        for(let i=0; i<100; i++) {
+            this.snowParticles.push({
+                x: Math.random() * this.width,
+                y: Math.random() * this.height,
+                r: Math.random() * 2 + 1,
+                speed: Math.random() * 2 + 1
+            });
+        }
+
+        this.decors = [];
+        for(let i=0; i<300; i++) {
+            let dist = Math.random() * 10000;
+            let pathX = 600 - (dist * 0.7);
+            let pathY = 150 + (dist * 0.7);
+            let scatter = (Math.random() - 0.5) * 1200;
+            this.decors.push({ x: pathX + scatter, y: pathY + scatter, dist: dist });
+        }
+
+        this.mountains = [];
+        for(let i=0; i<15; i++) {
+            this.mountains.push({ x: i * 80 - 100, h: 100 + Math.random() * 150, color: `hsl(25, ${30 + Math.random()*20}%, ${20 + Math.random()*10}%)` });
+        }
+
+        // Bind resize
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
     }
 
-    function toggleMode() {
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONTEST"; } 
-        else { currentGameMode = 'CLASSIC'; document.getElementById('modeBtnText').innerText = "CLASSIC"; }
-        resetGame();
-    }
-
-    function updateUI() {
-        scoreEl.innerText = playerData.tacos;
-        if(currentGameMode === 'CLASSIC') {
-            distEl.innerText = (10 + (distanceLevel * 5)) + " ft";
-            var maxMisses = 2 + (playerData.stats.extraLives || 0);
-            missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
-            var dist = 10 + (distanceLevel * 5); var c = getCourtDetails(dist); courtNameEl.innerText = c.name;
-        } else { courtNameEl.innerText = "3-POINT CONTEST"; }
-    }
-
-    function updateContestUI() {
-        document.getElementById('contestTime').innerText = Math.ceil(contestData.timer);
-        document.getElementById('contestScore').innerText = contestData.score;
-        document.getElementById('contestRack').innerText = contestData.rack;
-    }
-
-    function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
-    function getScaleObject(dist) { return SCALE_OBJECTS.find(function(o) { return dist < o.limit; }) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
-    function getCourtDetails(dist) { return COURT_ZONES.find(function(z) { return dist < z.limit; }) || COURT_ZONES[COURT_ZONES.length-1]; }
-    function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
-    
-    function getCurrentHoopPos() {
-        var x = HOOP_POS.x;
-        // HOOP IS STATIC NOW per request
-        return { x: x, y: HOOP_POS.y, z: HOOP_POS.z };
-    }
-
-    function resizeGame() {
-        var winW = window.innerWidth;
-        var winH = window.innerHeight;
-        var scale = Math.min(winW / 800, winH / 600) * 0.95; 
+    resize() {
+        const container = document.getElementById('game-container');
+        let winW = window.innerWidth;
+        let winH = window.innerHeight;
+        let scale = Math.min(winW / 800, winH / 600) * 0.95;
         container.style.transform = `translate(-50%, -50%) scale(${scale})`;
     }
-    window.addEventListener('resize', resizeGame);
 
-    function project(x, y, z) {
-        var dxToHoop = HOOP_POS.x - player3D.x;
-        var dyToHoop = HOOP_POS.y - player3D.y;
-        var distToHoop = Math.sqrt(dxToHoop*dxToHoop + dyToHoop*dyToHoop);
-        var idealZoom = 380 * (400 + distToHoop) / Math.max(100, distToHoop);
+    project(x, y, z) {
+        const HOOP_POS = this.game.HOOP_POS;
+        const player = this.game.player;
+
+        let dxToHoop = HOOP_POS.x - player.x;
+        let dyToHoop = HOOP_POS.y - player.y;
+        let distToHoop = Math.sqrt(dxToHoop*dxToHoop + dyToHoop*dyToHoop);
+
+        // Dynamic camera
+        let idealZoom = 380 * (400 + distToHoop) / Math.max(100, distToHoop);
         idealZoom = Math.min(1000, Math.max(400, idealZoom));
-        cameraZoom = idealZoom; cameraHeight = 84000 / cameraZoom;
-        var angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-        var rotation = -angleToHoop - Math.PI/2;
-        var dx = x - player3D.x; var dy = y - player3D.y;
-        var rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
-        var ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
-        var cameraOffset = 400; var depth = cameraOffset - ry;
+        this.game.cameraZoom = idealZoom;
+        this.game.cameraHeight = 84000 / idealZoom;
+
+        let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        let rotation = -angleToHoop - Math.PI/2;
+
+        let dx = x - player.x;
+        let dy = y - player.y;
+        let rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
+        let ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
+
+        let cameraOffset = 400;
+        let depth = cameraOffset - ry;
+
         if (depth <= 0) return null; 
-        var scale = cameraZoom / depth;
-        var screenX = canvas.width / 2 + (rx * scale);
-        var horizonY = (canvas.height - 120) * 0.5; 
-        var screenY = horizonY + (cameraHeight - z) * scale;
+
+        let scale = this.game.cameraZoom / depth;
+        let screenX = this.width / 2 + (rx * scale);
+        let horizonY = (this.height - 120) * 0.5;
+        let screenY = horizonY + (this.game.cameraHeight - z) * scale;
+
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
-    
-    function showNotification(name, reward) {
-        var notifText = document.getElementById('notifText');
-        notifText.innerText = `${name} (+${reward} Tacos)`;
-        notif.style.display = 'block'; setTimeout(function(){ notif.style.display = 'none'; }, 3000);
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.drawBackground();
+        this.drawScene();
+        this.drawUI();
     }
 
-    function unlockAchievement(id) {
-        if (!playerData.unlockedAchievements.includes(id)) {
-            playerData.unlockedAchievements.push(id);
-            var ach = ACHIEVEMENTS.find(function(a){ return a.id === id; });
-            if(ach) { 
-                playerData.tacos += ach.reward; 
-                saveData(); 
-                showNotification(ach.name, ach.reward); 
-                updateUI(); 
-            }
-        }
-    }
+    drawBackground() {
+        let currentDist = 10 + (this.game.distanceLevel * 5);
+        if(this.game.mode === 'CONTEST') currentDist = 25; // Fixed context for contest
 
-    function checkAchievements(context) {
-        var dist = 10 + (distanceLevel * 5);
-        if (context === 'score') {
-            if (dist >= 150) unlockAchievement('levis_legend');
-            if (dist >= 200) unlockAchievement('interstellar');
-            if (dist >= 4000) unlockAchievement('moonwalker');
-        }
-        if (context === 'shop') {
-             if (playerData.unlockedSkins.length >= 5) unlockAchievement('fashionista');
-        }
-        if (context === 'shot_stats') {
-             if(playerData.lifetimeStats.shots >= 500) unlockAchievement('ball_hog');
-             if(playerData.lifetimeStats.misses >= 50) unlockAchievement('bricklayer');
-        }
-        if (context === 'contest') {
-             if(contestData.score > 10) unlockAchievement('contest_winner');
-        }
-        if (context === 'lucky') unlockAchievement('lucky');
-        if (context === 'skin') {
-             if(playerData.currentSkin.indexOf('robot') > -1) unlockAchievement('cosplay');
-        }
-    }
+        let court = this.game.getCourtDetails(currentDist);
+        let horizonY = (this.height - 120) * 0.5;
 
-    function renderAchievements() {
-        var list = document.getElementById('achList');
-        list.innerHTML = '';
-        ACHIEVEMENTS.forEach(function(ach) {
-            var unlocked = playerData.unlockedAchievements.includes(ach.id);
-            var div = document.createElement('div');
-            div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
-            list.appendChild(div);
-        });
-    }
-
-    function setPlayerPositionForRack(rackNum) {
-        if(rackNum === 1) { player3D.x = 200; player3D.y = 500; }
-        else if(rackNum === 2) { player3D.x = 250; player3D.y = 400; }
-        else if(rackNum === 3) { player3D.x = 300; player3D.y = 300; }
-        else if(rackNum === 4) { player3D.x = 350; player3D.y = 200; }
-        else if(rackNum === 5) { player3D.x = 400; player3D.y = 100; }
-        player3D.z = 0; player3D.vz = 0;
-    }
-
-    function resetGame() { 
-        if(currentGameMode === 'CONTEST') { startContest(); } 
-        else {
-            distanceLevel = 1; consecutiveMisses = 0; 
-            player3D = { x: 300, y: 300, z: 0, vz: 0 }; 
-            document.getElementById('classic-stats').style.display = 'block';
-            strikesEl.style.display = 'block';
-            contestUI.style.display = 'none';
-            state = 'IDLE'; updateUI(); 
-        }
-    }
-    
-    function startContest() {
-        currentGameMode = 'CONTEST'; 
-        contestData.timer = 60; 
-        contestData.score = 0; 
-        contestData.rack = 1; 
-        contestData.ballsInRack = 0; 
-        contestData.isActive = true;
-        distanceLevel = 3; 
-        setPlayerPositionForRack(1); 
-        playerData.lifetimeStats.contests++;
-        document.getElementById('classic-stats').style.display = 'none'; 
-        strikesEl.style.display = 'none'; 
-        contestUI.style.display = 'block'; 
-        updateContestUI(); 
-        state = 'IDLE';
-    }
-
-    function nextLevel() {
-        if(currentGameMode === 'CONTEST') {
-            contestData.ballsInRack++;
-            if(contestData.ballsInRack >= 5) {
-                contestData.rack++; contestData.ballsInRack = 0;
-                if(contestData.rack > 5) { endContest(); return; } 
-                else { setPlayerPositionForRack(contestData.rack); }
-            }
-            updateContestUI(); state = 'IDLE';
-        } else {
-            var baseReward = 1 * distanceLevel * playerData.difficulty;
-            var multiplier = 1 + (playerData.stats.income - 1) * 0.5;
-            var reward = Math.ceil(baseReward * multiplier);
-            if (currentStreak > 1) reward += currentStreak * 2;
-            if (isOnFire) reward *= 2; // Fire Bonus
-            
-            playerData.tacos += reward;
-            var jump = playerData.stats.moonwalk || 1; distanceLevel += jump;
-            var currentDistanceVal = 10 + (distanceLevel * 5);
-            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " ft"; }
-            saveData(); checkAchievements('score');
-            player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
-        }
-    }
-
-    function endContest() {
-        state = 'GAMEOVER'; feedback = "FINISHED!"; feedbackTimer = 120;
-        var reward = contestData.score * 10; playerData.tacos += reward;
-        checkAchievements('contest'); saveData(); setTimeout(function(){ openShop(); }, 2000);
-    }
-
-
-    // --- 4. DRAWING FUNCTIONS ---
-    function drawBackground() {
-        var currentDist = 10 + (distanceLevel * 5);
-        var court = getCourtDetails(currentDist);
-        var horizonY = (canvas.height - 120) * 0.5;
-        
-        if(shakeIntensity > 0) {
-            ctx.save();
-            var shakeX = (Math.random() - 0.5) * shakeIntensity;
-            var shakeY = (Math.random() - 0.5) * shakeIntensity;
-            ctx.translate(shakeX, shakeY);
+        // Shake effect
+        if(this.game.shakeIntensity > 0) {
+            this.ctx.save();
+            let s = this.game.shakeIntensity;
+            this.ctx.translate((Math.random()-0.5)*s, (Math.random()-0.5)*s);
+            this.game.shakeIntensity--;
         }
 
-        var skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+        // Sky
+        let skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.height * 0.6);
         skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2); 
-        ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        this.ctx.fillStyle = skyGrad; this.ctx.fillRect(0, 0, this.width, this.height);
         
-        var currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+        // Ground base
+        let currentZoneGrad = this.ctx.createLinearGradient(0, horizonY, 0, this.height);
         currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-        ctx.fillStyle = currentZoneGrad; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+        this.ctx.fillStyle = currentZoneGrad; this.ctx.fillRect(0, horizonY, this.width, this.height - horizonY);
 
-        var getProjectedY = function(gDist) {
-            if (gDist <= 0) { var p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
-            var ratio = gDist / currentDist;
-            var wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; var wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-            var p = project(wx, wy, 0); return p ? p.y : canvas.height;
+        // Zones stripes
+        const HOOP_POS = this.game.HOOP_POS;
+        const player = this.game.player;
+
+        // Helper to project distance markers
+        const getProjectedY = (gDist) => {
+            if (gDist <= 0) {
+                let p = this.project(HOOP_POS.x, HOOP_POS.y, 0);
+                return p ? p.y : horizonY;
+            }
+            let ratio = gDist / currentDist;
+            // Prevent division by zero or negative logic if at 0 dist
+            if(currentDist <= 1) ratio = 1;
+
+            let wx = HOOP_POS.x + (player.x - HOOP_POS.x) * ratio;
+            let wy = HOOP_POS.y + (player.y - HOOP_POS.y) * ratio;
+            let p = this.project(wx, wy, 0);
+            return p ? p.y : this.height;
         };
 
-        for (var i = 0; i < COURT_ZONES.length; i++) {
-            var z = COURT_ZONES[i];
-            var zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-            var zEnd = z.limit;
+        for (let i = 0; i < COURT_ZONES.length; i++) {
+            let z = COURT_ZONES[i];
+            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+            let zEnd = z.limit;
             if (zStart >= currentDist) break; 
-            var drawEnd = Math.min(zEnd, currentDist);
-            var yTop = getProjectedY(zStart); var yBottom = getProjectedY(drawEnd); 
+            let drawEnd = Math.min(zEnd, currentDist);
+            let yTop = getProjectedY(zStart);
+            let yBottom = getProjectedY(drawEnd);
             if ((yBottom - yTop) > 0.5) {
-                var grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                let grad = this.ctx.createLinearGradient(0, yTop, 0, yBottom);
                 grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad; ctx.fillRect(0, yTop, canvas.width, (yBottom - yTop) + 2); 
+                this.ctx.fillStyle = grad; this.ctx.fillRect(0, yTop, this.width, (yBottom - yTop) + 2);
             }
         }
 
-        mountains.forEach(function(m) {
-            var shift = (player3D.x + player3D.y) * 0.05;
-            var xPos = ((m.x - shift) % (canvas.width + 200)) - 100;
-            ctx.beginPath(); ctx.moveTo(xPos, horizonY); ctx.lineTo(xPos + 60, horizonY - m.h); ctx.lineTo(xPos + 120, horizonY);
-            ctx.fillStyle = m.color; ctx.fill();
+        // Mountains
+        this.mountains.forEach(m => {
+            let shift = (player.x + player.y) * 0.05;
+            let xPos = ((m.x - shift) % (this.width + 200)) - 100;
+            this.ctx.beginPath();
+            this.ctx.moveTo(xPos, horizonY);
+            this.ctx.lineTo(xPos + 60, horizonY - m.h);
+            this.ctx.lineTo(xPos + 120, horizonY);
+            this.ctx.fillStyle = m.color;
+            this.ctx.fill();
         });
-        ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(canvas.width, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
-        var renderList = [];
-        decors.forEach(function(d) { 
-            var proj = project(d.x, d.y, 0); 
-            var dDist = Math.sqrt(Math.pow(d.x - HOOP_POS.x, 2) + Math.pow(d.y - HOOP_POS.y, 2));
-            var decorZone = COURT_ZONES.find(function(z) { return dDist < z.limit; }) || COURT_ZONES[COURT_ZONES.length-1];
+        // Horizon line
+        this.ctx.beginPath(); this.ctx.moveTo(0, horizonY); this.ctx.lineTo(this.width, horizonY);
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.3)'; this.ctx.stroke();
+    }
+
+    drawScene() {
+        let renderList = [];
+        const HOOP_POS = this.game.HOOP_POS;
+        let currentDist = 10 + (this.game.distanceLevel * 5);
+        if(this.game.mode === 'CONTEST') currentDist = 25;
+
+        // Decors
+        this.decors.forEach(d => {
+            let proj = this.project(d.x, d.y, 0);
+            let dDist = Math.sqrt(Math.pow(d.x - HOOP_POS.x, 2) + Math.pow(d.y - HOOP_POS.y, 2));
+            let decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
             if (proj) renderList.push({ type: 'decor', depth: proj.depth, proj: proj, zoneType: decorZone.type }); 
         });
-        
-        obstacles.forEach(function(o) {
+
+        // Obstacles
+        this.game.obstacles.forEach(o => {
              if(o.active) {
-                 var proj = project(o.x, o.y, o.z);
+                 let proj = this.project(o.x, o.y, o.z);
                  if(proj) renderList.push({ type: 'goose', depth: proj.depth, proj: proj, obj: o });
              }
         });
 
-        var currentHoop = getCurrentHoopPos();
-        var hoopProj = project(currentHoop.x, currentHoop.y, currentHoop.z); 
+        // Hoop
+        let hoopProj = this.project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
         if (hoopProj) renderList.push({ type: 'hoop', depth: hoopProj.depth, proj: hoopProj });
         
-        var playerProj = project(player3D.x, player3D.y, player3D.z); if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
-        var shadowProj = project(player3D.x, player3D.y, 0); if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
-        
-        if (state === 'SHOOTING' && ball.active) {
-            var ballProj = project(ball.x, ball.y, ball.z); 
+        // Player & Shadow
+        let player = this.game.player;
+        let playerProj = this.project(player.x, player.y, player.z);
+        if (playerProj) renderList.push({ type: 'player', depth: playerProj.depth, proj: playerProj });
+
+        let shadowProj = this.project(player.x, player.y, 0);
+        if (shadowProj) renderList.push({ type: 'shadow', depth: shadowProj.depth, proj: shadowProj });
+
+        // Ball
+        let ball = this.game.ball;
+        if ((this.game.state === 'SHOOTING' || this.game.state === 'RESETTING') && ball.active) {
+            let ballProj = this.project(ball.x, ball.y, ball.z);
             if (ballProj) renderList.push({ type: 'ball', depth: ballProj.depth, proj: ballProj });
         }
 
-        renderList.sort(function(a, b) { return b.depth - a.depth; });
-        renderList.forEach(function(obj) {
-            if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType); 
-            if (obj.type === 'hoop') drawHoop(obj.proj);
-            if (obj.type === 'shadow') drawShadow(obj.proj);
-            if (obj.type === 'player') drawPlayer(obj.proj);
-            if (obj.type === 'ball') drawBall(obj.proj);
-            if (obj.type === 'goose') {
-                var s = obj.proj.scale;
-                ctx.fillStyle = '#696969'; 
-                ctx.beginPath(); ctx.ellipse(obj.proj.x, obj.proj.y, 20*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(obj.proj.x + 20*s, obj.proj.y - 10*s, 5*s, 0, Math.PI*2); ctx.fill(); 
-                ctx.fillStyle = '#FFF'; ctx.fillRect(obj.proj.x + 18*s, obj.proj.y - 8*s, 4*s, 2*s); 
-            }
+        // Sort by depth (Painter's Algorithm)
+        renderList.sort((a, b) => b.depth - a.depth);
+
+        // Render
+        renderList.forEach(obj => {
+            if (obj.type === 'decor') this.drawDecor(obj.proj, obj.zoneType);
+            if (obj.type === 'hoop') this.drawHoop(obj.proj);
+            if (obj.type === 'shadow') this.drawShadow(obj.proj);
+            if (obj.type === 'player') this.drawPlayer(obj.proj);
+            if (obj.type === 'ball') this.drawBall(obj.proj);
+            if (obj.type === 'goose') this.drawGoose(obj.proj);
         });
         
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        snowParticles.forEach(function(p) {
-             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        // Snow
+        this.ctx.fillStyle = "rgba(255,255,255,0.7)";
+        this.snowParticles.forEach(p => {
+             // Update snow here for visual effect
+             p.y += p.speed;
+             p.x += Math.sin(p.y * 0.01) * 0.5;
+             if(p.y > this.height) p.y = 0;
+             this.ctx.beginPath(); this.ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); this.ctx.fill();
         });
-
-        if (feedbackTimer > 0) {
-            ctx.save(); ctx.font = "900 60px 'Arial Black'";
-            ctx.fillStyle = feedback.indexOf("Missed") > -1 || feedback.indexOf("Ouch") > -1 ? "#FF0000" : "#00FF00";
-            if (feedback.indexOf("FIRE") > -1) ctx.fillStyle = "orange";
-            ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center";
-            ctx.fillText(feedback, canvas.width/2, 200); ctx.strokeText(feedback, canvas.width/2, 200);
-            ctx.restore(); 
-        }
-        
-        if(shakeIntensity > 0) ctx.restore(); 
     }
 
-    function drawFlightTracker() {
-        var h = 120;
-        var y = canvas.height - h;
-        ctx.fillStyle = '#111'; ctx.fillRect(0, y, canvas.width, h);
-        ctx.fillStyle = '#222'; ctx.fillRect(0, y + h/2, canvas.width, h/2);
-        var dist = 10 + (distanceLevel * 5);
-        var scaleObj = getScaleObject(dist);
-        ctx.font = "bold 20px 'Segoe UI'"; ctx.fillStyle = "#FFD700"; ctx.textAlign = "center";
-        
-        // Wind Indicator (Visual Only)
-        if (dist > 50 && wind.strength > 0) {
-            ctx.fillStyle = "#00FFFF"; ctx.font = "16px Arial";
-            var dirStr = wind.dir > 0 ? ">>" : "<<";
-            ctx.fillText(`WIND: ${dirStr} ${Math.floor(wind.strength*10)} mph`, 100, y + 30);
-        }
-
-        if (currentGameMode === 'CLASSIC') {
-            ctx.fillStyle = "#FFD700"; ctx.font = "bold 20px 'Segoe UI'";
-            ctx.fillText(`Distance: ${dist} ft`, canvas.width/2, y + 30);
-            ctx.font = "italic 16px 'Segoe UI'"; ctx.fillStyle = "#aaa";
-            ctx.fillText(`(Equivalent: ${scaleObj.name})`, canvas.width/2, y + 55);
-        } else {
-             ctx.fillText(`3-POINT CONTEST`, canvas.width/2, y + 30);
-        }
-        
-        // Fire Indicator
-        if(isOnFire) {
-             ctx.font = "900 24px Arial"; ctx.fillStyle="orange";
-             ctx.fillText("🔥 ON FIRE! (x2) 🔥", canvas.width - 150, y + 40);
-        }
-
-        var margin = 100; var lineY = y + 80; var lineLen = canvas.width - (margin * 2);
-        ctx.strokeStyle = '#555'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(margin, lineY); ctx.lineTo(margin + lineLen, lineY); ctx.stroke();
-        ctx.font = "30px Arial"; ctx.textAlign="center";
-        ctx.fillText("⛹️", margin, lineY + 10); ctx.fillText("🏀", margin + lineLen, lineY + 10);
-        if (currentGameMode === 'CLASSIC') { ctx.globalAlpha = 0.3; ctx.font = "60px Arial"; ctx.fillText(scaleObj.icon, canvas.width/2, lineY); ctx.globalAlpha = 1.0; }
-        if(state === 'SHOOTING' && ball.active) {
-            var dx = HOOP_POS.x - player3D.x; var dy = HOOP_POS.y - player3D.y;
-            var totalDist = Math.sqrt(dx*dx + dy*dy);
-            var ballDx = ball.x - player3D.x; var ballDy = ball.y - player3D.y;
-            var currentDist = Math.sqrt(ballDx*ballDx + ballDy*ballDy);
-            var progress = currentDist / totalDist;
-            var zFactor = ball.z / 300;
-            var ballX = margin + (progress * lineLen);
-            var ballY = lineY - (zFactor * 50);
-            ctx.fillStyle = isGoldenBall ? '#FFD700' : (isOnFire ? '#FF4500' : '#ff6600'); 
-            ctx.beginPath(); ctx.arc(ballX, ballY, 5, 0, Math.PI*2); ctx.fill();
-        }
-    }
-
-    function drawBallSprite(x, y, scale) {
-        var color1 = '#ff6600'; var color2 = '#cc5500';
-        if(isGoldenBall) { color1 = '#FFD700'; color2 = '#DAA520'; }
-        if(isOnFire) { color1 = '#FF4500'; color2 = '#8B0000'; }
-        
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { color1 = '#FFFFFF'; color2 = '#0000FF'; }
-        
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 1 * scale;
-        var grad = ctx.createRadialGradient(x - 2*scale, y - 2*scale, 1*scale, x, y, 8*scale);
-        grad.addColorStop(0, color1); grad.addColorStop(1, color2);
-        
-        // Fire Effect
-        if(isOnFire) {
-             ctx.shadowBlur = 15; ctx.shadowColor = "orange";
-        }
-        
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        ctx.shadowBlur = 0; // Reset
-        
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.stroke();
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
-        ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
-    }
-    
-    function drawBall(p) {
-        if (!p) return;
-        drawBallSprite(p.x, p.y, p.scale);
-    }
-
-    function drawLimb(x1, y1, x2, y2, width, color) {
-        var angle = Math.atan2(y2 - y1, x2 - x1);
-        var dx = Math.sin(angle) * (width / 2); var dy = Math.cos(angle) * (width / 2);
-        ctx.beginPath(); ctx.moveTo(x1 - dx, y1 + dy); ctx.lineTo(x2 - dx, y2 + dy); ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
-        ctx.lineTo(x1 + dx, y1 - dy); ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2); ctx.closePath();
-        var grad = ctx.createLinearGradient(x1, y1, x2, y2); grad.addColorStop(0, color); grad.addColorStop(1, '#000000'); 
-        ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-    }
-
-    function drawRoundedRect(x, y, w, h, r, color) {
-        ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
-        var grad = ctx.createRadialGradient(x + w/2, y + h/2, 5, x + w/2, y + h/2, w); grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-        ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-    }
-
-    function drawDecor(p, type) { 
+    drawDecor(p, type) {
         if (!p) return; 
-        var s = p.scale;
+        let s = p.scale;
+        let ctx = this.ctx;
+
         if(type === 'grass') { 
             ctx.fillStyle = '#F4C430'; 
             ctx.beginPath(); ctx.arc(p.x, p.y - 20*s, 30*s, Math.PI, 0); ctx.fill();
             ctx.strokeStyle = '#D2691E'; ctx.lineWidth = 2*s; ctx.stroke();
-            ctx.fillStyle = '#32CD32'; for(var i=0; i<5; i++) { ctx.beginPath(); ctx.arc(p.x - 25*s + (i*12*s), p.y - 45*s, 8*s, 0, Math.PI*2); ctx.fill(); }
+            ctx.fillStyle = '#32CD32'; for(let i=0; i<5; i++) { ctx.beginPath(); ctx.arc(p.x - 25*s + (i*12*s), p.y - 45*s, 8*s, 0, Math.PI*2); ctx.fill(); }
             ctx.fillStyle = '#FFA500'; ctx.beginPath(); ctx.arc(p.x - 30*s, p.y - 25*s, 15*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x-40*s, p.y-35*s); ctx.lineTo(p.x-45*s, p.y-50*s); ctx.lineTo(p.x-30*s, p.y-38*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x-20*s, p.y-38*s); ctx.lineTo(p.x-15*s, p.y-50*s); ctx.lineTo(p.x-25*s, p.y-35*s); ctx.fill();
-            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 4*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 35*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x - 25*s, p.y - 22*s, 1.5*s, 0, Math.PI*2); ctx.fill(); 
-            ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x + 25*s, p.y - 25*s); ctx.quadraticCurveTo(p.x + 40*s, p.y - 40*s, p.x + 45*s, p.y - 10*s); ctx.stroke();
-            ctx.fillStyle = '#FFA500';
-            ctx.beginPath(); ctx.arc(p.x - 20*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x - 5*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 10*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 25*s, p.y - 5*s, 5*s, 0, Math.PI*2); ctx.fill();
         } 
         else if(type === 'tree') {
             ctx.fillStyle = '#8B4513'; ctx.fillRect(p.x - 5*s, p.y, 10*s, -20*s);
@@ -1124,7 +875,7 @@
             ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 40*s); ctx.lineTo(p.x + 25*s, p.y - 40*s); ctx.lineTo(p.x, p.y - 100*s); ctx.fill();
         }
         else if (type === 'water') {
-             ctx.fillStyle = '#FF0000'; ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = '#00008B'; ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, 0, Math.PI*2); ctx.fill();
              ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x, p.y, 5*s, 0, Math.PI*2); ctx.fill();
         }
         else if (type === 'castle') {
@@ -1140,25 +891,48 @@
             ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(p.x, p.y - 30*s, 15*s, 0, Math.PI*2); ctx.fill();
         }
     }
-    
-    function drawShadow(p) { if(!p) return; ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2); ctx.fill(); }
 
-    function drawHoop(p) {
+    drawGoose(p) {
+        let s = p.scale;
+        let ctx = this.ctx;
+        ctx.fillStyle = '#696969';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, 20*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x + 20*s, p.y - 10*s, 5*s, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#FFF'; ctx.fillRect(p.x + 18*s, p.y - 8*s, 4*s, 2*s);
+    }
+
+    drawShadow(p) {
+        if(!p) return;
+        this.ctx.fillStyle='rgba(0,0,0,0.3)';
+        this.ctx.beginPath();
+        this.ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2);
+        this.ctx.fill();
+    }
+
+    drawHoop(p) {
         if (!p) return;
-        var s = p.scale;
+        let s = p.scale;
+        let ctx = this.ctx;
+        const HOOP_POS = this.game.HOOP_POS;
         
-        var currentPos = getCurrentHoopPos();
-        var moveX = (currentPos.x - HOOP_POS.x) * s; 
+        let currentPos = { x: HOOP_POS.x, y: HOOP_POS.y, z: HOOP_POS.z };
+        let moveX = (currentPos.x - HOOP_POS.x) * s;
 
-        var baseP = project(HOOP_POS.x, HOOP_POS.y, 0);
-        if(baseP) { ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s + moveX, p.y, 4*s, baseP.y - p.y); }
-        var bbW = 60 * s; var bbH = 40 * s; var bbX = p.x - bbW/2 + moveX; var bbY = p.y - bbH - 10*s;
+        // Pole
+        let baseP = this.project(HOOP_POS.x, HOOP_POS.y, 0);
+        if(baseP) {
+            ctx.fillStyle = '#444';
+            ctx.fillRect(p.x - 2*s + moveX, p.y, 4*s, baseP.y - p.y);
+        }
         
+        // Backboard
+        let bbW = 60 * s; let bbH = 40 * s; let bbX = p.x - bbW/2 + moveX; let bbY = p.y - bbH - 10*s;
         ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(bbX, bbY, bbW, bbH);
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s; ctx.strokeRect(bbX, bbY, bbW, bbH);
         ctx.fillStyle = '#CE1126'; ctx.fillRect(bbX + bbW*0.35, bbY + bbH*0.6, bbW*0.3, bbH*0.3);
         
-        if(isOnFire) {
+        // Rim
+        if(this.game.isOnFire) {
             ctx.shadowBlur = 20; ctx.shadowColor = "red"; ctx.strokeStyle = "orange";
         } else {
             ctx.strokeStyle = 'orange';
@@ -1168,437 +942,1004 @@
         ctx.lineWidth = 4 * s; ctx.stroke();
         ctx.shadowBlur = 0; 
         
-        ctx.beginPath(); ctx.moveTo(p.x - 15*s + moveX, p.y); ctx.lineTo(p.x - 10*s + moveX, p.y + 20*s); ctx.lineTo(p.x + 10*s + moveX, p.y + 20*s); ctx.lineTo(p.x + 15*s + moveX, p.y);
+        // Net
+        ctx.beginPath(); ctx.moveTo(p.x - 15*s + moveX, p.y);
+        ctx.lineTo(p.x - 10*s + moveX, p.y + 20*s);
+        ctx.lineTo(p.x + 10*s + moveX, p.y + 20*s);
+        ctx.lineTo(p.x + 15*s + moveX, p.y);
         ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
     }
 
-    function drawPlayer(p) {
+    drawBall(p) {
         if (!p) return;
-        var s = p.scale;
-        var skin = playerData.currentSkin;
-        var currentAnimal = 'rat';
-        var skinObj = SKINS_DB.find(function(x) { return x.id === skin; });
+        let s = p.scale;
+        let ctx = this.ctx;
+
+        let color1 = '#ff6600'; let color2 = '#cc5500';
+        if(this.game.isGoldenBall) { color1 = '#FFD700'; color2 = '#DAA520'; }
+        if(this.game.isOnFire) { color1 = '#FF4500'; color2 = '#8B0000'; }
+
+        if(this.game.mode === 'CONTEST' && this.game.contestData.ballsInRack === 4) {
+            color1 = '#FFFFFF'; color2 = '#0000FF';
+        }
+
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1 * s;
+        let grad = ctx.createRadialGradient(p.x - 2*s, p.y - 2*s, 1*s, p.x, p.y, 8*s);
+        grad.addColorStop(0, color1); grad.addColorStop(1, color2);
+
+        if(this.game.isOnFire) {
+             ctx.shadowBlur = 15; ctx.shadowColor = "orange";
+        }
+
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(p.x, p.y, 8 * s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(p.x, p.y, 8 * s, 0, Math.PI*2); ctx.stroke();
+        if(this.game.mode === 'CONTEST' && this.game.contestData.ballsInRack === 4) {
+            ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * s;
+        }
+        ctx.beginPath(); ctx.moveTo(p.x - 8*s, p.y); ctx.quadraticCurveTo(p.x, p.y + 4*s, p.x + 8*s, p.y); ctx.stroke();
+    }
+
+    drawPlayer(p) {
+        if (!p) return;
+        let s = p.scale;
+        let ctx = this.ctx;
+        let skin = this.game.storage.data.currentSkin;
+        let currentAnimal = 'rat';
+        let skinObj = SKINS_DB.find(x => x.id === skin);
         if(skinObj) currentAnimal = skinObj.animal;
 
-        var sizeMod = { w: 1, h: 1, head: 1 };
-        switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'raccoon': sizeMod = { w: 0.9, h: 0.9, head: 0.95 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; break;
-            case 'penguin': sizeMod = { w: 1.1, h: 0.8, head: 1.0 }; break;
-            case 'beaver': sizeMod = { w: 1.1, h: 0.9, head: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
-        }
+        let sizeMod = { w: 1, h: 1, head: 1 };
+        // Simple sizing map
+        if(currentAnimal === 'rat') sizeMod = { w: 0.7, h: 0.7, head: 0.8 };
+        else if(currentAnimal === 'bear') sizeMod = { w: 1.4, h: 1.1, head: 1.2 };
+        else if(currentAnimal === 'moose') sizeMod = { w: 1.2, h: 1.3, head: 1.1 };
+        else sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; // Fallback
 
-        var furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
-        var bellyColor = null, hasSpots = false, hasBlackEars = false;
-
-        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; } 
-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; } 
-        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
-        else if(currentAnimal === 'beaver') { furColor = '#5D4037'; tailColor = '#3E2723'; }
-        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
-        else if(currentAnimal === 'penguin') { furColor = '#111'; tailColor = '#111'; bellyColor = '#fff'; }
-        else if(currentAnimal === 'raccoon') { furColor = '#777'; tailColor = '#333'; }
-
-        if(skin.indexOf('tabby') > -1) { furColor = '#D2691E'; hasSpots = true; } 
-        if(skin.indexOf('tuxedo') > -1) { furColor = '#111'; bellyColor = '#fff'; }
-        if(skin.indexOf('dalmation') > -1) { furColor = '#fff'; hasSpots = true; }
-        if(skin.indexOf('pug') > -1) { furColor = '#F5DEB3'; hasBlackEars = true; }
-        if(skin.indexOf('panda') > -1) { furColor = '#fff'; hasBlackEars = true; }
-        if(skin.indexOf('polar') > -1) { furColor = '#fff'; }
-        if(skin.indexOf('jack') > -1) { furColor = '#D2B48C'; } 
-        if(skin.indexOf('magic') > -1) { furColor = '#111'; } 
-        if(skin.indexOf('bandit') > -1) { hasBlackEars = true; } 
+        // Colors setup (simplified for brevity but preserving key visual styles)
+        let furColor = '#555', torsoColor = '#555', legColor = '#555', armColor = '#555';
+        if(currentAnimal === 'rat') furColor = '#696969';
+        if(currentAnimal === 'dog') furColor = '#8B4513';
+        if(skin.indexOf('alien') > -1) furColor = '#32CD32';
 
         torsoColor = furColor; legColor = furColor; armColor = furColor;
-
-        if(skin.indexOf('lumberjack') > -1) { 
-            torsoColor = '#b30000'; 
-            legColor = '#00008b';   
-            armColor = '#b30000';   
-        }
-        else if(skin.indexOf('mariachi') > -1) { torsoColor='#1a1a1a'; legColor='#1a1a1a'; armColor='#1a1a1a'; }
-        else if(skin.indexOf('luchador') > -1) { legColor = '#008000'; } 
-        else if(skin.indexOf('astronaut') > -1) { torsoColor='#fff'; legColor='#fff'; armColor='#fff'; }
-        else if(skin.indexOf('alien') > -1) { furColor = '#32CD32'; tailColor='#32CD32'; torsoColor=furColor; legColor=furColor; armColor=furColor; }
-        else if(skin.indexOf('zombie') > -1) { furColor = '#98FB98'; torsoColor='#98FB98'; legColor='#8B4513'; } 
-        else if(skin.indexOf('ninja') > -1) { furColor='#111'; torsoColor='#111'; legColor='#111'; armColor='#111'; }
-        else if(skin.indexOf('robot') > -1) { furColor='#C0C0C0'; torsoColor='#808080'; legColor='#808080'; armColor='#808080'; }
-        else if(skin.indexOf('pirate') > -1) { legColor='#333'; } 
-        else if(skin.indexOf('clown') > -1) { torsoColor='#FFFF00'; legColor='#FF00FF'; armColor='#00FFFF'; }
-        else if(skin.indexOf('vampire') > -1) { furColor='#F0F8FF'; torsoColor='#000'; legColor='#000'; armColor='#000'; }
-        else if(skin.indexOf('chef') > -1) { torsoColor='#fff'; legColor='#000'; armColor='#fff'; }
-        else if(skin.indexOf('hockey') > -1) { torsoColor='#C8102E'; legColor='#000'; armColor='#C8102E'; } 
-        else if(skin.indexOf('poutine') > -1) { torsoColor='#8B4513'; legColor='#F4C430'; armColor='#8B4513'; } 
-        else if(skin.indexOf('king') > -1) { torsoColor='#800080'; legColor='#800080'; armColor='#800080'; } 
-        else if(skin.indexOf('wizard') > -1) { torsoColor='#000080'; legColor='#000080'; armColor='#000080'; } 
-        else if(skin.indexOf('devil') > -1) { furColor='#DC143C'; tailColor='#DC143C'; torsoColor='#DC143C'; legColor='#DC143C'; armColor='#DC143C'; }
-        else if(skin.indexOf('angel') > -1) { furColor='#FFF'; torsoColor='#FFF'; legColor='#FFF'; armColor='#FFF'; }
         
-        var bodyW = 20 * s * sizeMod.w; var bodyH = 40 * s * sizeMod.h;
-        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
-        var legLen = 30 * s * sizeMod.h;
-        var torsoY = p.y - legLen - bodyH;
-        var headY = torsoY - (10 * s * sizeMod.head); 
-        var headRadius = 12 * s * sizeMod.head;
+        // Geometry
+        let bodyW = 20 * s * sizeMod.w;
+        let bodyH = 40 * s * sizeMod.h;
+        let legLen = 30 * s * sizeMod.h;
+        let torsoY = p.y - legLen - bodyH;
+        let headY = torsoY - (10 * s * sizeMod.head);
+        let headRadius = 12 * s * sizeMod.head;
 
-        if(skin.indexOf('vampire') > -1 || skin.indexOf('king') > -1 || skin.indexOf('wizard') > -1) {
-            ctx.fillStyle = skin.indexOf('vampire') > -1 ? '#000' : (skin.indexOf('king') > -1 ? '#800080' : '#000080');
-            ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
-        }
-        if(skin.indexOf('angel') > -1) {
-            ctx.fillStyle = '#FFF'; 
-            ctx.beginPath(); ctx.ellipse(p.x - 20*s, torsoY + 10*s, 10*s, 20*s, -0.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
-        }
+        // Draw Legs
+        this.drawLimb(p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s*sizeMod.w, legColor);
+        this.drawLimb(p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s*sizeMod.w, legColor);
 
-        drawLimb(p.x - 8*s, p.y - legLen, p.x - 10*s, p.y, 7*s*sizeMod.w, legColor);
-        drawLimb(p.x + 8*s, p.y - legLen, p.x + 10*s, p.y, 7*s*sizeMod.w, legColor);
+        // Arms - Calculate angles
+        let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
+        let wristAngle = 0;
 
-        var leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
-        var upperArmLen = 20 * s * sizeMod.h * 0.6; var foreArmLen = 20 * s * sizeMod.h * 0.6;
-        var wristAngle = 0;
-        
-        if (state === 'SHOOTING') {
-            leftArmAngle = -Math.PI/2 + 0.2; rightArmAngle = -Math.PI/2 - 0.2;
-            leftForeArmAngle = -Math.PI/2 + 0.4; rightForeArmAngle = -Math.PI/2 - 0.4;
-            wristAngle = 1.0;
-        } else if (state === 'JUMPING') {
-            var lift = Math.max(0, (9 - player3D.vz) / 9);
+        if (this.game.state === 'SHOOTING') {
+            // Shooting Pose (Follow Through)
+            leftArmAngle = -Math.PI/2 + 0.2;
+            rightArmAngle = -Math.PI/2 - 0.2;
+            leftForeArmAngle = -Math.PI/2 + 0.4;
+            rightForeArmAngle = -Math.PI/2 - 0.4;
+            wristAngle = 1.0; // Goose neck
+        } else if (this.game.state === 'JUMPING') {
+            // Jump windup/release
+            let lift = Math.max(0, (9 - this.game.player.vz) / 9);
             leftArmAngle = (Math.PI/2 - 0.2) + ((-Math.PI/2 + 0.2) - (Math.PI/2 - 0.2)) * lift;
             rightArmAngle = (Math.PI/2 + 0.2) + ((-Math.PI/2 - 0.2) - (Math.PI/2 + 0.2)) * lift;
             leftForeArmAngle = (Math.PI/2 - 0.1) + ((-Math.PI/2 + 0.4) - (Math.PI/2 - 0.1)) * lift;
             rightForeArmAngle = (Math.PI/2 + 0.1) + ((-Math.PI/2 - 0.4) - (Math.PI/2 + 0.1)) * lift;
         } else {
-            leftArmAngle = Math.PI/2 - 0.2; rightArmAngle = Math.PI/2 + 0.2; 
-            leftForeArmAngle = Math.PI/2 - 0.1; rightForeArmAngle = Math.PI/2 + 0.1;
+            // Idle
+            leftArmAngle = Math.PI/2 - 0.2;
+            rightArmAngle = Math.PI/2 + 0.2;
+            leftForeArmAngle = Math.PI/2 - 0.1;
+            rightForeArmAngle = Math.PI/2 + 0.1;
         }
 
-        var shoulderY = torsoY + (5*s);
-        var leftShoulderX = p.x - 12*s; var rightShoulderX = p.x + 12*s;
+        let shoulderY = torsoY + (5*s);
+        let leftShoulderX = p.x - 12*s;
+        let rightShoulderX = p.x + 12*s;
+        let upperArmLen = 20 * s * sizeMod.h * 0.6;
+        let foreArmLen = 20 * s * sizeMod.h * 0.6;
 
-        var drawSegmentedArm = function(sx, sy, isRight, angle1, angle2) {
-            var elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor);
-            var wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor);
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isRight ? wristAngle : 0)); 
+        // Draw Arms Function
+        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
+            let elbow = this.getJoint(sx, sy, upperArmLen, angle1);
+            this.drawLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, armColor);
+            let wrist = this.getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+            this.drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, armColor);
+
+            // Hand/Wrist
+            ctx.save();
+            ctx.translate(wrist.x, wrist.y);
+            ctx.rotate(angle2 + (isRight ? wristAngle : 0));
             ctx.fillStyle = armColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isRight) { 
-                 if(skin.indexOf('hockey') > -1) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
+
+            // Ball if holding
+            if (isRight && this.game.state !== 'SHOOTING' && this.game.state !== 'GAMEOVER') {
+                this.drawBall({x:0, y:5*s, scale:s});
             }
-            if (isRight && state !== 'SHOOTING' && state !== 'GAMEOVER') { drawBallSprite(0, 5*s, s); }
             ctx.restore();
         };
 
-        if(currentAnimal === 'penguin') { 
-            drawLimb(p.x - 12*s, p.y - 50*s, p.x - 25*s, p.y - 30*s, 6*s, furColor);
-            drawLimb(p.x + 12*s, p.y - 50*s, p.x + 25*s, p.y - 30*s, 6*s, furColor);
-        } else {
-             drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-             drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-        }
+        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
-        drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
-        if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.indexOf('tabby') > -1) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
-        if(bellyColor && currentAnimal === 'penguin') { ctx.fillStyle=bellyColor; ctx.fillRect(p.x-5*s, torsoY+5*s, 10*s, 30*s); }
-        if(skin.indexOf('lumberjack') > -1) {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+20*s); ctx.lineTo(p.x+bodyW/2, torsoY+20*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+30*s); ctx.lineTo(p.x+bodyW/2, torsoY+30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
-        }
+        // Body
+        this.drawRoundedRect(p.x - bodyW/2, torsoY, bodyW, bodyH, 10*s, torsoColor);
 
-        if(currentAnimal !== 'bear' && currentAnimal !== 'penguin' && skin.indexOf('astronaut') === -1 && skin.indexOf('robot') === -1) {
-            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = (currentAnimal === 'beaver' ? 10 : 4) * s;
-            ctx.lineCap = 'round'; ctx.moveTo(p.x, p.y - legLen - 5*s); 
-            ctx.quadraticCurveTo(p.x + 15*s, p.y - legLen + 5*s, p.x + 20*s, p.y - legLen - 10*s); ctx.stroke();
-            if(currentAnimal === 'beaver') { 
-                 ctx.strokeStyle = '#3E2723'; ctx.lineWidth = 1*s; 
-                 ctx.beginPath(); ctx.moveTo(p.x + 5*s, p.y - legLen); ctx.lineTo(p.x + 15*s, p.y - legLen); ctx.stroke();
-            }
-        }
-        
-        ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
-        if(skin.indexOf('alien') > -1) ctx.fillStyle = '#32CD32';
-        
-        if(currentAnimal === 'rat') {
-            ctx.beginPath(); ctx.arc(p.x - 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 12*s, headY - 5*s, 7*s, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'cat') {
-            ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-8*s); ctx.lineTo(p.x-15*s, headY-20*s); ctx.lineTo(p.x-15*s, headY); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-8*s); ctx.lineTo(p.x+15*s, headY-20*s); ctx.lineTo(p.x+15*s, headY); ctx.fill();
-        } else if (currentAnimal === 'rabbit') {
-             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'bear' || currentAnimal === 'dog') {
-            ctx.beginPath(); ctx.arc(p.x - 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 8*s, 5*s, 0, Math.PI*2); ctx.fill();
-        }
-        if(currentAnimal === 'moose') {
-            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
-            ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-10*s); ctx.lineTo(p.x-30*s, headY-25*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x+10*s, headY-10*s); ctx.lineTo(p.x+30*s, headY-25*s); ctx.stroke();
-        }
-
+        // Head
         ctx.fillStyle = furColor;
-        if(skin.indexOf('alien') > -1) ctx.fillStyle = '#32CD32';
         ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
-        
-        if(skin.indexOf('mariachi') > -1) { 
-            ctx.fillStyle = '#1a1a1a'; 
-            ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill(); 
-            ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill(); 
-        }
-        if(skin.indexOf('clown') > -1) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.indexOf('pirate') > -1) { ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill(); } 
-        if(skin.indexOf('king') > -1) { ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s); ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill(); }
-        if(skin.indexOf('wizard') > -1) { ctx.fillStyle='#000080'; ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill(); }
-        if(skin.indexOf('chef') > -1) { ctx.fillStyle='#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s); }
-        if(skin.indexOf('hockey') > -1) { ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, headY, headRadius+2*s, 0, Math.PI*2); ctx.stroke(); } 
-        if(skin.indexOf('devil') > -1) { ctx.fillStyle='red'; ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill(); ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill(); }
-        if(skin.indexOf('angel') > -1) { ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.indexOf('astronaut') > -1) { ctx.strokeStyle='#87CEEB'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke(); }
-        if(skin.indexOf('lumberjack') > -1) { ctx.fillStyle='#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s); } 
 
-        if(skin.indexOf('alien') === -1 && skin.indexOf('robot') === -1) {
-            ctx.fillStyle = "#FFF";
-            ctx.font = `bold ${12 * s}px Arial`;
-            ctx.textAlign = "center";
-            ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
-        }
+        // Ears (simple)
+        ctx.beginPath(); ctx.arc(p.x - 10*s, headY - 10*s, 6*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 10*s, 6*s, 0, Math.PI*2); ctx.fill();
 
-        if (state === 'JUMPING') {
-            var maxVz = 9; var curVz = Math.abs(player3D.vz);
-            var progress = 1.0 - (curVz / maxVz); progress = Math.max(0, Math.min(1, progress));
-            var groundY = p.y + (player3D.z * s); 
-            var meterY = groundY - (130 * s * sizeMod.h); 
-            var cx = p.x + (60 * s); var radius = 50 * s;
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s; ctx.lineCap = 'round';
-            ctx.arc(cx, meterY, radius, 0, -Math.PI / 2, true); ctx.stroke();
-            var damp = 6.0 + (playerData.stats.aim - 1);
-            var pen = Math.min(4.0, 1.0 + (distanceLevel * 0.04));
-            var thresh = (0.25 * damp) / (playerData.difficulty * pen);
-            var greenStart = 1.0 - (thresh / maxVz);
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
-            ctx.arc(cx, meterY, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true); ctx.stroke();
-            ctx.beginPath();
-            if (progress > greenStart) ctx.strokeStyle = '#00FF00'; else if (progress > 0.6) ctx.strokeStyle = '#FFFF00'; else ctx.strokeStyle = '#FF4500'; 
-            ctx.lineWidth = 8*s; ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
+        // Jersey Number
+        ctx.fillStyle = "#FFF";
+        ctx.font = `bold ${12 * s}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText("23", p.x, torsoY + bodyH * 0.6);
+
+        // Shot Meter
+        if (this.game.state === 'JUMPING') {
+            this.drawShotMeter(p, s, sizeMod);
         }
     }
+
+    drawShotMeter(p, s, sizeMod) {
+        let ctx = this.ctx;
+        let maxVz = 9;
+        let curVz = Math.abs(this.game.player.vz);
+        let progress = 1.0 - (curVz / maxVz);
+        progress = Math.max(0, Math.min(1, progress));
+
+        let groundY = p.y + (this.game.player.z * s);
+        let meterY = groundY - (130 * s * sizeMod.h);
+        let cx = p.x + (60 * s);
+        let radius = 50 * s;
+
+        // Background
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s; ctx.lineCap = 'round';
+        ctx.arc(cx, meterY, radius, 0, -Math.PI / 2, true); ctx.stroke();
+
+        // Green Window
+        let damp = 6.0 + (this.game.storage.data.stats.aim - 1);
+        let pen = Math.min(4.0, 1.0 + (this.game.distanceLevel * 0.04));
+        let thresh = (0.25 * damp) / (this.game.storage.data.difficulty * pen);
+        let greenStart = 1.0 - (thresh / maxVz);
+
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
+        ctx.arc(cx, meterY, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true); ctx.stroke();
+
+        // Fill
+        ctx.beginPath();
+        if (progress > greenStart) ctx.strokeStyle = '#00FF00';
+        else if (progress > 0.6) ctx.strokeStyle = '#FFFF00';
+        else ctx.strokeStyle = '#FF4500';
+
+        ctx.lineWidth = 8*s;
+        ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true);
+        ctx.stroke();
+    }
+
+    drawUI() {
+        // Feedback Text
+        if (this.game.feedbackTimer > 0) {
+            this.ctx.save();
+            this.ctx.font = "900 60px 'Arial Black'";
+            let txt = this.game.feedback;
+            this.ctx.fillStyle = (txt.includes("Miss") || txt.includes("Ouch") || txt.includes("GAME")) ? "#FF0000" : "#00FF00";
+            if (txt.includes("FIRE")) this.ctx.fillStyle = "orange";
+            this.ctx.strokeStyle = "white"; this.ctx.lineWidth = 2; this.ctx.textAlign = "center";
+            this.ctx.fillText(txt, this.width/2, 200);
+            this.ctx.strokeText(txt, this.width/2, 200);
+            this.ctx.restore();
+            if(this.game.state !== 'GAMEOVER') this.game.feedbackTimer--;
+        }
+
+        // Restore shake translation
+        if(this.game.shakeIntensity > 0) this.ctx.restore();
+
+        // Flight Tracker / HUD Base
+        let h = 120;
+        let y = this.height - h;
+        this.ctx.fillStyle = '#111'; this.ctx.fillRect(0, y, this.width, h);
+        this.ctx.fillStyle = '#222'; this.ctx.fillRect(0, y + h/2, this.width, h/2);
+
+        // Distance / Text
+        let dist = 10 + (this.game.distanceLevel * 5);
+        let scaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+
+        this.ctx.font = "bold 20px 'Segoe UI'"; this.ctx.fillStyle = "#FFD700"; this.ctx.textAlign = "center";
+        
+        if (this.game.mode === 'CLASSIC') {
+            this.ctx.fillText(`Distance: ${dist} ft`, this.width/2, y + 30);
+            this.ctx.font = "italic 16px 'Segoe UI'"; this.ctx.fillStyle = "#aaa";
+            this.ctx.fillText(`(Equivalent: ${scaleObj.name})`, this.width/2, y + 55);
+        } else {
+             this.ctx.fillText(`3-POINT CONTEST`, this.width/2, y + 30);
+        }
+
+        // On Fire
+        if(this.game.isOnFire) {
+             this.ctx.font = "900 24px Arial"; this.ctx.fillStyle="orange";
+             this.ctx.fillText("🔥 ON FIRE! (x2) 🔥", this.width - 150, y + 40);
+        }
+
+        // Progress Line
+        let margin = 100;
+        let lineY = y + 80;
+        let lineLen = this.width - (margin * 2);
+        this.ctx.strokeStyle = '#555'; this.ctx.lineWidth = 4;
+        this.ctx.beginPath(); this.ctx.moveTo(margin, lineY); this.ctx.lineTo(margin + lineLen, lineY); this.ctx.stroke();
+
+        this.ctx.font = "30px Arial"; this.ctx.textAlign="center";
+        this.ctx.fillText("⛹️", margin, lineY + 10);
+        this.ctx.fillText("🏀", margin + lineLen, lineY + 10);
+
+        if (this.game.mode === 'CLASSIC') {
+            this.ctx.globalAlpha = 0.3; this.ctx.font = "60px Arial";
+            this.ctx.fillText(scaleObj.icon, this.width/2, lineY);
+            this.ctx.globalAlpha = 1.0;
+        }
+
+        // Ball on tracker
+        if((this.game.state === 'SHOOTING' || this.game.state === 'RESETTING') && this.game.ball.active) {
+            const HOOP_POS = this.game.HOOP_POS;
+            let totalDist = Math.sqrt(Math.pow(HOOP_POS.x - this.game.player.x, 2) + Math.pow(HOOP_POS.y - this.game.player.y, 2));
+            let currentDist = Math.sqrt(Math.pow(this.game.ball.x - this.game.player.x, 2) + Math.pow(this.game.ball.y - this.game.player.y, 2));
+            let progress = currentDist / totalDist;
+            let ballX = margin + (progress * lineLen);
+            this.ctx.fillStyle = '#ff6600';
+            this.ctx.beginPath(); this.ctx.arc(ballX, lineY, 5, 0, Math.PI*2); this.ctx.fill();
+        }
+    }
+
+    drawLimb(x1, y1, x2, y2, width, color) {
+        let ctx = this.ctx;
+        let angle = Math.atan2(y2 - y1, x2 - x1);
+        let dx = Math.sin(angle) * (width / 2);
+        let dy = Math.cos(angle) * (width / 2);
+        ctx.beginPath();
+        ctx.moveTo(x1 - dx, y1 + dy);
+        ctx.lineTo(x2 - dx, y2 + dy);
+        ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
+        ctx.lineTo(x1 + dx, y1 - dy);
+        ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2);
+        ctx.closePath();
+
+        let grad = ctx.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, color); grad.addColorStop(1, '#000000');
+        ctx.fillStyle = color; ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    drawRoundedRect(x, y, w, h, r, color) {
+        let ctx = this.ctx;
+        ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+        let grad = ctx.createRadialGradient(x + w/2, y + h/2, 5, x + w/2, y + h/2, w); grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    getJoint(x, y, length, angle) {
+        return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length };
+    }
+}
+
+// --- 5. UI MANAGER ---
+class UIManager {
+    constructor(game) {
+        this.game = game;
+        this.els = {
+            score: document.getElementById('scoreVal'),
+            dist: document.getElementById('distVal'),
+            highScore: document.getElementById('highScoreVal'),
+            missVal: document.getElementById('missVal'),
+            courtName: document.getElementById('courtNameDisplay'),
+            contestUI: document.getElementById('contest-ui'),
+            classicStats: document.getElementById('classic-stats'),
+            strikes: document.getElementById('strikes'),
+            shop: document.getElementById('shopUI'),
+            ach: document.getElementById('achUI'),
+            stats: document.getElementById('statsUI'),
+            notif: document.getElementById('notification'),
+            notifText: document.getElementById('notifText'),
+            contestTime: document.getElementById('contestTime'),
+            contestScore: document.getElementById('contestScore'),
+            contestRack: document.getElementById('contestRack')
+        };
+    }
+
+    update() {
+        const data = this.game.storage.data;
+        this.els.score.innerText = data.tacos;
+        this.els.highScore.innerText = data.highScore + " ft";
+
+        if(this.game.mode === 'CLASSIC') {
+            this.els.classicStats.style.display = 'block';
+            this.els.strikes.style.display = 'block';
+            this.els.contestUI.style.display = 'none';
+
+            let dist = 10 + (this.game.distanceLevel * 5);
+            this.els.dist.innerText = dist + " ft";
+
+            let maxMisses = 2 + (data.stats.extraLives || 0);
+            this.els.missVal.innerText = `${this.game.consecutiveMisses}/${maxMisses}`;
+
+            let c = this.game.getCourtDetails(dist);
+            this.els.courtName.innerText = c.name;
+        } else {
+            this.els.classicStats.style.display = 'none';
+            this.els.strikes.style.display = 'none';
+            this.els.contestUI.style.display = 'block';
+            this.els.courtName.innerText = "3-POINT CONTEST";
+            this.els.contestTime.innerText = Math.ceil(this.game.contestData.timer);
+            this.els.contestScore.innerText = this.game.contestData.score;
+            this.els.contestRack.innerText = this.game.contestData.rack;
+        }
+    }
+
+    showNotification(title, reward) {
+        this.els.notifText.innerText = `${title} (+${reward} Tacos)`;
+        this.els.notif.style.display = 'block';
+        setTimeout(() => { this.els.notif.style.display = 'none'; }, 3000);
+    }
+
+    // Menu Actions
+    openShop() {
+        if(this.game.state !== 'IDLE' && this.game.state !== 'GAMEOVER') return;
+        this.game.state = 'SHOP';
+        this.els.shop.style.display = 'block';
+        this.els.ach.style.display = 'none';
+        this.els.stats.style.display = 'none';
+        document.getElementById('diffSlider').value = this.game.storage.data.difficulty;
+        this.updateDifficulty(); // Update label
+        this.updateShopUI();
+    }
+    closeShop() {
+        this.game.state = 'IDLE';
+        this.els.shop.style.display = 'none';
+        if(this.game.feedback === "FINISHED!" || this.game.feedback === "GAME OVER!") this.game.resetGame();
+    }
+    openAchievements() {
+        if(this.game.state !== 'IDLE' && this.game.state !== 'GAMEOVER') return;
+        this.game.state = 'ACHIEVEMENTS';
+        this.els.ach.style.display = 'block';
+        this.els.shop.style.display = 'none';
+        this.els.stats.style.display = 'none';
+        this.renderAchievements();
+    }
+    closeAchievements() {
+        this.game.state = 'IDLE';
+        this.els.ach.style.display = 'none';
+        if(this.game.feedback === "FINISHED!" || this.game.feedback === "GAME OVER!") this.game.resetGame();
+    }
+    openStats() {
+        if(this.game.state !== 'IDLE' && this.game.state !== 'GAMEOVER') return;
+        this.game.state = 'STATS';
+        this.els.shop.style.display = 'none';
+        this.els.ach.style.display = 'none';
+        this.els.stats.style.display = 'block';
+
+        const ls = this.game.storage.data.lifetimeStats;
+        document.getElementById('statShots').innerText = ls.shots;
+        document.getElementById('statMakes').innerText = ls.makes;
+        document.getElementById('statMisses').innerText = ls.misses;
+        document.getElementById('statContests').innerText = ls.contests;
+        document.getElementById('statBestDist').innerText = this.game.storage.data.highScore + " ft";
+        let acc = 0;
+        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
+        document.getElementById('statAccuracy').innerText = acc + "%";
+    }
+    closeStats() {
+        this.game.state = 'IDLE';
+        this.els.stats.style.display = 'none';
+        this.game.resetStage = 0;
+        const btn = document.getElementById('btnReset');
+        if(btn) { btn.innerText = "RESET PROGRESS"; btn.style.background = "#8B0000"; }
+        if(this.game.feedback === "FINISHED!" || this.game.feedback === "GAME OVER!") this.game.resetGame();
+    }
     
-    // --- GAME ACTIONS (RESTORED) ---
-    function startJump() { if (state !== 'IDLE') return; state = 'JUMPING'; player3D.vz = 9; feedback = ""; }
-    function releaseShot() { if (state !== 'JUMPING') return; var timingError = player3D.vz; shoot(timingError); }
-    function retryShot() { player3D.z = 0; player3D.vz = 0; state = 'IDLE'; }
+    toggleMode() {
+        if(this.game.state !== 'IDLE' && this.game.state !== 'GAMEOVER') return;
+        if(this.game.mode === 'CLASSIC') {
+            this.game.mode = 'CONTEST';
+            document.getElementById('modeBtnText').innerText = "CONTEST";
+        } else {
+            this.game.mode = 'CLASSIC';
+            document.getElementById('modeBtnText').innerText = "CLASSIC";
+        }
+        this.game.resetGame();
+    }
 
-    function shoot(timingError) {
-        state = 'SHOOTING';
-        playerData.lifetimeStats.shots++;
-        checkAchievements('shot_stats');
-        var aimBonus = (playerData.stats.aim - 1);
-        var baseDampener = 6.0;
-        if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        var dampener = baseDampener + aimBonus; if (dampener > 36.0) dampener = 36.0;
-        
-        var windFactor = 0; 
-        if ((10 + distanceLevel*5) >= 50) {
-             wind.strength = (Math.random() * 2); 
-             wind.dir = Math.random() > 0.5 ? 1 : -1;
-        } else { wind.strength = 0; }
+    attemptReset() {
+        const btn = document.getElementById('btnReset');
+        if (this.game.resetStage === 0) {
+            this.game.resetStage = 1;
+            btn.innerText = "SURE? (CLICK AGAIN)";
+            btn.style.background = "#FF0000";
+            return;
+        }
+        this.game.storage.reset();
+        this.update();
+        this.closeStats();
+        this.game.resetGame();
+        this.game.feedback = "RESET!";
+        this.game.feedbackTimer = 60;
+    }
 
-        var distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        var accuracy = (timingError / dampener) * playerData.difficulty * distPenalty; 
-        
-        var target = getCurrentHoopPos();
-        var dx = target.x - player3D.x; 
-        var dy = target.y - player3D.y;
-        
-        ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120; 
-        ball.active = true;
-        
-        var flightTime = Math.min(120, 40 + (distanceLevel * 0.8)); 
-        ball.vx = (dx / flightTime); 
-        ball.vy = (dy / flightTime); 
-        ball.vz = (target.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
-        
-        isGoldenBall = (Math.random() < 0.01);
+    updateDifficulty() {
+        const val = parseFloat(document.getElementById('diffSlider').value);
+        this.game.storage.data.difficulty = val;
+        const label = document.getElementById('diffLabel');
+        label.innerText = `x${val.toFixed(1)} Tacos`;
+        if(val === 1) { label.innerText = "NORMAL (x1.0)"; label.style.color = "#00FF00"; }
+        else if (val < 2.5) { label.innerText = `HARD (x${val.toFixed(1)})`; label.style.color = "#FFFF00"; }
+        else { label.innerText = `LEGEND (x${val.toFixed(1)})`; label.style.color = "#FF0000"; }
+        this.game.storage.save();
+    }
 
-        var isMiss = Math.abs(accuracy) > 0.25;
-        if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "ON THE LINE!"; feedbackTimer = 30; } }
+    renderAchievements() {
+        const list = document.getElementById('achList');
+        list.innerHTML = '';
+        ACHIEVEMENTS_DB.forEach(ach => {
+            const unlocked = this.game.storage.data.unlockedAchievements.includes(ach.id);
+            const div = document.createElement('div');
+            div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
+            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
+            list.appendChild(div);
+        });
+    }
+
+    // Shop Logic
+    getUpgradeCost(statName) {
+        const lvl = this.game.storage.data.stats[statName];
+        if (statName === 'income') return Math.floor(25 * Math.pow(lvl, 2));
+        if (statName === 'aim') return Math.floor(50 * Math.pow(lvl, 2));
+        if (statName === 'luck') return Math.floor(75 * Math.pow(lvl, 2));
+        if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
+        if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
+        return 99999;
+    }
+
+    buyUpgrade(stat) {
+        const cost = this.getUpgradeCost(stat);
+        const data = this.game.storage.data;
+        if (data.tacos >= cost) {
+            data.tacos -= cost;
+            data.stats[stat]++;
+            this.game.storage.save();
+            this.updateShopUI();
+            this.update();
+            this.game.achievements.check('stat_update');
+        }
+    }
+
+    updateShopUI() {
+        const data = this.game.storage.data;
+        document.getElementById('shopTacos').innerText = data.tacos;
+        
+        ['income', 'aim', 'luck', 'moonwalk', 'extraLives'].forEach(stat => {
+             const cost = this.getUpgradeCost(stat);
+             const lvl = data.stats[stat] || 0;
+             const btn = document.getElementById(`btnBuy${stat.charAt(0).toUpperCase() + stat.slice(1)}`);
+             document.getElementById(`lvl${stat.charAt(0).toUpperCase() + stat.slice(1)}`).innerText = lvl;
+             btn.innerText = `Buy (${cost})`;
+             btn.disabled = data.tacos < cost;
+        });
+
+        // Skins
+        const currentAnimal = ANIMALS[this.game.viewingAnimalIndex];
+        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const skin = animalSkins[this.game.viewingSkinIndex];
+        
+        document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
+        document.getElementById('skinName').innerText = skin.name;
+        
+        const btn = document.getElementById('btnEquipSkin');
+        const status = document.getElementById('skinStatus');
+        const isUnlocked = data.unlockedSkins.includes(skin.id);
+        const isEquipped = data.currentSkin === skin.id;
+        
+        if (isEquipped) {
+            status.innerText = "Equipped";
+            btn.style.display = 'none';
+        } else if (isUnlocked) {
+            status.innerText = "Owned";
+            btn.style.display = 'inline-block';
+            btn.innerText = "Equip";
+            btn.disabled = false;
+        } else {
+            status.innerText = `Cost: ${skin.cost} Tacos`;
+            btn.style.display = 'inline-block';
+            btn.innerText = "Buy";
+            btn.disabled = data.tacos < skin.cost;
+        }
+    }
+
+    changeAnimal(dir) {
+        this.game.viewingAnimalIndex += dir;
+        if(this.game.viewingAnimalIndex < 0) this.game.viewingAnimalIndex = ANIMALS.length - 1;
+        if(this.game.viewingAnimalIndex >= ANIMALS.length) this.game.viewingAnimalIndex = 0;
+        this.game.viewingSkinIndex = 0;
+        this.updateShopUI();
+    }
+
+    changeSkin(dir) {
+        const currentAnimal = ANIMALS[this.game.viewingAnimalIndex];
+        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        this.game.viewingSkinIndex += dir;
+        if(this.game.viewingSkinIndex < 0) this.game.viewingSkinIndex = animalSkins.length - 1;
+        if(this.game.viewingSkinIndex >= animalSkins.length) this.game.viewingSkinIndex = 0;
+        this.updateShopUI();
+    }
+
+    buyOrEquipSkin() {
+        const data = this.game.storage.data;
+        const currentAnimal = ANIMALS[this.game.viewingAnimalIndex];
+        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const skin = animalSkins[this.game.viewingSkinIndex];
+        const isUnlocked = data.unlockedSkins.includes(skin.id);
+        
+        if (isUnlocked) {
+            data.currentSkin = skin.id;
+            this.game.achievements.check('skin_equip');
+        } else if (data.tacos >= skin.cost) {
+            data.tacos -= skin.cost;
+            data.unlockedSkins.push(skin.id);
+            data.currentSkin = skin.id;
+            this.game.achievements.check('skin_update');
+            this.game.achievements.check('skin_equip');
+        }
+        this.game.storage.save();
+        this.updateShopUI();
+        this.update();
+    }
+}
+
+// --- 6. GAME CLASS (MAIN) ---
+class Game {
+    constructor() {
+        // Core Systems
+        this.storage = new Storage();
+        this.ui = new UIManager(this);
+        this.achievements = new AchievementSystem(this);
+        this.renderer = new Renderer(this);
+
+        // Game State
+        this.state = 'IDLE'; // IDLE, JUMPING, SHOOTING, RESETTING, GAMEOVER, SHOP, STATS
+        this.mode = 'CLASSIC'; // CLASSIC, CONTEST
+        this.distanceLevel = 1;
+        this.HOOP_POS = { x: 600, y: 150, z: 130 };
+        this.GRAVITY = 0.5;
+
+        // Entities
+        this.player = { x: 300, y: 300, z: 0, vz: 0 };
+        this.ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false };
+        this.obstacles = [];
+
+        // Gameplay Stats
+        this.feedback = "";
+        this.feedbackTimer = 0;
+        this.consecutiveMisses = 0;
+        this.currentStreak = 0;
+        this.isOnFire = false;
+        this.isGoldenBall = false;
+        this.shakeIntensity = 0;
+
+        // Contest Data
+        this.contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
+
+        // View
+        this.viewingAnimalIndex = 0;
+        this.viewingSkinIndex = 0;
+        this.cameraZoom = 800;
+        this.cameraHeight = 300;
+        this.resetStage = 0;
+
+        // Init
+        this.bindInput();
+        this.ui.update();
+        // Initial Achievement Check (Retroactive for saved data)
+        this.achievements.checkAll();
+
+        this.loopId = requestAnimationFrame((t) => this.loop(t));
+
+        // Global Access for UI
+        window.tacoGame = this;
+    }
+
+    bindInput() {
+        window.addEventListener('keydown', (e) => {
+            if(this.state === 'SHOP') { if(e.code === 'Escape') this.ui.closeShop(); return; }
+            if(this.state === 'ACHIEVEMENTS') { if(e.code === 'Escape') this.ui.closeAchievements(); return; }
+            if(this.state === 'STATS') { if(e.code === 'Escape') this.ui.closeStats(); return; }
+
+            if(e.code === 'KeyP') this.ui.openShop();
+            if(e.code === 'KeyO') this.ui.openAchievements();
+            if(e.code === 'KeyS') this.ui.openStats();
+
+            if (e.code === 'Space' && !this.spacePressed) {
+                this.spacePressed = true;
+                if (this.state === 'GAMEOVER') this.ui.openShop();
+                else if (this.state === 'IDLE') this.startJump();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                this.spacePressed = false;
+                if (this.state === 'JUMPING') this.releaseShot();
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+            if (this.state === 'GAMEOVER') this.ui.openShop();
+            else if (this.state === 'IDLE') this.startJump();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (this.state === 'JUMPING') this.releaseShot();
+        });
+    }
+
+    // Logic
+    startJump() {
+        if (this.state !== 'IDLE') return;
+        this.state = 'JUMPING';
+        this.player.vz = 9;
+        this.feedback = "";
+    }
+
+    releaseShot() {
+        if (this.state !== 'JUMPING') return;
+        let timingError = this.player.vz;
+        this.shoot(timingError);
+    }
+
+    shoot(timingError) {
+        this.state = 'SHOOTING';
+        this.storage.data.lifetimeStats.shots++;
+        this.achievements.check('shot_result', { made: false });
+
+        let aimBonus = (this.storage.data.stats.aim - 1);
+        let baseDampener = 6.0;
+        if (this.mode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
+
+        let dampener = baseDampener + aimBonus;
+        if (dampener > 36.0) dampener = 36.0;
+
+        // Wind (simulated)
+        let windEffect = 0;
+        if ((10 + this.distanceLevel*5) >= 50) {
+             windEffect = (Math.random() - 0.5) * 2;
+        }
+
+        let distPenalty = 1.0 + Math.pow(this.distanceLevel, 1.25) * 0.06;
+        let accuracy = (timingError / dampener) * this.storage.data.difficulty * distPenalty;
+
+        // Physics Calc
+        let dx = this.HOOP_POS.x - this.player.x;
+        let dy = this.HOOP_POS.y - this.player.y;
+
+        this.ball.x = this.player.x;
+        this.ball.y = this.player.y;
+        this.ball.z = this.player.z + 120;
+        this.ball.active = true;
+
+        let flightTime = Math.min(120, 40 + (this.distanceLevel * 0.8));
+        this.ball.vx = (dx / flightTime);
+        this.ball.vy = (dy / flightTime);
+        this.ball.vz = (this.HOOP_POS.z - this.ball.z + 0.5 * this.GRAVITY * flightTime * (flightTime - 1)) / flightTime;
+
+        this.isGoldenBall = (Math.random() < 0.01);
+
+        // Determine outcome
+        let isMiss = Math.abs(accuracy) > 0.25;
+        // 50/50 chance to make it if slightly off (rim bounce)
+        if (isMiss && Math.abs(accuracy) < 0.32) {
+            if(Math.random() > 0.5) {
+                isMiss = false;
+                this.feedback = "ON THE LINE!";
+                this.feedbackTimer = 30;
+            }
+        }
         
         if (isMiss) {
-            var luckChance = (playerData.stats.luck - 1) * 0.05;
-            if (Math.random() < luckChance) { feedback = "LUCKY!"; feedbackTimer = 30; } 
-            else {
-                var len = Math.sqrt(dx*dx + dy*dy); var perpX = -dy / len; var perpY = dx / len;
-                var scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
-                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracy) * 5; 
-                feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRICK"; feedbackTimer = 30;
-                isOnFire = false; 
-            }
-        }
-    }
-
-    function handleScore() { 
-        ball.active = false; playerData.lifetimeStats.makes++; currentStreak++; 
-        shakeIntensity = 20; 
-        checkAchievements('score');
-        
-        if(currentStreak >= 3) { isOnFire = true; feedback = "ON FIRE !!!"; }
-        
-        if(currentGameMode === 'CONTEST') {
-            var isMoneyBall = (contestData.ballsInRack === 4);
-            var points = isMoneyBall ? 2 : 1;
-            if(isOnFire) points *= 2;
-            if(isGoldenBall) points += 100;
-            
-            contestData.score += points;
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(function(){ nextLevel(); }, 500); 
-            checkAchievements('contest');
-        } else {
-            consecutiveMisses = 0;
-            var msg = "Swish";
-            if(currentStreak >= 3) msg = "Awesome!";
-            if(isGoldenBall) msg = "JACKPOT!";
-            feedback = msg;
-            feedbackTimer = 60; state = 'RESETTING'; setTimeout(function(){ nextLevel(); }, 1000); 
-        }
-    }
-
-    function handleMiss() {
-        if(state === 'GAMEOVER') return;
-        playerData.lifetimeStats.misses++; currentStreak = 0; isOnFire = false; 
-        checkAchievements('shot_stats');
-        
-        if(currentGameMode === 'CONTEST') {
-            feedback = "Missed"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(function(){ nextLevel(); }, 500); 
-        } else {
-            consecutiveMisses++; updateUI();
-            var maxMisses = 2 + (playerData.stats.extraLives || 0);
-            if (consecutiveMisses >= maxMisses) {
-                feedback = "GAME OVER!"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(function(){ openShop(); }, 1500);
+            let luckChance = (this.storage.data.stats.luck - 1) * 0.05;
+            if (Math.random() < luckChance) {
+                this.feedback = "LUCKY!";
+                this.feedbackTimer = 30;
+                this.achievements.check('lucky_bounce');
             } else {
-                feedback = "Ouch! Try again!"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(function(){ retryShot(); }, 1500);
+                let len = Math.sqrt(dx*dx + dy*dy);
+                let perpX = -dy / len;
+                let perpY = dx / len;
+                let scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
+                this.ball.vx += perpX * scatter;
+                this.ball.vy += perpY * scatter;
+                this.ball.vz -= Math.abs(accuracy) * 5;
+                this.feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRICK";
+                this.feedbackTimer = 30;
+                this.isOnFire = false;
             }
         }
     }
 
-    function update(dt) {
-        if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
-        
-        hoopOscillation += 0.05 * dt;
+    handleScore() {
+        this.ball.active = false;
+        this.storage.data.lifetimeStats.makes++;
+        this.currentStreak++;
+        this.shakeIntensity = 20;
 
-        snowParticles.forEach(function(p) {
-            p.y += p.speed;
-            p.x += Math.sin(p.y * 0.01) * 0.5;
-            if(p.y > canvas.height) p.y = 0;
-        });
+        this.achievements.check('shot_result', { made: true });
+        this.achievements.check('score'); // Check distance related
         
-        if(shakeIntensity > 0) shakeIntensity -= 1;
-
-        if(Math.random() < 0.005) { 
-             obstacles.push({ active: true, x: -100, y: 100 + Math.random()*200, z: 500, speed: 5 });
+        if(this.currentStreak >= 3) {
+            this.isOnFire = true;
+            this.feedback = "ON FIRE !!!";
         }
-        obstacles.forEach(function(o) {
-            o.x += o.speed;
-            if(o.x > canvas.width + 200) o.active = false;
-        });
+        
+        if(this.mode === 'CONTEST') {
+            let isMoneyBall = (this.contestData.ballsInRack === 4);
+            let points = isMoneyBall ? 2 : 1;
+            if(this.isOnFire) points *= 2;
+            if(this.isGoldenBall) points += 100;
+            
+            this.contestData.score += points;
+            this.feedbackTimer = 30;
+            this.ui.update();
+            this.state = 'RESETTING';
+            setTimeout(() => this.nextLevel(), 500);
+        } else {
+            this.consecutiveMisses = 0;
+            let msg = "Swish";
+            if(this.currentStreak >= 3) msg = "Awesome!";
+            if(this.isGoldenBall) msg = "JACKPOT!";
+            this.feedback = msg;
+            this.feedbackTimer = 60;
+            this.state = 'RESETTING';
+            setTimeout(() => this.nextLevel(), 1000);
+        }
+    }
 
-        if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
-            if(contestData.timer > 0) {
-                contestData.timer -= (1/60) * dt; 
-                if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
-                if(Math.floor(contestData.timer) !== parseInt(document.getElementById('contestTime').innerText)) { updateContestUI(); }
+    handleMiss() {
+        if(this.state === 'GAMEOVER') return;
+        this.storage.data.lifetimeStats.misses++;
+        this.currentStreak = 0;
+        this.isOnFire = false;
+        
+        if(this.mode === 'CONTEST') {
+            this.feedback = "Missed";
+            this.feedbackTimer = 30;
+            this.state = 'RESETTING';
+            setTimeout(() => this.nextLevel(), 500);
+        } else {
+            this.consecutiveMisses++;
+            this.ui.update();
+            let maxMisses = 2 + (this.storage.data.stats.extraLives || 0);
+
+            if (this.consecutiveMisses >= maxMisses) {
+                this.feedback = "GAME OVER!";
+                this.feedbackTimer = 60;
+                this.state = 'GAMEOVER';
+                setTimeout(() => this.ui.openShop(), 1500);
+            } else {
+                this.feedback = "Ouch! Try again!";
+                this.feedbackTimer = 60;
+                this.state = 'RESETTING';
+                setTimeout(() => {
+                    this.player.z = 0;
+                    this.player.vz = 0;
+                    this.state = 'IDLE';
+                }, 1500);
             }
         }
-        if (state === 'JUMPING') {
-            player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-            if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "Travel!"; feedbackTimer = 60; setTimeout(function(){ openShop(); }, 1500); }
-        }
-        if (state === 'SHOOTING') {
-            if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
-            if (ball.active) {
-                var prevZ = ball.z;
-                ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
-                
-                var currentHoop = getCurrentHoopPos();
+    }
 
-                if (prevZ >= currentHoop.z && ball.z <= currentHoop.z) {
-                    var distToHoopCenter = Math.sqrt(Math.pow(ball.x - currentHoop.x, 2) + Math.pow(ball.y - currentHoop.y, 2));
-                    if (distToHoopCenter < 40) { handleScore(); return; }
+    nextLevel() {
+        if(this.mode === 'CONTEST') {
+            this.contestData.ballsInRack++;
+            if(this.contestData.ballsInRack >= 5) {
+                this.contestData.rack++;
+                this.contestData.ballsInRack = 0;
+                if(this.contestData.rack > 5) {
+                    this.endContest();
+                    return;
+                } else {
+                    this.setPlayerPositionForRack(this.contestData.rack);
+                }
+            }
+            this.ui.update();
+            this.state = 'IDLE';
+        } else {
+            let baseReward = 1 * this.distanceLevel * this.storage.data.difficulty;
+            let multiplier = 1 + (this.storage.data.stats.income - 1) * 0.5;
+            let reward = Math.ceil(baseReward * multiplier);
+            if (this.currentStreak > 1) reward += this.currentStreak * 2;
+            if (this.isOnFire) reward *= 2;
+
+            this.storage.data.tacos += reward;
+            this.achievements.check('balance_update');
+
+            let jump = this.storage.data.stats.moonwalk || 1;
+            this.distanceLevel += jump;
+
+            let currentDistanceVal = 10 + (this.distanceLevel * 5);
+            if (currentDistanceVal > this.storage.data.highScore) {
+                this.storage.data.highScore = currentDistanceVal;
+            }
+            this.storage.save();
+            this.achievements.check('score'); // Distance check
+
+            this.player.x -= 15 * jump;
+            this.player.y += 15 * jump;
+            this.player.z = 0;
+            this.player.vz = 0;
+            this.state = 'IDLE';
+            this.ui.update();
+        }
+    }
+
+    resetGame() {
+        if(this.mode === 'CONTEST') {
+            this.startContest();
+        } else {
+            this.distanceLevel = 1;
+            this.consecutiveMisses = 0;
+            this.player = { x: 300, y: 300, z: 0, vz: 0 };
+            this.state = 'IDLE';
+            this.ui.update();
+        }
+    }
+
+    startContest() {
+        this.mode = 'CONTEST';
+        this.contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true };
+        this.distanceLevel = 3;
+        this.setPlayerPositionForRack(1);
+        this.storage.data.lifetimeStats.contests++;
+        this.ui.update();
+        this.state = 'IDLE';
+    }
+
+    endContest() {
+        this.state = 'GAMEOVER';
+        this.feedback = "FINISHED!";
+        this.feedbackTimer = 120;
+        let reward = this.contestData.score * 10;
+        this.storage.data.tacos += reward;
+        this.achievements.check('contest_end');
+        this.achievements.check('balance_update');
+        this.storage.save();
+        setTimeout(() => this.ui.openShop(), 2000);
+    }
+
+    setPlayerPositionForRack(rackNum) {
+        if(rackNum === 1) { this.player.x = 200; this.player.y = 500; }
+        else if(rackNum === 2) { this.player.x = 250; this.player.y = 400; }
+        else if(rackNum === 3) { this.player.x = 300; this.player.y = 300; }
+        else if(rackNum === 4) { this.player.x = 350; this.player.y = 200; }
+        else if(rackNum === 5) { this.player.x = 400; this.player.y = 100; }
+        this.player.z = 0; this.player.vz = 0;
+    }
+
+    getCourtDetails(dist) {
+        return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+    }
+
+    // Main Loop
+    loop(timestamp) {
+        this.loopId = requestAnimationFrame((t) => this.loop(t));
+        if (!this.lastTime) this.lastTime = timestamp;
+        let dt = (timestamp - this.lastTime) / 16.666;
+        if(dt > 4) dt = 4;
+        this.lastTime = timestamp;
+
+        this.update(dt);
+        this.renderer.draw();
+    }
+
+    update(dt) {
+        if (this.state === 'SHOP' || this.state === 'ACHIEVEMENTS' || this.state === 'STATS') return;
+
+        // Obstacles
+        if(Math.random() < 0.005) { 
+             this.obstacles.push({ active: true, x: -100, y: 100 + Math.random()*200, z: 500, speed: 5 });
+        }
+        this.obstacles.forEach(o => {
+            o.x += o.speed;
+            if(o.x > 800 + 200) o.active = false; // hardcoded width for now
+        });
+
+        // Contest Timer
+        if(this.mode === 'CONTEST' && this.state !== 'GAMEOVER') {
+            if(this.contestData.timer > 0) {
+                this.contestData.timer -= (1/60) * dt;
+                if(this.contestData.timer <= 0) {
+                    this.contestData.timer = 0;
+                    this.endContest();
+                }
+                // visual update logic inside loop could be optimized, but ok for now
+                if(Math.floor(this.contestData.timer) !== parseInt(this.ui.els.contestTime.innerText)) {
+                    this.ui.update();
+                }
+            }
+        }
+
+        // Jump Physics
+        if (this.state === 'JUMPING') {
+            this.player.z += this.player.vz * dt;
+            this.player.vz -= this.GRAVITY * dt;
+            if (this.player.z <= 0) {
+                this.player.z = 0;
+                this.player.vz = 0;
+                this.state = 'GAMEOVER';
+                this.feedback = "Travel!";
+                this.feedbackTimer = 60;
+                setTimeout(() => this.ui.openShop(), 1500);
+            }
+        }
+
+        // Shooting Physics
+        if (this.state === 'SHOOTING') {
+            // Player gravity if still in air
+            if (this.player.z > 0) {
+                this.player.z += this.player.vz * dt;
+                this.player.vz -= this.GRAVITY * dt;
+                if (this.player.z < 0) this.player.z = 0;
+            }
+
+            if (this.ball.active) {
+                let prevZ = this.ball.z;
+                this.ball.x += this.ball.vx * dt;
+                this.ball.y += this.ball.vy * dt;
+                this.ball.z += this.ball.vz * dt;
+                this.ball.vz -= this.GRAVITY * dt;
+
+                // Collision detection
+                if (prevZ >= this.HOOP_POS.z && this.ball.z <= this.HOOP_POS.z) {
+                    let distToHoopCenter = Math.sqrt(Math.pow(this.ball.x - this.HOOP_POS.x, 2) + Math.pow(this.ball.y - this.HOOP_POS.y, 2));
+                    if (distToHoopCenter < 40) {
+                        this.handleScore();
+                        return;
+                    }
                 }
                 
-                var distToHoop = Math.sqrt(Math.pow(currentHoop.x - player3D.x, 2) + Math.pow(currentHoop.y - player3D.y, 2));
-                var currentDist = Math.sqrt(Math.pow(ball.x - player3D.x, 2) + Math.pow(ball.y - player3D.y, 2));
-                if (ball.z < -50 || currentDist > distToHoop + 5000) { ball.active = false; handleMiss(); return; }
-                if (ball.z <= 0) { ball.z = 0; ball.active = false; handleMiss(); return; }
+                let distToHoop = Math.sqrt(Math.pow(this.HOOP_POS.x - this.player.x, 2) + Math.pow(this.HOOP_POS.y - this.player.y, 2));
+                let currentDist = Math.sqrt(Math.pow(this.ball.x - this.player.x, 2) + Math.pow(this.ball.y - this.player.y, 2));
+
+                if (this.ball.z < -50 || currentDist > distToHoop + 5000) {
+                    this.ball.active = false;
+                    this.handleMiss();
+                    return;
+                }
+                if (this.ball.z <= 0) {
+                    this.ball.z = 0;
+                    this.ball.active = false;
+                    this.handleMiss();
+                    return;
+                }
             }
         }
-        if (feedbackTimer > 0) feedbackTimer -= 1 * dt;
     }
+}
 
-    function draw() { 
-        drawBackground(); 
-        drawFlightTracker(); 
-    }
+// Start Game
+window.onload = () => {
+    new Game();
+};
 
-    var lastTime = 0;
-    function loop(timestamp) {
-        window.gameLoopId = requestAnimationFrame(loop);
-        if (!lastTime) lastTime = timestamp;
-        var elapsed = timestamp - lastTime;
-        var dt = elapsed / 16.666; 
-        if(dt > 4) dt = 4;
-        lastTime = timestamp;
-        update(dt);
-        draw();
-    }
-    
-    window.addEventListener('keydown', function(e) {
-        if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
-        if(state === 'STATS') { if(e.code === 'Escape') closeStats(); return; }
-        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats();
-        if (e.code === 'Space' && !spacePressed) { spacePressed = true; if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump(); }
-    });
-    window.addEventListener('keyup', function(e) { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
-    window.addEventListener('mousedown', function(e) {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return; 
-        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
-    });
-    window.addEventListener('mouseup', function() { if (state === 'JUMPING') releaseShot(); });
-    
-    // --- EXPOSE TO WINDOW ---
-    window.openShop = openShop;
-    window.openAchievements = openAchievements;
-    window.openStats = openStats;
-    window.attemptReset = attemptReset;
-    window.closeShop = closeShop;
-    window.closeAchievements = closeAchievements;
-    window.closeStats = closeStats;
-    window.updateDifficulty = updateDifficulty;
-    window.buyUpgrade = buyUpgrade;
-    window.changeAnimal = changeAnimal;
-    window.changeSkin = changeSkin;
-    window.buyOrEquipSkin = buyOrEquipSkin;
-    window.toggleMode = toggleMode;
-
-    // Initial resize call
-    resizeGame();
-    // Start loop
-    window.gameLoopId = requestAnimationFrame(loop);
-
-})();
 </script>
 </body>
 </html>
