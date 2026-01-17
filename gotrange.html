@@ -1631,13 +1631,20 @@ let lastDisplayedContestTime = -1;
         }
 
         // Draw Thighs (Skin tone - under shorts)
-        drawMuscleLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 9*s*sizeMod.w, skinTone, 'thigh', s);
-        drawMuscleLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 9*s*sizeMod.w, skinTone, 'thigh', s);
+        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
+        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
 
-        // Draw Shorts (Over thighs)
+        // 3. Torso (Jersey) - Drawn BEFORE Shorts (Tuck in) and BEFORE Arms (Shoulder reveal)
+        const jerseyH = bodyH * 0.85;
+        // Reduce Body Width slightly
+        const reducedBodyW = bodyW * 0.9;
+        drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, jerseyColor);
+
+        // Draw Shorts (Over thighs and Over Jersey Bottom)
         const waistY = torsoY + bodyH * 0.85;
-        const shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s; // Overlap knee slightly
-        drawShorts(p.x, waistY, bodyW * 0.9, shortsLen, s, shortsColor);
+        const shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
+        // Widen Shorts slightly to cover skin
+        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, shortsColor);
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
@@ -1709,7 +1716,7 @@ let lastDisplayedContestTime = -1;
         }
 
         let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
+        let leftShoulderX = p.x - 11*s; let rightShoulderX = p.x + 11*s; // Bring arms in slightly
         const upperArmLen = 20 * s * sizeMod.h * 0.6;
         const foreArmLen = 20 * s * sizeMod.h * 0.6;
 
@@ -1752,13 +1759,9 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
+        // Draw Arms AFTER Jersey so shoulders sit on top (or merge)
         drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-
-        // 4. Torso (Jersey)
-        // Draw Jersey down to waist
-        const jerseyH = bodyH * 0.85;
-        drawJersey(p.x, torsoY, bodyW, jerseyH, s, jerseyColor);
 
         // NECK
         const neckW = 10 * s * sizeMod.w;
