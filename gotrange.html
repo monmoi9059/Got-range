@@ -572,24 +572,24 @@
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'beaver', 'moose', 'penguin', 'raccoon', 'human'];
 
     var SHOOTING_STYLES = [
-        { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
-        { id: 'curry', name: 'Chef Curry', cost: 0, desc: 'Tir rapide et fluide.', modifiers: { timingWindow: 0.9 } },
-        { id: 'hook', name: 'Sky Hook', cost: 0, desc: 'Tir en crochet lent.', modifiers: { speed: 0.8 } },
-        { id: 'yeet', name: 'Le Yeet', cost: 0, desc: 'Tir rapide et chaotique.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
-        { id: 'grandmama', name: 'Grand Mama', cost: 0, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
-        { id: 'granny', name: 'La Grand-Mère', cost: 0, desc: 'Très lent, mais fenêtre facile (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3 } },
-        { id: 'statue', name: 'La Statue', cost: 0, desc: 'Tir ultra rapide et rigide.', modifiers: { speed: 1.8 } },
-        { id: 'fade', name: 'Fadeaway', cost: 0, desc: 'Timing difficile.', modifiers: { timingWindow: 0.8 } },
-        { id: 'marion', name: 'La Matrice', cost: 0, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, timingWindow: 0.7 } },
-        { id: 'noah', name: 'La Tornade', cost: 0, desc: 'Rotation bizarre à deux mains.', modifiers: { speed: 0.9 } },
-        { id: 'dirk', name: 'Le Flamant', cost: 0, desc: 'Tir sur une jambe.', modifiers: { timingWindow: 1.1 } },
-        { id: 'bird', name: 'La Légende', cost: 0, desc: 'Catapulte derrière la tête. Lent.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
-        { id: 'floater', name: 'La Larme', cost: 0, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2 } },
-        { id: 'broken', name: 'Le Bug', cost: 0, desc: 'Chaotique et imprévisible.', modifiers: { timingWindow: 0.4 } },
-        { id: 'joker', name: 'Le Joker', cost: 0, desc: 'Tir paresseux.', modifiers: { speed: 0.85, timingWindow: 1.1 } },
-        { id: 'ray', name: 'Jesus', cost: 0, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, timingWindow: 0.9 } },
-        { id: 'bowling', name: 'La Quille', cost: 0, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6 } },
-        { id: 'hadouken', name: 'Boule de Feu', cost: 0, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, timingWindow: 0.6 } }
+        { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: { jumpVelocity: 9 } },
+        { id: 'curry', name: 'Chef Curry', cost: 0, desc: 'Tir rapide et fluide.', modifiers: { timingWindow: 0.9, jumpVelocity: 9 } },
+        { id: 'hook', name: 'Sky Hook', cost: 0, desc: 'Tir en crochet lent.', modifiers: { speed: 0.8, jumpVelocity: 5 } },
+        { id: 'yeet', name: 'Le Yeet', cost: 0, desc: 'Tir rapide et chaotique.', modifiers: { speed: 1.5, timingWindow: 0.6, jumpVelocity: 10 } },
+        { id: 'grandmama', name: 'Grand Mama', cost: 0, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2, jumpVelocity: 8 } },
+        { id: 'granny', name: 'La Grand-Mère', cost: 0, desc: 'Très lent, mais fenêtre facile (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3, jumpVelocity: 2 } },
+        { id: 'statue', name: 'La Statue', cost: 0, desc: 'Tir ultra rapide et rigide.', modifiers: { speed: 1.8, jumpVelocity: 0 } },
+        { id: 'fade', name: 'Fadeaway', cost: 0, desc: 'Timing difficile.', modifiers: { timingWindow: 0.8, jumpVelocity: 8 } },
+        { id: 'marion', name: 'La Matrice', cost: 0, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, timingWindow: 0.7, jumpVelocity: 11 } },
+        { id: 'noah', name: 'La Tornade', cost: 0, desc: 'Rotation bizarre à deux mains.', modifiers: { speed: 0.9, jumpVelocity: 7 } },
+        { id: 'dirk', name: 'Le Flamant', cost: 0, desc: 'Tir sur une jambe.', modifiers: { timingWindow: 1.1, jumpVelocity: 6 } },
+        { id: 'bird', name: 'La Légende', cost: 0, desc: 'Catapulte derrière la tête. Lent.', modifiers: { speed: 0.8, timingWindow: 1.2, jumpVelocity: 7 } },
+        { id: 'floater', name: 'La Larme', cost: 0, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2, jumpVelocity: 8 } },
+        { id: 'broken', name: 'Le Bug', cost: 0, desc: 'Chaotique et imprévisible.', modifiers: { timingWindow: 0.4, jumpVelocity: 9 } },
+        { id: 'joker', name: 'Le Joker', cost: 0, desc: 'Tir paresseux.', modifiers: { speed: 0.85, timingWindow: 1.1, jumpVelocity: 4 } },
+        { id: 'ray', name: 'Jesus', cost: 0, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, timingWindow: 0.9, jumpVelocity: 9 } },
+        { id: 'bowling', name: 'La Quille', cost: 0, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6, jumpVelocity: 0 } },
+        { id: 'hadouken', name: 'Boule de Feu', cost: 0, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, timingWindow: 0.6, jumpVelocity: 0 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -2009,7 +2009,20 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- GAME ACTIONS ---
-    function startJump() { if (state !== 'IDLE') return; state = 'JUMPING'; player3D.vz = 9; feedback = ""; }
+    function startJump() {
+        if (state !== 'IDLE') return;
+        state = 'JUMPING';
+
+        const styleId = playerData.currentStyle || 'classic';
+        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        let jumpV = 9;
+        if(style.modifiers && typeof style.modifiers.jumpVelocity !== 'undefined') {
+            jumpV = style.modifiers.jumpVelocity;
+        }
+
+        player3D.vz = jumpV;
+        feedback = "";
+    }
     function releaseShot() { if (state !== 'JUMPING') return; const timingError = player3D.vz; shoot(timingError); }
     function retryShot() { player3D.z = 0; player3D.vz = 0; state = 'IDLE'; }
 
