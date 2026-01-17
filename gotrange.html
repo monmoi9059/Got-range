@@ -1469,55 +1469,51 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
     }
 
-    function drawRealisticTorso(cx, topY, w, h, scale, color) {
-        // V-Taper Shape
+    function drawJersey(cx, topY, w, h, scale, color) {
+        // V-Taper Jersey
         const shoulderW = w * 1.6;
         const waistW = w * 0.9;
-        const hipW = w * 1.0;
 
         const shoulderY = topY;
-        const armpitY = topY + h * 0.35; // Lower armpit for lat sweep
-        const waistY = topY + h * 0.85;
-        const hipY = topY + h;
+        const armpitY = topY + h * 0.4;
+        const bottomY = topY + h;
 
         ctx.beginPath();
-        ctx.moveTo(cx - shoulderW/2, shoulderY); // Left Shoulder
-        ctx.lineTo(cx + shoulderW/2, shoulderY); // Right Shoulder
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
 
-        // Right Side
-        ctx.lineTo(cx + shoulderW/2, armpitY); // Delt end
-        ctx.lineTo(cx + waistW/2, waistY); // Lat taper
-        ctx.lineTo(cx + hipW/2, hipY); // Hip flare
+        // Right side
+        ctx.lineTo(cx + shoulderW/2, armpitY);
+        ctx.quadraticCurveTo(cx + waistW*0.6, (armpitY+bottomY)/2, cx + waistW/2, bottomY);
 
-        // Bottom
-        ctx.lineTo(cx - hipW/2, hipY);
+        // Bottom curve (Tuck)
+        ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx - waistW/2, bottomY);
 
-        // Left Side
-        ctx.lineTo(cx - waistW/2, waistY);
-        ctx.lineTo(cx - shoulderW/2, armpitY);
+        // Left side
+        ctx.quadraticCurveTo(cx - waistW*0.6, (armpitY+bottomY)/2, cx - shoulderW/2, armpitY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
+
         ctx.closePath();
 
         // Fill
         const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
         grad.addColorStop(0, color);
-        grad.addColorStop(0.1, color);
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Shine
-        grad.addColorStop(0.9, color);
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
         grad.addColorStop(1, color);
 
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.fillStyle = grad; // Overlay gradient
+        ctx.fillStyle = grad;
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
 
-        // Spine Indentation
+        // Spine/Back Detail
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         ctx.beginPath();
-        ctx.moveTo(cx, topY + h*0.1);
-        ctx.lineTo(cx + 2*scale, topY + h*0.8);
-        ctx.lineTo(cx - 2*scale, topY + h*0.8);
+        ctx.moveTo(cx, topY + h*0.2);
+        ctx.lineTo(cx + 1*scale, topY + h*0.7);
+        ctx.lineTo(cx - 1*scale, topY + h*0.7);
         ctx.fill();
 
         // Mesh Texture
@@ -1528,6 +1524,70 @@ let lastDisplayedContestTime = -1;
             if (i%8===0) ctx.fillRect(cx - shoulderW, topY + i, shoulderW*2, 1*scale);
         }
         ctx.restore();
+
+        // Tuck Shadow at bottom
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.moveTo(cx - waistW/2, bottomY);
+        ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx + waistW/2, bottomY);
+        ctx.lineTo(cx + waistW/2, bottomY - 4*scale);
+        ctx.quadraticCurveTo(cx, bottomY - 1*scale, cx - waistW/2, bottomY - 4*scale);
+        ctx.fill();
+    }
+
+    function drawShorts(cx, waistY, w, h, scale, color) {
+        // Baggy Shorts
+        const waistW = w * 1.0;
+        const hipW = w * 1.3;
+        const legW = w * 0.6; // Width of one leg hole
+
+        const bottomY = waistY + h;
+        const crotchY = waistY + h * 0.45;
+
+        ctx.beginPath();
+        // Waist
+        ctx.moveTo(cx - waistW/2, waistY);
+        ctx.lineTo(cx + waistW/2, waistY);
+
+        // Right Leg Outer
+        ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
+        // Right Leg Bottom
+        ctx.lineTo(cx + hipW/2 - legW, bottomY);
+        // Crotch Up
+        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
+        // Crotch Down
+        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
+        // Left Leg Bottom
+        ctx.lineTo(cx - hipW/2, bottomY);
+        // Left Leg Outer
+        ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
+
+        ctx.closePath();
+
+        // Fill
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Gradient
+        const grad = ctx.createLinearGradient(cx - hipW/2, waistY, cx + hipW/2, waistY);
+        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+
+        ctx.fillStyle = grad;
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Waistband
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(cx - waistW/2, waistY, waistW, 5*scale);
+
+        // Side Stripes (Optional detail)
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1*scale;
+        ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + hipW/2, waistY); ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY); ctx.stroke();
     }
 
     function drawRealisticHuman(p, s, skinObj) {
@@ -1570,9 +1630,14 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        // Draw Thighs
-        drawMuscleLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 9*s*sizeMod.w, shortsColor, 'thigh', s);
-        drawMuscleLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 9*s*sizeMod.w, shortsColor, 'thigh', s);
+        // Draw Thighs (Skin tone - under shorts)
+        drawMuscleLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 9*s*sizeMod.w, skinTone, 'thigh', s);
+        drawMuscleLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 9*s*sizeMod.w, skinTone, 'thigh', s);
+
+        // Draw Shorts (Over thighs)
+        const waistY = torsoY + bodyH * 0.85;
+        const shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s; // Overlap knee slightly
+        drawShorts(p.x, waistY, bodyW * 0.9, shortsLen, s, shortsColor);
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
@@ -1690,8 +1755,10 @@ let lastDisplayedContestTime = -1;
         drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
-        // 4. Torso
-        drawRealisticTorso(p.x, torsoY, bodyW, bodyH, s, jerseyColor);
+        // 4. Torso (Jersey)
+        // Draw Jersey down to waist
+        const jerseyH = bodyH * 0.85;
+        drawJersey(p.x, torsoY, bodyW, jerseyH, s, jerseyColor);
 
         // NECK
         const neckW = 10 * s * sizeMod.w;
