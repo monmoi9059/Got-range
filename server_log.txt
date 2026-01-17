@@ -1,0 +1,5 @@
+127.0.0.1 - - [17/Jan/2026 21:38:57] "GET /gotrange.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jan/2026 21:39:58] "GET /gotrange.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jan/2026 21:40:47] "GET /gotrange.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jan/2026 21:41:42] "GET /gotrange.html HTTP/1.1" 200 -
+127.0.0.1 - - [17/Jan/2026 21:42:35] "GET /gotrange.html HTTP/1.1" 200 -
