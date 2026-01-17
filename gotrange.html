@@ -537,8 +537,8 @@
         { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#F0F8FF' },
 
         // RABBITS
-        { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250 },
-        { id: 'rabbit_jack', animal: 'rabbit', name: 'Lièvre', cost: 1000 },
+        { id: 'rabbit_classic', animal: 'rabbit', name: 'Classique', cost: 250, furColor: '#8B4513' },
+        { id: 'rabbit_jack', animal: 'rabbit', name: 'Lièvre', cost: 1000, furColor: '#FFFFFF' },
         { id: 'rabbit_magic', animal: 'rabbit', name: 'Magicien', cost: 2500, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', shoesColor: '#FFF', headAccessory: 'wizard_hat', hatColor: '#000', backProp: 'staff' },
 
         // BEAVERS
@@ -1001,7 +1001,7 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- FUR & ANATOMY HELPERS ---
-    function drawFuzzyPath(points, color, scale, close = true, seed = 1) {
+    function drawFuzzyPath(points, color, scale, close = true, seed = 1, justPath = false) {
         if(points.length < 2) return;
         ctx.beginPath();
         const fuzz = 3 * scale;
@@ -1032,6 +1032,8 @@ let lastDisplayedContestTime = -1;
             }
         }
         if(close) ctx.closePath();
+
+        if (justPath) return;
 
         ctx.fillStyle = color;
         ctx.fill();
@@ -1103,12 +1105,14 @@ let lastDisplayedContestTime = -1;
         ctx.restore();
     }
 
-    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1) {
+    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}) {
+        const waistScale = options.waistScale || 0.85;
+
         // Hourglass / Tapered shape
         // Shoulders
         const sW = w * 1.1;
         const hW = w * 1.0; // Hips
-        const wW = w * 0.85; // Waist
+        const wW = w * waistScale; // Waist
 
         const shoulderY = topY;
         const waistY = topY + h * 0.55;
@@ -1144,6 +1148,22 @@ let lastDisplayedContestTime = -1;
             grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
             ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill();
             ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+        }
+
+        if (options.chestStripeColor) {
+            ctx.save();
+            if (isFurry) {
+                drawFuzzyPath(points, null, scale, true, seed, true);
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                points.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.closePath();
+            }
+            ctx.clip();
+            ctx.fillStyle = options.chestStripeColor;
+            ctx.fillRect(cx - w*2, topY, w*4, h * 0.25);
+            ctx.restore();
         }
     }
 
@@ -1399,6 +1419,8 @@ let lastDisplayedContestTime = -1;
         let thighColor = '#555', calfColor = '#555';
         let bellyColor = null, hasSpots = false, hasBlackEars = false;
 
+        if (skin === 'bear_panda') hasBlackEars = true;
+
         if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
         else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
         else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
@@ -1628,7 +1650,10 @@ let lastDisplayedContestTime = -1;
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40);
+        let bodyOptions = {};
+        if (currentAnimal === 'bear') bodyOptions.waistScale = 1.2;
+        if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
+        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
         if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
