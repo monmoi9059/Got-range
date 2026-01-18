@@ -1600,25 +1600,47 @@ let lastDisplayedContestTime = -1;
             ctx.fill();
         }
         else if (type === 'space') {
-            if (seed > 0.5) {
-                ctx.fillStyle = (seed > 0.75) ? '#CD5C5C' : '#4682B4';
-                ctx.beginPath(); ctx.arc(p.x, p.y - 30*s, 15*s, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = 'rgba(200,200,200,0.6)'; ctx.lineWidth = 4*s;
-                ctx.beginPath(); ctx.ellipse(p.x, p.y - 30*s, 25*s, 5*s, -0.2, 0, Math.PI*2); ctx.stroke();
-            } else {
-                ctx.fillStyle = '#696969';
+            // Grounded objects (Rocks & Craters) replacing floating planets
+            if (seed > 0.6) {
+                // Craters
+                ctx.fillStyle = '#333'; // Inner dark hole
                 ctx.beginPath();
-                const r = 15 * s;
-                for(let i=0; i<8; i++) {
-                    const a = (i/8)*Math.PI*2;
-                    const d = r * (0.8 + 0.4 * Math.sin(seed * 100 + i * 20));
-                    if(i==0) ctx.moveTo(p.x + Math.cos(a)*d, p.y - 30*s + Math.sin(a)*d);
-                    else ctx.lineTo(p.x + Math.cos(a)*d, p.y - 30*s + Math.sin(a)*d);
-                }
-                ctx.closePath();
+                ctx.ellipse(p.x, p.y, 25*s, 6*s, 0, 0, Math.PI*2);
                 ctx.fill();
-                ctx.fillStyle = '#555';
-                ctx.beginPath(); ctx.arc(p.x - 5*s, p.y - 30*s - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+
+                // Rim
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2*s;
+                ctx.stroke();
+
+            } else {
+                // Space Rocks (Grounded)
+                const isRed = (seed > 0.3 && seed < 0.45);
+                ctx.fillStyle = isRed ? '#8B4513' : '#696969'; // Mars-ish or Grey
+
+                ctx.beginPath();
+                const r = 20 * s;
+                const segments = 7;
+                // Draw a jagged dome sitting on the ground (p.y)
+                for(let i=0; i<=segments; i++) {
+                    const theta = Math.PI + (i/segments) * Math.PI; // PI (Left) to 2PI (Right)
+                    const noise = 0.8 + 0.4 * Math.sin(seed * 50 + i * 13);
+                    const d = r * noise;
+
+                    const px = p.x + Math.cos(theta) * d;
+                    const py = p.y + Math.sin(theta) * d * 0.7; // Flattened y-axis
+
+                    if(i===0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath(); // Closes bottom flat
+                ctx.fill();
+
+                // Shadow/Texture detail
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.arc(p.x - 5*s, p.y - 8*s, 5*s, 0, Math.PI*2);
+                ctx.fill();
             }
         }
         else if (type === 'tacocat') {
