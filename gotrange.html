@@ -2269,12 +2269,24 @@ let lastDisplayedContestTime = -1;
         }
     }
 
+    let g_cachedSkinId = null;
+    let g_cachedSkinObj = null;
+
     function drawPlayer(p) {
         if (!p) return;
         const s = p.scale;
         const skin = playerData.currentSkin;
-        let skinObj = SKINS_DB.find(x => x.id === skin);
-        if(!skinObj) skinObj = SKINS_DB[0];
+
+        let skinObj;
+        if (skin === g_cachedSkinId && g_cachedSkinObj) {
+            skinObj = g_cachedSkinObj;
+        } else {
+            skinObj = SKINS_DB.find(x => x.id === skin);
+            if(!skinObj) skinObj = SKINS_DB[0];
+            g_cachedSkinId = skin;
+            g_cachedSkinObj = skinObj;
+        }
+
         const currentAnimal = skinObj.animal;
         
         if (currentAnimal === 'human') {
