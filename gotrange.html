@@ -3055,6 +3055,22 @@ let lastDisplayedContestTime = -1;
             ctx.lineWidth = 8*s; ctx.arc(cx, meterY, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
         }
     }
+    function getProjectedY(gDist, currentDist, horizonY) {
+        if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
+        const ratio = gDist / currentDist;
+        const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
+        const p = project(wx, wy, 0); return p ? p.y : canvas.height;
+    }
+
+    function drawMountainLayer(layer, horizonY, dx) {
+        ctx.fillStyle = layer.color;
+        ctx.beginPath();
+        ctx.moveTo(layer.points[0].x + dx, horizonY);
+        layer.points.forEach(p => { ctx.lineTo(p.x + dx, horizonY - p.y); });
+        ctx.lineTo(layer.points[layer.points.length-1].x + dx, horizonY);
+        ctx.fill();
+    }
+
     function drawBackground() {
         const horizonY = (canvas.height - 120) * 0.5;
 
@@ -3074,20 +3090,13 @@ let lastDisplayedContestTime = -1;
             bgCache.currentFloor = currentZoneGrad;
 
             // Past Floors
-            const getProjectedY = (gDist) => {
-                if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
-                const ratio = gDist / currentDist;
-                const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-                const p = project(wx, wy, 0); return p ? p.y : canvas.height;
-            };
-
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
                 let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
                 let zEnd = z.limit;
                 if (zStart >= currentDist) break;
                 let drawEnd = Math.min(zEnd, currentDist);
-                const yTop = getProjectedY(zStart); const yBottom = getProjectedY(drawEnd);
+                const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
                 if ((yBottom - yTop) > 0.5) {
                     const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
                     grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
@@ -3125,18 +3134,10 @@ let lastDisplayedContestTime = -1;
              let startX = -offset;
              if (startX > 0) startX -= loopWidth;
 
-             ctx.fillStyle = layer.color;
-             const drawLayer = (dx) => {
-                 ctx.beginPath();
-                 ctx.moveTo(layer.points[0].x + dx, horizonY);
-                 layer.points.forEach(p => { ctx.lineTo(p.x + dx, horizonY - p.y); });
-                 ctx.lineTo(layer.points[layer.points.length-1].x + dx, horizonY);
-                 ctx.fill();
-             };
              // Draw enough copies to cover screen
-             drawLayer(startX);
-             drawLayer(startX + loopWidth);
-             if(startX + loopWidth < 0) drawLayer(startX + loopWidth * 2);
+             drawMountainLayer(layer, horizonY, startX);
+             drawMountainLayer(layer, horizonY, startX + loopWidth);
+             if(startX + loopWidth < 0) drawMountainLayer(layer, horizonY, startX + loopWidth * 2);
         });
 
         // CLOUDS
