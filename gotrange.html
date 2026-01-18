@@ -2006,8 +2006,8 @@ let lastDisplayedContestTime = -1;
 
         let shoulderY = torsoY + (5*s);
         let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out to be visible outside jersey
-        const upperArmLen = 20 * s * sizeMod.h * 0.6; 
-        const foreArmLen = 20 * s * sizeMod.h * 0.6;
+        const upperArmLen = 20 * s * sizeMod.h * 1.05;
+        const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
         const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
@@ -2524,7 +2524,7 @@ let lastDisplayedContestTime = -1;
 
         // 5. Arms Logic
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
-        let upperArmLen = 20 * s * sizeMod.h * 0.6; let foreArmLen = 20 * s * sizeMod.h * 0.6;
+        let upperArmLen = 20 * s * sizeMod.h * 1.05; let foreArmLen = 20 * s * sizeMod.h * 1.05;
         let wristAngle = 0;
 
         // Animation Keyframes (Removed local declaration)
