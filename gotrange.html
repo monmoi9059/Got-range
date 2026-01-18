@@ -308,9 +308,38 @@
         }
         .startup-btn:active { transform: translateY(5px); box-shadow: none; }
         .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
+
+        #orientation-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        .rotate-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+        @keyframes rotatePhone {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
     </style>
 </head>
 <body>
+
+<div id="orientation-overlay">
+    <div class="rotate-icon">📱</div>
+    <h2>PIVOTEZ VOTRE APPAREIL</h2>
+    <p>ROTATE YOUR DEVICE</p>
+</div>
 
 <div id="game-container">
     <div id="ui">
@@ -3942,9 +3971,36 @@ let lastDisplayedContestTime = -1;
         if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
         else btn.style.display = 'none';
     }
+
+    function checkOrientation() {
+        if (!playerData.mobileControls) return;
+        const overlay = document.getElementById('orientation-overlay');
+        if (window.innerHeight > window.innerWidth) {
+            overlay.style.display = 'flex';
+        } else {
+            overlay.style.display = 'none';
+        }
+    }
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
     window.choosePlatform = function(mode) {
         playerData.mobileControls = (mode === 'mobile');
         playerData.platformChosen = true;
+
+        if (mode === 'mobile') {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(e => console.log(e));
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(e => console.log(e));
+            }
+            setTimeout(checkOrientation, 500);
+        }
+
         saveData();
         startGame();
     }
