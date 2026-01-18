@@ -788,58 +788,58 @@
             release: { la: -Math.PI/2 - 0.1, ra: -Math.PI/2 - 0.3, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.5 }
         },
         hook: {
-            ready: { la: 1.5, ra: 1.0, lfa: 1.5, rfa: 1.5, w: 0 }, // Side/Low
-            set: { la: 0.2, ra: 0.0, lfa: 0.5, rfa: -0.5, w: 0 }, // Side windup
+            ready: { la: 1.5, ra: 1.0, lfa: 2.5, rfa: 1.5, w: 0 }, // Side/Low
+            set: { la: 0.5, ra: 0.2, lfa: 2.0, rfa: -1.5, w: 0 }, // Side windup, tucked in
             release: { la: 0.5, ra: -Math.PI + 0.2, lfa: 0.8, rfa: -Math.PI - 0.5, w: 0.5 } // Sky hook
         },
         yeet: {
-            ready: { la: 1.5, ra: 2.8, lfa: 1.5, rfa: -2.0, w: 0 }, // Back/Low
-            set: { la: -2.5, ra: -2.8, lfa: -0.5, rfa: -0.5, w: 0 }, // Way back
+            ready: { la: 1.5, ra: 2.8, lfa: 2.0, rfa: -2.2, w: 0 }, // Back/Low
+            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.5, w: 0 }, // Way back
             release: { la: 0.2, ra: -Math.PI/2 + 0.8, lfa: 0.5, rfa: -Math.PI/2 + 0.8, w: 0.5 }
         },
         grandmama: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.2, ra: -2.2, lfa: -1.5, rfa: -1.5, w: 0 }, // L Shape
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.5, ra: -2.5, lfa: -1.0, rfa: -1.0, w: 0 }, // Sharper L Shape
             release: { la: -Math.PI/2 - 0.3, ra: -Math.PI/2 + 0.3, lfa: -Math.PI/2 + 1.5, rfa: -Math.PI/2 + 1.5, w: 0.2 }
         },
         granny: {
-            ready: { la: 1.2, ra: 1.2, lfa: 1.5, rfa: 1.5, w: 0 }, // Low
-            set: { la: 1.2, ra: 1.5, lfa: 1.0, rfa: 1.2, w: 0 }, // Down between legs
+            ready: { la: 0.8, ra: 0.8, lfa: 2.0, rfa: 2.0, w: 0 }, // Knees bent, elbows out
+            set: { la: 1.0, ra: 1.2, lfa: 2.2, rfa: 2.2, w: 0 }, // Down between legs, elbows bent
             release: { la: -0.2, ra: 0.2, lfa: -0.5, rfa: -0.5, w: 0 } // Underhand toss
         },
         statue: {
-            ready: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0 },
-            set: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0 }, // Fixed
-            release: { la: -1.0, ra: -1.0, lfa: -1.5, rfa: -1.5, w: 0.5 } // Fixed
+            ready: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0 },
+            set: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0 }, // Fixed, bent elbows
+            release: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0.5 } // Fixed
         },
         fade: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.0, ra: -2.2, lfa: -1.5, rfa: -1.8, w: 0 },
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.2, ra: -2.4, lfa: -2.5, rfa: -2.8, w: 0 },
             release: { la: -Math.PI/2 - 0.4, ra: -Math.PI/2 - 0.6, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.5 }
         },
         marion: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.5, w: 0 }, // T-Rex chest load
-            set: { la: -1.0, ra: -1.2, lfa: -2.5, rfa: -2.5, w: 0 }, // Chest push position
+            ready: { la: 0.5, ra: 2.5, lfa: 2.0, rfa: -2.0, w: 0 }, // T-Rex chest load
+            set: { la: -1.0, ra: -1.2, lfa: -2.8, rfa: -2.8, w: 0 }, // Extreme T-Rex fold
             release: { la: -0.5, ra: -0.8, lfa: -0.5, rfa: -0.5, w: 0.2 } // Short arm push
         },
         noah: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -1.5, ra: -1.5, lfa: 0.5, rfa: -0.5, w: 1.0 }, // Hands twisted sideways
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -1.8, ra: -1.8, lfa: 0.5, rfa: -0.5, w: 1.0 }, // Hands twisted sideways
             release: { la: -0.8, ra: -0.8, lfa: -0.2, rfa: -0.2, w: 0 } // Push out
         },
         dirk: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.5, ra: -2.5, lfa: -1.2, rfa: -1.2, w: 0 }, // High set
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.5, ra: -2.5, lfa: -1.5, rfa: -1.5, w: 0 }, // High set
             release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.0 } // High release
         },
         bird: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.8, ra: -3.0, lfa: -0.5, rfa: -0.8, w: 0.5 }, // Way behind head
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.8, w: 0.5 }, // Way behind head
             release: { la: -Math.PI/2 + 0.2, ra: -Math.PI/2 - 0.2, lfa: -Math.PI/2 + 0.4, rfa: -Math.PI/2 - 0.4, w: 1.0 }
         },
         floater: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: 0.5, ra: -2.5, lfa: 0.5, rfa: -1.5, w: 0 }, // Right hand up high
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: 0.5, ra: -2.5, lfa: 0.5, rfa: -1.0, w: 0 }, // Right hand up high
             release: { la: 0.5, ra: -2.0, lfa: 0.5, rfa: -1.0, w: 1.5 } // Push
         },
         broken: {
@@ -848,18 +848,18 @@
             release: { la: 1.5, ra: -2.5, lfa: -2.5, rfa: 1.5, w: 0 } // Random flail
         },
         joker: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.8, ra: -2.8, lfa: -2.0, rfa: -2.0, w: 0 }, // Behind head lazy
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.8, ra: -2.8, lfa: -2.2, rfa: -2.2, w: 0 }, // Behind head lazy
             release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 0.5 } // Flick
         },
         ray: {
-            ready: { la: 0.2, ra: 2.9, lfa: 1.0, rfa: -2.5, w: 0 },
-            set: { la: -2.2, ra: -2.2, lfa: -1.8, rfa: -1.8, w: 0 }, // Perfect V
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.5, w: 0 }, // Perfect V
             release: { la: -Math.PI/2, ra: -Math.PI/2, lfa: -Math.PI/2, rfa: -Math.PI/2, w: 1.5 } // Follow through
         },
         bowling: {
-            ready: { la: 0.2, ra: 1.5, lfa: 1.0, rfa: 0.5, w: 0 }, // Low side
-            set: { la: 0.2, ra: 2.5, lfa: 1.0, rfa: 2.5, w: 0 }, // Backswing
+            ready: { la: 0.2, ra: 1.5, lfa: 2.0, rfa: 1.0, w: 0 }, // Low side
+            set: { la: 0.2, ra: 2.5, lfa: 2.0, rfa: 2.8, w: 0 }, // Backswing
             release: { la: 0.2, ra: -1.5, lfa: 1.0, rfa: -0.2, w: 0 } // Forward swing
         },
         hadouken: {
