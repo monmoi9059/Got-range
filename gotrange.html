@@ -331,9 +331,32 @@
             50% { transform: rotate(90deg); }
             100% { transform: rotate(0deg); }
         }
+
+        #btn-force-fullscreen {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #FFD700;
+            border-radius: 8px;
+            color: #FFD700;
+            font-size: 30px;
+            display: none;
+            z-index: 99999;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+            line-height: 50px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+
+<div id="btn-force-fullscreen" onclick="forceFullscreen()">⛶</div>
 
 <div id="orientation-overlay">
     <div class="rotate-icon">📱</div>
@@ -3985,14 +4008,43 @@ let lastDisplayedContestTime = -1;
     function checkOrientation() {
         if (!playerData.mobileControls) return;
         const overlay = document.getElementById('orientation-overlay');
+        const fsBtn = document.getElementById('btn-force-fullscreen');
+
         if (window.innerHeight > window.innerWidth) {
             overlay.style.display = 'flex';
+            fsBtn.style.display = 'none';
         } else {
             overlay.style.display = 'none';
+            checkFullscreenState();
         }
     }
+
+    function checkFullscreenState() {
+        if (!playerData.mobileControls) return;
+        const fsBtn = document.getElementById('btn-force-fullscreen');
+        const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+        if (!isFS) {
+            fsBtn.style.display = 'flex';
+        } else {
+            fsBtn.style.display = 'none';
+        }
+    }
+
+    window.forceFullscreen = function() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(e => console.log(e));
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        }
+        checkFullscreenState();
+    }
+
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', checkOrientation);
+    document.addEventListener('fullscreenchange', checkFullscreenState);
+    document.addEventListener('webkitfullscreenchange', checkFullscreenState);
 
     window.choosePlatform = function(mode) {
         playerData.mobileControls = (mode === 'mobile');
@@ -4000,11 +4052,15 @@ let lastDisplayedContestTime = -1;
 
         if (mode === 'mobile') {
             const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(e => console.log(e));
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
+            const fsPromise = (elem.requestFullscreen) ? elem.requestFullscreen() : (elem.webkitRequestFullscreen ? elem.webkitRequestFullscreen() : null);
+
+            if (fsPromise && fsPromise.catch) {
+                fsPromise.catch(e => {
+                    console.log("Fullscreen failed or rejected:", e);
+                    checkFullscreenState(); // Show fallback button if failed
+                });
             }
+
             if (screen.orientation && screen.orientation.lock) {
                 screen.orientation.lock('landscape').catch(e => console.log(e));
             }
