@@ -2175,10 +2175,12 @@ let lastDisplayedContestTime = -1;
         }
 
         // Number
-        ctx.fillStyle = skinObj.numberColor || "#FFF";
-        ctx.font = `bold ${12 * s}px Arial`;
-        ctx.textAlign = "center";
-        ctx.fillText(skinObj.number || "23", p.x, torsoY + bodyH * 0.6);
+        if (skinObj.number) {
+            ctx.fillStyle = skinObj.numberColor || "#FFF";
+            ctx.font = `bold ${12 * s}px Arial`;
+            ctx.textAlign = "center";
+            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+        }
 
         // Shot Meter
         if (state === 'JUMPING') {
@@ -3029,11 +3031,11 @@ let lastDisplayedContestTime = -1;
         }
 
         // 9. Jersey Number (Layer 5)
-        if(!skin.includes('alien') && !skin.includes('robot')) {
+        if(!skin.includes('alien') && !skin.includes('robot') && skinObj.number) {
             ctx.fillStyle = skinObj.numberColor || "#FFF";
             ctx.font = `bold ${12 * s}px Arial`;
             ctx.textAlign = "center";
-            ctx.fillText(skinObj.number || "23", p.x, torsoY + bodyH * 0.6);
+            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
         }
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
