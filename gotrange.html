@@ -3616,7 +3616,7 @@ let lastDisplayedContestTime = -1;
         }
 
         if (isMiss) {
-            const luckChance = (playerData.stats.luck - 1) * 0.05;
+            const luckChance = (playerData.stats.luck - 1) * 0.0111;
             let finalLuckChance = luckChance;
             if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
 
@@ -3932,12 +3932,13 @@ let lastDisplayedContestTime = -1;
         const lvl = playerData.stats[statName];
         if (statName === 'income') return Math.floor(25 * Math.pow(lvl, 2));
         if (statName === 'aim') return Math.floor(50 * Math.pow(lvl, 2));
-        if (statName === 'luck') return Math.floor(75 * Math.pow(lvl, 2));
+        if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
         return 999;
     }
     window.buyUpgrade = function(stat) {
+        if (stat === 'luck' && playerData.stats.luck >= 10) return;
         const cost = getUpgradeCost(stat);
         if (playerData.tacos >= cost) {
             playerData.tacos -= cost; playerData.stats[stat]++; saveData(); updateShopUI(); updateUI(); checkAchievements('shop');
@@ -4103,8 +4104,13 @@ let lastDisplayedContestTime = -1;
         document.getElementById('btnBuyAim').innerText = `Acheter (${getUpgradeCost('aim')})`;
         document.getElementById('btnBuyAim').disabled = playerData.tacos < getUpgradeCost('aim');
         document.getElementById('lvlLuck').innerText = playerData.stats.luck;
-        document.getElementById('btnBuyLuck').innerText = `Acheter (${getUpgradeCost('luck')})`;
-        document.getElementById('btnBuyLuck').disabled = playerData.tacos < getUpgradeCost('luck');
+        if (playerData.stats.luck >= 10) {
+            document.getElementById('btnBuyLuck').innerText = "MAX";
+            document.getElementById('btnBuyLuck').disabled = true;
+        } else {
+            document.getElementById('btnBuyLuck').innerText = `Acheter (${getUpgradeCost('luck')})`;
+            document.getElementById('btnBuyLuck').disabled = playerData.tacos < getUpgradeCost('luck');
+        }
         document.getElementById('lvlMoonwalk').innerText = playerData.stats.moonwalk;
         document.getElementById('btnBuyMoonwalk').innerText = `Acheter (${getUpgradeCost('moonwalk')})`;
         document.getElementById('btnBuyMoonwalk').disabled = playerData.tacos < getUpgradeCost('moonwalk');
