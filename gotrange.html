@@ -1096,6 +1096,36 @@ let lastDisplayedContestTime = -1;
 
     // --- 3. HELPER FUNCTIONS ---
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+
+    function calculateShotThreshold() {
+        const styleId = playerData.currentStyle || 'classic';
+        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const mods = style.modifiers;
+
+        let aimBonus = (playerData.stats.aim - 1);
+        let baseDampener = 6.0;
+        if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
+        let dampener = baseDampener + aimBonus;
+
+        if(mods.timingWindow) dampener *= mods.timingWindow;
+
+        // Note: We do NOT apply the 1.2x 'no-meter' bonus here.
+        // This function returns the standard physical threshold (meter visible difficulty).
+        // The shooter function applies the bonus on top if the meter is actually disabled.
+
+        if (dampener > 36.0) dampener = 36.0;
+
+        const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
+        let finalDistPenalty = distPenalty;
+        if(mods.rangeBonus) finalDistPenalty = 1.0 + (distPenalty - 1.0) * (1.0 - mods.rangeBonus);
+
+        // accuracy = (timingError / dampener) * difficulty * finalDistPenalty
+        // success condition: |accuracy| <= 0.25
+        // |timingError| <= 0.25 * dampener / (difficulty * finalDistPenalty)
+
+        return (0.25 * dampener) / (playerData.difficulty * finalDistPenalty);
+    }
+
     function getCurrentVz() {
         if (isGroundedShot) {
             return 9 - (groundShotTimer * 0.5);
@@ -2305,9 +2335,7 @@ let lastDisplayedContestTime = -1;
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
 
-            const damp = 6.0 + (playerData.stats.aim - 1);
-            const pen = Math.min(4.0, 1.0 + (distanceLevel * 0.04));
-            const thresh = (0.25 * damp) / (playerData.difficulty * pen);
+            const thresh = calculateShotThreshold();
             const greenStart = 1.0 - (thresh / maxVz);
 
             if (playerData.meterEnabled) {
@@ -3170,9 +3198,7 @@ let lastDisplayedContestTime = -1;
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
 
-            const damp = 6.0 + (playerData.stats.aim - 1);
-            const pen = Math.min(4.0, 1.0 + (distanceLevel * 0.04));
-            const thresh = (0.25 * damp) / (playerData.difficulty * pen);
+            const thresh = calculateShotThreshold();
             const greenStart = 1.0 - (thresh / maxVz);
 
             if (playerData.meterEnabled) {
@@ -3499,22 +3525,9 @@ let lastDisplayedContestTime = -1;
         const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
         const mods = style.modifiers;
 
-        let aimBonus = (playerData.stats.aim - 1);
-        let baseDampener = 6.0;
-        if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        let dampener = baseDampener + aimBonus;
+        let threshold = calculateShotThreshold();
+        if (!playerData.meterEnabled) threshold *= 1.2;
 
-        if(mods.timingWindow) dampener *= mods.timingWindow;
-
-        if (!playerData.meterEnabled) dampener *= 1.2;
-
-        if (dampener > 36.0) dampener = 36.0;
-
-        const distPenalty = 1.0 + Math.pow(distanceLevel, 1.25) * 0.06;
-        let finalDistPenalty = distPenalty;
-        if(mods.rangeBonus) finalDistPenalty = 1.0 + (distPenalty - 1.0) * (1.0 - mods.rangeBonus);
-
-        const accuracy = (timingError / dampener) * playerData.difficulty * finalDistPenalty;
         const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
         ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + 120;
         ball.active = true;
@@ -3527,8 +3540,14 @@ let lastDisplayedContestTime = -1;
         flightTime = Math.max(32, flightTime);
 
         ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
-        let isMiss = Math.abs(accuracy) > 0.25;
-        if (isMiss && Math.abs(accuracy) < 0.32) { if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; } }
+
+        let isMiss = Math.abs(timingError) > threshold;
+
+        // "Sur La Ligne" Bonus: 28% forgiveness zone (0.32 / 0.25 = 1.28)
+        if (isMiss && Math.abs(timingError) < threshold * 1.28) {
+            if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; }
+        }
+
         if (isMiss) {
             const luckChance = (playerData.stats.luck - 1) * 0.05;
             let finalLuckChance = luckChance;
@@ -3536,10 +3555,14 @@ let lastDisplayedContestTime = -1;
 
             if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
             else {
+                // Reconstruct accuracy magnitude for visuals
+                // accuracy = 0.25 * (timingError / threshold)
+                const accuracyMagnitude = 0.25 * (timingError / threshold);
+
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
-                const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracy) * 15;
-                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracy) * 5;
-                feedback = Math.abs(accuracy) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
+                const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracyMagnitude) * 15;
+                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracyMagnitude) * 5;
+                feedback = Math.abs(accuracyMagnitude) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
             }
         }
     }
