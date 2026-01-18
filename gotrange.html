@@ -1004,6 +1004,13 @@
         g_renderItemPool.push(new RenderItem());
     }
 
+    // --- OPTIMIZATION: Fuzzy Noise Lookup Table ---
+    const NOISE_LUT_SIZE = 4096;
+    const g_noiseLUT = new Float32Array(NOISE_LUT_SIZE);
+    for (let i = 0; i < NOISE_LUT_SIZE; i++) {
+        g_noiseLUT[i] = Math.random();
+    }
+
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -1262,12 +1269,6 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath();
         const fuzz = 3 * scale;
 
-        // Simple seeded random function
-        const pseudoRand = (idx) => {
-            let t = (seed + idx) * 0.123456789;
-            return Math.sin(t) * 43758.5453123 - Math.floor(Math.sin(t) * 43758.5453123);
-        };
-
         for (let i = 0; i < points.length; i++) {
             const p1 = points[i];
             const p2 = points[(i + 1) % points.length];
@@ -1278,12 +1279,21 @@ let lastDisplayedContestTime = -1;
 
             if(i===0) ctx.moveTo(p1.x, p1.y);
 
+            // Using LUT for performance optimization
+            let idxX = (seed + i * 100) & (NOISE_LUT_SIZE - 1);
+            let idxY = (seed + i * 100 + 5000) & (NOISE_LUT_SIZE - 1);
+
             for(let j=1; j<=segments; j++) {
                 const t = j / segments;
                 const tx = p1.x + (p2.x - p1.x) * t;
                 const ty = p1.y + (p2.y - p1.y) * t;
-                const noiseX = (pseudoRand(i * 100 + j) - 0.5) * fuzz;
-                const noiseY = (pseudoRand(i * 100 + j + 5000) - 0.5) * fuzz;
+
+                // Advance LUT indices
+                idxX = (idxX + 1) & (NOISE_LUT_SIZE - 1);
+                idxY = (idxY + 1) & (NOISE_LUT_SIZE - 1);
+
+                const noiseX = (g_noiseLUT[idxX] - 0.5) * fuzz;
+                const noiseY = (g_noiseLUT[idxY] - 0.5) * fuzz;
                 ctx.lineTo(tx + noiseX, ty + noiseY);
             }
         }
@@ -1302,14 +1312,29 @@ let lastDisplayedContestTime = -1;
         const area = (b.maxX - b.minX) * (b.maxY - b.minY);
         const dens = Math.floor(area / (100 * scale * scale)); // Approximate density
         ctx.beginPath();
+
+        const rangeX = b.maxX - b.minX;
+        const rangeY = b.maxY - b.minY;
+
+        // LUT indices for texture
+        let lutIdx1 = (seed + 200) & (NOISE_LUT_SIZE - 1);
+        let lutIdx2 = (seed + 300) & (NOISE_LUT_SIZE - 1);
+        let lutIdx3 = (seed + 400) & (NOISE_LUT_SIZE - 1);
+
         for(let k=0; k<dens; k++) {
-            const r1 = pseudoRand(k * 10 + 200);
-            const r2 = pseudoRand(k * 10 + 300);
-            const rx = b.minX + r1 * (b.maxX - b.minX);
-            const ry = b.minY + r2 * (b.maxY - b.minY);
+            const r1 = g_noiseLUT[lutIdx1];
+            const r2 = g_noiseLUT[lutIdx2];
+
+            // Prime steps to avoid sync
+            lutIdx1 = (lutIdx1 + 13) & (NOISE_LUT_SIZE - 1);
+            lutIdx2 = (lutIdx2 + 17) & (NOISE_LUT_SIZE - 1);
+
+            const rx = b.minX + r1 * rangeX;
+            const ry = b.minY + r2 * rangeY;
             if(isPointInPoly(rx, ry, points)) {
                 ctx.moveTo(rx, ry);
-                const r3 = pseudoRand(k * 10 + 400);
+                const r3 = g_noiseLUT[lutIdx3];
+                lutIdx3 = (lutIdx3 + 19) & (NOISE_LUT_SIZE - 1);
                 ctx.lineTo(rx + (r3-0.5)*5*scale, ry + 5*scale);
             }
         }
