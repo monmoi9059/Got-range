@@ -1213,9 +1213,11 @@ let lastDisplayedContestTime = -1;
         const dxToHoop = HOOP_POS.x - player3D.x;
         const dyToHoop = HOOP_POS.y - player3D.y;
         const distToHoop = Math.sqrt(dxToHoop*dxToHoop + dyToHoop*dyToHoop);
-        let idealZoom = 380 * (400 + distToHoop) / Math.max(100, distToHoop);
-        idealZoom = Math.min(1000, Math.max(400, idealZoom));
-        cameraZoom = idealZoom; cameraHeight = 84000 / cameraZoom;
+        // Fixed camera zoom (requested: FOV at ~50ft)
+        // 50ft is roughly distanceLevel 8, distToHoop ~478.
+        // Formula was: 380 * (400 + 478) / 478 ≈ 698.
+        cameraZoom = 698;
+        cameraHeight = 84000 / cameraZoom;
         const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
         const rotation = -angleToHoop - Math.PI/2;
         const dx = x - player3D.x; const dy = y - player3D.y;
