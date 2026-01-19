@@ -1046,10 +1046,13 @@
     // Shift hoop to x=600 is fine (slightly right),
     // but we might want to center the "court path" a bit more.
     const HOOP_POS = { x: 733, y: 150, z: 130 }; // Moved +133 to account for +266 width
+    const PIXELS_PER_FOOT = 4.2426;
 
     var decors = [];
-    for(let i=0; i<300; i++) {
-        const dist = Math.random() * 10000;
+    // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
+    // Increased count to 4000 to maintain density
+    for(let i=0; i<4000; i++) {
+        const dist = Math.random() * 120000;
         const pathX = 733 - (dist * 0.7);
         const pathY = 150 + (dist * 0.7);
         const scatter = (Math.random() - 0.5) * 1200;
@@ -1064,7 +1067,11 @@
         if (sum > 540 && sum < 810) continue;
 
         const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
-        const decorZone = COURT_ZONES.find(z => dDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+
+        // Convert Pixel Distance to Game Feet for Zone Lookup
+        const feetDist = dDist / PIXELS_PER_FOOT;
+
+        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
@@ -1078,9 +1085,13 @@
         const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
         const range = Math.min(z.limit, prevLimit + 3000) - prevLimit; // Cap range slightly for large zones
 
-        const dist = prevLimit + Math.random() * range;
-        const pathX = 733 - (dist * 0.7);
-        const pathY = 150 + (dist * 0.7);
+        const dist = prevLimit + Math.random() * range; // This is FEET
+
+        // Convert Feet to Pixels for Coordinate Calculation
+        const pixelDist = dist * PIXELS_PER_FOOT;
+
+        const pathX = 733 - (pixelDist * 0.7);
+        const pathY = 150 + (pixelDist * 0.7);
 
         let dX, dY;
         let attempts = 0;
