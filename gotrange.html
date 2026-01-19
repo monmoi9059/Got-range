@@ -823,118 +823,200 @@
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'human'];
 
     var SHOOTING_STYLES = [
+        // KEPT
         { id: 'classic', name: 'Classique', cost: 0, desc: 'Style standard. Équilibré.', modifiers: {} },
         { id: 'curry', name: 'Chef Curry', cost: 0, desc: 'Tir rapide et fluide.', modifiers: { timingWindow: 0.9 } },
-        { id: 'hook', name: 'Sky Hook', cost: 0, desc: 'Tir en crochet lent.', modifiers: { speed: 0.8, jumpVelocity: 0 } },
-        { id: 'yeet', name: 'Le Yeet', cost: 0, desc: 'Tir rapide et chaotique.', modifiers: { speed: 1.5, timingWindow: 0.6 } },
-        { id: 'grandmama', name: 'Grand Mama', cost: 0, desc: 'Fenêtre de tir plus grande (Facile).', modifiers: { timingWindow: 1.2 } },
-        { id: 'granny', name: 'La Grand-Mère', cost: 0, desc: 'Très lent, mais fenêtre facile (Rick Barry).', modifiers: { speed: 0.7, timingWindow: 1.3, jumpVelocity: 0 } },
-        { id: 'statue', name: 'La Statue', cost: 0, desc: 'Tir ultra rapide et rigide.', modifiers: { speed: 1.8, jumpVelocity: 0 } },
-        { id: 'fade', name: 'Fadeaway', cost: 0, desc: 'Timing difficile.', modifiers: { timingWindow: 0.8 } },
-        { id: 'marion', name: 'La Matrice', cost: 0, desc: 'Tir du torse ultra rapide. Très moche.', modifiers: { speed: 1.9, timingWindow: 0.7 } },
-        { id: 'noah', name: 'La Tornade', cost: 0, desc: 'Rotation bizarre à deux mains.', modifiers: { speed: 0.9 } },
-        { id: 'dirk', name: 'Le Flamant', cost: 0, desc: 'Tir sur une jambe.', modifiers: { timingWindow: 1.1 } },
-        { id: 'bird', name: 'La Légende', cost: 0, desc: 'Catapulte derrière la tête. Lent.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
-        { id: 'floater', name: 'La Larme', cost: 0, desc: 'Tir en cloche très haut.', modifiers: { speed: 1.2 } },
-        { id: 'broken', name: 'Le Bug', cost: 0, desc: 'Chaotique et imprévisible.', modifiers: { timingWindow: 0.4 } },
-        { id: 'joker', name: 'Le Joker', cost: 0, desc: 'Tir paresseux.', modifiers: { speed: 0.85, timingWindow: 1.1 } },
-        { id: 'ray', name: 'Jesus', cost: 0, desc: 'Forme parfaite, décoche éclair.', modifiers: { speed: 1.6, timingWindow: 0.9 } },
-        { id: 'bowling', name: 'La Quille', cost: 0, desc: 'Lancer de bowling à une main.', modifiers: { speed: 0.6, jumpVelocity: 0 } },
-        { id: 'hadouken', name: 'Boule de Feu', cost: 0, desc: 'Poussée à deux mains frontale.', modifiers: { speed: 2.0, timingWindow: 0.6, jumpVelocity: 0 } }
+
+        // NEW REALISTIC (NBA LEGENDS)
+        { id: 'jordan', name: 'The GOAT', cost: 0, desc: 'Suspension parfaite, saut maximal.', modifiers: { jumpVelocity: 10.5, timingWindow: 0.85 } },
+        { id: 'kobe', name: 'Black Mamba', cost: 0, desc: 'Fadeaway technique et précis.', modifiers: { timingWindow: 0.8, speed: 1.1 } },
+        { id: 'lebron', name: 'King James', cost: 0, desc: 'Tir puissant, recul léger.', modifiers: { jumpVelocity: 10.0, speed: 1.2 } },
+        { id: 'kd', name: 'Slim Reaper', cost: 0, desc: 'Relâchement très haut, impossible à contrer.', modifiers: { speed: 0.9, timingWindow: 0.95 } },
+        { id: 'ray', name: 'Jesus', cost: 0, desc: 'Mécanique robotique parfaite.', modifiers: { speed: 1.4, timingWindow: 0.9 } },
+        { id: 'bird', name: 'Larry Legend', cost: 0, desc: 'Tir derrière la tête, très précis.', modifiers: { speed: 0.8, timingWindow: 1.2 } },
+        { id: 'dirk', name: 'German Jesus', cost: 0, desc: 'Fadeaway sur une jambe.', modifiers: { timingWindow: 1.0, speed: 0.9 } },
+        { id: 'kareem', name: 'Sky Hook', cost: 0, desc: 'Le bras roulé inarrêtable. (Au sol)', modifiers: { jumpVelocity: 0, speed: 0.8 } },
+        { id: 'shaq', name: 'Diesel', cost: 0, desc: 'Tir à une main rigide.', modifiers: { jumpVelocity: 6, speed: 1.1, timingWindow: 0.7 } },
+        { id: 'magic', name: 'Showtime', cost: 0, desc: 'Poussée du ballon, vision de jeu.', modifiers: { speed: 1.0 } },
+        { id: 'harden', name: 'The Beard', cost: 0, desc: 'Step-back et pause.', modifiers: { timingWindow: 1.1, speed: 0.9 } },
+        { id: 'luka', name: 'Luka Magic', cost: 0, desc: 'Tir lent mais hypnotique.', modifiers: { speed: 0.85, timingWindow: 1.15 } },
+        { id: 'klay', name: 'Game 6', cost: 0, desc: 'Forme pure, pas de saut inutile.', modifiers: { speed: 1.3, timingWindow: 0.95 } },
+        { id: 'reggie', name: 'Knick Killer', cost: 0, desc: 'Extension complète des bras.', modifiers: { speed: 1.2 } },
+        { id: 'westbrook', name: 'Brodie', cost: 0, desc: 'Saut explosif, tir tendu.', modifiers: { jumpVelocity: 11.0, speed: 1.5, timingWindow: 0.6 } },
+        { id: 'joker', name: 'Big Honey', cost: 0, desc: 'Tir derrière la tête. (Au sol)', modifiers: { jumpVelocity: 0, speed: 0.8 } },
+        { id: 'trae', name: 'Ice Trae', cost: 0, desc: 'Poussée rapide depuis la poitrine.', modifiers: { speed: 1.3, timingWindow: 0.9 } },
+        { id: 'ai', name: 'The Answer', cost: 0, desc: 'Armé très haut derrière la tête.', modifiers: { speed: 1.4, jumpVelocity: 10.0 } },
+        { id: 'melo', name: 'Hoodie Melo', cost: 0, desc: 'Le tir le plus pur.', modifiers: { speed: 1.0, timingWindow: 1.0 } },
+        { id: 'haliburton', name: 'Hali', cost: 0, desc: 'Tir bizarre à deux mains.', modifiers: { speed: 1.1, timingWindow: 0.8 } },
+        { id: 'marion', name: 'The Matrix', cost: 0, desc: 'T-Rex shot. Très moche.', modifiers: { speed: 1.8, timingWindow: 0.7 } },
+        { id: 'noah', name: 'Tornado', cost: 0, desc: 'La tornade à deux mains.', modifiers: { speed: 0.9, jumpVelocity: 8.0 } },
+        { id: 'bol', name: 'Manute', cost: 0, desc: 'La catapulte géante.', modifiers: { speed: 0.7, jumpVelocity: 4.0 } },
+        { id: 'sga', name: 'Timeline', cost: 0, desc: 'Lent et méthodique.', modifiers: { speed: 0.9, timingWindow: 1.1 } },
+
+        // NEW SILLY / GROUNDED
+        { id: 'granny', name: 'Rick Barry', cost: 0, desc: 'À la cuillère. (Au sol)', modifiers: { jumpVelocity: 0, speed: 0.7, timingWindow: 1.5 } },
+        { id: 'bowling', name: 'Strike', cost: 0, desc: 'Lancer de bowling. (Au sol)', modifiers: { jumpVelocity: 0, speed: 0.6 } },
+        { id: 'hadouken', name: 'Hadouken', cost: 0, desc: 'Boule de feu ! (Au sol)', modifiers: { jumpVelocity: 0, speed: 2.5, timingWindow: 0.5 } },
+        { id: 'tpose', name: 'Le Glitch', cost: 0, desc: 'T-Pose menaçante. (Au sol)', modifiers: { jumpVelocity: 0, speed: 3.0, timingWindow: 0.3 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
     const DEFAULT_IDLE = { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0 };
     const ANIM_DATA = {
+        // --- KEPT ---
         classic: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
             set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0 } // Quiet Off-hand
+            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0 }
         },
         curry: {
             ready: { la: 0.5, ra: 2.5, lfa: 1.8, rfa: -1.8, w: 0 },
             set: { la: -1.0, ra: -1.2, lfa: -2.5, rfa: -2.8, w: 0.5 },
-            release: { la: -1.2, ra: -Math.PI/2 - 0.3, lfa: -2.2, rfa: -Math.PI/2, w: 1.5 } // Quiet Off-hand
+            release: { la: -1.2, ra: -Math.PI/2 - 0.3, lfa: -2.2, rfa: -Math.PI/2, w: 1.5 }
         },
-        hook: {
-            ready: { la: 1.5, ra: 1.0, lfa: 2.5, rfa: 1.5, w: 0 },
-            set: { la: 0.5, ra: 0.2, lfa: 2.0, rfa: -1.5, w: 0 },
-            release: { la: 0.8, ra: -Math.PI + 0.2, lfa: 1.5, rfa: -Math.PI - 0.5, w: 0.5 } // Quiet guard arm
+
+        // --- NEW REALISTIC ---
+        jordan: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.3, ra: -2.5, lfa: -1.2, rfa: -1.6, w: 0 }, // High set
+            release: { la: -2.0, ra: -Math.PI/2 - 0.4, lfa: -1.0, rfa: -Math.PI/2 - 0.2, w: 1.6 } // Perfect follow through
         },
-        yeet: {
-            ready: { la: 1.5, ra: 2.8, lfa: 2.0, rfa: -2.2, w: 0 },
-            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.5, w: 0 },
-            release: { la: -2.5, ra: -Math.PI/2 + 0.8, lfa: -1.2, rfa: -Math.PI/2 + 0.8, w: 0.5 } // Less flail
+        kobe: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.4, ra: -2.4, lfa: -1.5, rfa: -2.6, w: 0 }, // Fadeaway posture
+            release: { la: -2.1, ra: -Math.PI/2 - 0.5, lfa: -1.8, rfa: -Math.PI/2 - 0.3, w: 1.7 } // High release
         },
-        grandmama: {
+        lebron: {
+            ready: { la: 0.4, ra: 2.4, lfa: 1.4, rfa: -1.6, w: 0 },
+            set: { la: -2.0, ra: -2.3, lfa: -2.0, rfa: -2.8, w: 0 }, // Power gather
+            release: { la: -1.5, ra: -Math.PI/2 - 0.2, lfa: -2.2, rfa: -Math.PI/2, w: 1.5 }
+        },
+        kd: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.5, ra: -2.5, lfa: -1.0, rfa: -1.0, w: 0 },
-            release: { la: -2.3, ra: -Math.PI/2 + 0.3, lfa: -0.8, rfa: -Math.PI/2 + 1.5, w: 0.2 } // Quiet L
+            set: { la: -2.6, ra: -2.8, lfa: -2.0, rfa: -2.0, w: 0 }, // Starting high
+            release: { la: -2.4, ra: -Math.PI/2 - 0.8, lfa: -1.5, rfa: -Math.PI/2 - 0.6, w: 1.8 } // Super high release point
         },
-        granny: {
-            ready: { la: 0.8, ra: 0.8, lfa: 2.0, rfa: 2.0, w: 0 },
-            set: { la: 1.0, ra: 1.2, lfa: 2.2, rfa: 2.2, w: 0 },
-            release: { la: 0.5, ra: 0.5, lfa: 1.0, rfa: 1.0, w: 0 } // Reduced follow through flare
-        },
-        statue: {
-            ready: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0 },
-            set: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0 },
-            release: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -2.2, w: 0.5 } // Stays fixed
-        },
-        fade: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.2, ra: -2.4, lfa: -2.5, rfa: -2.8, w: 0 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.6, lfa: -2.3, rfa: -Math.PI/2, w: 1.5 } // Quiet off-hand
-        },
-        marion: {
-            ready: { la: 0.5, ra: 2.5, lfa: 2.0, rfa: -2.0, w: 0 },
-            set: { la: -1.0, ra: -1.2, lfa: -2.8, rfa: -2.8, w: 0 },
-            release: { la: -0.8, ra: -0.8, lfa: -2.5, rfa: -0.5, w: 0.2 } // T-Rex arms stay closer
-        },
-        noah: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -1.8, ra: -1.8, lfa: 0.5, rfa: -0.5, w: 1.0 },
-            release: { la: -1.5, ra: -0.8, lfa: 0.2, rfa: -0.2, w: 0 } // Less flare
-        },
-        dirk: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.5, ra: -2.5, lfa: -1.5, rfa: -1.5, w: 0 },
-            release: { la: -2.3, ra: -Math.PI/2, lfa: -1.3, rfa: -Math.PI/2, w: 1.0 } // Quiet off-hand
+        ray: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.6, rfa: -1.9, w: 0 },
+            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.9, w: 0 }, // 90 degree perfect
+            release: { la: -2.0, ra: -Math.PI/2 - 0.3, lfa: -2.2, rfa: -Math.PI/2 - 0.1, w: 1.6 } // Snap
         },
         bird: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.8, w: 0.5 },
-            release: { la: -2.6, ra: -Math.PI/2 - 0.2, lfa: -1.3, rfa: -Math.PI/2 - 0.4, w: 1.0 } // Quiet off-hand
+            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.5, w: 0.5 }, // Behind head
+            release: { la: -2.5, ra: -Math.PI/2 - 0.1, lfa: -1.2, rfa: -Math.PI/2, w: 1.2 }
         },
-        floater: {
+        dirk: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: 0.5, ra: -2.5, lfa: 0.5, rfa: -1.0, w: 0 },
-            release: { la: 0.5, ra: -2.0, lfa: 0.5, rfa: -1.0, w: 1.5 } // Off hand stays down
+            set: { la: -2.5, ra: -2.5, lfa: -1.5, rfa: -1.5, w: 0 }, // High hold
+            release: { la: -2.3, ra: -Math.PI/2, lfa: -1.3, rfa: -Math.PI/2, w: 1.0 } // Soft touch
         },
-        broken: {
-            ready: { la: 0.0, ra: 0.0, lfa: 0.0, rfa: 0.0, w: 0 },
-            set: { la: -2.5, ra: 1.0, lfa: 1.5, rfa: -2.5, w: 0 },
-            release: { la: 1.5, ra: -2.5, lfa: -2.5, rfa: 1.5, w: 0 }
+        kareem: {
+            ready: { la: 1.0, ra: 1.0, lfa: 1.5, rfa: 1.5, w: 0 },
+            set: { la: 0.5, ra: 0.0, lfa: 2.0, rfa: -2.0, w: 0 }, // Side windup
+            release: { la: 0.5, ra: -Math.PI + 0.5, lfa: 1.5, rfa: -Math.PI, w: 0.5 } // Hook extension
+        },
+        shaq: {
+            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -1.5, w: 0 },
+            set: { la: -1.5, ra: -2.0, lfa: -0.5, rfa: -1.0, w: 0 }, // Bulky set
+            release: { la: -1.0, ra: -Math.PI/2, lfa: -0.5, rfa: -1.0, w: 0.5 } // Push, no wrist flick
+        },
+        magic: {
+            ready: { la: 0.5, ra: 2.4, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -1.8, ra: -1.8, lfa: -0.5, rfa: -0.5, w: 0 }, // Chest push start
+            release: { la: -1.5, ra: -Math.PI/2 + 0.2, lfa: -0.8, rfa: -Math.PI/2 + 0.2, w: 1.0 }
+        },
+        harden: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -1.5, ra: -1.5, lfa: -2.5, rfa: -2.5, w: 0 }, // Low gather
+            release: { la: -1.8, ra: -Math.PI/2 - 0.4, lfa: -2.0, rfa: -Math.PI/2 - 0.2, w: 1.5 }
+        },
+        luka: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.0, ra: -2.2, lfa: -1.0, rfa: -1.8, w: 0.2 }, // Slow windup
+            release: { la: -1.8, ra: -Math.PI/2 - 0.3, lfa: -1.2, rfa: -Math.PI/2, w: 1.4 }
+        },
+        klay: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.1, ra: -2.1, lfa: -2.3, rfa: -2.6, w: 0 }, // Compact
+            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -2.1, rfa: -Math.PI/2, w: 1.5 }
+        },
+        reggie: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.9, w: 0 },
+            release: { la: -1.5, ra: -Math.PI/2 - 0.2, lfa: -1.5, rfa: -Math.PI/2 - 0.4, w: 1.5 } // Arms cross slightly
+        },
+        westbrook: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.5, ra: -2.8, lfa: -2.0, rfa: -2.5, w: 0 }, // High jump point
+            release: { la: -2.3, ra: -Math.PI/2 - 0.6, lfa: -2.2, rfa: -Math.PI/2 - 0.4, w: 2.0 } // Aggressive snap
         },
         joker: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.8, ra: -2.8, lfa: -2.2, rfa: -2.2, w: 0 },
-            release: { la: -2.6, ra: -Math.PI/2, lfa: -2.0, rfa: -Math.PI/2, w: 0.5 } // Quiet off-hand
+            set: { la: -2.9, ra: -3.0, lfa: -2.2, rfa: -2.2, w: 0 }, // Deep behind head
+            release: { la: -2.6, ra: -Math.PI/2 - 0.1, lfa: -2.0, rfa: -Math.PI/2, w: 0.8 } // Lazy flick
         },
-        ray: {
+        trae: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -1.2, ra: -1.2, lfa: -2.5, rfa: -2.5, w: 0.5 }, // Low push
+            release: { la: -1.0, ra: -1.0, lfa: -2.2, rfa: -1.5, w: 1.0 } // Push forward
+        },
+        ai: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.8, ra: -3.0, lfa: -2.0, rfa: -2.5, w: 0 }, // Way back
+            release: { la: -2.5, ra: -Math.PI/2 - 0.5, lfa: -2.0, rfa: -Math.PI/2 - 0.3, w: 1.8 } // Snap
+        },
+        melo: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.3, ra: -2.3, lfa: -2.0, rfa: -2.6, w: 0 }, // Textbook
+            release: { la: -2.1, ra: -Math.PI/2 - 0.3, lfa: -1.8, rfa: -Math.PI/2 - 0.1, w: 1.5 }
+        },
+        haliburton: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -1.5, ra: -1.5, lfa: -1.5, rfa: -1.5, w: 0 }, // Both hands low
+            release: { la: -1.5, ra: -1.2, lfa: -1.5, rfa: -1.2, w: 1.0 } // Push shot
+        },
+        marion: {
+            ready: { la: 0.5, ra: 2.5, lfa: 2.0, rfa: -2.0, w: 0 },
+            set: { la: -1.0, ra: -1.2, lfa: -2.8, rfa: -2.8, w: 0 }, // T-Rex
+            release: { la: -0.8, ra: -0.8, lfa: -2.5, rfa: -0.5, w: 0.2 } // Tiny flick
+        },
+        noah: {
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
-            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.5, w: 0 },
-            release: { la: -2.0, ra: -Math.PI/2, lfa: -2.3, rfa: -Math.PI/2, w: 1.5 } // Quiet off-hand
+            set: { la: -1.8, ra: -1.8, lfa: 0.5, rfa: -0.5, w: 1.0 }, // Tornado spin
+            release: { la: -1.5, ra: -0.8, lfa: 0.2, rfa: -0.2, w: 0 }
+        },
+        bol: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.8, w: 0 }, // Far back
+            release: { la: -2.5, ra: -1.5, lfa: -1.2, rfa: -1.2, w: 0.5 } // Catapult
+        },
+        sga: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0 },
+            set: { la: -1.8, ra: -2.0, lfa: -1.5, rfa: -1.8, w: 0.2 }, // Slow methodical
+            release: { la: -1.6, ra: -Math.PI/2 - 0.2, lfa: -1.2, rfa: -Math.PI/2, w: 1.2 }
+        },
+
+        // --- NEW SILLY / GROUNDED ---
+        granny: {
+            ready: { la: 0.8, ra: 0.8, lfa: 2.0, rfa: 2.0, w: 0 },
+            set: { la: 1.0, ra: 1.2, lfa: 2.2, rfa: 2.2, w: 0 }, // Low between legs
+            release: { la: -1.0, ra: -1.0, lfa: 0.5, rfa: 0.5, w: 0 } // Scoop up
         },
         bowling: {
-            ready: { la: 0.2, ra: 1.5, lfa: 2.0, rfa: 1.0, w: 0 }, // Low side
-            set: { la: 0.2, ra: 2.5, lfa: 2.0, rfa: 2.8, w: 0 }, // Backswing
-            release: { la: 0.2, ra: -1.5, lfa: 1.0, rfa: -0.2, w: 0 } // Forward swing
+            ready: { la: 0.2, ra: 1.5, lfa: 2.0, rfa: 1.0, w: 0 },
+            set: { la: 0.2, ra: 2.8, lfa: 2.0, rfa: 2.9, w: 0 }, // Backswing
+            release: { la: 0.2, ra: -1.8, lfa: 1.0, rfa: -0.2, w: 0 } // Roll forward
         },
         hadouken: {
-            ready: { la: 1.5, ra: 1.5, lfa: 2.5, rfa: 0.5, w: 0 }, // Hands at hip
-            set: { la: 1.5, ra: 1.5, lfa: 2.8, rfa: 0.3, w: 0 }, // Charging
-            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0 } // Thrust forward
+            ready: { la: 1.5, ra: 1.5, lfa: 2.5, rfa: 0.5, w: 0 },
+            set: { la: 1.8, ra: 1.8, lfa: 2.9, rfa: 0.4, w: 0 }, // Charge at hip
+            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0 } // Thrust
+        },
+        tpose: {
+            ready: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 },
+            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 },
+            release: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 } // Dominance
         }
     };
 
