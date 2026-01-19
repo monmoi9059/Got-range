@@ -2445,7 +2445,7 @@ let lastDisplayedContestTime = -1;
         }
         else if(skinObj.hairStyle === 'short') {
              ctx.fillStyle = skinObj.hairColor || '#000';
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, Math.PI, 0); ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x, headY - 1*s, headRadius * 1.02, 0, Math.PI*2); ctx.fill();
         }
         else if(skinObj.hairStyle === 'bald') {
              ctx.fillStyle = 'rgba(255,255,255,0.2)';
@@ -2494,6 +2494,7 @@ let lastDisplayedContestTime = -1;
         }
         else if(skinObj.hairStyle === 'spikes') {
              ctx.fillStyle = skinObj.hairColor || '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 1*s, headRadius * 1.02, 0, Math.PI*2); ctx.fill();
              const numSpikes = 7;
              for(let i=0; i<numSpikes; i++) {
                  const angle = Math.PI + (i / (numSpikes-1)) * Math.PI; // Semicircle
@@ -3283,6 +3284,11 @@ let lastDisplayedContestTime = -1;
         let headColor = furColor;
         if(skin.includes('alien')) headColor = '#32CD32';
         if(currentAnimal === 'penguin') headColor = '#000';
+        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
+             if(skin === 'lion_white') headColor = '#EEE';
+             else if(skin === 'lion_classic') headColor = '#A0522D';
+             else headColor = '#8B4513';
+        }
 
         drawFuzzyCircle(p.x, headY, headRadius, headColor, 60);
 
