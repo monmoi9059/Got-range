@@ -4022,9 +4022,19 @@ let lastDisplayedContestTime = -1;
                 }
 
                 const prevZ = ball.z;
+                const prevX = ball.x;
+                const prevY = ball.y;
+
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
                 if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
-                    const distToHoopCenter = Math.sqrt(Math.pow(ball.x - HOOP_POS.x, 2) + Math.pow(ball.y - HOOP_POS.y, 2));
+                    let t = 0;
+                    if (prevZ !== ball.z) {
+                         t = (HOOP_POS.z - prevZ) / (ball.z - prevZ);
+                    }
+                    const crossX = prevX + (ball.x - prevX) * t;
+                    const crossY = prevY + (ball.y - prevY) * t;
+
+                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
                     if (distToHoopCenter < 25) { handleScore(); return; }
                 }
                 const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
