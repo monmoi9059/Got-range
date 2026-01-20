@@ -1597,6 +1597,25 @@ let lastDisplayedContestTime = -1;
         return inside;
     }
 
+    // --- OPTIMIZATION: Render Pools ---
+    const CIRCLE_SEGS = 16;
+    const g_circlePoints = [];
+    for(let i=0; i<CIRCLE_SEGS; i++) { g_circlePoints.push({x: 0, y: 0}); }
+
+    const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
+
+    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true) => {
+        if(!furry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill(); return; }
+
+        for(let i=0; i<CIRCLE_SEGS; i++) {
+            const a = (i/CIRCLE_SEGS)*Math.PI*2;
+            const p = g_circlePoints[i];
+            p.x = cx + Math.cos(a)*r;
+            p.y = cy + Math.sin(a)*r;
+        }
+        drawFuzzyPath(g_circlePoints, c, scale, true, seed);
+    };
+
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1) {
         if(!isFurry) {
             drawLimb(x1, y1, x2, y2, width, color);
@@ -1607,12 +1626,13 @@ let lastDisplayedContestTime = -1;
         const dx = Math.sin(angle) * (width / 2);
         const dy = Math.cos(angle) * (width / 2);
 
-        const p1 = {x: x1 - dx, y: y1 + dy};
-        const p2 = {x: x2 - dx, y: y2 + dy};
-        const p3 = {x: x2 + dx, y: y2 - dy};
-        const p4 = {x: x1 + dx, y: y1 - dy};
+        // Use Pool
+        const p1 = g_limbPoints[0]; p1.x = x1 - dx; p1.y = y1 + dy;
+        const p2 = g_limbPoints[1]; p2.x = x2 - dx; p2.y = y2 + dy;
+        const p3 = g_limbPoints[2]; p3.x = x2 + dx; p3.y = y2 - dy;
+        const p4 = g_limbPoints[3]; p4.x = x1 + dx; p4.y = y1 - dy;
 
-        drawFuzzyPath([p1, p2, p3, p4], color, scale, true, seed);
+        drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
         // Add shadow gradient overlay for depth
         ctx.save();
@@ -2271,14 +2291,8 @@ let lastDisplayedContestTime = -1;
         const skinTone = skinObj.skinTone || skinObj.furColor || '#8d5524';
         const furColor = skinObj.furColor || skinTone;
 
-        const drawFuzzyCircle = (cx, cy, r, c, seed = 50) => {
-            const points = []; const segs = 16;
-            for(let i=0; i<segs; i++) { const a = (i/segs)*Math.PI*2; points.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r}); }
-            drawFuzzyPath(points, c, s, true, seed);
-        };
-
         if (type === 'bull') {
-            drawFuzzyCircle(p.x, headY, headRadius * 1.2, furColor, 200);
+            drawFuzzyCircle(p.x, headY, headRadius * 1.2, furColor, 200, s, true);
             ctx.fillStyle = '#3E2723';
             ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#FFF';
@@ -2292,21 +2306,21 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = furColor;
             ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 10*s); ctx.lineTo(p.x - 15*s, headY - 25*s); ctx.lineTo(p.x - 15*s, headY - 5*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 10*s); ctx.lineTo(p.x + 15*s, headY - 25*s); ctx.lineTo(p.x + 15*s, headY - 5*s); ctx.fill();
-            drawFuzzyCircle(p.x, headY, headRadius, furColor, 201);
+            drawFuzzyCircle(p.x, headY, headRadius, furColor, 201, s, true);
             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 4*s, 0, Math.PI*2); ctx.fill();
         }
         else if (type === 'bandicoot') {
             ctx.fillStyle = furColor;
             ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 10*s); ctx.lineTo(p.x - 12*s, headY - 20*s); ctx.lineTo(p.x - 10*s, headY); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 10*s); ctx.lineTo(p.x + 12*s, headY - 20*s); ctx.lineTo(p.x + 10*s, headY); ctx.fill();
-            drawFuzzyCircle(p.x, headY - 2*s, headRadius, furColor, 202);
+            drawFuzzyCircle(p.x, headY - 2*s, headRadius, furColor, 202, s, true);
             ctx.fillStyle = '#FF00FF';
             for(let i=0; i<4; i++) {
                 ctx.beginPath(); ctx.arc(p.x, headY - 15*s - i*5*s, 5*s, 0, Math.PI*2); ctx.fill();
             }
         }
         else if (type === 'yeti') {
-            drawFuzzyCircle(p.x, headY, headRadius * 1.3, '#FFF', 203);
+            drawFuzzyCircle(p.x, headY, headRadius * 1.3, '#FFF', 203, s, true);
             ctx.fillStyle = '#ADD8E6';
             ctx.beginPath(); ctx.arc(p.x, headY, 8*s, 0, Math.PI*2); ctx.fill();
         }
@@ -2633,21 +2647,11 @@ let lastDisplayedContestTime = -1;
              // Static Lion-like Mane
              const maneRadius = headRadius * 2.0;
 
-             const drawStaticFuzzyCircle = (cx, cy, r, seed) => {
-                 const points = [];
-                 const segs = 16;
-                 for(let i=0; i<segs; i++) {
-                     const a = (i/segs)*Math.PI*2;
-                     points.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r});
-                 }
-                 drawFuzzyPath(points, ctx.fillStyle, s, true, seed);
-             };
-
              // Draw Mane (Static seed = 500)
-             drawStaticFuzzyCircle(p.x, headY + 5*s, maneRadius, 500);
+             drawFuzzyCircle(p.x, headY + 5*s, maneRadius, ctx.fillStyle, 500, s, true);
 
              // Top/Forehead volume (Static seed = 501)
-             drawStaticFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 1.2, 501);
+             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 1.2, ctx.fillStyle, 501, s, true);
         }
         else if(skinObj.hairStyle === 'spikes') {
              ctx.fillStyle = skinObj.hairColor || '#0000FF';
@@ -3368,17 +3372,10 @@ let lastDisplayedContestTime = -1;
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
 
-        const drawFuzzyCircle = (cx, cy, r, c, seed = 50) => {
-            if(!isFurry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); return; }
-            const points = []; const segs = 16;
-            for(let i=0; i<segs; i++) { const a = (i/segs)*Math.PI*2; points.push({x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r}); }
-            drawFuzzyPath(points, c, s, true, seed);
-        };
-
         // EARS & HORNS
         if(currentAnimal === 'rat') {
-            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51);
-            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52);
+            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51, s, isFurry);
+            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52, s, isFurry);
         } else if (currentAnimal === 'cat') {
             const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
             const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
@@ -3403,8 +3400,8 @@ let lastDisplayedContestTime = -1;
             let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
             if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
             if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
-            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55);
-            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56);
+            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry);
+            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry);
         } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
             const earColor = ctx.fillStyle;
             ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
@@ -3435,7 +3432,7 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = '#8B4513';
              if(skin === 'lion_white') ctx.fillStyle = '#EEE';
              if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61);
+             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry);
         }
 
         // Head Circle
@@ -3448,7 +3445,7 @@ let lastDisplayedContestTime = -1;
              else headColor = '#8B4513';
         }
 
-        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60);
+        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
 
         // FOREHEAD MANE (Lion) - Fix baldness
         if(currentAnimal === 'lion' && skin !== 'lion_scar') {
@@ -3456,7 +3453,7 @@ let lastDisplayedContestTime = -1;
              if(skin === 'lion_white') ctx.fillStyle = '#EEE';
              if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
              // Draw a smaller fuzzy circle slightly higher to cover the "bald" spot
-             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 0.8, ctx.fillStyle, 62);
+             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 0.8, ctx.fillStyle, 62, s, isFurry);
         }
 
         // FACE DETAILS REMOVED - Back View Only
