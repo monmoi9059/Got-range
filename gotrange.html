@@ -4558,50 +4558,28 @@ let lastDisplayedContestTime = -1;
         updateUI();
         updateMobileControlsUI();
     }
-    function renderUpgradeControl(statName, containerId) {
-        const active = playerData.stats[statName];
-        const purchased = playerData.purchasedStats[statName];
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        let html = '';
-
-        // Down Arrow ([-]) - Visible if active level > 0
-        if (active > 0) {
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', -1)" style="padding: 8px 12px; margin-right:5px;">⬇️</button>`;
-        }
-
-        // Up Arrow ([+]) or Buy Button
-        if (active < purchased) {
-            // Navigate up through owned levels
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', 1)" style="padding: 8px 12px;">⬆️</button>`;
-        } else {
-            // Buy next level
-            if (statName === 'luck' && purchased >= 10) {
-                html += `<button class="btn" disabled>MAX</button>`;
-            } else {
-                const cost = getUpgradeCost(statName);
-                const disabled = playerData.tacos < cost ? 'disabled' : '';
-                html += `<button class="btn" ${disabled} onclick="buyUpgrade('${statName}')">Acheter (${cost})</button>`;
-            }
-        }
-
-        container.innerHTML = html;
-
-        // Update Label Level
-        const lblId = 'lvl' + statName.charAt(0).toUpperCase() + statName.slice(1);
-        const lbl = document.getElementById(lblId);
-        if (lbl) lbl.innerText = active;
-    }
-
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
-
-        renderUpgradeControl('income', 'ctrl_income');
-        renderUpgradeControl('aim', 'ctrl_aim');
-        renderUpgradeControl('luck', 'ctrl_luck');
-        renderUpgradeControl('moonwalk', 'ctrl_moonwalk');
-        renderUpgradeControl('extraLives', 'ctrl_extraLives');
+        document.getElementById('lvlIncome').innerText = playerData.stats.income;
+        document.getElementById('btnBuyIncome').innerText = `Acheter (${getUpgradeCost('income')})`;
+        document.getElementById('btnBuyIncome').disabled = playerData.tacos < getUpgradeCost('income');
+        document.getElementById('lvlAim').innerText = playerData.stats.aim;
+        document.getElementById('btnBuyAim').innerText = `Acheter (${getUpgradeCost('aim')})`;
+        document.getElementById('btnBuyAim').disabled = playerData.tacos < getUpgradeCost('aim');
+        document.getElementById('lvlLuck').innerText = playerData.stats.luck;
+        if (playerData.stats.luck >= 10) {
+            document.getElementById('btnBuyLuck').innerText = "MAX";
+            document.getElementById('btnBuyLuck').disabled = true;
+        } else {
+            document.getElementById('btnBuyLuck').innerText = `Acheter (${getUpgradeCost('luck')})`;
+            document.getElementById('btnBuyLuck').disabled = playerData.tacos < getUpgradeCost('luck');
+        }
+        document.getElementById('lvlMoonwalk').innerText = playerData.stats.moonwalk;
+        document.getElementById('btnBuyMoonwalk').innerText = `Acheter (${getUpgradeCost('moonwalk')})`;
+        document.getElementById('btnBuyMoonwalk').disabled = playerData.tacos < getUpgradeCost('moonwalk');
+        document.getElementById('lvlExtraLives').innerText = playerData.stats.extraLives || 0;
+        document.getElementById('btnBuyExtraLives').innerText = `Acheter (${getUpgradeCost('extraLives')})`;
+        document.getElementById('btnBuyExtraLives').disabled = playerData.tacos < getUpgradeCost('extraLives');
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
