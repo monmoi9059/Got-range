@@ -2973,9 +2973,17 @@ let lastDisplayedContestTime = -1;
              if (bp === 'staff') {
                  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3*s;
                  ctx.beginPath(); ctx.moveTo(centerX + 15*s, centerY - 30*s); ctx.lineTo(centerX - 15*s, centerY + 30*s); ctx.stroke();
-                 ctx.fillStyle = '#00FFFF'; ctx.shadowBlur = 10; ctx.shadowColor = '#00FFFF';
-                 ctx.beginPath(); ctx.arc(centerX + 15*s, centerY - 30*s, 5*s, 0, Math.PI*2); ctx.fill();
-                 ctx.shadowBlur = 0;
+                 // Orb (Optimized)
+                 const orbX = centerX + 15*s;
+                 const orbY = centerY - 30*s;
+                 const orbR = 5*s;
+                 const glowR = orbR + 15;
+                 const orbGrad = ctx.createRadialGradient(orbX, orbY, 0, orbX, orbY, glowR);
+                 orbGrad.addColorStop(0, '#00FFFF');
+                 orbGrad.addColorStop(orbR/glowR, '#00FFFF');
+                 orbGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                 ctx.fillStyle = orbGrad;
+                 ctx.beginPath(); ctx.arc(orbX, orbY, glowR, 0, Math.PI*2); ctx.fill();
              }
              if (bp === 'windup_key') {
                  ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 3*s;
@@ -3802,10 +3810,17 @@ let lastDisplayedContestTime = -1;
              if (bp === 'staff') {
                  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3*s;
                  ctx.beginPath(); ctx.moveTo(centerX + 15*s, centerY - 30*s); ctx.lineTo(centerX - 15*s, centerY + 30*s); ctx.stroke();
-                 // Orb
-                 ctx.fillStyle = '#00FFFF'; ctx.shadowBlur = 10; ctx.shadowColor = '#00FFFF';
-                 ctx.beginPath(); ctx.arc(centerX + 15*s, centerY - 30*s, 5*s, 0, Math.PI*2); ctx.fill();
-                 ctx.shadowBlur = 0;
+                 // Orb (Optimized)
+                 const orbX = centerX + 15*s;
+                 const orbY = centerY - 30*s;
+                 const orbR = 5*s;
+                 const glowR = orbR + 15;
+                 const orbGrad = ctx.createRadialGradient(orbX, orbY, 0, orbX, orbY, glowR);
+                 orbGrad.addColorStop(0, '#00FFFF');
+                 orbGrad.addColorStop(orbR/glowR, '#00FFFF');
+                 orbGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                 ctx.fillStyle = orbGrad;
+                 ctx.beginPath(); ctx.arc(orbX, orbY, glowR, 0, Math.PI*2); ctx.fill();
              }
              if (bp === 'windup_key') {
                  ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 3*s;
