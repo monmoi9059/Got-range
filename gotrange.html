@@ -2617,10 +2617,6 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        // Draw Thighs (Skin tone - under shorts)
-        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
-        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
-
         const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
@@ -2660,19 +2656,23 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
-        // 4. Torso & Shorts Layer (Moved BEFORE Arms so Arms appear on top of Shorts/Body side)
+        // Arms First (Layer 1) - Arms behind legs
+        drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
+        // Draw Thighs (Skin tone - under shorts)
+        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
+        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
+
+        // 4. Torso & Shorts Layer
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        // Shorts First (Layer 2)
+        // Shorts Next (Layer 2)
         drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
-
-        // Arms Next (Layer 3) - Fixes "Arms behind legs" issue
-        drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
         if (skinObj.jerseyType === 'none') {
@@ -3326,6 +3326,48 @@ let lastDisplayedContestTime = -1;
             }
         }
 
+        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
+            const armFurry = isFurry && (armColor === furColor);
+            const seedBase = isRight ? 10 : 20;
+            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
+
+            let thisUpperColor = armColor;
+            let thisForeColor = armColor;
+
+            // T-Shirt Logic
+            if(skinObj.jerseyType === 'tshirt') {
+                thisUpperColor = torsoColor;
+            }
+
+            // Sleeve Logic (Physical side based)
+            if(isRight && skinObj.sleeveRight) {
+                thisUpperColor = skinObj.sleeveRight;
+                thisForeColor = skinObj.sleeveRight;
+            }
+            if(!isRight && skinObj.sleeveLeft) {
+                thisUpperColor = skinObj.sleeveLeft;
+                thisForeColor = skinObj.sleeveLeft;
+            }
+
+            let elbow = getJoint(sx, sy, upperArmLen, angle1);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
+
+            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
+            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            if (wristAngle > 0.5 && isShootingSide) {
+                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
+            }
+
+            // Ball removed (drawn earlier)
+            ctx.restore();
+        };
+
+        // Arms First (Layer 1) - Arms behind legs
+        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
         const legFurry = isFurry && (legColor === furColor);
         drawFuzzyLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
         drawFuzzyLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
@@ -3365,47 +3407,6 @@ let lastDisplayedContestTime = -1;
 
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
         drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
-
-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
-            const armFurry = isFurry && (armColor === furColor);
-            const seedBase = isRight ? 10 : 20;
-            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
-
-            let thisUpperColor = armColor;
-            let thisForeColor = armColor;
-
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt') {
-                thisUpperColor = torsoColor;
-            }
-
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                thisUpperColor = skinObj.sleeveRight;
-                thisForeColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                thisUpperColor = skinObj.sleeveLeft;
-                thisForeColor = skinObj.sleeveLeft;
-            }
-
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
-
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isShootingSide) {
-                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
-            }
-
-            // Ball removed (drawn earlier)
-            ctx.restore();
-        };
-
-        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
