@@ -1235,28 +1235,31 @@ const contestRackEl = document.getElementById('contestRack');
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
     let distanceLevel = 1;
-    var state = 'IDLE';
+    let state = 'IDLE';
     let feedback = "";
     let feedbackTimer = 0;
     let consecutiveMisses = 0;
-    var currentStreak = 0;
+    let currentStreak = 0;
     let spacePressed = false;
     let cameraZoom = 800;
     let cameraHeight = 300;
     let resetStage = 0;
-    var isGroundedShot = false;
-    var groundShotTimer = 0;
+    let isGroundedShot = false;
+    let groundShotTimer = 0;
 
     // Physique
     const GRAVITY = 0.5;
+    const DEBUG = false;
     // Shift player start position to match new center (300 -> 433)
-    var player3D = { x: 433, y: 300, z: 0, vz: 0 };
-    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false };
-    var particles = [];
+    let player3D = { x: 433, y: 300, z: 0, vz: 0 };
+    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false };
+    let particles = [];
 
     // Expose for debugging
-    window.player3D = player3D;
-    window.state = state;
+    if (DEBUG) {
+        window.player3D = player3D;
+        window.state = state;
+    }
 
     const defaultData = {
         tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
