@@ -1102,8 +1102,11 @@
             attempts++;
         } while (attempts < 10 && (dX + dY > 540 && dX + dY < 810));
 
-        decors.push({ x: dX, y: dY, dist: dist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
+        decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
     }
+
+    // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
+    decors.sort((a, b) => a.dist - b.dist);
 
     var clouds = [];
     var mountainLayers = [];
@@ -3960,14 +3963,25 @@ let lastDisplayedContestTime = -1;
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        decors.forEach(d => {
+        // OPTIMIZATION: Cull objects far beyond the player
+        // Player moves away from hoop. d.dist approximates distance from hoop (in pixels).
+        // Objects with d.dist >> playerDistFromHoop are behind the camera.
+        const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
+        const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
+
+        for (let i = 0; i < decors.length; i++) {
+            const d = decors[i];
+
+            // Optimization: Stop processing if objects are too far behind the player (out of view)
+            if (d.dist > cullDist) break;
+
             // Fast Z-Check
             const dx = d.x - player3D.x;
             const dy = d.y - player3D.y;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 400 in project()
-            if (400 - ry <= 0) return;
+            if (400 - ry <= 0) continue;
 
             const proj = project(d.x, d.y, 0, camCache);
             if (proj) {
@@ -3980,7 +3994,7 @@ let lastDisplayedContestTime = -1;
                 obj.seed = d.seed;
                 g_renderList.push(obj);
             }
-        });
+        }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
         if (hoopProj) {
