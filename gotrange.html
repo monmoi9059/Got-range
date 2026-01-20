@@ -1569,12 +1569,11 @@ let lastDisplayedContestTime = -1;
 
             const rx = b.minX + r1 * rangeX;
             const ry = b.minY + r2 * rangeY;
-            if(isPointInPoly(rx, ry, points)) {
-                ctx.moveTo(rx, ry);
-                const r3 = g_noiseLUT[lutIdx3];
-                lutIdx3 = (lutIdx3 + 19) & (NOISE_LUT_SIZE - 1);
-                ctx.lineTo(rx + (r3-0.5)*5*scale, ry + 5*scale);
-            }
+
+            ctx.moveTo(rx, ry);
+            const r3 = g_noiseLUT[lutIdx3];
+            lutIdx3 = (lutIdx3 + 19) & (NOISE_LUT_SIZE - 1);
+            ctx.lineTo(rx + (r3-0.5)*5*scale, ry + 5*scale);
         }
         ctx.stroke();
         ctx.restore();
@@ -1584,17 +1583,6 @@ let lastDisplayedContestTime = -1;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
         return {minX, minY, maxX, maxY};
-    }
-
-    function isPointInPoly(x, y, points) {
-        let inside = false;
-        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-            const xi = points[i].x, yi = points[i].y;
-            const xj = points[j].x, yj = points[j].y;
-            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-        }
-        return inside;
     }
 
     // --- OPTIMIZATION: Render Pools ---
