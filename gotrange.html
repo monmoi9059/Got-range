@@ -1243,6 +1243,7 @@ let lastDisplayedContestTime = -1;
     let spacePressed = false;
     let cameraZoom = 800;
     let cameraHeight = 300;
+    let g_camCache = null; // Optimization: Per-frame camera cache
     let resetStage = 0;
     let isGroundedShot = false;
     let groundShotTimer = 0;
@@ -1435,6 +1436,12 @@ let lastDisplayedContestTime = -1;
             cosRot = cache.cosRot;
             cameraZoom = cache.cameraZoom;
             cameraHeight = cache.cameraHeight;
+        } else if (g_camCache) {
+            rotation = g_camCache.rotation;
+            sinRot = g_camCache.sinRot;
+            cosRot = g_camCache.cosRot;
+            cameraZoom = g_camCache.cameraZoom;
+            cameraHeight = g_camCache.cameraHeight;
         } else {
             const dxToHoop = HOOP_POS.x - player3D.x;
             const dyToHoop = HOOP_POS.y - player3D.y;
@@ -3847,6 +3854,27 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawBackground() {
+        // Optimization: Per-frame camera calculation
+        const dxToHoop = HOOP_POS.x - player3D.x;
+        const dyToHoop = HOOP_POS.y - player3D.y;
+        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        const camRotation = -angleToHoop - Math.PI / 2;
+        const camSin = Math.sin(camRotation);
+        const camCos = Math.cos(camRotation);
+        const camZoom = 698;
+        const camHeight = 84000 / camZoom;
+
+        g_camCache = {
+            rotation: camRotation,
+            sinRot: camSin,
+            cosRot: camCos,
+            cameraZoom: camZoom,
+            cameraHeight: camHeight
+        };
+        // Ensure globals are updated
+        cameraZoom = camZoom;
+        cameraHeight = camHeight;
+
         const horizonY = (canvas.height - 120) * 0.5;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel) {
@@ -3939,26 +3967,7 @@ let lastDisplayedContestTime = -1;
         g_poolIndex = 0;
         g_renderList.length = 0;
 
-        // Pre-calculate camera for this frame
-        const dxToHoop = HOOP_POS.x - player3D.x;
-        const dyToHoop = HOOP_POS.y - player3D.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-        const camRotation = -angleToHoop - Math.PI / 2;
-        const camSin = Math.sin(camRotation);
-        const camCos = Math.cos(camRotation);
-        const camZoom = 698;
-        const camHeight = 84000 / camZoom;
-        const camCache = {
-            rotation: camRotation,
-            sinRot: camSin,
-            cosRot: camCos,
-            cameraZoom: camZoom,
-            cameraHeight: camHeight
-        };
-
-        // Ensure globals are updated
-        cameraZoom = camZoom;
-        cameraHeight = camHeight;
+        // Use cached camera values (already calculated at top of function)
 
         decors.forEach(d => {
             // Fast Z-Check
@@ -3969,7 +3978,7 @@ let lastDisplayedContestTime = -1;
             // cameraOffset is 400 in project()
             if (400 - ry <= 0) return;
 
-            const proj = project(d.x, d.y, 0, camCache);
+            const proj = project(d.x, d.y, 0);
             if (proj) {
                 const obj = getRenderItem();
                 obj.type = 'decor';
