@@ -1201,6 +1201,14 @@
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+
+    // Optimization: Pre-calculated Sun Gradient
+    const sunGradient = ctx.createRadialGradient(700, 80, 0, 700, 80, 80);
+    sunGradient.addColorStop(0, '#FFD700');
+    sunGradient.addColorStop(0.5, '#FFD700'); // Solid core (r=40)
+    sunGradient.addColorStop(0.6, 'rgba(255, 165, 0, 0.5)'); // Glow start
+    sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
+
     const scoreEl = document.getElementById('scoreVal');
     const distEl = document.getElementById('distVal');
     const highScoreEl = document.getElementById('highScoreVal');
@@ -3801,10 +3809,8 @@ let lastDisplayedContestTime = -1;
              }
         } else {
              // Sun
-             ctx.fillStyle = '#FFD700';
-             ctx.shadowBlur = 40; ctx.shadowColor = '#FFA500';
-             ctx.beginPath(); ctx.arc(700, 80, 40, 0, Math.PI*2); ctx.fill();
-             ctx.shadowBlur = 0;
+             ctx.fillStyle = sunGradient;
+             ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
         }
 
         // BACKGROUND MOUNTAINS
