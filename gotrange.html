@@ -1423,20 +1423,29 @@ let lastDisplayedContestTime = -1;
     }
     window.addEventListener('resize', resizeGame);
 
-    function project(x, y, z) {
-        const dxToHoop = HOOP_POS.x - player3D.x;
-        const dyToHoop = HOOP_POS.y - player3D.y;
-        const distToHoop = Math.sqrt(dxToHoop*dxToHoop + dyToHoop*dyToHoop);
-        // Fixed camera zoom (requested: FOV at ~50ft)
-        // 50ft is roughly distanceLevel 8, distToHoop ~478.
-        // Formula was: 380 * (400 + 478) / 478 ≈ 698.
-        cameraZoom = 698;
-        cameraHeight = 84000 / cameraZoom;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-        const rotation = -angleToHoop - Math.PI/2;
+    function project(x, y, z, cache) {
+        let rotation, sinRot, cosRot;
+
+        if (cache) {
+            rotation = cache.rotation;
+            sinRot = cache.sinRot;
+            cosRot = cache.cosRot;
+            cameraZoom = cache.cameraZoom;
+            cameraHeight = cache.cameraHeight;
+        } else {
+            const dxToHoop = HOOP_POS.x - player3D.x;
+            const dyToHoop = HOOP_POS.y - player3D.y;
+            cameraZoom = 698;
+            cameraHeight = 84000 / cameraZoom;
+            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+            rotation = -angleToHoop - Math.PI/2;
+            sinRot = Math.sin(rotation);
+            cosRot = Math.cos(rotation);
+        }
+
         const dx = x - player3D.x; const dy = y - player3D.y;
-        const rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
-        const ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
+        const rx = dx * cosRot - dy * sinRot;
+        const ry = dx * sinRot + dy * cosRot;
         const cameraOffset = 400; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
@@ -3841,8 +3850,37 @@ let lastDisplayedContestTime = -1;
         g_poolIndex = 0;
         g_renderList.length = 0;
 
+        // Pre-calculate camera for this frame
+        const dxToHoop = HOOP_POS.x - player3D.x;
+        const dyToHoop = HOOP_POS.y - player3D.y;
+        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        const camRotation = -angleToHoop - Math.PI / 2;
+        const camSin = Math.sin(camRotation);
+        const camCos = Math.cos(camRotation);
+        const camZoom = 698;
+        const camHeight = 84000 / camZoom;
+        const camCache = {
+            rotation: camRotation,
+            sinRot: camSin,
+            cosRot: camCos,
+            cameraZoom: camZoom,
+            cameraHeight: camHeight
+        };
+
+        // Ensure globals are updated
+        cameraZoom = camZoom;
+        cameraHeight = camHeight;
+
         decors.forEach(d => {
-            const proj = project(d.x, d.y, 0);
+            // Fast Z-Check
+            const dx = d.x - player3D.x;
+            const dy = d.y - player3D.y;
+            // ry calculation: dx * sin + dy * cos
+            const ry = dx * camSin + dy * camCos;
+            // cameraOffset is 400 in project()
+            if (400 - ry <= 0) return;
+
+            const proj = project(d.x, d.y, 0, camCache);
             if (proj) {
                 const obj = getRenderItem();
                 obj.type = 'decor';
