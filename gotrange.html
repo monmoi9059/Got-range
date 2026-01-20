@@ -2513,38 +2513,7 @@ let lastDisplayedContestTime = -1;
         const headY = torsoY - (10 * s * sizeMod.head);
         const headRadius = 12 * s * sizeMod.head;
 
-        // 1. Colors
-        const jerseyColor = skinObj.jerseyColor || '#FFF';
-        const shortsColor = skinObj.shortsColor || '#FFF';
-        const sleeveRight = skinObj.sleeveRight;
-        const sleeveLeft = skinObj.sleeveLeft || skinObj.sleeveColor; // Handle both cases
-        const socksColor = skinObj.socksColor;
-        const shoesColor = skinObj.shoesColor;
-
-        // 2. Legs (Base implementation - to be upgraded)
-        const baseKneeY = p.y - (legLen * 0.5);
-        let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s, lFootY = p.y;
-        let rFootX = p.x + 10*s, rFootY = p.y;
-
-        // Dirk Kick Logic
-        if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
-            const lift = Math.min(1.0, Math.max(0, (9 - getCurrentVz()) / 9));
-            const kickH = 20 * s * lift;
-            const kickW = 15 * s * lift;
-            if (playerData.isLefty) {
-                 lKneeY -= kickH; lKneeX -= kickW; lFootX -= kickW; lFootY -= kickH*0.8;
-            } else {
-                 rKneeY -= kickH; rKneeX += kickW; rFootX += kickW; rFootY -= kickH*0.8;
-            }
-        }
-
-        // Draw Thighs (Skin tone - under shorts)
-        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
-        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
-
-        // 3. Arms Configuration
+        // 0. Calculate Arm Configuration EARLY (needed for Ball Placement)
         const currentStyle = playerData.currentStyle || 'classic';
         const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
         const idle = DEFAULT_IDLE;
@@ -2586,9 +2555,71 @@ let lastDisplayedContestTime = -1;
         }
 
         let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out to be visible outside jersey
+        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
+
+        // 0b. Detached Ball Rendering
+        drawDetachedBall(p, s, torsoY, bodyH, headY);
+
+        // 0c. HELD BALL RENDERING (Layer 0 - Before Body)
+        const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
+        if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+            const isRightHand = !playerData.isLefty;
+            const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+            const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+            const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+            const shootWristAngle = isRightHand ? wristAngle : -wristAngle; // Fix for lefty check? wristAngle is already adjusted above
+
+            // Wait, wristAngle calculation above:
+            // Lefty: wristAngle = -r_w
+            // Righty: wristAngle = r_w
+            // So 'wristAngle' IS the shooting hand's wrist angle relative to forearm.
+            // But we need to apply it correctly.
+
+            let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+
+            // Calculate Ball Position based on wrist transform
+            // In drawHumanArm: ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
+            // Ball is at (0, 5*s)
+            let theta = shootFAngle + wristAngle;
+            let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+            let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+
+            drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
+        }
+
+        // 1. Colors
+        const jerseyColor = skinObj.jerseyColor || '#FFF';
+        const shortsColor = skinObj.shortsColor || '#FFF';
+        const sleeveRight = skinObj.sleeveRight;
+        const sleeveLeft = skinObj.sleeveLeft || skinObj.sleeveColor;
+        const socksColor = skinObj.socksColor;
+        const shoesColor = skinObj.shoesColor;
+
+        // 2. Legs (Base implementation)
+        const baseKneeY = p.y - (legLen * 0.5);
+        let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
+        let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
+        let lFootX = p.x - 10*s, lFootY = p.y;
+        let rFootX = p.x + 10*s, rFootY = p.y;
+
+        // Dirk Kick Logic
+        if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
+            const lift = Math.min(1.0, Math.max(0, (9 - getCurrentVz()) / 9));
+            const kickH = 20 * s * lift;
+            const kickW = 15 * s * lift;
+            if (playerData.isLefty) {
+                 lKneeY -= kickH; lKneeX -= kickW; lFootX -= kickW; lFootY -= kickH*0.8;
+            } else {
+                 rKneeY -= kickH; rKneeX += kickW; rFootX += kickW; rFootY -= kickH*0.8;
+            }
+        }
+
+        // Draw Thighs (Skin tone - under shorts)
+        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
+        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
 
         const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
@@ -2599,18 +2630,18 @@ let lastDisplayedContestTime = -1;
             if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            // Upper Arm (Deltoid to Elbow) - using 'thigh' shape for bicep taper
+            // Upper Arm (Deltoid to Elbow)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.w, uColor, 'thigh', s);
             
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-            // Forearm (Elbow to Wrist) - tapered
+            // Forearm (Elbow to Wrist)
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
 
             // Elbow Joint Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.1)';
             ctx.beginPath(); ctx.arc(elbow.x, elbow.y, 3*s, 0, Math.PI*2); ctx.fill();
 
-            // Hand & Ball
+            // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             
             // Hand (Realistic)
@@ -2619,10 +2650,8 @@ let lastDisplayedContestTime = -1;
             ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s); 
             ctx.fill();
             
-            const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
-
             if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !isDetachedStyle) {
-                drawBallSprite(0, 5*s, s, (currentStreak >= 5));
+                // Ball is drawn in Layer 0 now. Just draw Fingers.
                 // Fingers over ball
                 ctx.fillStyle = fColor;
                 ctx.beginPath(); ctx.arc(-2*s, 6*s, 1.5*s, 0, Math.PI*2); ctx.fill();
@@ -2631,15 +2660,21 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
-        // Draw Arms BEFORE Jersey so they are correctly occluded by the back when reaching forward
+        // 4. Torso & Shorts Layer (Moved BEFORE Arms so Arms appear on top of Shorts/Body side)
+        const jerseyH = bodyH * 0.85;
+        const reducedBodyW = bodyW * 0.9;
+        const waistY = torsoY + bodyH * 0.85;
+        let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
+        if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
+
+        // Shorts First (Layer 2)
+        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
+
+        // Arms Next (Layer 3) - Fixes "Arms behind legs" issue
         drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
-        // 4. Torso (Jersey)
-        const jerseyH = bodyH * 0.85;
-        // Reduce Body Width slightly
-        const reducedBodyW = bodyW * 0.9;
-
+        // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
         if (skinObj.jerseyType === 'none') {
              // Bare Torso
              drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null });
@@ -2663,18 +2698,6 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x - reducedBodyW*0.35 + 2*s, torsoY + 18*s, 2*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x + reducedBodyW*0.35 - 2*s, torsoY + 18*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
-
-        // Draw Shorts (Over thighs and Over Jersey Bottom)
-        const waistY = torsoY + bodyH * 0.85;
-        let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
-        
-        // Short Shorts for Retro Legends
-        if (skinObj.shortsLength === 'short') {
-            shortsLen = (0.25 * legLen) + (0.1 * bodyH);
-        }
-
-        // Widen Shorts slightly to cover skin
-        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
@@ -3083,9 +3106,6 @@ let lastDisplayedContestTime = -1;
             ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
         }
 
-        // Detached Ball Rendering (Realistic Human)
-        drawDetachedBall(p, s, torsoY, bodyH, headY);
-
         // Shot Meter
         if (state === 'JUMPING') {
             const maxVz = 9; const curVz = Math.abs(getCurrentVz());
@@ -3152,6 +3172,85 @@ let lastDisplayedContestTime = -1;
         if (currentAnimal === 'human') isFurry = false;
         if (currentAnimal === 'penguin') isFurry = false; // Smooth feathers
 
+        // 0. Calculate Arm Config EARLY
+        const currentStyle = playerData.currentStyle || 'classic';
+        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
+        const idle = DEFAULT_IDLE;
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        // Calculate generic (Right-Handed) angles first
+        let r_la, r_ra, r_lfa, r_rfa, r_w;
+
+        if (state === 'SHOOTING') {
+            r_la = anim.release.la; r_ra = anim.release.ra;
+            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
+            r_w = anim.release.w;
+        } else if (state === 'JUMPING') {
+            let lift = Math.max(0, (9 - getCurrentVz()) / 9);
+            lift = Math.min(1.0, lift); // Clamp
+            const startPose = anim.ready || idle;
+            const lerpAngle = (a, b, t) => {
+                if (Math.abs(b - a) > Math.PI) {
+                    if (b > a) a += 2 * Math.PI;
+                    else b += 2 * Math.PI;
+                }
+                return a + (b - a) * t;
+            };
+            r_la = lerpAngle(startPose.la, anim.set.la, lift);
+            r_ra = lerpAngle(startPose.ra, anim.set.ra, lift);
+            r_lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
+            r_rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
+            r_w = lerp(startPose.w, anim.set.w, lift);
+        } else {
+            r_la = idle.la; r_ra = idle.ra;
+            r_lfa = idle.lfa; r_rfa = idle.rfa;
+            r_w = idle.w;
+        }
+
+        let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
+        const isLefty = playerData.isLefty;
+        if (isLefty) {
+            leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
+            leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
+            wristAngle = -r_w;
+        } else {
+            leftArmAngle = r_la; rightArmAngle = r_ra;
+            leftForeArmAngle = r_lfa; rightForeArmAngle = r_rfa;
+            wristAngle = r_w;
+        }
+
+        let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
+        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
+        let legLen = 30 * s * sizeMod.h;
+        let torsoY = p.y - legLen - bodyH;
+        let headY = torsoY - (10 * s * sizeMod.head);
+        let headRadius = 12 * s * sizeMod.head;
+
+        let shoulderY = torsoY + (5*s);
+        let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
+        let upperArmLen = 20 * s * sizeMod.h * 1.05; let foreArmLen = 20 * s * sizeMod.h * 1.05;
+
+        // 0b. Detached Ball Rendering
+        drawDetachedBall(p, s, torsoY, bodyH, headY);
+
+        // 0c. HELD BALL RENDERING (Layer 0)
+        const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
+        if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+             const isRightHand = !isLefty;
+             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+
+             let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+
+             let theta = shootFAngle + wristAngle;
+             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+
+             drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
+        }
+
         // 1. Setup Base Colors
         let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
         let thighColor = '#555', calfColor = '#555';
@@ -3208,23 +3307,14 @@ let lastDisplayedContestTime = -1;
             legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
         }
 
-        let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
-        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
-        let legLen = 30 * s * sizeMod.h;
-        let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head);
-        let headRadius = 12 * s * sizeMod.head;
-
-        // 3. Draw Back Accessories (MOVED TO END FOR CORRECT Z-ORDER)
-
-        // 4. Draw Legs
+        // 2. Legs (Base implementation)
         const baseKneeY = p.y - (legLen * 0.5);
         let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
         let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
         let lFootX = p.x - 10*s, lFootY = p.y;
         let rFootX = p.x + 10*s, rFootY = p.y;
 
-        // Special Leg Logic (Dirk Fadeaway)
+        // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
             const lift = Math.min(1.0, Math.max(0, (9 - getCurrentVz()) / 9));
             const kickH = 20 * s * lift;
@@ -3276,74 +3366,6 @@ let lastDisplayedContestTime = -1;
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
         drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
 
-
-        // 5. Arms Logic
-        let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle;
-        let upperArmLen = 20 * s * sizeMod.h * 1.05; let foreArmLen = 20 * s * sizeMod.h * 1.05;
-        let wristAngle = 0;
-
-        // Animation Keyframes (Removed local declaration)
-
-        const currentStyle = playerData.currentStyle || 'classic';
-        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
-        const idle = DEFAULT_IDLE;
-        const lerp = (a, b, t) => a + (b - a) * t;
-
-        // Calculate generic (Right-Handed) angles first
-        let r_la, r_ra, r_lfa, r_rfa, r_w;
-
-        if (state === 'SHOOTING') {
-            r_la = anim.release.la; r_ra = anim.release.ra;
-            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
-            r_w = anim.release.w;
-        } else if (state === 'JUMPING') {
-            let lift = Math.max(0, (9 - getCurrentVz()) / 9);
-            lift = Math.min(1.0, lift); // Clamp
-
-            // Start from 'ready' pose for smoother/snappier transition
-            const startPose = anim.ready || idle;
-
-            // Special interpolation for wrapped angles (to avoid side swing)
-            const lerpAngle = (a, b, t) => {
-                // If crossing PI/0 boundary significantly, adjust
-                if (Math.abs(b - a) > Math.PI) {
-                    if (b > a) a += 2 * Math.PI;
-                    else b += 2 * Math.PI;
-                }
-                return a + (b - a) * t;
-            };
-
-            r_la = lerpAngle(startPose.la, anim.set.la, lift);
-            r_ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            r_lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            r_rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            r_w = lerp(startPose.w, anim.set.w, lift);
-        } else {
-            r_la = idle.la; r_ra = idle.ra;
-            r_lfa = idle.lfa; r_rfa = idle.rfa;
-            r_w = idle.w;
-        }
-
-        const isLefty = playerData.isLefty;
-        if (isLefty) {
-            // Mirror logic: Left Arm takes Right Arm's mirrored angles
-            // Mirror Angle = PI - Angle
-            leftArmAngle = Math.PI - r_ra;
-            rightArmAngle = Math.PI - r_la;
-            leftForeArmAngle = Math.PI - r_rfa;
-            rightForeArmAngle = Math.PI - r_lfa;
-            wristAngle = -r_w;
-        } else {
-            leftArmAngle = r_la;
-            rightArmAngle = r_ra;
-            leftForeArmAngle = r_lfa;
-            rightForeArmAngle = r_rfa;
-            wristAngle = r_w;
-        }
-
-        let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
-
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
@@ -3377,10 +3399,8 @@ let lastDisplayedContestTime = -1;
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
-            const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
-            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !isDetachedStyle) {
-                drawBallSprite(0, 5*s, s, (currentStreak >= 5));
-            }
+
+            // Ball removed (drawn earlier)
             ctx.restore();
         };
 
@@ -3905,8 +3925,6 @@ let lastDisplayedContestTime = -1;
             ctx.textAlign = "center";
             ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
         }
-        // Detached Ball Rendering (Standard Player)
-        drawDetachedBall(p, s, torsoY, bodyH, headY);
 
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
