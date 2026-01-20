@@ -435,11 +435,11 @@
             <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
             <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
         </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><button id="btnBuyIncome" class="btn" onclick="buyUpgrade('income')">Acheter (5)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><button id="btnBuyAim" class="btn" onclick="buyUpgrade('aim')">Acheter (10)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><button id="btnBuyLuck" class="btn" onclick="buyUpgrade('luck')">Acheter (15)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><button id="btnBuyMoonwalk" class="btn" onclick="buyUpgrade('moonwalk')">Acheter (25)</button></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><button id="btnBuyExtraLives" class="btn" onclick="buyUpgrade('extraLives')">Acheter (1000)</button></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
+        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
         <div class="skin-viewer">
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
             <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
@@ -1253,6 +1253,7 @@ let lastDisplayedContestTime = -1;
     const defaultData = {
         tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+        purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
         unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
@@ -1277,6 +1278,18 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
+
+    // Migration: purchasedStats
+    if (!playerData.purchasedStats) {
+        playerData.purchasedStats = {
+            income: playerData.stats.income || 1,
+            aim: playerData.stats.aim || 1,
+            luck: playerData.stats.luck || 1,
+            moonwalk: playerData.stats.moonwalk || 1,
+            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0
+        };
+    }
+
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
@@ -4219,7 +4232,8 @@ let lastDisplayedContestTime = -1;
 
             if (currentStreak > 1) reward += currentStreak * 2;
             playerData.tacos += reward;
-            const jump = playerData.stats.moonwalk || 1; distanceLevel += jump;
+            const jump = (playerData.stats.moonwalk !== undefined) ? playerData.stats.moonwalk : 1;
+            distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
             saveData(); checkAchievements('score');
@@ -4392,7 +4406,7 @@ let lastDisplayedContestTime = -1;
         saveData();
     }
     window.getUpgradeCost = function(statName) {
-        const lvl = playerData.stats[statName];
+        const lvl = playerData.purchasedStats[statName];
         if (statName === 'income') return Math.floor(25 * Math.pow(lvl, 2));
         if (statName === 'aim') return Math.floor(50 * Math.pow(lvl, 2));
         if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
@@ -4401,10 +4415,32 @@ let lastDisplayedContestTime = -1;
         return 999;
     }
     window.buyUpgrade = function(stat) {
-        if (stat === 'luck' && playerData.stats.luck >= 10) return;
+        if (stat === 'luck' && playerData.purchasedStats.luck >= 10) return;
         const cost = getUpgradeCost(stat);
         if (playerData.tacos >= cost) {
-            playerData.tacos -= cost; playerData.stats[stat]++; saveData(); updateShopUI(); updateUI(); checkAchievements('shop');
+            playerData.tacos -= cost;
+            playerData.purchasedStats[stat]++;
+            playerData.stats[stat] = playerData.purchasedStats[stat]; // Auto-equip
+            saveData();
+            updateShopUI();
+            updateUI();
+            checkAchievements('shop');
+        }
+    }
+    window.changeStatLevel = function(stat, delta) {
+        const current = playerData.stats[stat];
+        const max = playerData.purchasedStats[stat];
+        const min = 0;
+
+        let next = current + delta;
+        if (next < min) next = min;
+        if (next > max) next = max;
+
+        if (next !== current) {
+            playerData.stats[stat] = next;
+            saveData();
+            updateShopUI();
+            updateUI();
         }
     }
     window.changeAnimal = function(dir) {
