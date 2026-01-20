@@ -1483,13 +1483,28 @@ let lastDisplayedContestTime = -1;
 
     function drawBallSprite(x, y, scale, isFire = false) {
         let color1 = '#ff6600'; let color2 = '#cc5500';
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { color1 = '#FFFFFF'; color2 = '#0000FF'; }
-        else if (isFire) { color1 = '#FFFF00'; color2 = '#FF0000'; }
+        let key = 'ball_default';
 
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 1 * scale;
-        const grad = ctx.createRadialGradient(x - 2*scale, y - 2*scale, 1*scale, x, y, 8*scale);
-        grad.addColorStop(0, color1); grad.addColorStop(1, color2);
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
+            color1 = '#FFFFFF'; color2 = '#0000FF'; key = 'ball_money';
+        } else if (isFire) {
+            color1 = '#FFFF00'; color2 = '#FF0000'; key = 'ball_fire';
+        }
+
+        const fillStyle = getCachedPattern(key, (gradCtx, size) => {
+            const r = size / 2;
+            const grad = gradCtx.createRadialGradient(r*0.8, r*0.8, 1, r, r, r);
+            grad.addColorStop(0, color1);
+            grad.addColorStop(1, color2);
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+
+        ctx.fillStyle = fillStyle;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1 * scale;
+
+        ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.stroke();
 
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
@@ -1714,10 +1729,22 @@ let lastDisplayedContestTime = -1;
             ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
             ctx.closePath();
 
-            const grad = ctx.createRadialGradient(cx, topY + h/2, 5*scale, cx, topY + h/2, w);
-            grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-            ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill();
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+            const cacheKey = `anatomic_body_${color}`;
+            const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                gradCtx.fillStyle = color;
+                gradCtx.fillRect(0, 0, size, size);
+                const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+                grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+                gradCtx.fillStyle = grad;
+                gradCtx.fillRect(0, 0, size, size);
+            });
+
+            ctx.fillStyle = fillStyle;
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
 
         if (options.chestStripeColor) {
@@ -1749,16 +1776,58 @@ let lastDisplayedContestTime = -1;
     function drawLimb(x1, y1, x2, y2, width, color) {
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
-        ctx.beginPath(); ctx.moveTo(x1 - dx, y1 + dy); ctx.lineTo(x2 - dx, y2 + dy); ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
-        ctx.lineTo(x1 + dx, y1 - dy); ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2); ctx.closePath();
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2); grad.addColorStop(0, color); grad.addColorStop(1, '#000000');
-        ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+
+        const cacheKey = `limb_${color}`;
+        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+            gradCtx.fillStyle = color;
+            gradCtx.fillRect(0, 0, size, size);
+            const grad = gradCtx.createLinearGradient(0, 0, 0, size);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+
+        ctx.beginPath();
+        ctx.moveTo(x1 - dx, y1 + dy);
+        ctx.lineTo(x2 - dx, y2 + dy);
+        ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
+        ctx.lineTo(x1 + dx, y1 - dy);
+        ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2);
+        ctx.closePath();
+
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
     function drawRoundedRect(x, y, w, h, r, color) {
-        ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
-        const grad = ctx.createRadialGradient(x + w/2, y + h/2, 5, x + w/2, y + h/2, w); grad.addColorStop(0, color); grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-        ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = grad; ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+        const cacheKey = `rounded_rect_${color}`;
+        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+            gradCtx.fillStyle = color;
+            gradCtx.fillRect(0, 0, size, size);
+            const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+            grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+
+        ctx.beginPath();
+        ctx.moveTo(x+r, y);
+        ctx.arcTo(x+w, y, x+w, y+h, r);
+        ctx.arcTo(x+w, y+h, x, y+h, r);
+        ctx.arcTo(x, y+h, x, y, r);
+        ctx.arcTo(x, y, x+w, y, r);
+        ctx.closePath();
+
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
     function drawDecor(p, type, variant, seed) {
@@ -2023,12 +2092,18 @@ let lastDisplayedContestTime = -1;
         
         ctx.closePath();
         
-        // Gradient
-        const grad = ctx.createLinearGradient(0, -w, 0, w);
-        grad.addColorStop(0, color);
-        grad.addColorStop(0.5, color);
-        grad.addColorStop(1, 'rgba(0,0,0,0.3)'); // Self shadow
-        ctx.fillStyle = grad;
+        const cacheKey = `muscle_limb_${color}`;
+        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+            gradCtx.fillStyle = color;
+            gradCtx.fillRect(0, 0, size, size);
+            const grad = gradCtx.createLinearGradient(0, 0, 0, size);
+            grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+
+        ctx.fillStyle = fillStyle;
         ctx.fill();
         
         // Muscle Definition highlight
@@ -2060,6 +2135,27 @@ let lastDisplayedContestTime = -1;
         // Detail lines (laces area)
         ctx.strokeStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
+    }
+
+    // --- OPTIMIZATION: Gradient Caching ---
+    const GRAD_CANVAS_SIZE = 64; // Power of 2 for performance
+    const g_gradientCache = {};
+
+    function getCachedPattern(key, generator) {
+        if (g_gradientCache[key]) {
+            return g_gradientCache[key];
+        }
+
+        const gradCanvas = document.createElement('canvas');
+        gradCanvas.width = GRAD_CANVAS_SIZE;
+        gradCanvas.height = GRAD_CANVAS_SIZE;
+        const gradCtx = gradCanvas.getContext('2d');
+
+        generator(gradCtx, GRAD_CANVAS_SIZE);
+
+        const pattern = ctx.createPattern(gradCanvas, 'repeat');
+        g_gradientCache[key] = pattern;
+        return pattern;
     }
 
     function drawJersey(cx, topY, w, h, scale, skinObj) {
@@ -2197,89 +2293,79 @@ let lastDisplayedContestTime = -1;
         const bottomY = waistY + h;
         const crotchY = waistY + h * 0.45;
 
+        // --- Get Base Pattern (Color + Shading) ---
+        const cacheKey = `shorts_base_${color}`;
+        let fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+            // Base Color
+            gradCtx.fillStyle = color;
+            gradCtx.fillRect(0, 0, size, size);
+            // Gradient Overlay
+            const grad = gradCtx.createLinearGradient(0, 0, size, 0);
+            grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+        if (!fillStyle) fillStyle = color;
+
+        // --- Draw Main Shape ---
         ctx.beginPath();
-        // Waist
-        ctx.moveTo(cx - waistW/2, waistY);
-        ctx.lineTo(cx + waistW/2, waistY);
-        
-        // Right Leg Outer
+        ctx.moveTo(cx - waistW/2, waistY); ctx.lineTo(cx + waistW/2, waistY);
         ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
-        // Right Leg Bottom
         ctx.lineTo(cx + hipW/2 - legW, bottomY);
-        // Crotch Up
         ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
-        // Crotch Down
         ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
-        // Left Leg Bottom
         ctx.lineTo(cx - hipW/2, bottomY);
-        // Left Leg Outer
         ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
-        
         ctx.closePath();
-
-        // Fill
-        ctx.fillStyle = color;
-        ctx.fill();
         
-        // Gradient
-        const grad = ctx.createLinearGradient(cx - hipW/2, waistY, cx + hipW/2, waistY);
-        grad.addColorStop(0, 'rgba(0,0,0,0.1)'); 
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
-        
-        ctx.fillStyle = grad;
-        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = fillStyle;
         ctx.fill();
 
-        // --- PATTERNS ---
-        // Side Stripes
+        // --- Draw Stripes Dynamically (to preserve curves) ---
         if(skinObj.sideStripesColor) {
+            ctx.save();
+            ctx.clip(); // Clip to the shorts path just drawn
+
             ctx.fillStyle = skinObj.sideStripesColor;
             const stripeW = 4 * scale;
 
-            // Left
+            // Left Stripe Path
             ctx.beginPath();
             ctx.moveTo(cx - hipW/2, waistY);
             ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY);
             ctx.lineTo(cx - hipW/2 + stripeW, bottomY);
             ctx.quadraticCurveTo(cx - hipW/2 + stripeW, waistY + h*0.5, cx - hipW/2 + stripeW, waistY);
+            ctx.closePath();
             ctx.fill();
 
-            // Right
+            // Right Stripe Path
             ctx.beginPath();
             ctx.moveTo(cx + hipW/2, waistY);
             ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY);
             ctx.lineTo(cx + hipW/2 - stripeW, bottomY);
             ctx.quadraticCurveTo(cx + hipW/2 - stripeW, waistY + h*0.5, cx + hipW/2 - stripeW, waistY);
+            ctx.closePath();
             ctx.fill();
+
+            ctx.restore(); // Remove clipping mask
         }
 
-        ctx.globalCompositeOperation = 'source-over';
-        
-        // Waistband
+        // --- Details (on top of everything) ---
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(cx - waistW/2, waistY, waistW, 5*scale);
         
-        // Side Stripes Borders (Optional detail)
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.lineWidth = 1*scale;
         ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx + hipW/2, waistY); ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY); ctx.stroke();
 
-        // Trim (Hem)
         if(skinObj.trimColor) {
             ctx.strokeStyle = skinObj.trimColor;
             ctx.lineWidth = 2 * scale;
-            // Left Leg Hem
-            ctx.beginPath();
-            ctx.moveTo(cx - hipW/2, bottomY);
-            ctx.lineTo(cx - hipW/2 + legW, bottomY);
-            ctx.stroke();
-            // Right Leg Hem
-            ctx.beginPath();
-            ctx.moveTo(cx + hipW/2 - legW, bottomY);
-            ctx.lineTo(cx + hipW/2, bottomY);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx - hipW/2, bottomY); ctx.lineTo(cx - hipW/2 + legW, bottomY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + hipW/2 - legW, bottomY); ctx.lineTo(cx + hipW/2, bottomY); ctx.stroke();
         }
     }
 
