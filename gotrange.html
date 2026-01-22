@@ -868,7 +868,7 @@
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
-        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', pattern: 'suit_jacket', hairStyle: 'anchorman', hairColor: '#5D4037', skinTone: '#f0d5be' },
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket' },
 
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
@@ -2927,23 +2927,21 @@ let lastDisplayedContestTime = -1;
                  drawBraid(p.x + (i*5*s), headY, p.x + (i*2*s), headY - 14*s);
              }
         }
-        else if(skinObj.hairStyle === 'anchorman') {
+        else if(skinObj.hairStyle === 'pompadour') {
              ctx.fillStyle = skinObj.hairColor || '#5D4037';
-             // Helmet shape from back
+             // Pompadour Shape
              ctx.beginPath();
-             // Top Arc
-             ctx.arc(p.x, headY - 4*s, headRadius * 1.3, Math.PI, 0);
-             // Side flares
-             ctx.lineTo(p.x + headRadius * 1.4, headY + 10*s); // Right bottom
-             ctx.quadraticCurveTo(p.x + headRadius, headY + 15*s, p.x + headRadius * 0.5, headY + 8*s); // Curl in
-             ctx.lineTo(p.x - headRadius * 0.5, headY + 8*s);
-             ctx.quadraticCurveTo(p.x - headRadius, headY + 15*s, p.x - headRadius * 1.4, headY + 10*s); // Left bottom
-             ctx.closePath();
+             // Top volume (tall and slightly wider at top)
+             ctx.ellipse(p.x, headY - 6*s, headRadius * 1.2, headRadius * 1.4, 0, Math.PI, 0);
+             // Sides tapering down to nape
+             ctx.lineTo(p.x + headRadius * 0.8, headY + 10*s);
+             ctx.quadraticCurveTo(p.x, headY + 14*s, p.x - headRadius * 0.8, headY + 10*s);
+             ctx.lineTo(p.x - headRadius * 1.2, headY - 6*s);
              ctx.fill();
 
-             // Texture/Sheen
-             ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.arc(p.x, headY - 4*s, headRadius * 1.0, Math.PI + 0.5, -0.5); ctx.stroke();
+             // Detail: Swirl or sheen on top
+             ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.arc(p.x, headY - 8*s, headRadius * 0.8, Math.PI + 0.5, -0.5); ctx.stroke();
         }
         else if(skinObj.hairStyle === 'mohawk') {
              ctx.fillStyle = skinObj.hairColor || '#000';
