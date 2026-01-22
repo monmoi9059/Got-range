@@ -352,6 +352,14 @@
             line-height: 50px;
             text-align: center;
         }
+
+        .gamepad-focus {
+            outline: 4px solid #FFD700 !important;
+            box-shadow: 0 0 15px #FFD700 !important;
+            transform: scale(1.05);
+            z-index: 9999;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -5178,9 +5186,202 @@ let lastDisplayedContestTime = -1;
         let dt = elapsed / 16.666;
         if(dt > 4) dt = 4;
         lastTime = timestamp;
+
+        if (typeof GamepadController !== 'undefined') {
+            GamepadController.update();
+        }
+
         update(dt);
         draw();
     }
+
+    // --- GAMEPAD CONTROLLER ---
+    const GamepadController = {
+        active: false,
+        focusedElement: null,
+        focusIndex: 0,
+        focusableElements: [],
+        lastButtonState: {},
+        lastState: null,
+        navDelay: 0,
+
+        // Mapping (Standard)
+        BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
+        BTN_UP: 12, BTN_DOWN: 13, BTN_LEFT: 14, BTN_RIGHT: 15,
+
+        update: function() {
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+            const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3]; // Check all slots
+            if (!gp) return;
+
+            // Only activate if a button is pressed or previously active
+            if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
+            if (!this.active) return;
+
+            // Check State Change
+            if (this.lastState !== state) {
+                this.refreshFocusList();
+                this.lastState = state;
+            }
+
+            // Navigation
+            this.handleNavigation(gp);
+
+            // Actions
+            this.handleActions(gp);
+
+            // Save state
+            for(let i=0; i<gp.buttons.length; i++) {
+                this.lastButtonState[i] = gp.buttons[i].pressed;
+            }
+        },
+
+        isPressed: function(gp, btnIndex) {
+            return gp.buttons[btnIndex] && gp.buttons[btnIndex].pressed && !this.lastButtonState[btnIndex];
+        },
+
+        isReleased: function(gp, btnIndex) {
+            return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && this.lastButtonState[btnIndex];
+        },
+
+        handleNavigation: function(gp) {
+            if (this.navDelay > 0) {
+                this.navDelay--;
+                return;
+            }
+
+            // Check D-Pad
+            let dx = 0; let dy = 0;
+            if (gp.buttons[12] && gp.buttons[12].pressed) dy = -1;
+            if (gp.buttons[13] && gp.buttons[13].pressed) dy = 1;
+            if (gp.buttons[14] && gp.buttons[14].pressed) dx = -1;
+            if (gp.buttons[15] && gp.buttons[15].pressed) dx = 1;
+
+            // Check Left Stick (Threshold 0.5)
+            if (gp.axes[0] && Math.abs(gp.axes[0]) > 0.5) dx = Math.sign(gp.axes[0]);
+            if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
+
+            if (dx !== 0 || dy !== 0) {
+                this.moveFocus(dx, dy);
+                this.navDelay = 12; // ~200ms debounce
+            }
+        },
+
+        moveFocus: function(dx, dy) {
+            this.refreshFocusList();
+            if (this.focusableElements.length === 0) return;
+
+            // Slider Handling (Left/Right)
+            if (this.focusedElement && this.focusedElement.tagName === 'INPUT' && this.focusedElement.type === 'range' && dx !== 0) {
+                const step = parseFloat(this.focusedElement.step) || 1;
+                const val = parseFloat(this.focusedElement.value);
+                const min = parseFloat(this.focusedElement.min);
+                const max = parseFloat(this.focusedElement.max);
+
+                let newVal = val;
+                if (dx > 0) newVal = Math.min(max, val + step);
+                if (dx < 0) newVal = Math.max(min, val - step);
+
+                if (newVal !== val) {
+                    this.focusedElement.value = newVal;
+                    this.focusedElement.dispatchEvent(new Event('input'));
+                }
+                return;
+            }
+
+            // Navigation Logic
+            // Simple mapping: Up/Left -> Prev, Down/Right -> Next
+            // This works well for the vertical lists in modals and horizontal list in main menu
+            let direction = (dx + dy);
+            // Bias vertical for Up/Down, horizontal for Left/Right?
+            // Actually, simply summing works for standard lists.
+            // But Left (-1) + Down (+1) = 0.
+            // Let's strictly prioritize:
+            if (dy !== 0) direction = dy;
+            else if (dx !== 0) direction = dx;
+
+            if (direction > 0) this.focusIndex++;
+            else if (direction < 0) this.focusIndex--;
+
+            if (this.focusIndex < 0) this.focusIndex = this.focusableElements.length - 1;
+            if (this.focusIndex >= this.focusableElements.length) this.focusIndex = 0;
+
+            this.applyFocus();
+        },
+
+        refreshFocusList: function() {
+            let containerSelector = '';
+            if (state === 'STARTUP') containerSelector = '#startup-ui';
+            else if (state === 'IDLE') containerSelector = '#controls';
+            else if (state === 'SHOP') containerSelector = '#shopUI';
+            else if (state === 'STATS') containerSelector = '#statsUI';
+            else if (state === 'ACHIEVEMENTS') containerSelector = '#achUI';
+
+            if (!containerSelector) {
+                this.clearFocus();
+                return;
+            }
+
+            const container = document.querySelector(containerSelector);
+            if(!container) return;
+
+            const all = Array.from(container.querySelectorAll('button, .ui-btn, input'));
+            this.focusableElements = all.filter(el => {
+                return el.offsetParent !== null && !el.disabled && el.style.display !== 'none';
+            });
+
+            if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
+                this.focusIndex = 0;
+                this.applyFocus();
+            } else {
+                this.focusIndex = this.focusableElements.indexOf(this.focusedElement);
+            }
+        },
+
+        applyFocus: function() {
+            document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
+            this.focusedElement = this.focusableElements[this.focusIndex];
+            if (this.focusedElement) {
+                this.focusedElement.classList.add('gamepad-focus');
+                // Scroll if needed (for long lists)
+                if(this.focusedElement.scrollIntoView) {
+                    this.focusedElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+                }
+            }
+        },
+
+        clearFocus: function() {
+            document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
+            this.focusedElement = null;
+            this.focusableElements = [];
+        },
+
+        handleActions: function(gp) {
+            // A Button: Select/Click
+            if (this.isPressed(gp, this.BTN_A)) {
+                if (this.focusedElement) {
+                    this.focusedElement.click();
+                    this.refreshFocusList();
+                }
+            }
+
+            // B Button: Back
+            if (this.isPressed(gp, this.BTN_B)) {
+                if (state === 'SHOP') closeShop();
+                else if (state === 'STATS') closeStats();
+                else if (state === 'ACHIEVEMENTS') closeAchievements();
+            }
+
+            // X Button: Shoot (Game Action)
+            if (this.isPressed(gp, this.BTN_X)) {
+                if (state === 'GAMEOVER') openShop();
+                else if (state === 'IDLE') startJump();
+            }
+            if (this.isReleased(gp, this.BTN_X)) {
+                if (state === 'JUMPING') releaseShot();
+            }
+        }
+    };
 
     // Start buttons
     const mobBtn = document.getElementById('mobileShootBtn');
