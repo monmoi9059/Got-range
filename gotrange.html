@@ -703,7 +703,7 @@
         { id: 'dog_police', animal: 'dog', name: 'K-9', cost: 3000, jerseyColor: '#000080', shortsColor: '#000080', headAccessory: 'hat', hatColor: '#000080' },
         { id: 'dog_golden', animal: 'dog', name: 'Golden', cost: 3500, furColor: '#FFD700', headAccessory: 'halo' },
         { id: 'dog_hotdog', animal: 'dog', name: 'Hot-Dog', cost: 4000, jerseyColor: '#FFA500', shortsColor: '#8B4513' },
-        { id: 'dog_airbud', animal: 'dog', name: 'Air Bud', cost: 500, furColor: '#DAA520', jerseyColor: '#191970', shortsColor: '#191970', trimColor: '#FFD700', number: '1', numberColor: '#FFD700' },
+        { id: 'dog_airbud', animal: 'dog', name: 'Golden Bud', cost: 500, furColor: '#DAA520', jerseyColor: '#191970', shortsColor: '#191970', trimColor: '#FFD700', number: '1', numberColor: '#FFD700' },
 
         // BEARS
         { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
@@ -831,7 +831,7 @@
         { id: 'human_reggie', animal: 'human', name: 'Reggie', cost: 25000, heightScale: 1.140, widthScale: 0.85, jerseyColor: '#002D62', shortsColor: '#002D62', pinstripesColor: '#FDB927', number: '31', numberColor: '#FDB927', skinTone: '#8d5524', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' },
         { id: 'human_tmac', animal: 'human', name: 'T-Mac', cost: 25000, heightScale: 1.160, widthScale: 0.9, jerseyColor: '#007DC5', shortsColor: '#007DC5', pinstripesColor: '#C4CED4', number: '1', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
         { id: 'human_kg', animal: 'human', name: 'Big Ticket', cost: 30000, heightScale: 1.200, widthScale: 0.88, jerseyColor: '#005083', shortsColor: '#005083', trimColor: '#78BE20', number: '21', numberColor: '#FFF', skinTone: '#2e1e16', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
-        { id: 'human_jackie', animal: 'human', name: 'Jackie Moon', cost: 500, heightScale: 1.1, widthScale: 1.0, jerseyColor: '#FFF', shortsColor: '#FFF', trimColor: '#FFA500', sideStripesColor: '#00CED1', number: '33', numberColor: '#00CED1', skinTone: '#ffe0bd', hairStyle: 'afro', hairColor: '#5D4037', headAccessory: 'headband', hatColor: '#FFA500', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short' },
+        { id: 'human_jackie', animal: 'human', name: 'Semi Moon', cost: 500, heightScale: 1.1, widthScale: 1.0, jerseyColor: '#FFF', shortsColor: '#FFF', trimColor: '#FFA500', sideStripesColor: '#00CED1', number: '33', numberColor: '#00CED1', skinTone: '#ffe0bd', hairStyle: 'afro', hairColor: '#5D4037', headAccessory: 'headband', hatColor: '#FFA500', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short' },
 
         // PARODIES & MYTHICAL (Unique)
         { id: 'human_hedgehog', animal: 'human', name: 'Hérisson Bleu', cost: 15000, heightScale: 0.9, widthScale: 0.9, jerseyColor: '#0000FF', shortsColor: '#0000FF', sleeveColor: '#0000FF', skinTone: '#0000FF', hairStyle: 'spikes', hairColor: '#0000FF', shoesColor: '#FF0000', socksColor: '#FFF' },
@@ -911,7 +911,7 @@
         { id: 'bowling', name: 'Strike', cost: 0, desc: 'Lancer de bowling. (Au sol)', modifiers: { jumpVelocity: 0, speed: 0.6 } },
         { id: 'hadouken', name: 'Hadouken', cost: 0, desc: 'Boule de feu ! (Au sol)', modifiers: { jumpVelocity: 0, speed: 2.5, timingWindow: 0.5 } },
         { id: 'tpose', name: 'Le Glitch', cost: 0, desc: 'T-Pose menaçante. (Au sol)', modifiers: { jumpVelocity: 0, speed: 3.0, timingWindow: 0.3 } },
-        { id: 'airbud', name: 'Le Museau', cost: 0, desc: 'Passe de la truffe.', modifiers: { speed: 1.2, jumpVelocity: 8.0 } },
+        { id: 'airbud', name: 'Le Museau', cost: 0, desc: 'Passe de la truffe.', modifiers: { speed: 1.2, jumpVelocity: 0 } },
         { id: 'telekinesis', name: 'Psychokinésie', cost: 0, desc: 'Par la pensée.', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
         { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } }
     ];
@@ -1299,6 +1299,7 @@ let lastDisplayedContestTime = -1;
     let resetStage = 0;
     let isGroundedShot = false;
     let groundShotTimer = 0;
+    let airbudJumpTime = 0;
 
     // Physique
     const GRAVITY = 0.5;
@@ -1659,11 +1660,11 @@ let lastDisplayedContestTime = -1;
                  const startX = p.x + (playerData.isLefty ? -10*s : 10*s);
                  const startY = torsoY + bodyH * 0.5;
                  const endX = p.x;
-                 const endY = headY - 4*s;
+                 const endY = headY - 80*s;
 
                  bx = startX + (endX - startX) * lift;
                  by = startY + (endY - startY) * lift;
-                 by -= Math.sin(lift * Math.PI) * 15 * s;
+                 by -= Math.sin(lift * Math.PI) * 10 * s;
              }
              else if (playerData.currentStyle === 'telekinesis') {
                  const startY = torsoY + bodyH * 0.2;
@@ -2642,6 +2643,22 @@ let lastDisplayedContestTime = -1;
         // 0b. Detached Ball Rendering
         drawDetachedBall(p, s, torsoY, bodyH, headY);
 
+        if (playerData.currentStyle === 'airbud' && state === 'SHOOTING') {
+             const t = airbudJumpTime;
+             const maxT = 30;
+             if (t < maxT) {
+                 const jumpHeight = 60 * s * sizeMod.h;
+                 const nt = t / maxT;
+                 const offset = 4 * jumpHeight * nt * (1 - nt);
+                 p.y -= offset;
+                 torsoY = p.y - legLen - bodyH;
+                 headY = torsoY - (10 * s * sizeMod.head);
+                 shoulderY = torsoY + (5*s);
+                 // Recalculate shoulders for Human
+                 leftShoulderX = p.x - 16*s; rightShoulderX = p.x + 16*s;
+             }
+        }
+
         // 0c. HELD BALL RENDERING (Layer 0 - Before Body)
         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
         if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
@@ -3389,6 +3406,22 @@ let lastDisplayedContestTime = -1;
 
         // 0b. Detached Ball Rendering
         drawDetachedBall(p, s, torsoY, bodyH, headY);
+
+        if (playerData.currentStyle === 'airbud' && state === 'SHOOTING') {
+             const t = airbudJumpTime;
+             const maxT = 30;
+             if (t < maxT) {
+                 const jumpHeight = 60 * s * sizeMod.h;
+                 const nt = t / maxT;
+                 const offset = 4 * jumpHeight * nt * (1 - nt);
+                 p.y -= offset;
+                 torsoY = p.y - legLen - bodyH;
+                 headY = torsoY - (10 * s * sizeMod.head);
+                 shoulderY = torsoY + (5*s);
+                 // Recalculate shoulders
+                 leftShoulderX = p.x - 12*s; rightShoulderX = p.x + 12*s;
+             }
+        }
 
         // 0c. HELD BALL RENDERING (Layer 0)
         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
@@ -4483,6 +4516,7 @@ let lastDisplayedContestTime = -1;
 
     function shoot(timingError) {
         state = 'SHOOTING';
+        if (playerData.currentStyle === 'airbud') airbudJumpTime = 0;
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
 
@@ -4604,6 +4638,7 @@ let lastDisplayedContestTime = -1;
             }
         }
         if (state === 'SHOOTING') {
+            if (playerData.currentStyle === 'airbud') airbudJumpTime += 1 * dt;
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
             if (ball.active) {
                 if (ball.isFire) {
