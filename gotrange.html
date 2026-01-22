@@ -419,6 +419,15 @@
             <hr style="border-color:#555; margin:15px 0;">
             <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
         </div>
+
+        <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">TAILLE VISÉE</strong>
+                <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
+            </div>
+            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
+        </div>
+
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
         <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
@@ -1293,7 +1302,7 @@ let lastDisplayedContestTime = -1;
         unlockedSkins: ['rat_classic'], currentSkin: 'rat_classic', unlockedAchievements: [],
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
         mobileControls: false, platformChosen: false,
-        meterEnabled: true, meterShape: 'arc'
+        meterEnabled: true, meterShape: 'arc', meterScale: 1.0
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -1370,62 +1379,85 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawShotMeter(cx, cy, radius, s, progress, greenStart, shape) {
-        // Shapes: 'arc', 'vertical', 'horizontal'
         ctx.lineCap = 'round';
+        let color = '#FF4500';
+        if (progress > greenStart) color = '#00FF00'; else if (progress > 0.6) color = '#FFFF00';
 
         if (shape === 'vertical') {
             const h = radius * 3;
             const w = 15 * s;
-            const x = cx + radius; // Offset to right
+            const x = cx + radius;
             const y = cy - h/2;
-
-            // Background
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = w;
-            ctx.moveTo(x, y + h); ctx.lineTo(x, y); ctx.stroke();
-
-            // Green Zone
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = w;
-            ctx.moveTo(x, y + h * (1-greenStart)); ctx.lineTo(x, y); ctx.stroke();
-
-            // Actual Bar
-            let color = '#FF4500';
-            if (progress > greenStart) color = '#00FF00'; else if (progress > 0.6) color = '#FFFF00';
-
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = w * 0.8;
-            ctx.moveTo(x, y + h); ctx.lineTo(x, y + h * (1-progress)); ctx.stroke();
-
-        } else if (shape === 'horizontal') {
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = w; ctx.moveTo(x, y + h); ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = w; ctx.moveTo(x, y + h * (1-greenStart)); ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = w * 0.8; ctx.moveTo(x, y + h); ctx.lineTo(x, y + h * (1-progress)); ctx.stroke();
+        }
+        else if (shape === 'horizontal') {
             const w = radius * 3;
             const h = 15 * s;
             const x = cx - w/2;
-            const y = cy + radius; // Offset below
-
-            // Background
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = h;
-            ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
-
-            // Green Zone
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = h;
-            ctx.moveTo(x + w * greenStart, y); ctx.lineTo(x + w, y); ctx.stroke();
-
-            // Actual Bar
-            let color = '#FF4500';
-            if (progress > greenStart) color = '#00FF00'; else if (progress > 0.6) color = '#FFFF00';
-
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = h * 0.8;
-            ctx.moveTo(x, y); ctx.lineTo(x + w * progress, y); ctx.stroke();
-
-        } else {
-            // ARC (Default)
+            const y = cy + radius;
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = h; ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = h; ctx.moveTo(x + w * greenStart, y); ctx.lineTo(x + w, y); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = h * 0.8; ctx.moveTo(x, y); ctx.lineTo(x + w * progress, y); ctx.stroke();
+        }
+        else if (shape === 'orb') {
+            ctx.lineWidth = 6 * s;
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.3)'; ctx.arc(cx, cy, radius, -Math.PI/2 + (Math.PI*2*greenStart), -Math.PI/2 + Math.PI*2, false); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
+        }
+        else if (shape === 'triangle') {
+            const h = radius * 2.5; const w = radius * 2;
+            const x = cx + radius * 1.5; const y = cy + h/2;
+            ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w/2, y-h); ctx.lineTo(x-w/2, y-h); ctx.fill();
+            const fh = h * progress; const fw = w * progress;
+            ctx.fillStyle = color; ctx.beginPath();
+            ctx.moveTo(x, y); ctx.lineTo(x + fw/2, y - fh); ctx.lineTo(x - fw/2, y - fh); ctx.fill();
+            const gy = y - h * greenStart;
+            ctx.strokeStyle = '#00FF00'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-w/2, gy); ctx.lineTo(x+w/2, gy); ctx.stroke();
+        }
+        else if (shape === 'diamond') {
+            const size = radius * 1.2;
+            const x = cx + size * 1.5; const y = cy;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI/4);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(-size, -size, size*2, size*2);
+            ctx.fillStyle = color;
+            const s2 = size * progress;
+            ctx.fillRect(-s2, -s2, s2*2, s2*2);
+            const sg = size * greenStart;
+            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=2; ctx.strokeRect(-sg, -sg, sg*2, sg*2);
+            ctx.restore();
+        }
+        else if (shape === 'ring') {
+            ctx.lineWidth = 8 * s;
+            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color;
+            ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
+            const a = -Math.PI/2 + (Math.PI*2*greenStart);
+            ctx.beginPath(); ctx.strokeStyle = '#00FF00'; ctx.lineWidth=4*s;
+            ctx.arc(cx, cy, radius*1.2, a-0.2, a+0.2); ctx.stroke();
+        }
+        else if (shape === 'chevron') {
+            const w = radius * 2; const h = radius * 0.8;
+            const x = cx + radius; const y = cy + radius;
+            const gap = 5*s;
+            const count = 5;
+            for(let i=0; i<count; i++) {
+                const pct = (i+1)/count;
+                const py = y - (i * (h+gap));
+                ctx.fillStyle = (progress >= pct) ? color : 'rgba(255,255,255,0.2)';
+                if (greenStart < pct && greenStart > (i)/count) ctx.fillStyle = 'rgba(0,255,0,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(x, py); ctx.lineTo(x + w/2, py - h); ctx.lineTo(x, py - h*0.5); ctx.lineTo(x - w/2, py - h);
+                ctx.fill();
+            }
+        }
+        else {
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s;
             ctx.arc(cx, cy, radius, 0, -Math.PI / 2, true); ctx.stroke();
-
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
             ctx.arc(cx, cy, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2, true); ctx.stroke();
-
-            let color = '#FF4500';
-            if (progress > greenStart) color = '#00FF00'; else if (progress > 0.6) color = '#FFFF00';
-
             ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 8*s;
             ctx.arc(cx, cy, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
         }
@@ -3108,7 +3140,12 @@ let lastDisplayedContestTime = -1;
 
         // Shot Meter
         if (state === 'JUMPING') {
-            const maxVz = 9; const curVz = Math.abs(getCurrentVz());
+            const styleId = playerData.currentStyle || 'classic';
+            const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            if (maxVz <= 0.5) maxVz = 9;
+
+            const curVz = Math.abs(getCurrentVz());
             let progress = 1.0 - (curVz / maxVz); progress = Math.max(0, Math.min(1, progress));
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
@@ -3118,7 +3155,7 @@ let lastDisplayedContestTime = -1;
             const greenStart = 1.0 - (thresh / maxVz);
 
             if (playerData.meterEnabled) {
-                drawShotMeter(cx, meterY, radius, s, progress, greenStart, playerData.meterShape || 'arc');
+                drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, greenStart, playerData.meterShape || 'arc');
             }
         }
     }
@@ -3929,7 +3966,12 @@ let lastDisplayedContestTime = -1;
 
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
-            const maxVz = 9; const curVz = Math.abs(getCurrentVz());
+            const styleId = playerData.currentStyle || 'classic';
+            const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            if (maxVz <= 0.5) maxVz = 9;
+
+            const curVz = Math.abs(getCurrentVz());
             let progress = 1.0 - (curVz / maxVz); progress = Math.max(0, Math.min(1, progress));
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
@@ -3939,7 +3981,7 @@ let lastDisplayedContestTime = -1;
             const greenStart = 1.0 - (thresh / maxVz);
 
             if (playerData.meterEnabled) {
-                drawShotMeter(cx, meterY, radius, s, progress, greenStart, playerData.meterShape || 'arc');
+                drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, greenStart, playerData.meterShape || 'arc');
             }
         }
     }
@@ -4588,10 +4630,14 @@ let lastDisplayedContestTime = -1;
         if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
         const btnShape = document.getElementById('btnCycleMeterShape');
         if(btnShape) {
-            let shapeName = "ARC";
-            if(playerData.meterShape === 'vertical') shapeName = "VERT";
-            if(playerData.meterShape === 'horizontal') shapeName = "HORIZ";
-            btnShape.innerText = "FORME: " + shapeName;
+            let shapeName = playerData.meterShape || 'arc';
+            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
+        }
+        const sld = document.getElementById('meterSizeSlider');
+        if(sld) {
+            const sc = playerData.meterScale || 1.0;
+            sld.value = sc;
+            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
         }
     }
     window.toggleMeter = function() {
@@ -4599,12 +4645,18 @@ let lastDisplayedContestTime = -1;
         saveData(); openStats(); // Refresh UI
     }
     window.cycleMeterShape = function() {
-        const shapes = ['arc', 'vertical', 'horizontal'];
+        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
         let idx = shapes.indexOf(playerData.meterShape);
         if (idx < 0) idx = 0;
         idx = (idx + 1) % shapes.length;
         playerData.meterShape = shapes[idx];
         saveData(); openStats(); // Refresh UI
+    }
+    window.updateMeterScale = function() {
+        const val = parseFloat(document.getElementById('meterSizeSlider').value);
+        playerData.meterScale = val;
+        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
     }
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
