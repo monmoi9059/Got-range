@@ -456,7 +456,7 @@
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
         <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
-        <button id="btnInstallApp" class="btn" style="display:none; background: linear-gradient(to bottom, #00BFFF, #1E90FF); margin-top: 10px; width: 100%; border: 1px solid #FFF;" onclick="installApp()">INSTALLER APP ⬇️</button>
+        <button id="btnInstallApp" class="btn" style="background: linear-gradient(to bottom, #00BFFF, #1E90FF); margin-top: 10px; width: 100%; border: 1px solid #FFF;" onclick="installApp()">INSTALLER APP ⬇️</button>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
@@ -5510,31 +5510,26 @@ let lastDisplayedContestTime = -1;
     // --- INSTALLATION LOGIC ---
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent the mini-infobar from appearing on mobile
         e.preventDefault();
-        // Stash the event so it can be triggered later.
         deferredPrompt = e;
-        // Update UI notify the user they can install the PWA
-        const btn = document.getElementById('btnInstallApp');
-        if(btn) btn.style.display = 'inline-block';
         console.log("Install Prompt Ready");
     });
 
     window.installApp = async function() {
-        if (!deferredPrompt) return;
-        // Show the install prompt
-        deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        // We've used the prompt, can't use it again
-        deferredPrompt = null;
-        document.getElementById('btnInstallApp').style.display = 'none';
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            deferredPrompt = null;
+        } else {
+            alert("Pour installer l'application :\n\n📱 iOS : Appuyez sur 'Partager' puis 'Sur l'écran d'accueil'.\n\n💻 PC/Android : Cherchez l'option 'Installer' dans le menu du navigateur.");
+        }
     };
 
     window.addEventListener('appinstalled', () => {
         console.log('PWA was installed');
-        document.getElementById('btnInstallApp').style.display = 'none';
+        const btn = document.getElementById('btnInstallApp');
+        if(btn) btn.innerText = "APP INSTALLÉE ✅";
     });
 
     // Initial resize call
