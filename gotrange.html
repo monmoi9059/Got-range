@@ -1645,43 +1645,47 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawDetachedBall(p, s, torsoY, bodyH, headY) {
-         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
-         if (isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
-             let bx = p.x;
-             let by = torsoY + bodyH * 0.5;
+         try {
+             const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
+             if (isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+                 let bx = p.x;
+                 let by = torsoY + bodyH * 0.5;
 
-             let lift = 0;
-             if (state === 'JUMPING') {
-                 const sId = playerData.currentStyle || 'classic';
-                 const sObj = SHOOTING_STYLES.find(x => x.id === sId) || SHOOTING_STYLES[0];
-                 const maxVz = (sObj.modifiers.jumpVelocity !== undefined) ? sObj.modifiers.jumpVelocity : 9;
-                 const div = (maxVz < 1) ? 9 : maxVz;
-                 lift = Math.min(1.0, Math.max(0, (div - getCurrentVz()) / div));
-             }
-
-             if (playerData.currentStyle === 'airbud') {
-                 const startX = p.x + (playerData.isLefty ? -10*s : 10*s);
-                 const startY = torsoY + bodyH * 0.5;
-                 const endX = p.x;
-                 const endY = headY - 80*s;
-
-                 bx = startX + (endX - startX) * lift;
-                 by = startY + (endY - startY) * lift;
-                 // 135*s ensures a high lob that peaks ~160 units above the head, visually falling onto the nose
-                 by -= Math.sin(lift * Math.PI) * 135 * s;
-             }
-             else if (playerData.currentStyle === 'telekinesis') {
-                 const startY = torsoY + bodyH * 0.2;
-                 const endY = headY - 45*s;
-                 bx = p.x;
-                 by = startY + (endY - startY) * lift;
-                 if (lift > 0.8) {
-                     bx += (Math.random() - 0.5) * 4 * s;
-                     by += (Math.random() - 0.5) * 4 * s;
+                 let lift = 0;
+                 if (state === 'JUMPING') {
+                     const sId = playerData.currentStyle || 'classic';
+                     const sObj = SHOOTING_STYLES.find(x => x.id === sId) || SHOOTING_STYLES[0];
+                     const maxVz = (sObj.modifiers.jumpVelocity !== undefined) ? sObj.modifiers.jumpVelocity : 9;
+                     const div = (maxVz < 1) ? 9 : maxVz;
+                     lift = Math.min(1.0, Math.max(0, (div - getCurrentVz()) / div));
                  }
-             }
 
-             drawBallSprite(bx, by, s, (currentStreak >= 5));
+                 if (playerData.currentStyle === 'airbud') {
+                     const startX = p.x + (playerData.isLefty ? -10*s : 10*s);
+                     const startY = torsoY + bodyH * 0.5;
+                     const endX = p.x;
+                     const endY = headY - 80*s;
+
+                     bx = startX + (endX - startX) * lift;
+                     by = startY + (endY - startY) * lift;
+                     // 135*s ensures a high lob that peaks ~160 units above the head, visually falling onto the nose
+                     by -= Math.sin(lift * Math.PI) * 135 * s;
+                 }
+                 else if (playerData.currentStyle === 'telekinesis') {
+                     const startY = torsoY + bodyH * 0.2;
+                     const endY = headY - 45*s;
+                     bx = p.x;
+                     by = startY + (endY - startY) * lift;
+                     if (lift > 0.8) {
+                         bx += (Math.random() - 0.5) * 4 * s;
+                         by += (Math.random() - 0.5) * 4 * s;
+                     }
+                 }
+
+                 drawBallSprite(bx, by, s, (currentStreak >= 5));
+             }
+         } catch(e) {
+             console.error("Error drawing detached ball:", e);
          }
     }
 
