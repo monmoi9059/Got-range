@@ -2045,6 +2045,11 @@ let lastDisplayedContestTime = -1;
         grad.addColorStop(1, 'rgba(0,0,0,0.4)');
         ctx.fillStyle = grad;
         ctx.fill();
+
+        // Slight Outline
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
     function drawRoundedRect(x, y, w, h, r, color) {
@@ -3769,25 +3774,25 @@ let lastDisplayedContestTime = -1;
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
 
-            // Shoulder Joint
-            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.5, thisUpperColor);
+            // Shoulder Joint (Radius increased to 0.7)
+            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor);
 
             // Upper Arm
             drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
 
-            // Elbow Joint
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+
+            // Forearm
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
+
+            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
             let elbowColor = thisUpperColor;
             if (thisForeColor === furColor && thisUpperColor !== furColor) {
                 elbowColor = thisUpperColor; // Sleeve covers elbow
             } else if (thisUpperColor === furColor) {
                 elbowColor = furColor;
             }
-            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.5, elbowColor);
-
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-
-            // Forearm
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
+            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
@@ -3811,11 +3816,12 @@ let lastDisplayedContestTime = -1;
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
 
-             // Knee Joint
-             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.5, thighColor);
-
              // Draw Base Calf
              drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
+
+             // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
+             // Thigh was drawn before this function.
+             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor);
 
              // Socks & Shoes Overlay
              if(skinObj.socksColor || skinObj.shoesColor) {
