@@ -2916,6 +2916,9 @@ let lastDisplayedContestTime = -1;
             if (isRight && sleeveRight) { uColor = sleeveRight; fColor = sleeveRight; }
             if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
 
+            // Shoulder Joint
+            drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, uColor);
+
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
             // Upper Arm (Deltoid to Elbow)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.w, uColor, 'thigh', s);
@@ -2924,9 +2927,8 @@ let lastDisplayedContestTime = -1;
             // Forearm (Elbow to Wrist)
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
 
-            // Elbow Joint Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.beginPath(); ctx.arc(elbow.x, elbow.y, 3*s, 0, Math.PI*2); ctx.fill();
+            // Elbow Joint
+            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, uColor);
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -2952,6 +2954,10 @@ let lastDisplayedContestTime = -1;
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // Draw Thighs (Skin tone - under shorts)
+        // Hip Joints
+        drawJoint(p.x - 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
+        drawJoint(p.x + 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
+
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
 
@@ -3809,6 +3815,12 @@ let lastDisplayedContestTime = -1;
         drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         const legFurry = isFurry && (legColor === furColor);
+        // Hip Joints
+        if(!legFurry) {
+            drawJoint(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
+            drawJoint(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
+        }
+
         drawFuzzyLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
         drawFuzzyLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
 
