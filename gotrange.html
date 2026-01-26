@@ -1667,7 +1667,8 @@ let lastDisplayedContestTime = -1;
 
                  bx = startX + (endX - startX) * lift;
                  by = startY + (endY - startY) * lift;
-                 by -= Math.sin(lift * Math.PI) * 10 * s;
+                 // 135*s ensures a high lob that peaks ~160 units above the head, visually falling onto the nose
+                 by -= Math.sin(lift * Math.PI) * 135 * s;
              }
              else if (playerData.currentStyle === 'telekinesis') {
                  const startY = torsoY + bodyH * 0.2;
