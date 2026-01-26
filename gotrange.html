@@ -2598,8 +2598,8 @@ let lastDisplayedContestTime = -1;
         const bodyW = 20 * s * sizeMod.w; 
         const bodyH = 40 * s * sizeMod.h;
         const legLen = 30 * s * sizeMod.h;
-        const torsoY = p.y - legLen - bodyH;
-        const headY = torsoY - (10 * s * sizeMod.head);
+        let torsoY = p.y - legLen - bodyH;
+        let headY = torsoY - (10 * s * sizeMod.head);
         const headRadius = 12 * s * sizeMod.head;
 
         // 0. Calculate Arm Configuration EARLY (needed for Ball Placement)
