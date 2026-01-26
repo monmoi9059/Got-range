@@ -630,18 +630,18 @@
         { limit: 60, name: "Piste de Bowling", icon: "🎳" },
         { limit: 94, name: "Terrain NBA", icon: "🏀" },
         { limit: 150, name: "Baleine Bleue", icon: "🐋" },
-        { limit: 195, name: "Tour de Pise", icon: "🇮🇹" },
+        { limit: 195, name: "Tour de Pise", icon: "🇮🇹", type: 'landmark_leaning' },
         { limit: 230, name: "Envergure Boeing 747", icon: "✈️" },
         { limit: 272, name: "Chute Montmorency", icon: "🌊" },
-        { limit: 305, name: "Statue de la Liberté", icon: "🗽" },
-        { limit: 350, name: "Château Frontenac", icon: "🏰" },
-        { limit: 450, name: "Pyramide de Gizeh", icon: "🔺" },
-        { limit: 600, name: "Space Needle", icon: "🛸" },
-        { limit: 984, name: "Tour Eiffel", icon: "🇫🇷" },
-        { limit: 1454, name: "Empire State Building", icon: "🏙️" },
-        { limit: 1815, name: "Tour CN", icon: "🗼" },
+        { limit: 305, name: "Statue de la Liberté", icon: "🗽", type: 'landmark_statue' },
+        { limit: 350, name: "Château Frontenac", icon: "🏰", type: 'landmark_castle' },
+        { limit: 450, name: "Pyramide de Gizeh", icon: "🔺", type: 'landmark_pyramid' },
+        { limit: 600, name: "Space Needle", icon: "🛸", type: 'landmark_needle' },
+        { limit: 984, name: "Tour Eiffel", icon: "🇫🇷", type: 'landmark_tower' },
+        { limit: 1454, name: "Empire State Building", icon: "🏙️", type: 'landmark_building', color: '#555' },
+        { limit: 1815, name: "Tour CN", icon: "🗼", type: 'landmark_needle' },
         { limit: 2200, name: "Pont de Québec (Travée)", icon: "🌉" },
-        { limit: 2717, name: "Burj Khalifa", icon: "🏢" },
+        { limit: 2717, name: "Burj Khalifa", icon: "🏢", type: 'landmark_building', color: '#AAA' },
         { limit: 5280, name: "Un Mille (1.6km)", icon: "🛣️" },
         { limit: 10000, name: "Piste Aéroport", icon: "🛫" },
         { limit: 14410, name: "Mont Rainier", icon: "🏔️" },
@@ -1130,6 +1130,35 @@
         }
         decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
     }
+
+    // Crowd Generation (Stands along the side)
+    for(let d = 500; d < 120000; d += 800) {
+        const pathX = 733 - (d * 0.7);
+        const pathY = 150 + (d * 0.7);
+        const offset = 400;
+        const density = Math.min(1.0, d/50000);
+
+        // Left Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX - offset, y: pathY - offset, dist: d, zoneType: 'crowd', variant: {side:'left', density:density}, seed: Math.random() });
+        }
+        // Right Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX + offset, y: pathY + offset, dist: d, zoneType: 'crowd', variant: {side:'right', density:density}, seed: Math.random() });
+        }
+    }
+
+    // LANDMARK GENERATION
+    SCALE_OBJECTS.forEach(obj => {
+        if (obj.type) {
+            const dist = obj.limit * PIXELS_PER_FOOT;
+            const pathX = 733 - (dist * 0.7);
+            const pathY = 150 + (dist * 0.7);
+            // Place landmarks mostly centered but pushed back or offset
+            const offset = (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
+            decors.push({ x: pathX + offset, y: pathY + offset, dist: dist, zoneType: obj.type, variant: obj, seed: Math.random() });
+        }
+    });
 
     // TACO CAT: One per zone guaranteed
     for(let i=0; i<COURT_ZONES.length; i++) {
@@ -1831,7 +1860,6 @@ let lastDisplayedContestTime = -1;
         const roundness = options.roundness || 0;
 
         // Hourglass / Tapered shape
-        // Shoulders
         const sW = w * 1.1;
         const hW = w * 1.0; // Hips
         const wW = w * waistScale; // Waist
@@ -1849,31 +1877,24 @@ let lastDisplayedContestTime = -1;
             {x: cx - wW/2, y: waistY}         // 5: Waist Left
         ];
 
-        // For furry rendering, inject intermediate points to simulate curves if roundness > 0
         if (isFurry && roundness > 0) {
              const rOffset = w * roundness;
              const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
              const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
              const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
              const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-
-             points = [
-                 points[0], points[1],
-                 midR1, points[2], midR2, points[3],
-                 points[4],
-                 midL1, points[5], midL2
-             ];
+             points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
         }
 
         if (isFurry) {
             drawFuzzyPath(points, color, scale, true, seed);
         } else {
             ctx.beginPath();
-            ctx.moveTo(points[0].x + 10*scale, points[0].y); // Round corner start
+            ctx.moveTo(points[0].x + 10*scale, points[0].y);
             ctx.lineTo(points[1].x - 10*scale, points[1].y);
             ctx.quadraticCurveTo(points[1].x, points[1].y, points[1].x, points[1].y + 10*scale);
 
-            // Right Side
+            // Right
             if (roundness > 0) {
                 const rOffset = w * roundness;
                 ctx.quadraticCurveTo(cx + wW/2 + rOffset, (shoulderY + waistY)/2, points[2].x, points[2].y);
@@ -1882,12 +1903,11 @@ let lastDisplayedContestTime = -1;
                 ctx.lineTo(points[2].x, points[2].y);
                 ctx.lineTo(points[3].x, points[3].y - 10*scale);
             }
-
             ctx.quadraticCurveTo(points[3].x, points[3].y, points[3].x - 10*scale, points[3].y);
             ctx.lineTo(points[4].x + 10*scale, points[4].y);
             ctx.quadraticCurveTo(points[4].x, points[4].y, points[4].x, points[4].y - 10*scale);
 
-            // Left Side
+            // Left
             if (roundness > 0) {
                 const rOffset = w * roundness;
                 ctx.quadraticCurveTo(cx - hW/2 - rOffset*0.5, (waistY + hipY)/2, points[5].x, points[5].y);
@@ -1896,26 +1916,65 @@ let lastDisplayedContestTime = -1;
                 ctx.lineTo(points[5].x, points[5].y);
                 ctx.lineTo(points[0].x, points[0].y + 10*scale);
             }
-
             ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
             ctx.closePath();
 
-            const cacheKey = `anatomic_body_${color}`;
-            const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-                gradCtx.fillStyle = color;
-                gradCtx.fillRect(0, 0, size, size);
-                const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
-                grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-                gradCtx.fillStyle = grad;
-                gradCtx.fillRect(0, 0, size, size);
-            });
+            let fillStyle = color;
+            if (options.isJersey) {
+                 const meshKey = `mesh_${color}`;
+                 fillStyle = getCachedPattern(meshKey, (c, size) => {
+                      c.fillStyle = color;
+                      c.fillRect(0,0,size,size);
+                      c.fillStyle = 'rgba(0,0,0,0.15)';
+                      const spacing = 4;
+                      for(let y=0; y<size; y+=spacing) {
+                          for(let x=0; x<size; x+=spacing) {
+                              if ((Math.floor(x/spacing) + Math.floor(y/spacing)) % 2 === 0) c.fillRect(x,y,1,1);
+                          }
+                      }
+                      // Gradient overlay
+                      const grad = c.createLinearGradient(0,0,size,0);
+                      grad.addColorStop(0, 'rgba(0,0,0,0.2)');
+                      grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                      grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+                      c.fillStyle = grad;
+                      c.fillRect(0,0,size,size);
+                 });
+
+                 // Apply pattern transform
+                 if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
+                     const matrix = new DOMMatrix();
+                     matrix.translateSelf(cx, topY);
+                     fillStyle.setTransform(matrix);
+                 }
+            } else {
+                 const cacheKey = `anatomic_body_${color}`;
+                 fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                    gradCtx.fillStyle = color;
+                    gradCtx.fillRect(0, 0, size, size);
+                    const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+                    gradCtx.fillStyle = grad;
+                    gradCtx.fillRect(0, 0, size, size);
+                });
+            }
 
             ctx.fillStyle = fillStyle;
             ctx.fill();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+
+            // Rim Light
+            ctx.save();
+            ctx.clip();
+            const rimGrad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+            rimGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
+            rimGrad.addColorStop(0.8, 'rgba(255,255,255,0.0)');
+            rimGrad.addColorStop(1, 'rgba(255,255,255,0.3)');
+            ctx.fillStyle = rimGrad;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
         }
 
         if (options.chestStripeColor) {
@@ -1945,33 +2004,47 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawLimb(x1, y1, x2, y2, width, color) {
+        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
         const angle = Math.atan2(y2 - y1, x2 - x1);
-        const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
 
-        const cacheKey = `limb_${color}`;
-        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-            gradCtx.fillStyle = color;
-            gradCtx.fillRect(0, 0, size, size);
-            const grad = gradCtx.createLinearGradient(0, 0, 0, size);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-            gradCtx.fillStyle = grad;
-            gradCtx.fillRect(0, 0, size, size);
-        });
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+
+        // Base Color
+        ctx.fillStyle = color;
 
         ctx.beginPath();
-        ctx.moveTo(x1 - dx, y1 + dy);
-        ctx.lineTo(x2 - dx, y2 + dy);
-        ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
-        ctx.lineTo(x1 + dx, y1 - dy);
-        ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2);
-        ctx.closePath();
-
-        ctx.fillStyle = fillStyle;
+        ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
+        ctx.lineTo(len, -width/2);
+        ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
+        ctx.lineTo(0, width/2);
         ctx.fill();
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+
+        // Cylindrical Shading Overlay
+        const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
+        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawJoint(x, y, radius, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI*2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+        grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+        ctx.fillStyle = grad;
+        ctx.fill();
     }
 
     function drawRoundedRect(x, y, w, h, r, color) {
@@ -2209,6 +2282,114 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x-10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x+10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (type === 'crowd') {
+             const s = p.scale;
+             const w = 200 * s;
+             const h = 80 * s;
+
+             // Simple Grandstand
+             ctx.fillStyle = '#222';
+             ctx.fillRect(p.x - w/2, p.y - h, w, h);
+             ctx.strokeStyle = '#444'; ctx.lineWidth = 2*s; ctx.strokeRect(p.x - w/2, p.y - h, w, h);
+
+             // Crowd Blobs
+             const dens = variant.density || 0.5;
+             const rows = 3 + Math.floor(dens * 4);
+             const cols = 8;
+             for(let r=0; r<rows; r++) {
+                 for(let c=0; c<cols; c++) {
+                     if (Math.random() > 0.7) continue;
+                     const hx = (p.x - w/2) + (c * (w/cols)) + (Math.random()*5*s);
+                     const hy = (p.y - h) + (r * (h/rows)) + (Math.random()*5*s);
+                     // Random Shirt Color
+                     const hue = Math.floor(Math.random() * 360);
+                     ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                     ctx.beginPath(); ctx.arc(hx, hy, 4*s, 0, Math.PI*2); ctx.fill(); // Head/Body blob
+
+                     // Arms (Cheering)
+                     if (Math.random() > 0.6) {
+                         ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1.5*s;
+                         ctx.beginPath(); ctx.moveTo(hx-3*s, hy); ctx.lineTo(hx-5*s, hy-6*s); ctx.stroke();
+                         ctx.beginPath(); ctx.moveTo(hx+3*s, hy); ctx.lineTo(hx+5*s, hy-6*s); ctx.stroke();
+                     }
+                 }
+             }
+    }
+
+        else if (type.startsWith('landmark_')) {
+             const s = p.scale;
+             const color = variant.color || '#888';
+             ctx.fillStyle = color;
+
+             if (type === 'landmark_pyramid') {
+                 const w = 400 * s; const h = 300 * s;
+                 ctx.fillStyle = '#D2B48C';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x - w/2, p.y); ctx.fill();
+                 // Shadow side
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x, p.y); ctx.fill();
+             }
+             else if (type === 'landmark_tower') { // Eiffel
+                 const w = 150 * s; const h = 500 * s;
+                 ctx.strokeStyle = '#555'; ctx.lineWidth = 5*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - w/2, p.y); ctx.quadraticCurveTo(p.x, p.y - h*0.6, p.x, p.y - h); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x + w/2, p.y); ctx.quadraticCurveTo(p.x, p.y - h*0.6, p.x, p.y - h); ctx.stroke();
+                 // Levels
+                 ctx.lineWidth = 3*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - w*0.4, p.y - h*0.3); ctx.lineTo(p.x + w*0.4, p.y - h*0.3); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x - w*0.2, p.y - h*0.6); ctx.lineTo(p.x + w*0.2, p.y - h*0.6); ctx.stroke();
+             }
+             else if (type === 'landmark_building' || type === 'landmark_needle') { // Skyscraper/Needle
+                 const w = (type==='landmark_needle'?60:150) * s;
+                 const h = (type==='landmark_needle'?600:800) * s;
+
+                 ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                 // Windows
+                 if(type === 'landmark_building') {
+                     ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                     for(let i=0; i<20; i++) {
+                         for(let j=0; j<4; j++) {
+                             if(Math.random()>0.5) ctx.fillRect(p.x - w/2 + 10*s + j*30*s, p.y - h + 20*s + i*40*s, 15*s, 20*s);
+                         }
+                     }
+                 } else {
+                     // Needle Top
+                     ctx.fillStyle = color;
+                     ctx.beginPath(); ctx.ellipse(p.x, p.y - h*0.8, w*2, 20*s, 0, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (type === 'landmark_leaning') { // Pisa
+                 const w = 100 * s; const h = 400 * s;
+                 ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(0.1); // Lean
+                 ctx.fillStyle = '#EEE'; ctx.fillRect(-w/2, -h, w, h);
+                 // Arches
+                 ctx.fillStyle = '#CCC';
+                 for(let i=0; i<8; i++) ctx.fillRect(-w/2, -h + i*50*s, w, 5*s);
+                 ctx.restore();
+             }
+             else if (type === 'landmark_statue') { // Liberty
+                 const h = 300 * s;
+                 ctx.fillStyle = '#2E8B57';
+                 ctx.fillRect(p.x - 40*s, p.y - h, 80*s, h); // Body
+                 ctx.beginPath(); ctx.arc(p.x, p.y - h - 30*s, 30*s, 0, Math.PI*2); ctx.fill(); // Head
+                 // Arm
+                 ctx.lineWidth = 15*s; ctx.strokeStyle = '#2E8B57';
+                 ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - h); ctx.lineTo(p.x + 60*s, p.y - h - 80*s); ctx.stroke();
+                 // Torch
+                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 60*s, p.y - h - 90*s, 10*s, 0, Math.PI*2); ctx.fill();
+             }
+             else if (type === 'landmark_castle') {
+                 // Reuse simple castle logic but bigger?
+                 const w = 300 * s; const h = 200 * s;
+                 ctx.fillStyle = '#A52A2A';
+                 ctx.fillRect(p.x - w/2, p.y - h/2, w, h/2); // Base
+                 ctx.fillRect(p.x - w/2, p.y - h, w/4, h); // Tower L
+                 ctx.fillRect(p.x + w/4, p.y - h, w/4, h); // Tower R
+                 ctx.fillStyle = '#8B0000'; // Roofs
+                 ctx.beginPath(); ctx.moveTo(p.x - w/2 - 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/8, p.y - h - 50*s); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x + w/4 - 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/8, p.y - h - 50*s); ctx.fill();
+             }
         }
     }
 
@@ -3587,8 +3768,22 @@ let lastDisplayedContestTime = -1;
             }
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
+
+            // Upper Arm
             drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
+
+            // Elbow Joint
+            let elbowColor = thisUpperColor;
+            if (thisForeColor === furColor && thisUpperColor !== furColor) {
+                elbowColor = thisUpperColor; // Sleeve covers elbow
+            } else if (thisUpperColor === furColor) {
+                elbowColor = furColor;
+            }
+            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.5, elbowColor);
+
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+
+            // Forearm
             drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -3612,6 +3807,10 @@ let lastDisplayedContestTime = -1;
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
+
+             // Knee Joint
+             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.5, thighColor);
+
              // Draw Base Calf
              drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
 
@@ -3651,6 +3850,12 @@ let lastDisplayedContestTime = -1;
         if (currentAnimal === 'bear') { bodyOptions.waistScale = 1.35; bodyOptions.roundness = 0.25; }
         if (currentAnimal === 'pig' || currentAnimal === 'cow') { bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.15; }
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
+
+        // Auto-detect Jersey
+        if (!bodyFurry && torsoColor !== furColor && !skinObj.pattern) {
+            bodyOptions.isJersey = true;
+        }
+
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
