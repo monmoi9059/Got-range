@@ -1,501 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Taco Basket Ball - Québec Édition</title>
-    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlRhY28gQmFza2V0IEJhbGwiLCAic2hvcnRfbmFtZSI6ICJUYWNvQmFsbCIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIiwgInRoZW1lX2NvbG9yIjogIiNGRkQ3MDAiLCAib3JpZW50YXRpb24iOiAibGFuZHNjYXBlIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiYW55IiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9LCB7InNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1EQWdNVEF3SWo0OFkybHlZMnhsSUdONFBTSTFNQ0lnWTNrOUlqUXdJaUJ5UFNJek1DSWdabWxzYkQwaUkwWkdPRU13TUNJdlBqeHdZWFJvSUdROUlrMDFNQ0F4TUNCQklETXdJRE13SURBZ01DQXhJRFV3SURjd0lFMHlNQ0EwTUNCQklETXdJRE13SURBZ01DQXhJRGd3SURRd0lpQnpkSEp2YTJVOUlpTTRRalExTURBaUlITjBjbTlyWlMxM2FXUjBhRDBpTXlJZ1ptbHNiRDBpYm05dVpTSXZQanh3WVhSb0lHUTlJazB4TUNBMU1DQlJJRFV3SURFd01DQTVNQ0ExTUNJZ1ptbHNiRDBpSTBaR1JEY3dNQ0lnYzNSeWIydGxQU0lqUkVGQk5USXdJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlMejQ4Y0dGMGFDQmtQU0pOTVRVZ05UQWdVU0F5TlNBME1DQXpOU0ExTUNCVUlEVTFJRFV3SUZRZ056VWdOVEFnVkNBNE5TQTFNQ0lnYzNSeWIydGxQU0lqTXpKRFJETXlJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlJR1pwYkd3OUltNXZibVVpTHo0OEwzTjJaejQ9IiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIn0sIHsic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifV19">
-    <meta name="theme-color" content="#FFD700">
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #1a1a1a;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        #game-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 1066px;
-            height: 600px;
-            background: #000;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        }
-
-        canvas {
-            border: 8px solid #5D4037;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
-            border-radius: 4px;
-            width: 100%;
-            height: 100%;
-            display: block;
-            box-sizing: border-box;
-        }
-
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            pointer-events: none;
-            text-shadow: 2px 2px 0 #000;
-            z-index: 10;
-            text-align: left;
-        }
-
-        #controls {
-            position: absolute;
-            bottom: 125px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 20;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .ui-btn {
-            background: linear-gradient(to bottom, #FFD700, #DAA520);
-            color: #000;
-            border: 2px solid #fff;
-            padding: 8px 18px;
-            cursor: pointer;
-            font-weight: 800;
-            display: inline-block;
-            border-radius: 6px;
-            box-shadow: 0 4px 0 #B8860B;
-            transition: transform 0.1s, background 0.1s;
-            font-size: 16px;
-            text-transform: uppercase;
-            text-shadow: none;
-        }
-        .ui-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #B8860B; }
-        .ui-btn:hover { background: #fff; }
-
-        h1 {
-            margin: 0;
-            font-size: 42px;
-            color: #FFD700;
-            text-shadow: 3px 3px 0 #8B0000;
-            font-weight: 900;
-            font-style: italic;
-        }
-        p { margin: 5px 0; color: #fff; font-weight: bold; font-size: 1.2em; }
-        .stat-label { color: #00FF00; }
-        .highscore-label { color: #FFD700; }
-
-        .modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 550px;
-            max-height: 85%;
-            overflow-y: auto;
-            background: rgba(30, 30, 30, 0.98);
-            border: 4px solid #DAA520;
-            padding: 25px;
-            color: white;
-            text-align: center;
-            z-index: 100;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9);
-            border-radius: 15px;
-        }
-
-        .modal::-webkit-scrollbar { width: 10px; }
-        .modal::-webkit-scrollbar-track { background: #333; border-radius: 5px; }
-        .modal::-webkit-scrollbar-thumb { background: #DAA520; border-radius: 5px; }
-
-        .modal-header { color: #FFD700; margin-bottom: 20px; font-size: 2.2em; text-shadow: 2px 2px #d32f2f; font-weight: 800; border-bottom: 2px solid #555; padding-bottom: 10px; }
-
-        .upgrade-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.1));
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-        }
-        .difficulty-row {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #FFD700;
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: left;
-        }
-        input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: #FFD700; }
-
-        .ach-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #555;
-            margin: 8px 0;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: left;
-            opacity: 0.7;
-            transition: 0.3s;
-        }
-        .ach-row.unlocked {
-            border-color: #00FF00;
-            background: linear-gradient(to right, rgba(0, 100, 0, 0.4), rgba(0, 50, 0, 0.2));
-            opacity: 1;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
-        }
-        .ach-icon { font-size: 28px; margin-right: 15px; }
-        .ach-info h4 { margin: 0; color: #aaa; font-size: 1.1em; }
-        .ach-row.unlocked .ach-info h4 { color: #FFD700; }
-        .ach-info span { font-size: 0.9em; color: #ccc; }
-
-        .btn {
-            background: linear-gradient(to bottom, #228B22, #006400);
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            border-radius: 4px;
-            box-shadow: 0 3px 0 #004d00;
-        }
-        .btn:active { transform: translateY(3px); box-shadow: none; }
-        .btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; transform: none; color: #888; }
-        .btn-close { background: #d32f2f; padding: 12px 30px; font-size: 1.2em; margin-top: 20px; width: 100%; box-shadow: 0 4px 0 #8B0000; }
-
-        .skin-viewer {
-            margin-top: 20px;
-            border-top: 2px solid #555;
-            padding-top: 15px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            padding: 15px;
-        }
-        .skin-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin: 10px 0;
-        }
-        .selector-label { width: 180px; font-size: 1.2em; color: #FFD700; font-weight: bold; text-transform: uppercase; }
-
-        #notification {
-            position: absolute;
-            bottom: 250px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(to right, #000, #333);
-            border: 2px solid #FFD700;
-            color: #FFD700;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.2em;
-            font-weight: bold;
-            display: none;
-            z-index: 200;
-            text-align: center;
-            box-shadow: 0 0 25px #FFD700;
-            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popUp {
-            from { bottom: 150px; opacity: 0; }
-            to { bottom: 250px; opacity: 1; }
-        }
-        #courtNameDisplay {
-            position: absolute;
-            top: 60px;
-            right: 20px;
-            font-size: 1.5em;
-            color: rgba(255,255,255,0.7);
-            font-weight: 900;
-            pointer-events: none;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            text-transform: uppercase;
-            font-style: italic;
-            text-align: right;
-        }
-        #strikes {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #FF4500;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
-        }
-        #contest-ui {
-            display: none;
-            position: absolute;
-            top: 150px;
-            left: 20px;
-            font-size: 1.2em;
-            color: #fff;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
-        }
-
-        /* Mobile Controls */
-        .mobile-shoot-btn {
-            position: fixed;
-            right: 30px;
-            bottom: 40%;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #FFA500, #FF4500);
-            border: 4px solid #331a00;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 9999;
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
-            cursor: pointer;
-            user-select: none;
-        }
-        .mobile-shoot-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .mobile-shoot-btn::before { /* Horizontal Line */
-            content: ''; position: absolute; top: 48%; left: 0; width: 100%; height: 4%; background: #331a00; opacity: 0.8;
-        }
-        .mobile-shoot-btn::after { /* Vertical Line */
-            content: ''; position: absolute; left: 48%; top: 0; height: 100%; width: 4%; background: #331a00; opacity: 0.8;
-        }
-        .mb-curve {
-             position: absolute; top: 5%; bottom: 5%; left: 5%; right: 5%;
-             border-radius: 50%; border: 4px solid #331a00; opacity: 0.8;
-             clip-path: polygon(0 0, 25% 0, 25% 100%, 0 100%);
-        }
-        .mb-curve.right { transform: scaleX(-1); }
-
-        #startup-ui {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            text-align: center;
-        }
-        .startup-btn {
-            background: linear-gradient(to bottom, #FF8C00, #FF4500);
-            border: 3px solid #FFF;
-            color: white;
-            font-size: 1.5em;
-            padding: 15px 30px;
-            margin: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 900;
-            text-shadow: 2px 2px 0 #000;
-            box-shadow: 0 5px 0 #8B0000;
-            transition: transform 0.1s;
-        }
-        .startup-btn:active { transform: translateY(5px); box-shadow: none; }
-        .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
-
-        #orientation-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-        .rotate-icon {
-            font-size: 5em;
-            margin-bottom: 20px;
-            animation: rotatePhone 2s infinite ease-in-out;
-        }
-        @keyframes rotatePhone {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        #btn-force-fullscreen {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 50px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #FFD700;
-            border-radius: 8px;
-            color: #FFD700;
-            font-size: 30px;
-            display: none;
-            z-index: 99999;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
-            line-height: 50px;
-            text-align: center;
-        }
-
-        .gamepad-focus {
-            outline: 4px solid #FFD700 !important;
-            box-shadow: 0 0 15px #FFD700 !important;
-            transform: scale(1.05);
-            z-index: 9999;
-            position: relative;
-        }
-    </style>
-</head>
-<body>
-
-<div id="btn-force-fullscreen" onclick="forceFullscreen()">⛶</div>
-
-<div id="orientation-overlay">
-    <div class="rotate-icon">📱</div>
-    <h2>PIVOTEZ VOTRE APPAREIL</h2>
-    <p>ROTATE YOUR DEVICE</p>
-</div>
-
-<div id="game-container">
-    <div id="ui">
-        <h1>TACO BASKET BALL</h1>
-        <p>Tacos: <span id="scoreVal" class="stat-label">0</span></p>
-        <div id="classic-stats">
-            <p>Distance: <span id="distVal" class="stat-label">10 ft</span></p>
-            <p>Record: <span id="highScoreVal" class="highscore-label">10 ft</span></p>
-        </div>
-    </div>
-    <div id="strikes">MISS: <span id="missVal">0</span>/2</div>
-    <div id="courtNameDisplay">COUR ARRIÈRE DE LÉVIS</div>
-    <div id="contest-ui">
-        <p style="color:#FFFF00; font-size:1.5em;">TEMPS: <span id="contestTime">60</span>s</p>
-        <p>SCORE: <span id="contestScore" style="color:#00FF00">0</span></p>
-        <p>STATION: <span id="contestRack">1</span>/5</p>
-    </div>
-    <div id="controls">
-        <div class="ui-btn" onclick="toggleMode()">MODE: <span id="modeBtnText">CLASSIQUE</span></div>
-        <div class="ui-btn" onclick="openShop()">BOUTIQUE [P]</div>
-        <div class="ui-btn" onclick="openAchievements()">TROPHÉES [O]</div>
-        <div class="ui-btn" onclick="openStats()">STATS [S]</div>
-    </div>
-    <div id="notification">
-        <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
-        <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
-    </div>
-
-    <div id="mobileShootBtn" class="mobile-shoot-btn">
-        <div class="mb-curve"></div>
-        <div class="mb-curve right"></div>
-    </div>
-
-    <div id="startup-ui">
-        <h1 style="font-size: 4em; margin: 0; position: absolute; top: 10%; width: 100%;">TACO BASKET BALL</h1>
-        <div style="position: absolute; bottom: 10%; width: 100%;">
-            <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
-            <div>
-                <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
-                <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODALS -->
-    <div id="statsUI" class="modal">
-        <div class="modal-header">STATISTIQUES À VIE</div>
-        <div style="text-align:left; padding: 10px; font-size: 1.2em;">
-            <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
-            <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
-            <p style="overflow:hidden;">Ratés: <span id="statMisses" style="color:#FF0000; float:right">0</span></p>
-            <p style="overflow:hidden;">Précision: <span id="statAccuracy" style="color:#FFD700; float:right">0%</span></p>
-            <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
-            <hr style="border-color:#555; margin:15px 0;">
-            <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
-        </div>
-
-        <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong style="color:#FFD700">TAILLE VISÉE</strong>
-                <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
-            </div>
-            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
-        </div>
-
-        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong style="color:#FFD700">MOMENT DU TIR</strong>
-                <span id="releaseTimingLabel" style="color:#00FFFF; font-weight:bold;">LÂCHER (TARD)</span>
-            </div>
-            <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" oninput="updateReleaseTiming()">
-        </div>
-
-        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
-        <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
-        <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
-        <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
-        <button class="btn btn-close" onclick="closeStats()">FERMER</button>
-    </div>
-
-    <div id="shopUI" class="modal">
-        <div class="modal-header">TACO MERCADO</div>
-        <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
-        <div class="difficulty-row">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
-            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
-            <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
-        </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
-        <div class="skin-viewer">
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
-            <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
-            <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
-            <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
-            <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
-            <button id="btnToggleHand" class="btn" style="width:100%; margin-top:10px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
-        </div>
-        <button class="btn btn-close" onclick="closeShop()">FERMER</button>
-    </div>
-
-    <div id="achUI" class="modal">
-        <div class="modal-header">SALLE DES TROPHÉES</div>
-        <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-</div>
-
-<script>
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 10 },
@@ -2414,14 +1916,14 @@ let lastDisplayedContestTime = -1;
         // type: 'thigh' or 'calf' or 'standard'
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-        
+
         ctx.save();
         ctx.translate(x1, y1);
         ctx.rotate(angle);
-        
+
         ctx.beginPath();
         const w = width / 2;
-        
+
         if (type === 'thigh') {
             // Thigh: Wide at top (0,0), taper to knee (len, 0)
             ctx.moveTo(0, -w);
@@ -2441,9 +1943,9 @@ let lastDisplayedContestTime = -1;
             ctx.lineTo(len, w);
             ctx.lineTo(0, w);
         }
-        
+
         ctx.closePath();
-        
+
         const cacheKey = `muscle_limb_${color}`;
         const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
             gradCtx.fillStyle = color;
@@ -2457,7 +1959,7 @@ let lastDisplayedContestTime = -1;
 
         ctx.fillStyle = fillStyle;
         ctx.fill();
-        
+
         // Muscle Definition highlight
         if (type === 'calf') {
              ctx.fillStyle = 'rgba(255,255,255,0.1)';
@@ -2465,25 +1967,25 @@ let lastDisplayedContestTime = -1;
              ctx.ellipse(len*0.3, 0, len*0.15, w*0.5, 0, 0, Math.PI*2);
              ctx.fill();
         }
-        
+
         ctx.restore();
     }
 
     function drawRealisticShoe(x, y, w, h, color, isRight) {
         // Detailed sneaker
         // Sole
-        ctx.fillStyle = '#DDD'; 
+        ctx.fillStyle = '#DDD';
         ctx.beginPath();
         ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
         ctx.fill();
         ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-        
+
         // Upper
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2); // Main foot
         ctx.fill();
-        
+
         // Detail lines (laces area)
         ctx.strokeStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
@@ -2515,37 +2017,37 @@ let lastDisplayedContestTime = -1;
         const color = skinObj.jerseyColor || '#FFF';
         const shoulderW = w * 1.6;
         const waistW = w * 0.9;
-        
+
         const shoulderY = topY;
         const armpitY = topY + h * 0.4;
         const bottomY = topY + h;
-        
+
         ctx.beginPath();
-        ctx.moveTo(cx - shoulderW/2, shoulderY); 
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
         ctx.lineTo(cx + shoulderW/2, shoulderY);
-        
+
         // Right side
         ctx.lineTo(cx + shoulderW/2, armpitY);
         ctx.quadraticCurveTo(cx + waistW*0.6, (armpitY+bottomY)/2, cx + waistW/2, bottomY);
-        
+
         // Bottom curve (Tuck)
         ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx - waistW/2, bottomY);
-        
+
         // Left side
         ctx.quadraticCurveTo(cx - waistW*0.6, (armpitY+bottomY)/2, cx - shoulderW/2, armpitY);
         ctx.lineTo(cx - shoulderW/2, shoulderY);
-        
+
         ctx.closePath();
-        
+
         // Fill
         const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
-        grad.addColorStop(0, color); 
+        grad.addColorStop(0, color);
         grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, color); 
-        
+        grad.addColorStop(1, color);
+
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.fillStyle = grad; 
+        ctx.fillStyle = grad;
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fill();
 
@@ -2595,7 +2097,7 @@ let lastDisplayedContestTime = -1;
         ctx.lineTo(cx + 1*scale, topY + h*0.7);
         ctx.lineTo(cx - 1*scale, topY + h*0.7);
         ctx.fill();
-        
+
         // Mesh Texture
         ctx.save();
         ctx.clip();
@@ -2624,7 +2126,7 @@ let lastDisplayedContestTime = -1;
             ctx.lineTo(cx + shoulderW/2, armpitY);
             ctx.stroke();
         }
-        
+
         // Tuck Shadow at bottom
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
@@ -2638,7 +2140,7 @@ let lastDisplayedContestTime = -1;
     function drawShorts(cx, waistY, w, h, scale, skinObj) {
         // Baggy Shorts
         const color = skinObj.shortsColor || '#FFF';
-        const waistW = w * 1.0; 
+        const waistW = w * 1.0;
         const hipW = w * 1.3;
         const legW = w * 0.6; // Width of one leg hole
 
@@ -2671,7 +2173,7 @@ let lastDisplayedContestTime = -1;
         ctx.lineTo(cx - hipW/2, bottomY);
         ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
         ctx.closePath();
-        
+
         ctx.fillStyle = fillStyle;
         ctx.fill();
 
@@ -2707,7 +2209,7 @@ let lastDisplayedContestTime = -1;
         // --- Details (on top of everything) ---
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(cx - waistW/2, waistY, waistW, 5*scale);
-        
+
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.lineWidth = 1*scale;
         ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
@@ -2774,9 +2276,9 @@ let lastDisplayedContestTime = -1;
             head: 0.9
         };
         const skinTone = skinObj.skinTone || '#8d5524';
-        
+
         // Body Dimensions
-        const bodyW = 20 * s * sizeMod.w; 
+        const bodyW = 20 * s * sizeMod.w;
         const bodyH = 40 * s * sizeMod.h;
         const legLen = 30 * s * sizeMod.h;
         let torsoY = p.y - legLen - bodyH;
@@ -2787,7 +2289,7 @@ let lastDisplayedContestTime = -1;
         const currentStyle = playerData.currentStyle || 'classic';
         const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
         const idle = DEFAULT_IDLE;
-        
+
         let r_la, r_ra, r_lfa, r_rfa, r_w;
         if (state === 'SHOOTING') {
             r_la = anim.release.la; r_ra = anim.release.ra;
@@ -2906,7 +2408,7 @@ let lastDisplayedContestTime = -1;
         const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
-            
+
             if (skinObj.jerseyType === 'tshirt') uColor = jerseyColor;
             if (isRight && sleeveRight) { uColor = sleeveRight; fColor = sleeveRight; }
             if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
@@ -2914,7 +2416,7 @@ let lastDisplayedContestTime = -1;
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
             // Upper Arm (Deltoid to Elbow)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.w, uColor, 'thigh', s);
-            
+
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             // Forearm (Elbow to Wrist)
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
@@ -2925,13 +2427,13 @@ let lastDisplayedContestTime = -1;
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            
+
             // Hand (Realistic)
-            ctx.fillStyle = fColor; 
+            ctx.fillStyle = fColor;
             ctx.beginPath();
-            ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s); 
+            ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s);
             ctx.fill();
-            
+
             if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !isDetachedStyle) {
                 // Ball is drawn in Layer 0 now. Just draw Fingers.
                 // Fingers over ball
@@ -3024,7 +2526,7 @@ let lastDisplayedContestTime = -1;
         ctx.lineTo(p.x + neckW*0.4, torsoY - neckH);
         ctx.quadraticCurveTo(p.x + neckW*0.6, torsoY - neckH*0.8, p.x + neckW, torsoY + 2*s);
         ctx.fill();
-        
+
         // Neck Spine Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         ctx.beginPath(); ctx.rect(p.x - 1*s, torsoY - neckH + 2*s, 2*s, neckH); ctx.fill();
@@ -3074,16 +2576,16 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.5, headY-8*s); ctx.lineTo(p.x - headRadius*0.9, headY+5*s); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.5, headY-8*s); ctx.lineTo(p.x + headRadius*0.9, headY+5*s); ctx.fill();
             }
-        
+
         // Skull
-        ctx.beginPath(); 
-        ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2); 
+        ctx.beginPath();
+        ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
         ctx.fill();
-        
+
         // Occipital Shadow (Base of skull)
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, 4*s, 0, Math.PI*2); ctx.fill();
-        
+
         // Hair
         if(skinObj.hairStyle === 'afro') {
              ctx.fillStyle = skinObj.hairColor || '#000';
@@ -3373,10 +2875,10 @@ let lastDisplayedContestTime = -1;
                  ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(centerX - 15*s, centerY - 15*s, 5*s, 0, Math.PI*2); ctx.fill();
              }
              if (bp === 'hockey_sticks') {
-                 ctx.strokeStyle = '#D2B48C'; ctx.lineWidth = 3*s; 
+                 ctx.strokeStyle = '#D2B48C'; ctx.lineWidth = 3*s;
                  ctx.beginPath(); ctx.moveTo(centerX - 10*s, centerY - 20*s); ctx.lineTo(centerX + 10*s, centerY + 20*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(centerX + 10*s, centerY - 20*s); ctx.lineTo(centerX - 10*s, centerY + 20*s); ctx.stroke();
-                 ctx.fillStyle = '#000'; 
+                 ctx.fillStyle = '#000';
                  ctx.fillRect(centerX + 8*s, centerY + 18*s, 8*s, 4*s);
                  ctx.fillRect(centerX - 16*s, centerY + 18*s, 8*s, 4*s);
              }
@@ -3544,7 +3046,7 @@ let lastDisplayedContestTime = -1;
         }
 
         const currentAnimal = skinObj.animal;
-        
+
         if (currentAnimal === 'human') {
             drawRealisticHuman(p, s, skinObj);
             return;
@@ -5721,6 +5223,3 @@ let lastDisplayedContestTime = -1;
     checkStartup();
     // Start loop
     requestAnimationFrame(loop);
-</script>
-</body>
-</html>
