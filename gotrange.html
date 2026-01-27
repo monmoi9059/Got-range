@@ -3639,24 +3639,38 @@ let lastDisplayedContestTime = -1;
         const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
+            let activeSleeveColor = null;
             
             if (skinObj.jerseyType === 'tshirt') uColor = jerseyColor;
-            if (isRight && sleeveRight) { uColor = sleeveRight; fColor = sleeveRight; }
-            if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
+
+            if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
+            if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
+
+            if (activeSleeveColor) {
+                fColor = activeSleeveColor;
+            }
 
             // Shoulder Joint
             drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
-            // Upper Arm (Deltoid to Elbow)
+
+            // Upper Arm (Deltoid to Elbow) - Base
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.w, uColor, 'thigh', s);
+
+            // Sleeve Overlay (Mid-Bicep to Elbow)
+            if (activeSleeveColor) {
+                 const midX = (sx + elbow.x) / 2;
+                 const midY = (sy + elbow.y) / 2;
+                 drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.w, activeSleeveColor, 'thigh', s);
+            }
             
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             // Forearm (Elbow to Wrist)
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
 
             // Elbow Joint
-            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, uColor, isMechanical);
+            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, activeSleeveColor || uColor, isMechanical);
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -4380,6 +4394,81 @@ let lastDisplayedContestTime = -1;
         let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
         let upperArmLen = 20 * s * sizeMod.h * 1.05; let foreArmLen = 20 * s * sizeMod.h * 1.05;
 
+        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
+            const armFurry = isFurry && (armColor === furColor);
+            const seedBase = isRight ? 10 : 20;
+            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
+
+            let thisUpperColor = armColor;
+            let thisForeColor = armColor;
+            let activeSleeveColor = null;
+
+            // T-Shirt Logic
+            if(skinObj.jerseyType === 'tshirt') {
+                thisUpperColor = torsoColor;
+            }
+
+            // Sleeve Logic (Physical side based)
+            if(isRight && skinObj.sleeveRight) {
+                activeSleeveColor = skinObj.sleeveRight;
+            }
+            if(!isRight && skinObj.sleeveLeft) {
+                activeSleeveColor = skinObj.sleeveLeft;
+            }
+
+            if (activeSleeveColor) {
+                thisForeColor = activeSleeveColor;
+            }
+
+            let elbow = getJoint(sx, sy, upperArmLen, angle1);
+
+            // Shoulder Joint (Radius increased to 0.7)
+            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, isMechanical);
+            else drawFuzzyCircle(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, seedBase, s, true);
+
+            // Upper Arm
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
+
+            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
+            if (activeSleeveColor) {
+                const midX = (sx + elbow.x) / 2;
+                const midY = (sy + elbow.y) / 2;
+                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.w, activeSleeveColor, s, false, seedBase);
+            }
+
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+
+            // Forearm
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1);
+
+            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
+            let elbowColor = thisUpperColor;
+            if (activeSleeveColor) {
+                elbowColor = activeSleeveColor;
+            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
+                elbowColor = thisUpperColor; // Sleeve covers elbow
+            } else if (thisUpperColor === furColor) {
+                elbowColor = furColor;
+            }
+
+            const elbowFurry = activeSleeveColor ? false : armFurry;
+            if(!elbowFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, isMechanical);
+            else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
+
+            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
+            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            if (wristAngle > 0.5 && isShootingSide) {
+                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
+            }
+
+            // Ball removed (drawn earlier)
+            ctx.restore();
+        };
+
+        // Arms First (Layer 1) - Arms behind legs
+        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
         // 0b. Detached Ball Rendering
         drawDetachedBall(p, s, torsoY, bodyH, headY);
 
@@ -4492,80 +4581,6 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
-            const armFurry = isFurry && (armColor === furColor);
-            const seedBase = isRight ? 10 : 20;
-            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
-
-            let thisUpperColor = armColor;
-            let thisForeColor = armColor;
-            let activeSleeveColor = null;
-
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt') {
-                thisUpperColor = torsoColor;
-            }
-
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                activeSleeveColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                activeSleeveColor = skinObj.sleeveLeft;
-            }
-
-            if (activeSleeveColor) {
-                thisForeColor = activeSleeveColor;
-            }
-
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
-
-            // Shoulder Joint (Radius increased to 0.7)
-            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, seedBase, s, true);
-
-            // Upper Arm
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
-
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
-            if (activeSleeveColor) {
-                const midX = (sx + elbow.x) / 2;
-                const midY = (sy + elbow.y) / 2;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.w, activeSleeveColor, s, false, seedBase);
-            }
-
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-
-            // Forearm
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1);
-
-            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
-            let elbowColor = thisUpperColor;
-            if (activeSleeveColor) {
-                elbowColor = activeSleeveColor;
-            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
-                elbowColor = thisUpperColor; // Sleeve covers elbow
-            } else if (thisUpperColor === furColor) {
-                elbowColor = furColor;
-            }
-
-            const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
-
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isShootingSide) {
-                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
-            }
-
-            // Ball removed (drawn earlier)
-            ctx.restore();
-        };
-
-        // Arms First (Layer 1) - Arms behind legs
-        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         const legFurry = isFurry && (legColor === furColor);
         // Hip Joints
