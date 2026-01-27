@@ -1277,6 +1277,19 @@
         g_renderItemPool.push(new RenderItem());
     }
 
+    // --- OPTIMIZATION: Cached Shooting Style ---
+    let g_cachedStyleId = null;
+    let g_cachedStyleObj = null;
+
+    function getCurrentStyle() {
+        const currentId = playerData.currentStyle || 'classic';
+        if (currentId !== g_cachedStyleId || !g_cachedStyleObj) {
+            g_cachedStyleObj = SHOOTING_STYLES.find(s => s.id === currentId) || SHOOTING_STYLES[0];
+            g_cachedStyleId = currentId;
+        }
+        return g_cachedStyleObj;
+    }
+
     // --- OPTIMIZATION: Fuzzy Noise Lookup Table ---
     const NOISE_LUT_SIZE = 4096;
     const g_noiseLUT = new Float32Array(NOISE_LUT_SIZE);
@@ -1417,8 +1430,7 @@ let lastDisplayedContestTime = -1;
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
 
     function calculateShotThreshold() {
-        const styleId = playerData.currentStyle || 'classic';
-        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const style = getCurrentStyle();
         const mods = style.modifiers;
 
         let aimBonus = (playerData.stats.aim - 1);
@@ -1871,8 +1883,7 @@ let lastDisplayedContestTime = -1;
 
                  let lift = 0;
                  if (state === 'JUMPING') {
-                     const sId = playerData.currentStyle || 'classic';
-                     const sObj = SHOOTING_STYLES.find(x => x.id === sId) || SHOOTING_STYLES[0];
+                     const sObj = getCurrentStyle();
                      const maxVz = (sObj.modifiers.jumpVelocity !== undefined) ? sObj.modifiers.jumpVelocity : 9;
                      const div = (maxVz < 1) ? 9 : maxVz;
                      lift = Math.min(1.0, Math.max(0, (div - getCurrentVz()) / div));
@@ -3801,8 +3812,7 @@ let lastDisplayedContestTime = -1;
 
         // Shot Meter
         if (state === 'JUMPING') {
-            const styleId = playerData.currentStyle || 'classic';
-            const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+            const style = getCurrentStyle();
             let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
             if (maxVz <= 0.5) maxVz = 9;
 
@@ -4759,8 +4769,7 @@ let lastDisplayedContestTime = -1;
 
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
-            const styleId = playerData.currentStyle || 'classic';
-            const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+            const style = getCurrentStyle();
             let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
             if (maxVz <= 0.5) maxVz = 9;
 
@@ -5273,8 +5282,7 @@ let lastDisplayedContestTime = -1;
         state = 'JUMPING';
         feedback = "";
 
-        const styleId = playerData.currentStyle || 'classic';
-        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const style = getCurrentStyle();
         const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
 
         if (jv <= 0.5) {
@@ -5289,8 +5297,7 @@ let lastDisplayedContestTime = -1;
     function releaseShot() {
         if (state !== 'JUMPING') return;
 
-        const styleId = playerData.currentStyle || 'classic';
-        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const style = getCurrentStyle();
         let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
 
         const currentVz = getCurrentVz();
@@ -5313,8 +5320,7 @@ let lastDisplayedContestTime = -1;
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
 
-        const styleId = playerData.currentStyle || 'classic';
-        const style = SHOOTING_STYLES.find(s => s.id === styleId) || SHOOTING_STYLES[0];
+        const style = getCurrentStyle();
         const mods = style.modifiers;
 
         let threshold = calculateShotThreshold();
