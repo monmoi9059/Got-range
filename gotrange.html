@@ -2410,13 +2410,44 @@ let lastDisplayedContestTime = -1;
 
         let points = [];
 
-        if (options.bodyShape === 'bear_new' || options.bodyShape === 'round') {
-             // Bear/Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
-             // Exaggerated for visibility under fur
-             const shoulderW = w * 0.6; // Much narrower top
-             const bellyW = w * 1.9; // Much wider belly
+        if (options.bodyShape === 'bear_new') {
+             // "Big Tall Oval" - Human-like but fat
+             const shoulderW = w * 1.1; // Wide square shoulders
+             const bellyW = w * 1.45; // Fat belly
+             const hipW = w * 1.25; // Rounded bottom
+             const bellyY = topY + h * 0.55;
+             const hipY_adj = hipY - h*0.05; // Slightly up to round bottom
+
+             // Dense Points for Smoothness (Fuzzy & Poly fallback)
+             points = [];
+             // Top (Flat)
+             points.push({x: cx - shoulderW/2, y: shoulderY});
+             points.push({x: cx + shoulderW/2, y: shoulderY});
+
+             // Right Curve (Shoulder -> Belly -> Hip)
+             points.push({x: cx + shoulderW/2 + (bellyW - shoulderW)*0.25, y: shoulderY + (bellyY - shoulderY)*0.3});
+             points.push({x: cx + shoulderW/2 + (bellyW - shoulderW)*0.7, y: shoulderY + (bellyY - shoulderY)*0.7});
+             points.push({x: cx + bellyW/2, y: bellyY}); // Apex
+             points.push({x: cx + bellyW/2 - (bellyW - hipW)*0.2, y: bellyY + (hipY_adj - bellyY)*0.5});
+             points.push({x: cx + hipW/2, y: hipY_adj});
+
+             // Bottom Round
+             points.push({x: cx + hipW/4, y: hipY});
+             points.push({x: cx - hipW/4, y: hipY});
+             points.push({x: cx - hipW/2, y: hipY_adj});
+
+             // Left Curve (Hip -> Belly -> Shoulder)
+             points.push({x: cx - bellyW/2 + (bellyW - hipW)*0.2, y: bellyY + (hipY_adj - bellyY)*0.5});
+             points.push({x: cx - bellyW/2, y: bellyY}); // Apex
+             points.push({x: cx - shoulderW/2 - (bellyW - shoulderW)*0.7, y: shoulderY + (bellyY - shoulderY)*0.7});
+             points.push({x: cx - shoulderW/2 - (bellyW - shoulderW)*0.25, y: shoulderY + (bellyY - shoulderY)*0.3});
+        }
+        else if (options.bodyShape === 'round') {
+             // Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
+             const shoulderW = w * 0.6;
+             const bellyW = w * 1.9;
              const hipW = w * 1.8;
-             const bellyY = topY + h * 0.7; // Lower heavy belly
+             const bellyY = topY + h * 0.7;
 
              points = [
                  {x: cx - shoulderW/2, y: shoulderY}, // Top Left
@@ -4360,7 +4391,7 @@ let lastDisplayedContestTime = -1;
             case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
             case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; break;
             case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.1, head: 1.2 }; break;
+            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2 }; break;
             case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9 }; break;
             case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95 }; break;
             case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1 }; break;
