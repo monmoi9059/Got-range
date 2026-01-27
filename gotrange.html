@@ -451,6 +451,7 @@
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
         <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
+        <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
         <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
@@ -630,18 +631,18 @@
         { limit: 60, name: "Piste de Bowling", icon: "🎳" },
         { limit: 94, name: "Terrain NBA", icon: "🏀" },
         { limit: 150, name: "Baleine Bleue", icon: "🐋" },
-        { limit: 195, name: "Tour de Pise", icon: "🇮🇹" },
+        { limit: 195, name: "Tour de Pise", icon: "🇮🇹", type: 'landmark_leaning' },
         { limit: 230, name: "Envergure Boeing 747", icon: "✈️" },
         { limit: 272, name: "Chute Montmorency", icon: "🌊" },
-        { limit: 305, name: "Statue de la Liberté", icon: "🗽" },
-        { limit: 350, name: "Château Frontenac", icon: "🏰" },
-        { limit: 450, name: "Pyramide de Gizeh", icon: "🔺" },
-        { limit: 600, name: "Space Needle", icon: "🛸" },
-        { limit: 984, name: "Tour Eiffel", icon: "🇫🇷" },
-        { limit: 1454, name: "Empire State Building", icon: "🏙️" },
-        { limit: 1815, name: "Tour CN", icon: "🗼" },
+        { limit: 305, name: "Statue de la Liberté", icon: "🗽", type: 'landmark_statue' },
+        { limit: 350, name: "Château Frontenac", icon: "🏰", type: 'landmark_castle' },
+        { limit: 450, name: "Pyramide de Gizeh", icon: "🔺", type: 'landmark_pyramid' },
+        { limit: 600, name: "Space Needle", icon: "🛸", type: 'landmark_needle' },
+        { limit: 984, name: "Tour Eiffel", icon: "🇫🇷", type: 'landmark_tower' },
+        { limit: 1454, name: "Empire State Building", icon: "🏙️", type: 'landmark_building', color: '#555' },
+        { limit: 1815, name: "Tour CN", icon: "🗼", type: 'landmark_needle' },
         { limit: 2200, name: "Pont de Québec (Travée)", icon: "🌉" },
-        { limit: 2717, name: "Burj Khalifa", icon: "🏢" },
+        { limit: 2717, name: "Burj Khalifa", icon: "🏢", type: 'landmark_building', color: '#AAA' },
         { limit: 5280, name: "Un Mille (1.6km)", icon: "🛣️" },
         { limit: 10000, name: "Piste Aéroport", icon: "🛫" },
         { limit: 14410, name: "Mont Rainier", icon: "🏔️" },
@@ -1131,6 +1132,35 @@
         decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
     }
 
+    // Crowd Generation (Stands along the side)
+    for(let d = 500; d < 120000; d += 800) {
+        const pathX = 733 - (d * 0.7);
+        const pathY = 150 + (d * 0.7);
+        const offset = 400;
+        const density = Math.min(1.0, d/50000);
+
+        // Left Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX - offset, y: pathY - offset, dist: d, zoneType: 'crowd', variant: {side:'left', density:density}, seed: Math.random() });
+        }
+        // Right Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX + offset, y: pathY + offset, dist: d, zoneType: 'crowd', variant: {side:'right', density:density}, seed: Math.random() });
+        }
+    }
+
+    // LANDMARK GENERATION
+    SCALE_OBJECTS.forEach(obj => {
+        if (obj.type) {
+            const dist = obj.limit * PIXELS_PER_FOOT;
+            const pathX = 733 - (dist * 0.7);
+            const pathY = 150 + (dist * 0.7);
+            // Place landmarks mostly centered but pushed back or offset
+            const offset = (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
+            decors.push({ x: pathX + offset, y: pathY + offset, dist: dist, zoneType: obj.type, variant: obj, seed: Math.random() });
+        }
+    });
+
     // TACO CAT: One per zone guaranteed
     for(let i=0; i<COURT_ZONES.length; i++) {
         const z = COURT_ZONES[i];
@@ -1327,7 +1357,8 @@ let lastDisplayedContestTime = -1;
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
         mobileControls: false, platformChosen: false,
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
-        releaseTiming: 3 // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
+        releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
+        graphics: 'HIGH' // 'HIGH' or 'LOW'
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -1348,6 +1379,7 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
+    if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -1573,6 +1605,108 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- 4. DRAWING FUNCTIONS ---
+    // Weather System
+    class WeatherSystem {
+        constructor() {
+            this.particles = [];
+            this.type = 'NONE'; // 'NONE', 'RAIN', 'SNOW'
+            this.intensity = 0;
+        }
+
+        update(dt) {
+            // Determine weather type based on court zone
+            if (playerData.graphics === 'LOW') { this.type = 'NONE'; this.particles = []; return; }
+
+            const dist = 10 + (distanceLevel * 5);
+            const court = getCourtDetails(dist);
+
+            // Logic for weather type
+            let targetType = 'NONE';
+            if (court.name.includes("PATINOIRE") || court.name.includes("MONT") || court.name.includes("ANTARCTIQUE") || court.name.includes("BORÉALE")) {
+                targetType = 'SNOW';
+            } else if (court.name.includes("FLEUVE") || court.name.includes("PLUIE")) {
+                targetType = 'RAIN';
+            }
+
+            // Space levels have stars instead (handled in background)
+            if (court.type === 'space') targetType = 'NONE';
+
+            this.type = targetType;
+
+            if (this.type === 'NONE') { this.particles = []; return; }
+
+            // Spawn Particles
+            const spawnRate = (this.type === 'RAIN') ? 2 : 0.5;
+            if (Math.random() < spawnRate * dt) {
+                for(let i=0; i<3; i++) {
+                    this.particles.push({
+                        x: (Math.random() - 0.5) * 3000 + player3D.x,
+                        y: (Math.random() - 0.5) * 3000 + player3D.y,
+                        z: 1000 + Math.random() * 500,
+                        vx: (this.type === 'RAIN') ? 20 : 5,
+                        vy: (this.type === 'RAIN') ? 10 : 2,
+                        vz: (this.type === 'RAIN') ? -150 : -30,
+                        life: 100
+                    });
+                }
+            }
+
+            // Update Particles
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                let p = this.particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.z += p.vz * dt;
+
+                // Ground collision
+                if (p.z <= 0) {
+                    p.z = 0;
+                    this.particles.splice(i, 1);
+                    continue;
+                }
+
+                // Cull far
+                if (p.z < 0 || Math.abs(p.x - player3D.x) > 2000) {
+                    this.particles.splice(i, 1);
+                }
+            }
+        }
+
+        draw(projFunc) {
+            if (this.type === 'NONE' || playerData.graphics === 'LOW') return;
+
+            ctx.lineWidth = (this.type === 'RAIN') ? 2 : 0;
+            ctx.fillStyle = '#FFF';
+            ctx.strokeStyle = 'rgba(180, 200, 255, 0.6)';
+
+            for (let p of this.particles) {
+                // Optimization: Simple 3D projection inline or use cache?
+                // Weather particles are many, let's use the provided projFunc or simplified version.
+                // We reuse the global project function but need to be careful about performance.
+                const proj = projFunc(p.x, p.y, p.z, g_camCache);
+                if (!proj) continue;
+
+                if (this.type === 'RAIN') {
+                    // Draw line for streak
+                    const proj2 = projFunc(p.x - p.vx*2, p.y - p.vy*2, p.z - p.vz*2, g_camCache);
+                    if (proj2) {
+                        ctx.beginPath();
+                        ctx.moveTo(proj.x, proj.y);
+                        ctx.lineTo(proj2.x, proj2.y);
+                        ctx.stroke();
+                    }
+                } else if (this.type === 'SNOW') {
+                    const s = proj.scale;
+                    ctx.beginPath();
+                    ctx.arc(proj.x, proj.y, 4 * s, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
+    }
+
+    const weather = new WeatherSystem();
+
     function drawFlightTracker() {
         const h = 120;
         const y = canvas.height - h;
@@ -1831,7 +1965,6 @@ let lastDisplayedContestTime = -1;
         const roundness = options.roundness || 0;
 
         // Hourglass / Tapered shape
-        // Shoulders
         const sW = w * 1.1;
         const hW = w * 1.0; // Hips
         const wW = w * waistScale; // Waist
@@ -1849,31 +1982,24 @@ let lastDisplayedContestTime = -1;
             {x: cx - wW/2, y: waistY}         // 5: Waist Left
         ];
 
-        // For furry rendering, inject intermediate points to simulate curves if roundness > 0
         if (isFurry && roundness > 0) {
              const rOffset = w * roundness;
              const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
              const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
              const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
              const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-
-             points = [
-                 points[0], points[1],
-                 midR1, points[2], midR2, points[3],
-                 points[4],
-                 midL1, points[5], midL2
-             ];
+             points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
         }
 
         if (isFurry) {
             drawFuzzyPath(points, color, scale, true, seed);
         } else {
             ctx.beginPath();
-            ctx.moveTo(points[0].x + 10*scale, points[0].y); // Round corner start
+            ctx.moveTo(points[0].x + 10*scale, points[0].y);
             ctx.lineTo(points[1].x - 10*scale, points[1].y);
             ctx.quadraticCurveTo(points[1].x, points[1].y, points[1].x, points[1].y + 10*scale);
 
-            // Right Side
+            // Right
             if (roundness > 0) {
                 const rOffset = w * roundness;
                 ctx.quadraticCurveTo(cx + wW/2 + rOffset, (shoulderY + waistY)/2, points[2].x, points[2].y);
@@ -1882,12 +2008,11 @@ let lastDisplayedContestTime = -1;
                 ctx.lineTo(points[2].x, points[2].y);
                 ctx.lineTo(points[3].x, points[3].y - 10*scale);
             }
-
             ctx.quadraticCurveTo(points[3].x, points[3].y, points[3].x - 10*scale, points[3].y);
             ctx.lineTo(points[4].x + 10*scale, points[4].y);
             ctx.quadraticCurveTo(points[4].x, points[4].y, points[4].x, points[4].y - 10*scale);
 
-            // Left Side
+            // Left
             if (roundness > 0) {
                 const rOffset = w * roundness;
                 ctx.quadraticCurveTo(cx - hW/2 - rOffset*0.5, (waistY + hipY)/2, points[5].x, points[5].y);
@@ -1896,26 +2021,96 @@ let lastDisplayedContestTime = -1;
                 ctx.lineTo(points[5].x, points[5].y);
                 ctx.lineTo(points[0].x, points[0].y + 10*scale);
             }
-
             ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
             ctx.closePath();
 
-            const cacheKey = `anatomic_body_${color}`;
-            const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-                gradCtx.fillStyle = color;
-                gradCtx.fillRect(0, 0, size, size);
-                const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
-                grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-                gradCtx.fillStyle = grad;
-                gradCtx.fillRect(0, 0, size, size);
-            });
+            let fillStyle = color;
+            if (options.isJersey) {
+                 const meshKey = `mesh_${color}`;
+                 fillStyle = getCachedPattern(meshKey, (c, size) => {
+                      c.fillStyle = color;
+                      c.fillRect(0,0,size,size);
+                      c.fillStyle = 'rgba(0,0,0,0.15)';
+                      const spacing = 4;
+                      for(let y=0; y<size; y+=spacing) {
+                          for(let x=0; x<size; x+=spacing) {
+                              if ((Math.floor(x/spacing) + Math.floor(y/spacing)) % 2 === 0) c.fillRect(x,y,1,1);
+                          }
+                      }
+                      // Gradient overlay
+                      const grad = c.createLinearGradient(0,0,size,0);
+                      grad.addColorStop(0, 'rgba(0,0,0,0.2)');
+                      grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                      grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+                      c.fillStyle = grad;
+                      c.fillRect(0,0,size,size);
+                 });
+
+                 // Apply pattern transform
+                 if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
+                     const matrix = new DOMMatrix();
+                     matrix.translateSelf(cx, topY);
+                     fillStyle.setTransform(matrix);
+                 }
+            } else {
+                 const cacheKey = `anatomic_body_${color}`;
+                 fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                    gradCtx.fillStyle = color;
+                    gradCtx.fillRect(0, 0, size, size);
+                    const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+                    gradCtx.fillStyle = grad;
+                    gradCtx.fillRect(0, 0, size, size);
+                });
+            }
 
             ctx.fillStyle = fillStyle;
             ctx.fill();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+
+            // Muscle Definition (High Graphics)
+            if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
+                 ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                 // Pectorals
+                 const chestY = shoulderY + h * 0.25;
+                 const chestW = w * 0.4;
+                 ctx.beginPath();
+                 // Left Pec
+                 ctx.ellipse(cx - chestW*0.6, chestY, chestW*0.8, h*0.15, 0.2, 0, Math.PI*2);
+                 ctx.fill();
+                 // Right Pec
+                 ctx.beginPath();
+                 ctx.ellipse(cx + chestW*0.6, chestY, chestW*0.8, h*0.15, -0.2, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Abs (6-pack)
+                 const absY = chestY + h * 0.25;
+                 const absW = w * 0.25;
+                 const absH = h * 0.35;
+                 ctx.fillStyle = 'rgba(0,0,0,0.05)';
+
+                 const gap = 2*scale;
+                 const cellW = (absW - gap)/2;
+                 const cellH = (absH - gap*2)/3;
+
+                 for(let r=0; r<3; r++) {
+                     ctx.fillRect(cx - absW/2, absY + r*(cellH+gap), cellW, cellH);
+                     ctx.fillRect(cx + gap/2, absY + r*(cellH+gap), cellW, cellH);
+                 }
+            }
+
+            // Rim Light
+            ctx.save();
+            ctx.clip();
+            const rimGrad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+            rimGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
+            rimGrad.addColorStop(0.8, 'rgba(255,255,255,0.0)');
+            rimGrad.addColorStop(1, 'rgba(255,255,255,0.3)');
+            ctx.fillStyle = rimGrad;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
         }
 
         if (options.chestStripeColor) {
@@ -1945,31 +2140,65 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawLimb(x1, y1, x2, y2, width, color) {
+        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
         const angle = Math.atan2(y2 - y1, x2 - x1);
-        const dx = Math.sin(angle) * (width / 2); const dy = Math.cos(angle) * (width / 2);
 
-        const cacheKey = `limb_${color}`;
-        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-            gradCtx.fillStyle = color;
-            gradCtx.fillRect(0, 0, size, size);
-            const grad = gradCtx.createLinearGradient(0, 0, 0, size);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-            gradCtx.fillStyle = grad;
-            gradCtx.fillRect(0, 0, size, size);
-        });
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+
+        // Base Color
+        ctx.fillStyle = color;
 
         ctx.beginPath();
-        ctx.moveTo(x1 - dx, y1 + dy);
-        ctx.lineTo(x2 - dx, y2 + dy);
-        ctx.arc(x2, y2, width/2, angle + Math.PI/2, angle - Math.PI/2);
-        ctx.lineTo(x1 + dx, y1 - dy);
-        ctx.arc(x1, y1, width/2, angle - Math.PI/2, angle + Math.PI/2);
-        ctx.closePath();
 
-        ctx.fillStyle = fillStyle;
+        if (playerData.graphics === 'HIGH') {
+            // Curvy "Muscle" Limb
+            const bulge = width * 0.15;
+
+            // Start (Shoulder/Hip)
+            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
+            // Top Edge (Bicep/Quad bulge)
+            ctx.quadraticCurveTo(len*0.5, -width/2 - bulge, len, -width*0.4);
+            // End Cap (Elbow/Knee - narrower)
+            ctx.arc(len, 0, width*0.4, -Math.PI/2, Math.PI/2);
+            // Bottom Edge
+            ctx.quadraticCurveTo(len*0.5, width/2 + bulge*0.5, 0, width/2);
+        } else {
+            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
+            ctx.lineTo(len, -width/2);
+            ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
+            ctx.lineTo(0, width/2);
+        }
         ctx.fill();
-        ctx.strokeStyle = '#000';
+
+        // Cylindrical Shading Overlay
+        const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
+        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawJoint(x, y, radius, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI*2);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+        grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Slight Outline
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
         ctx.lineWidth = 1;
         ctx.stroke();
     }
@@ -2034,13 +2263,23 @@ let lastDisplayedContestTime = -1;
              }
         }
         else if(type === 'tree') {
+            const isHigh = playerData.graphics === 'HIGH';
+
             if (variant === 'pine') {
                 // Realistic Pine
                 ctx.fillStyle = '#3E2723'; // Trunk
                 ctx.fillRect(p.x - 4*s, p.y, 8*s, -20*s);
 
                 const drawLayer = (yBase, w, h, color) => {
-                    ctx.fillStyle = color;
+                    if (isHigh) {
+                        const grad = ctx.createLinearGradient(p.x, yBase - h, p.x, yBase);
+                        grad.addColorStop(0, color); // Top lighter
+                        grad.addColorStop(1, '#1B5E20'); // Bottom darker
+                        ctx.fillStyle = grad;
+                    } else {
+                        ctx.fillStyle = color;
+                    }
+
                     ctx.beginPath();
                     ctx.moveTo(p.x - w, yBase);
                     ctx.lineTo(p.x, yBase - h);
@@ -2053,12 +2292,19 @@ let lastDisplayedContestTime = -1;
                     ctx.fill();
                 };
 
-                drawLayer(p.y - 15*s, 30*s, 60*s, '#1B5E20'); // Bottom
-                drawLayer(p.y - 45*s, 25*s, 50*s, '#2E7D32'); // Mid
+                drawLayer(p.y - 15*s, 30*s, 60*s, '#2E7D32'); // Bottom
+                drawLayer(p.y - 45*s, 25*s, 50*s, '#388E3C'); // Mid
                 drawLayer(p.y - 70*s, 15*s, 40*s, '#4CAF50'); // Top
             } else {
                 // Realistic Oak
                 ctx.fillStyle = '#5D4037'; // Trunk
+                // Trunk Shading
+                if (isHigh) {
+                    const tGrad = ctx.createLinearGradient(p.x - 6*s, 0, p.x + 6*s, 0);
+                    tGrad.addColorStop(0, '#3E2723'); tGrad.addColorStop(0.5, '#5D4037'); tGrad.addColorStop(1, '#3E2723');
+                    ctx.fillStyle = tGrad;
+                }
+
                 ctx.beginPath();
                 ctx.moveTo(p.x - 6*s, p.y);
                 ctx.lineTo(p.x - 6*s, p.y - 30*s);
@@ -2210,6 +2456,126 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x+10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
+        else if (type === 'crowd') {
+             const s = p.scale;
+             const w = 200 * s;
+             const h = 80 * s;
+
+             // Simple Grandstand
+             ctx.fillStyle = '#222';
+             ctx.fillRect(p.x - w/2, p.y - h, w, h);
+             ctx.strokeStyle = '#444'; ctx.lineWidth = 2*s; ctx.strokeRect(p.x - w/2, p.y - h, w, h);
+
+             // Crowd Blobs
+             const dens = variant.density || 0.5;
+             const rows = 3 + Math.floor(dens * 4);
+             const cols = 8;
+             const time = Date.now() * 0.005; // Slow time for smooth animation
+
+             for(let r=0; r<rows; r++) {
+                 for(let c=0; c<cols; c++) {
+                     // Deterministic "Random" based on seed and position
+                     const cellSeed = (seed * 1000) + (r * 31) + (c * 17);
+                     const rand = Math.abs(Math.sin(cellSeed)); // 0..1 deterministic
+
+                     if (rand > 0.7) continue; // Deterministic gap
+
+                     const hx = (p.x - w/2) + (c * (w/cols)) + ((Math.cos(cellSeed)*5)*s); // Static X offset
+
+                     // Gentle movement: Bounce based on time + random phase
+                     const bounce = Math.sin(time + rand * 10) * 2 * s;
+                     const hy = (p.y - h) + (r * (h/rows)) + bounce;
+
+                     // Random Shirt Color (Deterministic)
+                     const hue = Math.floor(rand * 360);
+                     ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                     ctx.beginPath(); ctx.arc(hx, hy, 4*s, 0, Math.PI*2); ctx.fill(); // Head/Body blob
+
+                     // Arms (Cheering) - Only some people cheer
+                     if (rand > 0.6) {
+                         const armWag = Math.cos(time * 2 + rand * 5) * 2 * s;
+                         ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1.5*s;
+                         ctx.beginPath(); ctx.moveTo(hx-3*s, hy); ctx.lineTo(hx-5*s + armWag, hy-6*s); ctx.stroke();
+                         ctx.beginPath(); ctx.moveTo(hx+3*s, hy); ctx.lineTo(hx+5*s - armWag, hy-6*s); ctx.stroke();
+                     }
+                 }
+             }
+        }
+
+        else if (type.startsWith('landmark_')) {
+             const s = p.scale;
+             const color = variant.color || '#888';
+             ctx.fillStyle = color;
+
+             if (type === 'landmark_pyramid') {
+                 const w = 400 * s; const h = 300 * s;
+                 ctx.fillStyle = '#D2B48C';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x - w/2, p.y); ctx.fill();
+                 // Shadow side
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x, p.y); ctx.fill();
+             }
+             else if (type === 'landmark_tower') { // Eiffel
+                 const w = 150 * s; const h = 500 * s;
+                 ctx.strokeStyle = '#555'; ctx.lineWidth = 5*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - w/2, p.y); ctx.quadraticCurveTo(p.x, p.y - h*0.6, p.x, p.y - h); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x + w/2, p.y); ctx.quadraticCurveTo(p.x, p.y - h*0.6, p.x, p.y - h); ctx.stroke();
+                 // Levels
+                 ctx.lineWidth = 3*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - w*0.4, p.y - h*0.3); ctx.lineTo(p.x + w*0.4, p.y - h*0.3); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x - w*0.2, p.y - h*0.6); ctx.lineTo(p.x + w*0.2, p.y - h*0.6); ctx.stroke();
+             }
+             else if (type === 'landmark_building' || type === 'landmark_needle') { // Skyscraper/Needle
+                 const w = (type==='landmark_needle'?60:150) * s;
+                 const h = (type==='landmark_needle'?600:800) * s;
+
+                 ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                 // Windows
+                 if(type === 'landmark_building') {
+                     ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                     for(let i=0; i<20; i++) {
+                         for(let j=0; j<4; j++) {
+                             if(Math.random()>0.5) ctx.fillRect(p.x - w/2 + 10*s + j*30*s, p.y - h + 20*s + i*40*s, 15*s, 20*s);
+                         }
+                     }
+                 } else {
+                     // Needle Top
+                     ctx.fillStyle = color;
+                     ctx.beginPath(); ctx.ellipse(p.x, p.y - h*0.8, w*2, 20*s, 0, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (type === 'landmark_leaning') { // Pisa
+                 const w = 100 * s; const h = 400 * s;
+                 ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(0.1); // Lean
+                 ctx.fillStyle = '#EEE'; ctx.fillRect(-w/2, -h, w, h);
+                 // Arches
+                 ctx.fillStyle = '#CCC';
+                 for(let i=0; i<8; i++) ctx.fillRect(-w/2, -h + i*50*s, w, 5*s);
+                 ctx.restore();
+             }
+             else if (type === 'landmark_statue') { // Liberty
+                 const h = 300 * s;
+                 ctx.fillStyle = '#2E8B57';
+                 ctx.fillRect(p.x - 40*s, p.y - h, 80*s, h); // Body
+                 ctx.beginPath(); ctx.arc(p.x, p.y - h - 30*s, 30*s, 0, Math.PI*2); ctx.fill(); // Head
+                 // Arm
+                 ctx.lineWidth = 15*s; ctx.strokeStyle = '#2E8B57';
+                 ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - h); ctx.lineTo(p.x + 60*s, p.y - h - 80*s); ctx.stroke();
+                 // Torch
+                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 60*s, p.y - h - 90*s, 10*s, 0, Math.PI*2); ctx.fill();
+             }
+             else if (type === 'landmark_castle') {
+                 // Reuse simple castle logic but bigger?
+                 const w = 300 * s; const h = 200 * s;
+                 ctx.fillStyle = '#A52A2A';
+                 ctx.fillRect(p.x - w/2, p.y - h/2, w, h/2); // Base
+                 ctx.fillRect(p.x - w/2, p.y - h, w/4, h); // Tower L
+                 ctx.fillRect(p.x + w/4, p.y - h, w/4, h); // Tower R
+                 ctx.fillStyle = '#8B0000'; // Roofs
+                 ctx.beginPath(); ctx.moveTo(p.x - w/2 - 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/8, p.y - h - 50*s); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x + w/4 - 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/8, p.y - h - 50*s); ctx.fill();
+             }
+        }
     }
 
     function drawShadow(p) { if(!p) return; ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2); ctx.fill(); }
@@ -2243,10 +2609,17 @@ let lastDisplayedContestTime = -1;
         
         if (type === 'thigh') {
             // Thigh: Wide at top (0,0), taper to knee (len, 0)
-            ctx.moveTo(0, -w);
-            ctx.lineTo(len, -w * 0.7); // Knee is thinner
-            ctx.lineTo(len, w * 0.7);
-            ctx.lineTo(0, w);
+            if (playerData.graphics === 'HIGH') {
+                 ctx.moveTo(0, -w);
+                 ctx.quadraticCurveTo(len*0.4, -w*1.3, len, -w * 0.7); // Quad bulge
+                 ctx.lineTo(len, w * 0.7);
+                 ctx.quadraticCurveTo(len*0.4, w*1.3, 0, w); // Hamstring
+            } else {
+                 ctx.moveTo(0, -w);
+                 ctx.lineTo(len, -w * 0.7); // Knee is thinner
+                 ctx.lineTo(len, w * 0.7);
+                 ctx.lineTo(0, w);
+            }
         } else if (type === 'calf') {
             // Calf: Knee (0,0), Bulge at 1/3, Ankle (len, 0)
             ctx.moveTo(0, -w * 0.7);
@@ -2263,26 +2636,41 @@ let lastDisplayedContestTime = -1;
         
         ctx.closePath();
         
-        const cacheKey = `muscle_limb_${color}`;
-        const fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-            gradCtx.fillStyle = color;
-            gradCtx.fillRect(0, 0, size, size);
-            const grad = gradCtx.createLinearGradient(0, 0, 0, size);
-            grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-            gradCtx.fillStyle = grad;
-            gradCtx.fillRect(0, 0, size, size);
-        });
+        // 1. Base Color Fill
+        ctx.fillStyle = color;
+        ctx.fill();
 
-        ctx.fillStyle = fillStyle;
+        // 2. 3D Volume Gradient (Cylinder Effect)
+        // Vertical gradient relative to the limb (y from -w to w)
+        const grad = ctx.createLinearGradient(0, -w, 0, w);
+        grad.addColorStop(0, 'rgba(0,0,0,0.5)');       // Top Shadow (Deep)
+        grad.addColorStop(0.15, 'rgba(0,0,0,0.2)');    // Soft Shadow
+        grad.addColorStop(0.4, 'rgba(255,255,255,0.25)'); // Specular Highlight (Shinier)
+        grad.addColorStop(0.6, 'rgba(255,255,255,0.05)'); // Soft Light
+        grad.addColorStop(0.85, 'rgba(0,0,0,0.2)');    // Soft Shadow
+        grad.addColorStop(1, 'rgba(0,0,0,0.5)');       // Bottom Shadow (Deep)
+
+        ctx.fillStyle = grad;
         ctx.fill();
         
-        // Muscle Definition highlight
-        if (type === 'calf') {
-             ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        // 3. Muscle Definition Highlights (Bulge Accent)
+        // If High Graphics, add specific muscle curve accents
+        if (playerData.graphics === 'HIGH') {
+             // Top Highlight (Bicep/Quad)
+             ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+             ctx.lineWidth = w * 0.3;
+             ctx.lineCap = 'round';
              ctx.beginPath();
-             ctx.ellipse(len*0.3, 0, len*0.15, w*0.5, 0, 0, Math.PI*2);
-             ctx.fill();
+             ctx.moveTo(len * 0.2, -w * 0.5);
+             ctx.quadraticCurveTo(len * 0.5, -w * 0.8, len * 0.8, -w * 0.5);
+             ctx.stroke();
+
+             // Bottom Shadow (Tricep/Hamstring)
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath();
+             ctx.moveTo(len * 0.2, w * 0.5);
+             ctx.quadraticCurveTo(len * 0.5, w * 0.8, len * 0.8, w * 0.5);
+             ctx.stroke();
         }
         
         ctx.restore();
@@ -2730,6 +3118,9 @@ let lastDisplayedContestTime = -1;
             if (isRight && sleeveRight) { uColor = sleeveRight; fColor = sleeveRight; }
             if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
 
+            // Shoulder Joint
+            drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, uColor);
+
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
             // Upper Arm (Deltoid to Elbow)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.w, uColor, 'thigh', s);
@@ -2738,9 +3129,8 @@ let lastDisplayedContestTime = -1;
             // Forearm (Elbow to Wrist)
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
 
-            // Elbow Joint Shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.beginPath(); ctx.arc(elbow.x, elbow.y, 3*s, 0, Math.PI*2); ctx.fill();
+            // Elbow Joint
+            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, uColor);
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -2766,6 +3156,10 @@ let lastDisplayedContestTime = -1;
         drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // Draw Thighs (Skin tone - under shorts)
+        // Hip Joints
+        drawJoint(p.x - 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
+        drawJoint(p.x + 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
+
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
 
@@ -2899,9 +3293,24 @@ let lastDisplayedContestTime = -1;
         ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2); 
         ctx.fill();
         
-        // Occipital Shadow (Base of skull)
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
-        ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, 4*s, 0, Math.PI*2); ctx.fill();
+        if (playerData.graphics === 'HIGH') {
+             // Enhanced Shading (Jawline/Neck)
+             ctx.fillStyle = 'rgba(0,0,0,0.15)';
+             ctx.beginPath();
+             ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2);
+             ctx.fill();
+
+             // Gradient for hair shadow
+             const hGrad = ctx.createLinearGradient(0, headY - headRadius, 0, headY);
+             hGrad.addColorStop(0, 'rgba(0,0,0,0.1)');
+             hGrad.addColorStop(1, 'rgba(0,0,0,0)');
+             ctx.fillStyle = hGrad;
+             ctx.fill();
+        } else {
+             // Occipital Shadow (Base of skull)
+             ctx.fillStyle = 'rgba(0,0,0,0.1)';
+             ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, 4*s, 0, Math.PI*2); ctx.fill();
+        }
         
         // Hair
         if(skinObj.hairStyle === 'afro') {
@@ -3587,9 +3996,28 @@ let lastDisplayedContestTime = -1;
             }
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
+
+            // Shoulder Joint (Radius increased to 0.7)
+            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor);
+            else drawFuzzyCircle(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, seedBase, s, true);
+
+            // Upper Arm
             drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
+
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+
+            // Forearm
             drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
+
+            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
+            let elbowColor = thisUpperColor;
+            if (thisForeColor === furColor && thisUpperColor !== furColor) {
+                elbowColor = thisUpperColor; // Sleeve covers elbow
+            } else if (thisUpperColor === furColor) {
+                elbowColor = furColor;
+            }
+            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor);
+            else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
@@ -3606,14 +4034,29 @@ let lastDisplayedContestTime = -1;
         drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         const legFurry = isFurry && (legColor === furColor);
+        // Hip Joints
+        if(!legFurry) {
+            drawJoint(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
+            drawJoint(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
+        } else {
+            drawFuzzyCircle(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 10, s, true);
+            drawFuzzyCircle(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 30, s, true);
+        }
+
         drawFuzzyLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
         drawFuzzyLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
+
              // Draw Base Calf
              drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.w, calfBaseColor, s, legFurry, isRight?4:2);
+
+             // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
+             // Thigh was drawn before this function.
+             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor);
+             else drawFuzzyCircle(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor, isRight?40:20, s, true);
 
              // Socks & Shoes Overlay
              if(skinObj.socksColor || skinObj.shoesColor) {
@@ -3651,6 +4094,12 @@ let lastDisplayedContestTime = -1;
         if (currentAnimal === 'bear') { bodyOptions.waistScale = 1.35; bodyOptions.roundness = 0.25; }
         if (currentAnimal === 'pig' || currentAnimal === 'cow') { bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.15; }
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
+
+        // Auto-detect Jersey
+        if (!bodyFurry && torsoColor !== furColor && !skinObj.pattern) {
+            bodyOptions.isJersey = true;
+        }
+
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
@@ -4212,7 +4661,15 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawMountainLayer(layer, horizonY, dx) {
-        ctx.fillStyle = layer.color;
+        if (playerData.graphics === 'HIGH') {
+            const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
+            grad.addColorStop(0, layer.color);
+            grad.addColorStop(1, '#1a1a1a'); // Fade to dark at base
+            ctx.fillStyle = grad;
+        } else {
+            ctx.fillStyle = layer.color;
+        }
+
         ctx.beginPath();
         ctx.moveTo(layer.points[0].x + dx, horizonY);
         layer.points.forEach(p => { ctx.lineTo(p.x + dx, horizonY - p.y); });
@@ -4255,9 +4712,31 @@ let lastDisplayedContestTime = -1;
             bgCache.sky = skyGrad;
 
             // Current Floor
-            const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
-            currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-            bgCache.currentFloor = currentZoneGrad;
+            if (playerData.graphics === 'HIGH') {
+                 // Bake texture for high graphics
+                 const fCv = document.createElement('canvas');
+                 fCv.width = canvas.width;
+                 fCv.height = Math.ceil(canvas.height - horizonY);
+                 const fCtx = fCv.getContext('2d');
+
+                 // Gradient
+                 const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
+                 grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
+                 fCtx.fillStyle = grad;
+                 fCtx.fillRect(0, 0, fCv.width, fCv.height);
+
+                 // Noise Texture
+                 fCtx.fillStyle = 'rgba(0,0,0,0.03)';
+                 const noiseCount = fCv.width * fCv.height * 0.005;
+                 for(let i=0; i<noiseCount; i++) {
+                     fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
+                 }
+                 bgCache.floorImage = fCv;
+            } else {
+                 const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+                 currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
+                 bgCache.currentFloor = currentZoneGrad;
+            }
 
             // Past Floors
             for (let i = 0; i < COURT_ZONES.length; i++) {
@@ -4290,8 +4769,20 @@ let lastDisplayedContestTime = -1;
              }
         } else {
              // Sun
-             ctx.fillStyle = sunGradient;
-             ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
+             if (playerData.graphics === 'HIGH') {
+                 // Better Sun with glow
+                 const sunX = 700, sunY = 80;
+                 const glow = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 120);
+                 glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+                 glow.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
+                 glow.addColorStop(1, 'rgba(255, 69, 0, 0)');
+                 ctx.fillStyle = glow;
+                 ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
+             } else {
+                 ctx.fillStyle = sunGradient;
+                 ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
+             }
         }
 
         // BACKGROUND MOUNTAINS
@@ -4323,7 +4814,12 @@ let lastDisplayedContestTime = -1;
              ctx.fill();
         });
 
-        ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+        if (bgCache.floorImage) {
+             ctx.drawImage(bgCache.floorImage, 0, horizonY);
+        } else {
+             ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+        }
+
         bgCache.pastFloors.forEach(f => {
             ctx.fillStyle = f.grad; ctx.fillRect(0, f.y, canvas.width, f.h);
         });
@@ -4428,6 +4924,9 @@ let lastDisplayedContestTime = -1;
             if (obj.type === 'ball') drawBall(obj.proj);
             if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha);
         });
+
+        // Draw Weather overlay on top of 3D scene but behind UI
+        weather.draw(project);
 
         if (feedbackTimer > 0) {
             ctx.save(); ctx.font = "900 60px 'Arial Black'";
@@ -4675,6 +5174,7 @@ let lastDisplayedContestTime = -1;
 
     function update(dt) {
         updateParticles(dt);
+        weather.update(dt);
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
@@ -4864,6 +5364,8 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statAccuracy').innerText = acc + "%";
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        const btnGraph = document.getElementById('btnToggleGraphics');
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
         const btnMeter = document.getElementById('btnToggleMeter');
         if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
         const btnShape = document.getElementById('btnCycleMeterShape');
@@ -5044,6 +5546,13 @@ let lastDisplayedContestTime = -1;
         saveData(); updateShopUI(); updateMobileControlsUI();
         const btn = document.getElementById('btnToggleMobile');
         if(btn) btn.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+    }
+    window.toggleGraphics = function() {
+        playerData.graphics = (playerData.graphics === 'HIGH') ? 'LOW' : 'HIGH';
+        saveData();
+        const btn = document.getElementById('btnToggleGraphics');
+        if(btn) btn.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        invalidateBackgroundCache(); // Redraw background next frame
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
