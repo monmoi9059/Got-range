@@ -4731,14 +4731,6 @@ let lastDisplayedContestTime = -1;
                  for(let i=0; i<noiseCount; i++) {
                      fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
                  }
-                 // Add Court Lines hint?
-                 fCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-                 fCtx.lineWidth = 2;
-                 fCtx.beginPath();
-                 fCtx.moveTo(fCv.width * 0.2, fCv.height); fCtx.lineTo(fCv.width * 0.4, 0);
-                 fCtx.moveTo(fCv.width * 0.8, fCv.height); fCtx.lineTo(fCv.width * 0.6, 0);
-                 fCtx.stroke();
-
                  bgCache.floorImage = fCv;
             } else {
                  const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
