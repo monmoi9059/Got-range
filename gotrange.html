@@ -385,7 +385,7 @@
             <p>Record: <span id="highScoreVal" class="highscore-label">10 ft</span></p>
         </div>
     </div>
-    <div id="strikes">MISS: <span id="missVal">0</span>/2</div>
+    <div id="strikes">MISS: <span id="missVal">0</span></div>
     <div id="courtNameDisplay">COUR ARRIÈRE DE LÉVIS</div>
     <div id="contest-ui">
         <p style="color:#FFFF00; font-size:1.5em;">TEMPS: <span id="contestTime">60</span>s</p>
@@ -398,6 +398,7 @@
         <div class="ui-btn" onclick="openAchievements()">TROPHÉES [O]</div>
         <div class="ui-btn" onclick="openStats()">STATS [S]</div>
     </div>
+    <div id="btn-mute" class="ui-btn" style="position: absolute; bottom: 20px; right: 20px; z-index: 100; width: 50px; height: 50px; padding: 0; line-height: 46px; border-radius: 50%; font-size: 24px; text-align: center;" onclick="toggleMuteUI()">🔊</div>
     <div id="notification">
         <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
         <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
@@ -1329,6 +1330,288 @@
         }
         return idx;
     }
+
+    // --- 1.5 AUDIO SYSTEM (RETRO SYNTH) ---
+    const AudioSystem = {
+        ctx: null,
+        isMuted: false,
+        isPlayingMusic: false,
+        nextNoteTime: 0,
+        beatCount: 0,
+        lookahead: 25.0,
+        scheduleAheadTime: 0.1,
+        timerID: null,
+
+        init: function() {
+            if (this.ctx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.startMusic();
+        },
+
+        toggleMute: function() {
+            this.isMuted = !this.isMuted;
+            if(this.ctx) {
+                if(this.isMuted) this.ctx.suspend();
+                else this.ctx.resume();
+            }
+            return this.isMuted;
+        },
+
+        // --- SYNTHESIZERS ---
+        createOscillator: function(type, freq, start, dur, vol) {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime + (start || 0);
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+            return { osc, gain };
+        },
+
+        // --- SFX ---
+        playSwish: function() {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime;
+            const dur = 0.4;
+            const bufferSize = this.ctx.sampleRate * dur;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.Q.value = 1;
+            filter.frequency.setValueAtTime(800, t);
+            filter.frequency.linearRampToValueAtTime(300, t + dur);
+
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.2, t); // Lower volume
+            gain.gain.linearRampToValueAtTime(0, t + dur);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(t);
+        },
+
+        playBrick: function() {
+            if (!this.ctx || this.isMuted) return;
+            // Clank
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(250, t);
+            osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.1);
+        },
+
+        playFloorHit: function() {
+            if (!this.ctx || this.isMuted) return;
+            // Thud
+            this.createOscillator('triangle', 80, 0, 0.1, 0.2);
+        },
+
+        playWindowBreak: function() {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime;
+
+            // High pitched noise
+            const dur = 0.6;
+            const bufferSize = this.ctx.sampleRate * dur;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 2000;
+
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(t);
+
+            // Glass shards (random sine pings)
+            for(let i=0; i<5; i++) {
+                setTimeout(() => {
+                    if(this.ctx && !this.isMuted) this.createOscillator('sine', 2000 + Math.random()*3000, 0, 0.1, 0.05);
+                }, Math.random() * 200);
+            }
+        },
+
+        // --- MUSIC SEQUENCER (Low-Fi Hip Hop) ---
+        playKick: function(time) {
+            if(!this.ctx || this.isMuted) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(150, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+            gain.gain.setValueAtTime(0.4, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + 0.5);
+        },
+
+        playSnare: function(time) {
+            if(!this.ctx || this.isMuted) return;
+            // Tone
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(250, time);
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + 0.1);
+
+            // Noise
+            const dur = 0.2;
+            const bufferSize = this.ctx.sampleRate * dur;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const nGain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 1000;
+            nGain.gain.setValueAtTime(0.15, time);
+            nGain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(this.ctx.destination);
+            noise.start(time);
+        },
+
+        playHiHat: function(time) {
+            if(!this.ctx || this.isMuted) return;
+            const dur = 0.05;
+            const bufferSize = this.ctx.sampleRate * dur;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 7000;
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.1, time); // Low volume
+            gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(time);
+        },
+
+        playChord: function(time, notes) {
+            if(!this.ctx || this.isMuted) return;
+            // Wobbly electric piano
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const lfo = this.ctx.createOscillator();
+                const lfoGain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.value = freq;
+
+                // LFO for pitch wobble (Lo-Fi)
+                lfo.frequency.value = 2 + Math.random(); // Slow wobble
+                lfoGain.gain.value = 1.5; // Depth
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+
+                // Filter
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 800;
+
+                gain.gain.setValueAtTime(0.04, time);
+                gain.gain.linearRampToValueAtTime(0.06, time + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 2.0); // Long sustain
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(time);
+                lfo.start(time);
+                osc.stop(time + 2.0);
+                lfo.stop(time + 2.0);
+            });
+        },
+
+        scheduler: function() {
+            while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+                this.scheduleNote(this.beatCount, this.nextNoteTime);
+                this.nextNoteTime += 0.2;
+                this.beatCount++;
+                if(this.beatCount >= 32) this.beatCount = 0; // 2 bar loop (16 * 2)
+            }
+            this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
+        },
+
+        scheduleNote: function(beatNumber, time) {
+            if (beatNumber % 16 === 0 || beatNumber % 16 === 10) {
+                this.playKick(time);
+            }
+            if (beatNumber % 16 === 8) {
+                this.playSnare(time);
+            }
+            if (beatNumber % 2 === 0) {
+                this.playHiHat(time);
+            }
+            if (beatNumber === 0) {
+                this.playChord(time, [261.6, 311.1, 392.0, 466.2]);
+            }
+            if (beatNumber === 16) {
+                this.playChord(time, [174.6, 207.7, 261.6, 311.1]);
+            }
+        },
+
+        startMusic: function() {
+            if(this.isPlayingMusic) return;
+            if(!this.ctx) return;
+            this.isPlayingMusic = true;
+            this.nextNoteTime = this.ctx.currentTime + 0.1;
+            this.scheduler();
+        },
+
+        stopMusic: function() {
+            this.isPlayingMusic = false;
+            window.clearTimeout(this.timerID);
+        }
+    };
 
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
@@ -5330,6 +5613,7 @@ let lastDisplayedContestTime = -1;
     // --- GAME ACTIONS ---
     function startJump() {
         if (state !== 'IDLE') return;
+        AudioSystem.init();
         state = 'JUMPING';
         feedback = "";
 
@@ -5418,12 +5702,21 @@ let lastDisplayedContestTime = -1;
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracyMagnitude) * 15;
                 ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracyMagnitude) * 5;
-                feedback = Math.abs(accuracyMagnitude) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
+
+                if (Math.abs(timingError) > threshold * 3) {
+                    feedback = "VITRE CASSÉE !";
+                    ball.isWindow = true;
+                } else {
+                    feedback = Math.abs(accuracyMagnitude) > 0.5 ? "AIRBALL" : "BRIQUE";
+                    ball.isWindow = false;
+                }
+                feedbackTimer = 30;
             }
         }
     }
 
     function handleScore() {
+        AudioSystem.playSwish();
         ball.active = false; playerData.lifetimeStats.makes++; currentStreak++;
         checkAchievements('streak');
         if(currentGameMode === 'CONTEST') {
@@ -5441,6 +5734,7 @@ let lastDisplayedContestTime = -1;
 
     function handleMiss() {
         if(state === 'GAMEOVER') return;
+        AudioSystem.playFloorHit();
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
@@ -5554,6 +5848,12 @@ let lastDisplayedContestTime = -1;
 
                     const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
                     if (distToHoopCenter < 25) { handleScore(); return; }
+
+                    if (ball.isWindow) {
+                        AudioSystem.playWindowBreak();
+                    } else if (feedback !== "AIRBALL") {
+                        AudioSystem.playBrick();
+                    }
                 }
                 const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
                 const currentDist = Math.sqrt(Math.pow(ball.x - player3D.x, 2) + Math.pow(ball.y - player3D.y, 2));
@@ -5927,6 +6227,7 @@ let lastDisplayedContestTime = -1;
     document.addEventListener('webkitfullscreenchange', checkFullscreenState);
 
     window.choosePlatform = function(mode) {
+        AudioSystem.init();
         playerData.mobileControls = (mode === 'mobile');
         playerData.platformChosen = true;
 
@@ -6054,6 +6355,12 @@ let lastDisplayedContestTime = -1;
         if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONCOURS"; }
         else { currentGameMode = 'CLASSIC'; document.getElementById('modeBtnText').innerText = "CLASSIQUE"; }
         resetGame();
+    }
+    window.toggleMuteUI = function() {
+        if (!AudioSystem.ctx) AudioSystem.init();
+        const isMuted = AudioSystem.toggleMute();
+        const btn = document.getElementById('btn-mute');
+        if (btn) btn.innerText = isMuted ? "🔇" : "🔊";
     }
 
     // --- GAME LOOP ---
