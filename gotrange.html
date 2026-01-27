@@ -1284,6 +1284,21 @@
         g_noiseLUT[i] = Math.random();
     }
 
+    function binarySearchLowerBound(arr, val) {
+        let l = 0, r = arr.length - 1;
+        let idx = arr.length; // Default if not found (all smaller)
+        while (l <= r) {
+            let m = (l + r) >>> 1; // Unsigned right shift for floor
+            if (arr[m].dist >= val) {
+                idx = m;
+                r = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+        return idx;
+    }
+
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -5049,7 +5064,16 @@ let lastDisplayedContestTime = -1;
         const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
-        for (let i = 0; i < decors.length; i++) {
+        // OPTIMIZATION: Start iteration from visible range
+        // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
+        // We assume a max visible depth of ~15000 pixels.
+        const startDist = Math.max(0, playerDistFromHoop - 15000);
+        let startIndex = 0;
+        if (startDist > 1000) {
+             startIndex = binarySearchLowerBound(decors, startDist);
+        }
+
+        for (let i = startIndex; i < decors.length; i++) {
             const d = decors[i];
 
             // Optimization: Stop processing if objects are too far behind the player (out of view)
