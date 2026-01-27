@@ -1508,8 +1508,9 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = color;
             const s2 = size * progress;
             ctx.fillRect(-s2, -s2, s2*2, s2*2);
-            const sg = size * ((greenStart + greenEnd)/2);
-            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=2; ctx.strokeRect(-sg, -sg, sg*2, sg*2);
+            const mid = size * ((greenStart + greenEnd)/2);
+            const thick = Math.max(2, size * (greenEnd - greenStart));
+            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=thick; ctx.strokeRect(-mid, -mid, mid*2, mid*2);
             ctx.restore();
         }
         else if (shape === 'ring') {
@@ -3848,12 +3849,6 @@ let lastDisplayedContestTime = -1;
             gEnd = Math.min(1, gEnd);
 
             if (playerData.meterEnabled) {
-                 // Hack: modifying the signature call. I need to update the function definition first.
-                 // Wait, I can't update the function definition in this block.
-                 // I will assume I updated `drawShotMeter` to accept (..., progress, greenStart, shape, greenEnd).
-                 // For now, let's just pass them and fix the function in next step if needed.
-                 // Actually, the current plan step is "Update Meter Rendering". I should update the function AND the call.
-
                  drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
             }
         }
