@@ -3691,10 +3691,11 @@ let lastDisplayedContestTime = -1;
 
         // 2. Legs (Base implementation)
         const baseKneeY = p.y - (legLen * 0.5);
-        let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s, lFootY = p.y;
-        let rFootX = p.x + 10*s, rFootY = p.y;
+        const stanceModLegs = sizeMod.stance || 1.0;
+        let lKneeX = p.x - 9*s*stanceModLegs, lKneeY = baseKneeY;
+        let rKneeX = p.x + 9*s*stanceModLegs, rKneeY = baseKneeY;
+        let lFootX = p.x - 10*s*stanceModLegs, lFootY = p.y;
+        let rFootX = p.x + 10*s*stanceModLegs, rFootY = p.y;
 
         // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
@@ -4384,23 +4385,23 @@ let lastDisplayedContestTime = -1;
             return;
         }
 
-        let sizeMod = { w: 1, h: 1, head: 1 };
+        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0 };
         switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9 }; break;
-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95 }; break;
-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1 }; break;
-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25 }; break;
-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9 }; break;
+            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
+            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
+            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
+            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
+            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
+            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9 }; break;
+            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
+            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
+            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
+            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
+            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
+            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8 }; break;
+            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
+            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
+            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
         }
 
         // Determine if Furry
@@ -4513,14 +4514,20 @@ let lastDisplayedContestTime = -1;
 
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
-        let legLen = 30 * s * sizeMod.h;
+
+        let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
         let torsoY = p.y - legLen - bodyH;
         let headY = torsoY - (10 * s * sizeMod.head);
         let headRadius = 12 * s * sizeMod.head;
 
         let shoulderY = torsoY + (5*s);
-        let leftShoulderX = p.x - 12*s; let rightShoulderX = p.x + 12*s;
-        let upperArmLen = 20 * s * sizeMod.h * 1.05; let foreArmLen = 20 * s * sizeMod.h * 1.05;
+        // Stance modifier for shoulder width and hip width
+        const stanceMod = sizeMod.stance || 1.0;
+        let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
+
+        let armLenMod = sizeMod.limbLen || 1.0;
+        if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
+        let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
             const armFurry = isFurry && (armColor === furColor);
@@ -4655,17 +4662,19 @@ let lastDisplayedContestTime = -1;
 
 
         const legFurry = isFurry && (legColor === furColor);
+        const hipX = 8 * s * stanceModLegs;
+
         // Hip Joints
         if(!legFurry) {
-            drawJoint(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
-            drawJoint(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
+            drawJoint(p.x - hipX, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
+            drawJoint(p.x + hipX, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
         } else {
-            drawFuzzyCircle(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 30, s, true);
+            drawFuzzyCircle(p.x - hipX, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 10, s, true);
+            drawFuzzyCircle(p.x + hipX, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 30, s, true);
         }
 
-        drawFuzzyLimb(p.x - 8*s, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + 8*s, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
+        drawFuzzyLimb(p.x - hipX, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 1); // Left Thigh
+        drawFuzzyLimb(p.x + hipX, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.w, thighColor, s, legFurry, 3); // Right Thigh
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
