@@ -2410,8 +2410,8 @@ let lastDisplayedContestTime = -1;
 
         let points = [];
 
-        if (options.bodyShape === 'bear_new') {
-             // Bear Shape: Narrow shoulders, wide belly/hips (Pear)
+        if (options.bodyShape === 'bear_new' || options.bodyShape === 'round') {
+             // Bear/Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear)
              const shoulderW = w * 0.8;
              const bellyW = w * 1.6;
              const hipW = w * 1.5;
@@ -2430,7 +2430,36 @@ let lastDisplayedContestTime = -1;
                  {x: cx - bellyW/2, y: bellyY},
                  {x: cx - w*1.1, y: topY + h*0.25}
              ];
-        } else {
+        }
+        else if (options.bodyShape === 'oval') {
+             // Small Animal (Rat, Cat, etc.) - Simple Ovalish body
+             const shoulderW = w * 0.9;
+             const midW = w * 1.2;
+             const hipW = w * 1.0;
+             const midY = topY + h * 0.5;
+
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY},
+                 {x: cx + shoulderW/2, y: shoulderY},
+                 {x: cx + midW/2, y: midY},
+                 {x: cx + hipW/2, y: hipY},
+                 {x: cx - hipW/2, y: hipY},
+                 {x: cx - midW/2, y: midY}
+             ];
+        }
+        else if (options.bodyShape === 'athletic_animal') {
+             // Dog, Wolf, Lion - V-Shape but softer than human
+             points = [
+                {x: cx - w*0.6, y: shoulderY},
+                {x: cx + w*0.6, y: shoulderY},
+                {x: cx + w*0.5, y: waistY},
+                {x: cx + w*0.55, y: hipY},
+                {x: cx - w*0.55, y: hipY},
+                {x: cx - w*0.5, y: waistY}
+            ];
+        }
+        else {
+            // Default Humanoid (Hourglass/Trapezoid)
             points = [
                 {x: cx - sW/2, y: shoulderY},     // 0: Top Left
                 {x: cx + sW/2, y: shoulderY},     // 1: Top Right
@@ -3676,7 +3705,7 @@ let lastDisplayedContestTime = -1;
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
             
             // Hand (Realistic)
-            ctx.fillStyle = fColor; 
+            ctx.fillStyle = skinTone;
             ctx.beginPath();
             ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s); 
             ctx.fill();
@@ -3684,7 +3713,7 @@ let lastDisplayedContestTime = -1;
             if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !isDetachedStyle) {
                 // Ball is drawn in Layer 0 now. Just draw Fingers.
                 // Fingers over ball
-                ctx.fillStyle = fColor;
+                ctx.fillStyle = skinTone;
                 ctx.beginPath(); ctx.arc(-2*s, 6*s, 1.5*s, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(2*s, 6*s, 1.5*s, 0, Math.PI*2); ctx.fill();
             }
@@ -4456,7 +4485,7 @@ let lastDisplayedContestTime = -1;
             else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = thisForeColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
@@ -4640,8 +4669,21 @@ let lastDisplayedContestTime = -1;
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
         let bodyOptions = {};
+
+        // Define Body Shapes for Animals
         if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
-        else if (currentAnimal === 'pig' || currentAnimal === 'cow') { bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.15; }
+        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
+            bodyOptions.bodyShape = 'oval'; // Small animals
+        }
+        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
+            bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
+        }
+        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
+            bodyOptions.bodyShape = 'round'; // Chunky
+            bodyOptions.waistScale = 1.1;
+            bodyOptions.roundness = 0.2;
+        }
+
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
 
         // Auto-detect Jersey
