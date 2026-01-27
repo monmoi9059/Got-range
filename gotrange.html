@@ -1902,7 +1902,10 @@ let lastDisplayedContestTime = -1;
     }
 
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
-    function invalidateBackgroundCache() { bgCache = null; }
+    function invalidateBackgroundCache() {
+        bgCache = null;
+        if(mountainLayers) mountainLayers.forEach(l => l.gradient = null);
+    }
 
     function resizeGame() {
         const winW = window.innerWidth;
@@ -5257,10 +5260,13 @@ let lastDisplayedContestTime = -1;
 
     function drawMountainLayer(layer, horizonY, dx) {
         if (playerData.graphics === 'HIGH') {
-            const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
-            grad.addColorStop(0, layer.color);
-            grad.addColorStop(1, '#1a1a1a'); // Fade to dark at base
-            ctx.fillStyle = grad;
+            if (!layer.gradient) {
+                const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
+                grad.addColorStop(0, layer.color);
+                grad.addColorStop(1, '#1a1a1a');
+                layer.gradient = grad;
+            }
+            ctx.fillStyle = layer.gradient;
         } else {
             ctx.fillStyle = layer.color;
         }
@@ -5283,13 +5289,12 @@ let lastDisplayedContestTime = -1;
         const camZoom = 698;
         const camHeight = 84000 / camZoom;
 
-        g_camCache = {
-            rotation: camRotation,
-            sinRot: camSin,
-            cosRot: camCos,
-            cameraZoom: camZoom,
-            cameraHeight: camHeight
-        };
+        if (!g_camCache) g_camCache = {};
+        g_camCache.rotation = camRotation;
+        g_camCache.sinRot = camSin;
+        g_camCache.cosRot = camCos;
+        g_camCache.cameraZoom = camZoom;
+        g_camCache.cameraHeight = camHeight;
         // Ensure globals are updated
         cameraZoom = camZoom;
         cameraHeight = camHeight;
@@ -6534,19 +6539,31 @@ let lastDisplayedContestTime = -1;
     }
 
     let lastTime = 0;
+    let accumulator = 0;
+    const FIXED_STEP = 1000 / 60; // 60 FPS physics (16.666ms)
+
     function loop(timestamp) {
         requestAnimationFrame(loop);
         if (!lastTime) lastTime = timestamp;
-        const elapsed = timestamp - lastTime;
-        let dt = elapsed / 16.666;
-        if(dt > 4) dt = 4;
+        let frameTime = timestamp - lastTime;
         lastTime = timestamp;
+
+        // Prevent spiral of death if browser hangs
+        if (frameTime > 250) frameTime = 250;
+
+        accumulator += frameTime;
 
         if (typeof GamepadController !== 'undefined') {
             GamepadController.update();
         }
 
-        update(dt);
+        while (accumulator >= FIXED_STEP) {
+            // update() expects dt in "frames" (1.0 = 16.66ms)
+            // Since our logic was built around 1.0 being ~60fps, we pass 1.0.
+            update(1.0);
+            accumulator -= FIXED_STEP;
+        }
+
         draw();
     }
 
