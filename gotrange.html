@@ -1679,13 +1679,15 @@ let lastDisplayedContestTime = -1;
                 // Ground collision
                 if (p.z <= 0) {
                     p.z = 0;
-                    this.particles.splice(i, 1);
+                    this.particles[i] = this.particles[this.particles.length - 1];
+                    this.particles.pop();
                     continue;
                 }
 
                 // Cull far
                 if (p.z < 0 || Math.abs(p.x - player3D.x) > 2000) {
-                    this.particles.splice(i, 1);
+                    this.particles[i] = this.particles[this.particles.length - 1];
+                    this.particles.pop();
                 }
             }
         }
@@ -5389,7 +5391,10 @@ let lastDisplayedContestTime = -1;
                 else p.color = `rgba(50, 50, 50, ${p.alpha})`;
             }
 
-            if (p.life <= 0) particles.splice(i, 1);
+            if (p.life <= 0) {
+                particles[i] = particles[particles.length - 1];
+                particles.pop();
+            }
         }
     }
 
