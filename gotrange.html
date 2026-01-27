@@ -1297,6 +1297,24 @@
         g_noiseLUT[i] = Math.random();
     }
 
+    // --- BASKETBALL GEOMETRY (For Rotation) ---
+    var g_ballGeo = [];
+    function generateBasketballGeometry() {
+        const paths = [];
+        const res = 24; // Points per circle
+
+        // Circle 1: Facing Viewer (XY Plane)
+        let c1 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c1.push({x:Math.cos(a), y:Math.sin(a), z:0}); }
+        // Circle 2: Perpendicular Vertical (YZ Plane)
+        let c2 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c2.push({x:0, y:Math.cos(a), z:Math.sin(a)}); }
+        // Circle 3: Perpendicular Horizontal (XZ Plane)
+        let c3 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c3.push({x:Math.cos(a), y:0, z:Math.sin(a)}); }
+
+        paths.push(c1, c2, c3);
+        return paths;
+    }
+    g_ballGeo = generateBasketballGeometry();
+
     function binarySearchLowerBound(arr, val) {
         let l = 0, r = arr.length - 1;
         let idx = arr.length; // Default if not found (all smaller)
@@ -1368,7 +1386,7 @@ let lastDisplayedContestTime = -1;
     const DEBUG = false;
     // Shift player start position to match new center (300 -> 433)
     let player3D = { x: 433, y: 300, z: 0, vz: 0 };
-    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [] };
+    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
     let particles = [];
 
     // Expose for debugging
@@ -1788,7 +1806,7 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function drawBallSprite(x, y, scale, isFire = false) {
+    function drawBallSprite(x, y, scale, isFire = false, rotation = 0) {
         let color1 = '#ff6600'; let color2 = '#cc5500';
         let key = 'ball_default';
 
@@ -1817,14 +1835,47 @@ let lastDisplayedContestTime = -1;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1 * scale;
 
+        // Base Circle
         ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.stroke();
+
+        // Setup Lines
+        ctx.save();
+        ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.clip(); // Clip lines to ball
 
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
         else if (isFire) { ctx.strokeStyle = '#FFFF00'; ctx.lineWidth = 2 * scale; }
+        else { ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.5 * scale; }
 
-        ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
+        // Draw Rotated Geometry
+        const radius = 8 * scale;
+        const cosR = Math.cos(rotation);
+        const sinR = Math.sin(rotation);
 
+        if (g_ballGeo && g_ballGeo.length > 0) {
+            g_ballGeo.forEach(path => {
+                ctx.beginPath();
+                for(let i=0; i<path.length; i++) {
+                    const p = path[i];
+                    // Rotate around X-axis (Backspin: Texture moves Down)
+                    // y' = y*cos - z*sin
+                    // z' = y*sin + z*cos
+                    // We render (x, y')
+
+                    const ry = p.y * cosR - p.z * sinR;
+                    // For z-depth cull (optional, not strictly needed for wireframe on sphere)
+                    // const rz = p.y * sinR + p.z * cosR;
+
+                    const px = x + p.x * radius;
+                    const py = y + ry * radius;
+
+                    if (i===0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            });
+        }
+
+        ctx.restore();
         ctx.shadowBlur = 0; // Reset
     }
 
@@ -1871,7 +1922,7 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        drawBallSprite(p.x, p.y, p.scale, ball.isFire);
+        drawBallSprite(p.x, p.y, p.scale, ball.isFire, ball.rotationX);
     }
 
     function drawDetachedBall(p, s, torsoY, bodyH, headY) {
@@ -1911,7 +1962,7 @@ let lastDisplayedContestTime = -1;
                      }
                  }
 
-                 drawBallSprite(bx, by, s, (currentStreak >= 5));
+                 drawBallSprite(bx, by, s, (currentStreak >= 5), 0);
              }
          } catch(e) {
              console.error("Error drawing detached ball:", e);
@@ -4038,7 +4089,7 @@ let lastDisplayedContestTime = -1;
              let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
              let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
-             drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
+             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
         }
 
         // 1. Setup Base Colors
@@ -5317,6 +5368,7 @@ let lastDisplayedContestTime = -1;
         state = 'SHOOTING';
         if (playerData.currentStyle === 'airbud') airbudJumpTime = 0;
         ball.trail = []; // Reset trail for new shot
+        ball.rotationX = 0; // Reset rotation
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
 
@@ -5486,6 +5538,10 @@ let lastDisplayedContestTime = -1;
                 const prevZ = ball.z;
                 const prevX = ball.x;
                 const prevY = ball.y;
+
+                // Update Rotation (Backspin proportional to speed, or fixed visual effect)
+                // 0.2 rad/frame * dt approx 10 rad/sec
+                ball.rotationX += 0.2 * dt;
 
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
                 if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
@@ -6040,7 +6096,7 @@ let lastDisplayedContestTime = -1;
 
         // 3. Fire Ball (In the hoop)
         const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
-        drawBallSprite(ballP.x, ballP.y, ballP.scale, true);
+        drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / 500);
     }
 
     function draw() {
