@@ -4280,80 +4280,25 @@ let lastDisplayedContestTime = -1;
             let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
             if (maxVz <= 0.5) maxVz = 9;
 
-            // Meter Visualization Logic
-            // The meter represents velocity from Max (Start) to 0 (Apex).
-            // This is mapped to 0.0 -> 1.0.
+            const curVz = getCurrentVz();
+            const targetVz = getReleaseTargetVz(maxVz);
+            const dist = maxVz - targetVz;
 
-            const curVz = getCurrentVz(); // Can be negative if falling, but meter is usually ascent.
-            // Map velocity to progress [0, 1] where 0 is maxVz and 1 is 0.
-            let progress = 1.0 - (curVz / maxVz);
-
-            // Clamp progress for display, though if we allow late shots (falling), progress > 1.
-            // For visual clarity, let's clamp 0-1 for now or allow slightly over?
-            // User requested "Release Timing", so let's stick to 0-1 logic mostly.
+            // Reversal Logic: Fill to target (1.0), then empty
+            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
             progress = Math.max(0, Math.min(1, progress));
 
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
 
-            // Calculate Green Zone Position on the meter
-            const targetVz = getReleaseTargetVz(maxVz);
-            // If targetVz is maxVz (Jump), green zone is at 1 - 1 = 0.
-            // If targetVz is 0 (Release), green zone is at 1 - 0 = 1.
-            const greenCenter = 1.0 - (targetVz / maxVz);
-
-            // Calculate Green Zone Width based on threshold
             const thresh = calculateShotThreshold();
-            // Width in meter-space (0-1)
-            // accuracy = |v - target| < thresh
-            // v < target + thresh  AND v > target - thresh
-            // meter = 1 - v/max
-            // The "start" (lower bar value, higher visual) of green zone:
-            // Corresponds to v = target + thresh? No, lower progress means higher velocity.
-            // Start of Green Zone (Visual start) should be when progress reaches (center - width).
-            // Actually `drawShotMeter` uses `greenStart` as the "threshold point" for simple bars.
-            // But for orb/etc it might need a center.
-            // Let's look at `drawShotMeter` again.
-            // It expects `greenStart` as a value 0-1 where the green zone BEGINS?
-            // Previous code: greenStart = 1.0 - (thresh / maxVz).
-            // This assumed target was 0. So green zone was [1.0 - width, 1.0].
-            // Now we want center at `greenCenter`.
-            // So `greenStart` should be `greenCenter - (width/2)`? Or is it just the threshold?
+            const greenWidth = thresh / dist;
 
-            // Re-reading drawShotMeter:
-            // "ctx.lineTo(x, y + h * (1-greenStart));" -> Draws green line at greenStart?
-            // "ctx.arc(..., -Math.PI/2 + (Math.PI*2*greenStart), ...)" -> Draws green arc segment.
-
-            // The previous logic for `greenStart` was: `1.0 - (thresh / maxVz)`.
-            // This implies the green zone is [greenStart, 1.0].
-            // So `greenStart` is the lower bound of the success window.
-
-            // New logic: Success window is [greenCenter - width, greenCenter + width] (approx).
-            // Width in Vz terms is `thresh`. In progress terms: `thresh / maxVz`.
-            // So lower bound (visual start) is `greenCenter - (thresh / maxVz)`.
-            // Let's pass this as `greenStart`.
-            // Note: `drawShotMeter` might draw from `greenStart` to end?
-            // If so, we might need to modify `drawShotMeter` to draw a centered zone or pass width.
-            // But to avoid modifying `drawShotMeter` logic too much (which assumes "fill up to target"),
-            // We can trick it or update it.
-            // The `Orb` meter I just fixed draws: `ctx.arc(cx, cy, radius, -Math.PI/2 + (Math.PI*2*greenStart), -Math.PI/2 + Math.PI*2, false);`
-            // This draws from `greenStart` to `1.0`.
-            // This works for "Apex" release (Target 1.0).
-            // But if Target is 0.5 (Setpoint), we want green zone at 0.5, NOT 0.5 to 1.0.
-
-            // CONCLUSION: I MUST UPDATE `drawShotMeter` to support a target WINDOW, not just a "fill to top" threshold.
-            // I will pass `greenCenter` and `greenWidth` instead of `greenStart`.
-            // Or just pass `greenStart` and `greenEnd`.
-
-            // Let's calculate them here:
-            const greenWidth = thresh / maxVz;
-            let gStart = greenCenter - greenWidth;
-            let gEnd = greenCenter + greenWidth; // For visuals, maybe slight tolerance?
-
-            // Clamp
+            // Green zone at the top (100%)
+            let gStart = 1.0 - greenWidth;
+            let gEnd = 1.0;
             gStart = Math.max(0, gStart);
-            gEnd = Math.min(1, gEnd);
 
             if (playerData.meterEnabled) {
                  drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
@@ -5279,22 +5224,24 @@ let lastDisplayedContestTime = -1;
             if (maxVz <= 0.5) maxVz = 9;
 
             const curVz = getCurrentVz();
-            let progress = 1.0 - (curVz / maxVz);
+            const targetVz = getReleaseTargetVz(maxVz);
+            const dist = maxVz - targetVz;
+
+            // Reversal Logic: Fill to target (1.0), then empty
+            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
             progress = Math.max(0, Math.min(1, progress));
 
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
 
-            const targetVz = getReleaseTargetVz(maxVz);
-            const greenCenter = 1.0 - (targetVz / maxVz);
             const thresh = calculateShotThreshold();
-            const greenWidth = thresh / maxVz;
+            const greenWidth = thresh / dist;
 
-            let gStart = greenCenter - greenWidth;
-            let gEnd = greenCenter + greenWidth;
+            // Green zone at the top (100%)
+            let gStart = 1.0 - greenWidth;
+            let gEnd = 1.0;
             gStart = Math.max(0, gStart);
-            gEnd = Math.min(1, gEnd);
 
             if (playerData.meterEnabled) {
                 drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
