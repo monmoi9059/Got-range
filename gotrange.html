@@ -1297,6 +1297,21 @@
         g_noiseLUT[i] = Math.random();
     }
 
+    function binarySearchLowerBound(arr, val) {
+        let l = 0, r = arr.length - 1;
+        let idx = arr.length; // Default if not found (all smaller)
+        while (l <= r) {
+            let m = (l + r) >>> 1; // Unsigned right shift for floor
+            if (arr[m].dist >= val) {
+                idx = m;
+                r = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+        return idx;
+    }
+
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -1520,8 +1535,9 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = color;
             const s2 = size * progress;
             ctx.fillRect(-s2, -s2, s2*2, s2*2);
-            const sg = size * ((greenStart + greenEnd)/2);
-            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=2; ctx.strokeRect(-sg, -sg, sg*2, sg*2);
+            const mid = size * ((greenStart + greenEnd)/2);
+            const thick = Math.max(2, size * (greenEnd - greenStart));
+            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=thick; ctx.strokeRect(-mid, -mid, mid*2, mid*2);
             ctx.restore();
         }
         else if (shape === 'ring') {
@@ -1560,8 +1576,24 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function getScaleObject(dist) { return SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
-    function getCourtDetails(dist) { return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; }
+    let _lastScaleDist = -1;
+    let _lastScaleObj = null;
+    function getScaleObject(dist) {
+        if (dist === _lastScaleDist) return _lastScaleObj;
+        _lastScaleDist = dist;
+        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        return _lastScaleObj;
+    }
+
+    let _lastCourtDist = -1;
+    let _lastCourtObj = null;
+    function getCourtDetails(dist) {
+        if (dist === _lastCourtDist) return _lastCourtObj;
+        _lastCourtDist = dist;
+        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        return _lastCourtObj;
+    }
+
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
     function invalidateBackgroundCache() { bgCache = null; }
 
@@ -1674,13 +1706,15 @@ let lastDisplayedContestTime = -1;
                 // Ground collision
                 if (p.z <= 0) {
                     p.z = 0;
-                    this.particles.splice(i, 1);
+                    this.particles[i] = this.particles[this.particles.length - 1];
+                    this.particles.pop();
                     continue;
                 }
 
                 // Cull far
                 if (p.z < 0 || Math.abs(p.x - player3D.x) > 2000) {
-                    this.particles.splice(i, 1);
+                    this.particles[i] = this.particles[this.particles.length - 1];
+                    this.particles.pop();
                 }
             }
         }
@@ -3858,12 +3892,6 @@ let lastDisplayedContestTime = -1;
             gEnd = Math.min(1, gEnd);
 
             if (playerData.meterEnabled) {
-                 // Hack: modifying the signature call. I need to update the function definition first.
-                 // Wait, I can't update the function definition in this block.
-                 // I will assume I updated `drawShotMeter` to accept (..., progress, greenStart, shape, greenEnd).
-                 // For now, let's just pass them and fix the function in next step if needed.
-                 // Actually, the current plan step is "Update Meter Rendering". I should update the function AND the call.
-
                  drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
             }
         }
@@ -5045,7 +5073,16 @@ let lastDisplayedContestTime = -1;
         const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
-        for (let i = 0; i < decors.length; i++) {
+        // OPTIMIZATION: Start iteration from visible range
+        // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
+        // We assume a max visible depth of ~15000 pixels.
+        const startDist = Math.max(0, playerDistFromHoop - 15000);
+        let startIndex = 0;
+        if (startDist > 1000) {
+             startIndex = binarySearchLowerBound(decors, startDist);
+        }
+
+        for (let i = startIndex; i < decors.length; i++) {
             const d = decors[i];
 
             // Optimization: Stop processing if objects are too far behind the player (out of view)
@@ -5284,7 +5321,6 @@ let lastDisplayedContestTime = -1;
         checkAchievements('shot_stats');
 
         const style = getCurrentStyle();
-        const styleId = style.id;
         const mods = style.modifiers;
 
         let threshold = calculateShotThreshold();
@@ -5385,7 +5421,10 @@ let lastDisplayedContestTime = -1;
                 else p.color = `rgba(50, 50, 50, ${p.alpha})`;
             }
 
-            if (p.life <= 0) particles.splice(i, 1);
+            if (p.life <= 0) {
+                particles[i] = particles[particles.length - 1];
+                particles.pop();
+            }
         }
     }
 
