@@ -4643,10 +4643,10 @@ let lastDisplayedContestTime = -1;
 
         // 2. Legs (Base implementation)
         const baseKneeY = p.y - (legLen * 0.5);
-        let lKneeX = p.x - 9*s, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s, lFootY = p.y;
-        let rFootX = p.x + 10*s, rFootY = p.y;
+        let lKneeX = p.x - 9*s*stanceMod, lKneeY = baseKneeY;
+        let rKneeX = p.x + 9*s*stanceMod, rKneeY = baseKneeY;
+        let lFootX = p.x - 10*s*stanceMod, lFootY = p.y;
+        let rFootX = p.x + 10*s*stanceMod, rFootY = p.y;
 
         // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
@@ -4662,7 +4662,7 @@ let lastDisplayedContestTime = -1;
 
 
         const legFurry = isFurry && (legColor === furColor);
-        const hipX = 8 * s * stanceModLegs;
+        const hipX = 8 * s * stanceMod;
 
         // Hip Joints
         if(!legFurry) {
