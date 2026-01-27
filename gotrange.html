@@ -2411,25 +2411,34 @@ let lastDisplayedContestTime = -1;
         let points = [];
 
         if (options.bodyShape === 'bear_new' || options.bodyShape === 'round') {
-             // Bear/Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
-             // Exaggerated for visibility under fur
-             const shoulderW = w * 0.6; // Much narrower top
-             const bellyW = w * 1.9; // Much wider belly
-             const hipW = w * 1.8;
-             const bellyY = topY + h * 0.7; // Lower heavy belly
+             // Bear/Pig/Cow Shape: "Bean" / "Potato" shape
+             // Softer, rounder, consistent with art style
+             const shoulderW = w * 0.95; // Sturdy shoulders
+             const bellyW = w * 1.35;    // Round belly
+             const hipW = w * 1.15;      // Taper slightly at bottom
+
+             const chestY = topY + h * 0.25;
+             const bellyY = topY + h * 0.6;
+             const bottomY = topY + h * 0.95;
 
              points = [
-                 {x: cx - shoulderW/2, y: shoulderY}, // Top Left
-                 {x: cx + shoulderW/2, y: shoulderY}, // Top Right
-                 // Right Side (Sloping down to belly)
-                 {x: cx + w*0.8, y: topY + h*0.3}, // Chest tuck
+                 // Top Arch (Shoulders)
+                 {x: cx - shoulderW/2, y: shoulderY + h*0.05},
+                 {x: cx, y: shoulderY}, // Top Center for roundness
+                 {x: cx + shoulderW/2, y: shoulderY + h*0.05},
+
+                 // Right Side (Curved)
+                 {x: cx + w*1.1, y: chestY},
                  {x: cx + bellyW/2, y: bellyY},
-                 {x: cx + hipW/2, y: hipY},
-                 // Bottom
-                 {x: cx - hipW/2, y: hipY},
-                 // Left Side
+                 {x: cx + hipW/2, y: bottomY},
+
+                 // Bottom Arch
+                 {x: cx, y: topY + h}, // Bottom Center
+
+                 // Left Side (Curved)
+                 {x: cx - hipW/2, y: bottomY},
                  {x: cx - bellyW/2, y: bellyY},
-                 {x: cx - w*0.8, y: topY + h*0.3} // Chest tuck
+                 {x: cx - w*1.1, y: chestY}
              ];
         }
         else if (options.bodyShape === 'oval') {
