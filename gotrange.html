@@ -2483,33 +2483,44 @@ let lastDisplayedContestTime = -1;
             drawFuzzyPath(points, color, scale, true, seed);
         } else {
             ctx.beginPath();
-            ctx.moveTo(points[0].x + 10*scale, points[0].y);
-            ctx.lineTo(points[1].x - 10*scale, points[1].y);
-            ctx.quadraticCurveTo(points[1].x, points[1].y, points[1].x, points[1].y + 10*scale);
 
-            // Right
-            if (roundness > 0) {
-                const rOffset = w * roundness;
-                ctx.quadraticCurveTo(cx + wW/2 + rOffset, (shoulderY + waistY)/2, points[2].x, points[2].y);
-                ctx.quadraticCurveTo(cx + hW/2 + rOffset*0.5, (waistY + hipY)/2, points[3].x, points[3].y - 10*scale);
+            // Generic Polygon Path for Custom Shapes (Animals)
+            if (options.bodyShape && options.bodyShape !== 'human') {
+                ctx.moveTo(points[0].x, points[0].y);
+                for(let i=1; i<points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
             } else {
-                ctx.lineTo(points[2].x, points[2].y);
-                ctx.lineTo(points[3].x, points[3].y - 10*scale);
-            }
-            ctx.quadraticCurveTo(points[3].x, points[3].y, points[3].x - 10*scale, points[3].y);
-            ctx.lineTo(points[4].x + 10*scale, points[4].y);
-            ctx.quadraticCurveTo(points[4].x, points[4].y, points[4].x, points[4].y - 10*scale);
+                // Humanoid Bezier Logic (Hourglass/Trapezoid specific)
+                ctx.moveTo(points[0].x + 10*scale, points[0].y);
+                ctx.lineTo(points[1].x - 10*scale, points[1].y);
+                ctx.quadraticCurveTo(points[1].x, points[1].y, points[1].x, points[1].y + 10*scale);
 
-            // Left
-            if (roundness > 0) {
-                const rOffset = w * roundness;
-                ctx.quadraticCurveTo(cx - hW/2 - rOffset*0.5, (waistY + hipY)/2, points[5].x, points[5].y);
-                ctx.quadraticCurveTo(cx - wW/2 - rOffset, (shoulderY + waistY)/2, points[0].x, points[0].y + 10*scale);
-            } else {
-                ctx.lineTo(points[5].x, points[5].y);
-                ctx.lineTo(points[0].x, points[0].y + 10*scale);
+                // Right
+                if (roundness > 0) {
+                    const rOffset = w * roundness;
+                    ctx.quadraticCurveTo(cx + wW/2 + rOffset, (shoulderY + waistY)/2, points[2].x, points[2].y);
+                    ctx.quadraticCurveTo(cx + hW/2 + rOffset*0.5, (waistY + hipY)/2, points[3].x, points[3].y - 10*scale);
+                } else {
+                    ctx.lineTo(points[2].x, points[2].y);
+                    ctx.lineTo(points[3].x, points[3].y - 10*scale);
+                }
+                ctx.quadraticCurveTo(points[3].x, points[3].y, points[3].x - 10*scale, points[3].y);
+                ctx.lineTo(points[4].x + 10*scale, points[4].y);
+                ctx.quadraticCurveTo(points[4].x, points[4].y, points[4].x, points[4].y - 10*scale);
+
+                // Left
+                if (roundness > 0) {
+                    const rOffset = w * roundness;
+                    ctx.quadraticCurveTo(cx - hW/2 - rOffset*0.5, (waistY + hipY)/2, points[5].x, points[5].y);
+                    ctx.quadraticCurveTo(cx - wW/2 - rOffset, (shoulderY + waistY)/2, points[0].x, points[0].y + 10*scale);
+                } else {
+                    ctx.lineTo(points[5].x, points[5].y);
+                    ctx.lineTo(points[0].x, points[0].y + 10*scale);
+                }
+                ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
             }
-            ctx.quadraticCurveTo(points[0].x, points[0].y, points[0].x + 10*scale, points[0].y);
+
             ctx.closePath();
 
             let fillStyle = color;
