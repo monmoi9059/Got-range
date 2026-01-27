@@ -5541,7 +5541,7 @@ let lastDisplayedContestTime = -1;
 
                 // Update Rotation (Backspin proportional to speed, or fixed visual effect)
                 // 0.2 rad/frame * dt approx 10 rad/sec
-                ball.rotationX += 0.2 * dt;
+                ball.rotationX -= 0.2 * dt;
 
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
                 if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
@@ -6096,7 +6096,7 @@ let lastDisplayedContestTime = -1;
 
         // 3. Fire Ball (In the hoop)
         const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
-        drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / 500);
+        drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / -500);
     }
 
     function draw() {
