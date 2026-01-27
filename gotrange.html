@@ -4376,6 +4376,62 @@ let lastDisplayedContestTime = -1;
         if (currentAnimal === 'human') isFurry = false;
         if (currentAnimal === 'penguin') isFurry = false; // Smooth feathers
 
+        // 1. Setup Base Colors
+        let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
+        let thighColor = '#555', calfColor = '#555';
+        let bellyColor = null, hasSpots = false, hasBlackEars = false;
+
+        if (skin === 'bear_panda') hasBlackEars = true;
+
+        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
+        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
+        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
+        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
+        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
+        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
+        else if(currentAnimal === 'fox') { furColor = '#D2691E'; tailColor = '#D2691E'; }
+        else if(currentAnimal === 'wolf') { furColor = '#808080'; tailColor = '#808080'; }
+        else if(currentAnimal === 'lion') { furColor = '#DAA520'; tailColor = '#DAA520'; }
+        else if(currentAnimal === 'tiger') { furColor = '#FFA500'; tailColor = '#FFA500'; }
+        else if(currentAnimal === 'pig') { furColor = '#FFC0CB'; tailColor = '#FFC0CB'; }
+        else if(currentAnimal === 'cow') { furColor = '#FFF'; tailColor = '#FFF'; }
+        else if(currentAnimal === 'monkey') { furColor = '#8B4513'; tailColor = '#8B4513'; }
+        else if(currentAnimal === 'penguin') { furColor = '#000'; tailColor = '#000'; }
+        else if(currentAnimal === 'human') {
+            furColor = skinObj.skinTone || '#8d5524';
+            tailColor = 'transparent';
+        }
+
+        // 2. Apply Skin Overrides (Data Driven)
+        // Biological overrides first
+        if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
+        if (skinObj.hasSpots) hasSpots = true;
+
+        if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
+        if (skin.includes('zombie')) { furColor = '#98FB98'; }
+        if (skin.includes('robot')) { furColor = '#C0C0C0'; }
+
+        // Default clothes to fur color (naked)
+        torsoColor = furColor; legColor = furColor; armColor = furColor;
+        thighColor = legColor; calfColor = legColor;
+
+        // Clothing overrides
+        torsoColor = skinObj.jerseyColor || furColor;
+        thighColor = skinObj.shortsColor || furColor;
+        calfColor = furColor; // Default exposed calf
+
+        // Arms: Default to fur, check for sleeves
+        armColor = furColor;
+        if (skinObj.sleeveColor) armColor = skinObj.sleeveColor;
+
+        // Legs: If "trousers" (long pants), calf follows thigh color
+        if (skinObj.legType === 'pants') calfColor = thighColor;
+
+        // Panda Logic (Black limbs)
+        if (skinObj.legType === 'panda_limbs') {
+            legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
+        }
+
         // 0. Calculate Arm Config EARLY
         const currentStyle = playerData.currentStyle || 'classic';
         const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
@@ -4544,62 +4600,6 @@ let lastDisplayedContestTime = -1;
              let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
              drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
-        }
-
-        // 1. Setup Base Colors
-        let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
-        let thighColor = '#555', calfColor = '#555';
-        let bellyColor = null, hasSpots = false, hasBlackEars = false;
-
-        if (skin === 'bear_panda') hasBlackEars = true;
-
-        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
-        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
-        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
-        else if(currentAnimal === 'fox') { furColor = '#D2691E'; tailColor = '#D2691E'; }
-        else if(currentAnimal === 'wolf') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'lion') { furColor = '#DAA520'; tailColor = '#DAA520'; }
-        else if(currentAnimal === 'tiger') { furColor = '#FFA500'; tailColor = '#FFA500'; }
-        else if(currentAnimal === 'pig') { furColor = '#FFC0CB'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cow') { furColor = '#FFF'; tailColor = '#FFF'; }
-        else if(currentAnimal === 'monkey') { furColor = '#8B4513'; tailColor = '#8B4513'; }
-        else if(currentAnimal === 'penguin') { furColor = '#000'; tailColor = '#000'; }
-        else if(currentAnimal === 'human') {
-            furColor = skinObj.skinTone || '#8d5524';
-            tailColor = 'transparent';
-        }
-
-        // 2. Apply Skin Overrides (Data Driven)
-        // Biological overrides first
-        if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
-        if (skinObj.hasSpots) hasSpots = true;
-
-        if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
-        if (skin.includes('zombie')) { furColor = '#98FB98'; }
-        if (skin.includes('robot')) { furColor = '#C0C0C0'; }
-
-        // Default clothes to fur color (naked)
-        torsoColor = furColor; legColor = furColor; armColor = furColor;
-        thighColor = legColor; calfColor = legColor;
-
-        // Clothing overrides
-        torsoColor = skinObj.jerseyColor || furColor;
-        thighColor = skinObj.shortsColor || furColor;
-        calfColor = furColor; // Default exposed calf
-
-        // Arms: Default to fur, check for sleeves
-        armColor = furColor;
-        if (skinObj.sleeveColor) armColor = skinObj.sleeveColor;
-
-        // Legs: If "trousers" (long pants), calf follows thigh color
-        if (skinObj.legType === 'pants') calfColor = thighColor;
-
-        // Panda Logic (Black limbs)
-        if (skinObj.legType === 'panda_limbs') {
-            legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
         }
 
         // 2. Legs (Base implementation)
