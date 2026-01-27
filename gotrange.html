@@ -1772,14 +1772,14 @@ let lastDisplayedContestTime = -1;
     }
 
     function getReleaseTargetVz(maxVz) {
-        // 0: Jump (Early) -> 75% of max velocity left
-        // 1: Setpoint (Mid) -> 50%
-        // 2: Push (Late-Mid) -> 25%
+        // 0: Jump (Early) -> 40% of max velocity left
+        // 1: Setpoint (Mid) -> 25%
+        // 2: Push (Late-Mid) -> 10%
         // 3: Release (Apex) -> 0%
         const timing = (playerData.releaseTiming !== undefined) ? playerData.releaseTiming : 3;
-        if (timing === 0) return maxVz * 0.75;
-        if (timing === 1) return maxVz * 0.50;
-        if (timing === 2) return maxVz * 0.25;
+        if (timing === 0) return maxVz * 0.40;
+        if (timing === 1) return maxVz * 0.25;
+        if (timing === 2) return maxVz * 0.10;
         return 0;
     }
 
