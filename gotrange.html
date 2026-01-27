@@ -2411,24 +2411,25 @@ let lastDisplayedContestTime = -1;
         let points = [];
 
         if (options.bodyShape === 'bear_new' || options.bodyShape === 'round') {
-             // Bear/Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear)
-             const shoulderW = w * 0.8;
-             const bellyW = w * 1.6;
-             const hipW = w * 1.5;
-             const bellyY = topY + h * 0.6;
+             // Bear/Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
+             // Exaggerated for visibility under fur
+             const shoulderW = w * 0.6; // Much narrower top
+             const bellyW = w * 1.9; // Much wider belly
+             const hipW = w * 1.8;
+             const bellyY = topY + h * 0.7; // Lower heavy belly
 
              points = [
                  {x: cx - shoulderW/2, y: shoulderY}, // Top Left
                  {x: cx + shoulderW/2, y: shoulderY}, // Top Right
-                 // Right Side Curve
-                 {x: cx + w*1.1, y: topY + h*0.25},
+                 // Right Side (Sloping down to belly)
+                 {x: cx + w*0.8, y: topY + h*0.3}, // Chest tuck
                  {x: cx + bellyW/2, y: bellyY},
                  {x: cx + hipW/2, y: hipY},
                  // Bottom
                  {x: cx - hipW/2, y: hipY},
-                 // Left Side Curve
+                 // Left Side
                  {x: cx - bellyW/2, y: bellyY},
-                 {x: cx - w*1.1, y: topY + h*0.25}
+                 {x: cx - w*0.8, y: topY + h*0.3} // Chest tuck
              ];
         }
         else if (options.bodyShape === 'oval') {
