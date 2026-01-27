@@ -1548,8 +1548,24 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function getScaleObject(dist) { return SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; }
-    function getCourtDetails(dist) { return COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; }
+    let _lastScaleDist = -1;
+    let _lastScaleObj = null;
+    function getScaleObject(dist) {
+        if (dist === _lastScaleDist) return _lastScaleObj;
+        _lastScaleDist = dist;
+        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        return _lastScaleObj;
+    }
+
+    let _lastCourtDist = -1;
+    let _lastCourtObj = null;
+    function getCourtDetails(dist) {
+        if (dist === _lastCourtDist) return _lastCourtObj;
+        _lastCourtDist = dist;
+        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        return _lastCourtObj;
+    }
+
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
     function invalidateBackgroundCache() { bgCache = null; }
 
