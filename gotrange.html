@@ -231,7 +231,7 @@
         }
         #courtNameDisplay {
             position: absolute;
-            top: 40px;
+            top: 90px;
             right: 20px;
             font-size: 2.2em;
             color: #FFF;
@@ -400,7 +400,7 @@
             <p>Record: <span id="highScoreVal" class="highscore-label">10 ft</span></p>
         </div>
     </div>
-    <div id="strikes">MISS: <span id="missVal">0</span>/2</div>
+    <div id="strikes">MISS: <span id="missVal">0/2</span></div>
     <div id="courtNameDisplay">COUR ARRIÈRE DE LÉVIS</div>
     <div id="contest-ui">
         <p style="color:#FFFF00; font-size:1.5em;">TEMPS: <span id="contestTime">60</span>s</p>
@@ -5175,11 +5175,12 @@ let lastDisplayedContestTime = -1;
             ctx.font = "italic 900 70px 'Russo One', sans-serif";
 
             // Anime Color Logic
-            let fColor = "#FF0055"; // Default bad (NANI?!, VIOLATION!, etc)
-            if (feedback.includes("SUGOI") || feedback.includes("COMBO") || feedback.includes("LUCKY") || feedback.includes("MONEY") || feedback.includes("SUR LA LIGNE")) {
+            let fColor = "#FF0055"; // Default bad (Manqué, VIOLATION!, etc)
+            // Restore original logic for positive feedback check
+            if (feedback.includes("Swish") || feedback.includes("SÉRIE") || feedback.includes("CHANCEUX") || feedback.includes("MONEY") || feedback.includes("SUR LA LIGNE")) {
                 fColor = "#00FFFF"; // Good (Cyan)
             }
-            if (feedback === "WARNING!") fColor = "#FFFF00";
+            if (feedback === "DERNIÈRE CHANCE !") fColor = "#FFFF00";
 
             ctx.fillStyle = fColor;
             ctx.strokeStyle = "#000";
@@ -5370,7 +5371,7 @@ let lastDisplayedContestTime = -1;
             let finalLuckChance = luckChance;
             if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
 
-            if (Math.random() < finalLuckChance) { feedback = "LUCKY!"; feedbackTimer = 30; checkAchievements('lucky'); }
+            if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
             else {
                 // Reconstruct accuracy magnitude for visuals
                 // accuracy = 0.25 * (timingError / threshold)
@@ -5379,7 +5380,7 @@ let lastDisplayedContestTime = -1;
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracyMagnitude) * 15;
                 ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracyMagnitude) * 5;
-                feedback = Math.abs(accuracyMagnitude) > 0.5 ? "WHIFF!" : "CLANK!"; feedbackTimer = 30;
+                feedback = Math.abs(accuracyMagnitude) > 0.5 ? "AIRBALL" : "BRIQUE"; feedbackTimer = 30;
             }
         }
     }
@@ -5391,11 +5392,11 @@ let lastDisplayedContestTime = -1;
             const isMoneyBall = (contestData.ballsInRack === 4);
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
-            if (currentStreak >= 3) { feedback = `COMBO x${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "SUGOI! (+1)"; }
+            if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
             feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500);
         } else {
             consecutiveMisses = 0;
-            if (currentStreak >= 3) { feedback = `COMBO x${currentStreak}!`; } else { feedback = "SUGOI!"; }
+            if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
             feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000);
         }
     }
@@ -5404,14 +5405,14 @@ let lastDisplayedContestTime = -1;
         if(state === 'GAMEOVER') return;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
-            feedback = "NANI?!"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
+            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
-                feedback = "GAME OVER"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(openShop, 1500);
+                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(openShop, 1500);
             } else {
-                feedback = "WARNING!"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
+                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
             }
         }
     }
