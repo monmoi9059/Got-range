@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="PLL.gBE.gotrange" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>taco basketball</name>
+    <description>
+        Taco Basket Ball - Québec Édition
+    </description>
+    <author email="jules@example.com" href="https://example.com">
+        Jules
+    </author>
+    <content src="index.html" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+
+    <icon src="res/icon.png" />
+    <preference name="Orientation" value="landscape" />
+    <preference name="Fullscreen" value="true" />
+</widget>
