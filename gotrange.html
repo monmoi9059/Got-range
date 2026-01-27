@@ -4499,6 +4499,7 @@ let lastDisplayedContestTime = -1;
 
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
+            let activeSleeveColor = null;
 
             // T-Shirt Logic
             if(skinObj.jerseyType === 'tshirt') {
@@ -4507,12 +4508,14 @@ let lastDisplayedContestTime = -1;
 
             // Sleeve Logic (Physical side based)
             if(isRight && skinObj.sleeveRight) {
-                thisUpperColor = skinObj.sleeveRight;
-                thisForeColor = skinObj.sleeveRight;
+                activeSleeveColor = skinObj.sleeveRight;
             }
             if(!isRight && skinObj.sleeveLeft) {
-                thisUpperColor = skinObj.sleeveLeft;
-                thisForeColor = skinObj.sleeveLeft;
+                activeSleeveColor = skinObj.sleeveLeft;
+            }
+
+            if (activeSleeveColor) {
+                thisForeColor = activeSleeveColor;
             }
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
@@ -4524,19 +4527,30 @@ let lastDisplayedContestTime = -1;
             // Upper Arm
             drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.w, thisUpperColor, s, armFurry, seedBase);
 
+            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
+            if (activeSleeveColor) {
+                const midX = (sx + elbow.x) / 2;
+                const midY = (sy + elbow.y) / 2;
+                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.w, activeSleeveColor, s, false, seedBase);
+            }
+
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
 
             // Forearm
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, armFurry, seedBase + 1);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.w, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1);
 
             // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
             let elbowColor = thisUpperColor;
-            if (thisForeColor === furColor && thisUpperColor !== furColor) {
+            if (activeSleeveColor) {
+                elbowColor = activeSleeveColor;
+            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
                 elbowColor = thisUpperColor; // Sleeve covers elbow
             } else if (thisUpperColor === furColor) {
                 elbowColor = furColor;
             }
-            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, isMechanical);
+
+            const elbowFurry = activeSleeveColor ? false : armFurry;
+            if(!elbowFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, isMechanical);
             else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
