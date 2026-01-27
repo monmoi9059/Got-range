@@ -1790,6 +1790,11 @@ let lastDisplayedContestTime = -1;
         if (progress >= greenStart && progress <= greenEnd) color = '#00FF00';
         else if (progress > 0.6) color = '#FFFF00';
 
+        // Clamp for visual rendering
+        const drawProgress = Math.min(1.0, Math.max(0.0, progress));
+        const drawGreenStart = Math.min(1.0, Math.max(0.0, greenStart));
+        const drawGreenEnd = Math.min(1.0, Math.max(0.0, greenEnd));
+
         if (shape === 'vertical') {
             const h = radius * 3;
             const w = 15 * s;
@@ -1797,8 +1802,8 @@ let lastDisplayedContestTime = -1;
             const y = cy - h/2;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = w; ctx.moveTo(x, y + h); ctx.lineTo(x, y); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = w;
-            ctx.moveTo(x, y + h * (1-greenStart)); ctx.lineTo(x, y + h * (1-greenEnd)); ctx.stroke();
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = w * 0.8; ctx.moveTo(x, y + h); ctx.lineTo(x, y + h * (1-progress)); ctx.stroke();
+            ctx.moveTo(x, y + h * (1-drawGreenStart)); ctx.lineTo(x, y + h * (1-drawGreenEnd)); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = w * 0.8; ctx.moveTo(x, y + h); ctx.lineTo(x, y + h * (1-drawProgress)); ctx.stroke();
         }
         else if (shape === 'horizontal') {
             const w = radius * 3;
@@ -1807,29 +1812,29 @@ let lastDisplayedContestTime = -1;
             const y = cy + radius;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = h; ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = h;
-            ctx.moveTo(x + w * greenStart, y); ctx.lineTo(x + w * greenEnd, y); ctx.stroke();
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = h * 0.8; ctx.moveTo(x, y); ctx.lineTo(x + w * progress, y); ctx.stroke();
+            ctx.moveTo(x + w * drawGreenStart, y); ctx.lineTo(x + w * drawGreenEnd, y); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = h * 0.8; ctx.moveTo(x, y); ctx.lineTo(x + w * drawProgress, y); ctx.stroke();
         }
         else if (shape === 'orb') {
             ctx.lineWidth = 6 * s;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.3)';
-            ctx.arc(cx, cy, radius, -Math.PI/2 + (Math.PI*2*greenStart), -Math.PI/2 + (Math.PI*2*greenEnd), false); ctx.stroke();
-            ctx.beginPath(); ctx.strokeStyle = color; ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
+            ctx.arc(cx, cy, radius, -Math.PI/2 + (Math.PI*2*drawGreenStart), -Math.PI/2 + (Math.PI*2*drawGreenEnd), false); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*drawProgress), false); ctx.stroke();
         }
         else if (shape === 'triangle') {
             const h = radius * 2.5; const w = radius * 2;
             const x = cx + radius * 1.5; const y = cy + h/2;
             ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w/2, y-h); ctx.lineTo(x-w/2, y-h); ctx.fill();
-            const fh = h * progress; const fw = w * progress;
+            const fh = h * drawProgress; const fw = w * drawProgress;
             ctx.fillStyle = color; ctx.beginPath();
             ctx.moveTo(x, y); ctx.lineTo(x + fw/2, y - fh); ctx.lineTo(x - fw/2, y - fh); ctx.fill();
             // Band
-            const gy1 = y - h * greenStart;
-            const gy2 = y - h * greenEnd;
+            const gy1 = y - h * drawGreenStart;
+            const gy2 = y - h * drawGreenEnd;
             ctx.fillStyle = 'rgba(0,255,0,0.5)'; ctx.beginPath();
             // Trapezoid logic? Triangle width at height h is w * (h/totalH).
-            const w1 = w * greenStart; const w2 = w * greenEnd;
+            const w1 = w * drawGreenStart; const w2 = w * drawGreenEnd;
             ctx.moveTo(x - w1/2, gy1); ctx.lineTo(x + w1/2, gy1);
             ctx.lineTo(x + w2/2, gy2); ctx.lineTo(x - w2/2, gy2);
             ctx.fill();
@@ -1840,10 +1845,10 @@ let lastDisplayedContestTime = -1;
             ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI/4);
             ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(-size, -size, size*2, size*2);
             ctx.fillStyle = color;
-            const s2 = size * progress;
+            const s2 = size * drawProgress;
             ctx.fillRect(-s2, -s2, s2*2, s2*2);
-            const mid = size * ((greenStart + greenEnd)/2);
-            const thick = Math.max(2, size * (greenEnd - greenStart));
+            const mid = size * ((drawGreenStart + drawGreenEnd)/2);
+            const thick = Math.max(2, size * (drawGreenEnd - drawGreenStart));
             ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=thick; ctx.strokeRect(-mid, -mid, mid*2, mid*2);
             ctx.restore();
         }
@@ -1851,9 +1856,9 @@ let lastDisplayedContestTime = -1;
             ctx.lineWidth = 8 * s;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = color;
-            ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
-            const a1 = -Math.PI/2 + (Math.PI*2*greenStart);
-            const a2 = -Math.PI/2 + (Math.PI*2*greenEnd);
+            ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*drawProgress), false); ctx.stroke();
+            const a1 = -Math.PI/2 + (Math.PI*2*drawGreenStart);
+            const a2 = -Math.PI/2 + (Math.PI*2*drawGreenEnd);
             ctx.beginPath(); ctx.strokeStyle = '#00FF00'; ctx.lineWidth=4*s;
             ctx.arc(cx, cy, radius*1.2, a1, a2); ctx.stroke();
         }
@@ -1865,9 +1870,9 @@ let lastDisplayedContestTime = -1;
             for(let i=0; i<count; i++) {
                 const pct = (i+1)/count;
                 const py = y - (i * (h+gap));
-                ctx.fillStyle = (progress >= pct) ? color : 'rgba(255,255,255,0.2)';
+                ctx.fillStyle = (drawProgress >= pct) ? color : 'rgba(255,255,255,0.2)';
                 const mid = (i+0.5)/count;
-                if (mid >= greenStart && mid <= greenEnd) ctx.fillStyle = 'rgba(0,255,0,0.5)';
+                if (mid >= drawGreenStart && mid <= drawGreenEnd) ctx.fillStyle = 'rgba(0,255,0,0.5)';
                 ctx.beginPath();
                 ctx.moveTo(x, py); ctx.lineTo(x + w/2, py - h); ctx.lineTo(x, py - h*0.5); ctx.lineTo(x - w/2, py - h);
                 ctx.fill();
@@ -1877,9 +1882,9 @@ let lastDisplayedContestTime = -1;
             ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s;
             ctx.arc(cx, cy, radius, 0, -Math.PI / 2, true); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
-            ctx.arc(cx, cy, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2 * greenEnd, true); ctx.stroke();
+            ctx.arc(cx, cy, radius, -Math.PI/2 * Math.max(0, drawGreenStart), -Math.PI/2 * drawGreenEnd, true); ctx.stroke();
             ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 8*s;
-            ctx.arc(cx, cy, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
+            ctx.arc(cx, cy, radius, 0, -Math.PI/2 * drawProgress, true); ctx.stroke();
         }
     }
 
@@ -5275,28 +5280,45 @@ let lastDisplayedContestTime = -1;
         // 10. Shot Meter (Layer 6)
         if (state === 'JUMPING') {
             const style = getCurrentStyle();
-            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
-            if (maxVz <= 0.5) maxVz = 9;
 
-            const curVz = getCurrentVz();
-            let progress = 1.0 - (curVz / maxVz);
-            progress = Math.max(0, Math.min(1, progress));
+            // 1. Determine Max Velocity (Visual Scale) and Real Target
+            let visualMaxVz = 9; // Default for grounded/low
+            let realTargetVz = 0; // Default target
 
+            const isGrounded = (style.modifiers.jumpVelocity !== undefined && style.modifiers.jumpVelocity <= 0.5);
+
+            if (isGrounded) {
+                visualMaxVz = 9;
+                realTargetVz = 0; // Physics target for grounded is always 0
+            } else {
+                visualMaxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+                realTargetVz = getReleaseTargetVz(visualMaxVz);
+            }
+
+            // 2. Normalize Progress so Target is always at 1.0 (Top)
+            const currentVz = getCurrentVz();
+
+            let denom = visualMaxVz - realTargetVz;
+            if (denom < 0.1) denom = 0.1; // Safety
+
+            // Progress: 0 (Start) -> 1 (Target) -> >1 (Late)
+            let progress = (visualMaxVz - currentVz) / denom;
+
+            // 3. Calculate Green Zone (Centered at 1.0)
+            const thresh = calculateShotThreshold(); // Velocity units
+            const widthProg = thresh / denom; // Convert to progress units
+
+            const gStart = 1.0 - widthProg;
+            const gEnd = 1.0 + widthProg;
+
+            // Visual Rendering
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
-            const cx = p.x + (60 * s); const radius = 50 * s;
-
-            const targetVz = getReleaseTargetVz(maxVz);
-            const greenCenter = 1.0 - (targetVz / maxVz);
-            const thresh = calculateShotThreshold();
-            const greenWidth = thresh / maxVz;
-
-            let gStart = greenCenter - greenWidth;
-            let gEnd = greenCenter + greenWidth;
-            gStart = Math.max(0, gStart);
-            gEnd = Math.min(1, gEnd);
+            const cx = p.x + (60 * s);
+            const radius = 50 * s;
 
             if (playerData.meterEnabled) {
+                // Pass unclamped values to drawShotMeter (it handles drawing clamping)
                 drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
             }
         }
