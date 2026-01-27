@@ -1252,6 +1252,7 @@
             this.variant = null;
             this.seed = 0;
             this.alpha = 0;
+            this.color = null;
         }
     }
 
@@ -1339,7 +1340,7 @@ let lastDisplayedContestTime = -1;
     const DEBUG = false;
     // Shift player start position to match new center (300 -> 433)
     let player3D = { x: 433, y: 300, z: 0, vz: 0 };
-    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false };
+    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [] };
     let particles = [];
 
     // Expose for debugging
@@ -1751,6 +1752,12 @@ let lastDisplayedContestTime = -1;
             color1 = '#FFFF00'; color2 = '#FF0000'; key = 'ball_fire';
         }
 
+        // Bloom Effect (High Graphics)
+        if (isFire && playerData.graphics === 'HIGH') {
+            ctx.shadowColor = '#FF4500';
+            ctx.shadowBlur = 20 * scale;
+        }
+
         const fillStyle = getCachedPattern(key, (gradCtx, size) => {
             const r = size / 2;
             const grad = gradCtx.createRadialGradient(r*0.8, r*0.8, 1, r, r, r);
@@ -1771,10 +1778,53 @@ let lastDisplayedContestTime = -1;
         else if (isFire) { ctx.strokeStyle = '#FFFF00'; ctx.lineWidth = 2 * scale; }
 
         ctx.beginPath(); ctx.moveTo(x - 8*scale, y); ctx.quadraticCurveTo(x, y + 4*scale, x + 8*scale, y); ctx.stroke();
+
+        ctx.shadowBlur = 0; // Reset
     }
 
     function drawBall(p) {
         if (!p) return;
+
+        // Draw Trail (High Graphics)
+        if (ball.isFire && ball.trail && ball.trail.length > 1 && playerData.graphics === 'HIGH') {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (let i = 0; i < ball.trail.length - 1; i++) {
+                const pt1 = ball.trail[i];
+                const pt2 = ball.trail[i+1];
+
+                // Project both points
+                const proj1 = project(pt1.x, pt1.y, pt1.z, g_camCache);
+                const proj2 = project(pt2.x, pt2.y, pt2.z, g_camCache);
+
+                if (proj1 && proj2) {
+                    const ratio = i / ball.trail.length; // 0 (oldest) to 1 (newest)
+                    const alpha = ratio * 0.6;
+                    ctx.lineWidth = (5 + 15 * ratio) * proj1.scale;
+
+                    // Fire Gradient color
+                    // Newest: Yellow/White, Middle: Orange, Oldest: Red/Trans
+                    let r = 255;
+                    let g = Math.floor(ratio * 200); // 0 to 200
+                    let b = 0;
+                    if(ratio > 0.8) { g = 255; b = Math.floor((ratio-0.8)*5 * 255); } // White hot tip
+
+                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+                    // Add glow to trail
+                    ctx.shadowColor = `rgba(${r}, ${Math.floor(g/2)}, 0, 1)`;
+                    ctx.shadowBlur = 10 * proj1.scale;
+
+                    ctx.beginPath();
+                    ctx.moveTo(proj1.x, proj1.y);
+                    ctx.lineTo(proj2.x, proj2.y);
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
         drawBallSprite(p.x, p.y, p.scale, ball.isFire);
     }
 
@@ -1823,9 +1873,9 @@ let lastDisplayedContestTime = -1;
          }
     }
 
-    function drawSmoke(p, alpha) {
+    function drawSmoke(p, alpha, color) {
         const s = p.scale;
-        ctx.fillStyle = `rgba(220, 220, 220, ${alpha * 0.6})`;
+        ctx.fillStyle = color || `rgba(220, 220, 220, ${alpha * 0.6})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
     }
 
@@ -2578,7 +2628,63 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function drawShadow(p) { if(!p) return; ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2); ctx.fill(); }
+    function drawShadow(p) {
+        if(!p) return;
+
+        // Low Quality / Fallback
+        if (playerData.graphics === 'LOW') {
+            ctx.fillStyle='rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2);
+            ctx.fill();
+            return;
+        }
+
+        const s = p.scale;
+        const z = player3D.z;
+
+        // Fade out shadow as player jumps high
+        const alpha = Math.max(0.1, 0.4 - (z / 600));
+        // Blur increases with height
+        const blur = Math.min(20, 5 + (z / 15));
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+
+        // Directional offset (Sun is roughly top-right 700,80)
+        // Cast shadow to bottom-left relative to light
+        // Simple rotation/skew
+        ctx.rotate(0.15);
+
+        // Main Soft Shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = blur;
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+
+        ctx.beginPath();
+        // Slightly larger and wider ellipse
+        ctx.ellipse(-5*s, 0, 30*s, 12*s, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Contact Shadows (Feet) - Only when close to ground
+        if (z < 40) {
+            ctx.shadowBlur = 2; // Sharp contact
+            const contactAlpha = (1 - (z/40)) * 0.6;
+            ctx.fillStyle = `rgba(0,0,0,${contactAlpha})`;
+
+            // Left Foot Area
+            ctx.beginPath();
+            ctx.ellipse(-10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Right Foot Area
+            ctx.beginPath();
+            ctx.ellipse(10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
 
     function drawHoop(p) {
         if (!p) return;
@@ -4719,18 +4825,110 @@ let lastDisplayedContestTime = -1;
                  fCv.height = Math.ceil(canvas.height - horizonY);
                  const fCtx = fCv.getContext('2d');
 
-                 // Gradient
+                 // Base Gradient
                  const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
                  grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
                  fCtx.fillStyle = grad;
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
-                 // Noise Texture
-                 fCtx.fillStyle = 'rgba(0,0,0,0.03)';
-                 const noiseCount = fCv.width * fCv.height * 0.005;
-                 for(let i=0; i<noiseCount; i++) {
-                     fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
+                 // Procedural Textures based on Type
+                 if (court.type === 'grass' || court.type === 'tree') {
+                     // Grass Blades
+                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     fCtx.lineWidth = 1;
+                     const blades = fCv.width * fCv.height * 0.02;
+                     for(let i=0; i<blades; i++) {
+                         const x = Math.random() * fCv.width;
+                         const y = Math.random() * fCv.height;
+                         const len = 2 + Math.random() * 3;
+                         fCtx.beginPath();
+                         fCtx.moveTo(x, y);
+                         fCtx.lineTo(x, y - len);
+                         fCtx.stroke();
+                     }
+                     // Noise
+                     fCtx.fillStyle = 'rgba(0,0,0,0.05)';
+                     for(let i=0; i<blades/2; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
+                     }
                  }
+                 else if (court.type === 'castle') {
+                     // Asphalt / Pavement Noise
+                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
+                     const noise = fCv.width * fCv.height * 0.1;
+                     for(let i=0; i<noise; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
+                     }
+                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                     for(let i=0; i<noise; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
+                     }
+                     // Cracks
+                     fCtx.strokeStyle = 'rgba(0,0,0,0.4)';
+                     fCtx.lineWidth = 2;
+                     for(let i=0; i<5; i++) {
+                         let cx = Math.random() * fCv.width;
+                         let cy = Math.random() * fCv.height;
+                         fCtx.beginPath();
+                         fCtx.moveTo(cx, cy);
+                         for(let j=0; j<5; j++) {
+                             cx += (Math.random()-0.5)*50;
+                             cy += (Math.random()-0.5)*50;
+                             fCtx.lineTo(cx, cy);
+                         }
+                         fCtx.stroke();
+                     }
+                 }
+                 else if (court.type === 'mountain') {
+                     // Ice / Snow Gloss
+                     // Scratches (Skate marks)
+                     fCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+                     fCtx.lineWidth = 1;
+                     for(let i=0; i<200; i++) {
+                         const sx = Math.random() * fCv.width;
+                         const sy = Math.random() * fCv.height;
+                         fCtx.beginPath();
+                         fCtx.moveTo(sx, sy);
+                         fCtx.quadraticCurveTo(sx + (Math.random()-0.5)*100, sy + (Math.random()-0.5)*50, sx + (Math.random()-0.5)*200, sy + (Math.random()-0.5)*100);
+                         fCtx.stroke();
+                     }
+                     // Reflections (Fake)
+                     const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
+                     gradRef.addColorStop(0, 'rgba(255,255,255,0)');
+                     gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                     gradRef.addColorStop(1, 'rgba(255,255,255,0)');
+                     fCtx.fillStyle = gradRef;
+                     fCtx.fillRect(0, 0, fCv.width, fCv.height);
+                 }
+                 else if (court.type === 'water') {
+                     // Ripples
+                     fCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+                     fCtx.lineWidth = 2;
+                     for(let i=0; i<fCv.height; i+=5) {
+                         const offset = Math.sin(i * 0.1) * 20;
+                         fCtx.beginPath();
+                         fCtx.moveTo(0, i);
+                         fCtx.lineTo(fCv.width, i + offset);
+                         fCtx.stroke();
+                     }
+                 }
+                 else if (court.type === 'space') {
+                     // Craters / Dust
+                     fCtx.fillStyle = 'rgba(0,0,0,0.2)';
+                     for(let i=0; i<20; i++) {
+                         const r = 10 + Math.random() * 40;
+                         const cx = Math.random() * fCv.width;
+                         const cy = Math.random() * fCv.height;
+                         fCtx.beginPath();
+                         fCtx.arc(cx, cy, r, 0, Math.PI*2);
+                         fCtx.fill();
+                     }
+                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
+                     for(let i=0; i<500; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
+                     }
+                 }
+
                  bgCache.floorImage = fCv;
             } else {
                  const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
@@ -4911,6 +5109,7 @@ let lastDisplayedContestTime = -1;
                  obj.depth = proj.depth;
                  obj.proj = proj;
                  obj.alpha = p.alpha;
+                 obj.color = p.color;
                  g_renderList.push(obj);
              }
         });
@@ -4922,7 +5121,7 @@ let lastDisplayedContestTime = -1;
             if (obj.type === 'shadow') drawShadow(obj.proj);
             if (obj.type === 'player') drawPlayer(obj.proj);
             if (obj.type === 'ball') drawBall(obj.proj);
-            if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha);
+            if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha, obj.color);
         });
 
         // Draw Weather overlay on top of 3D scene but behind UI
@@ -5073,6 +5272,7 @@ let lastDisplayedContestTime = -1;
     function shoot(timingError) {
         state = 'SHOOTING';
         if (playerData.currentStyle === 'airbud') airbudJumpTime = 0;
+        ball.trail = []; // Reset trail for new shot
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
 
@@ -5166,8 +5366,18 @@ let lastDisplayedContestTime = -1;
             p.y += p.vy * dt;
             p.z += p.vz * dt;
             p.life -= dt;
-            p.scale += 0.05 * dt;
+            p.scale += (p.isFireParticle ? -0.01 : 0.05) * dt;
             p.alpha = p.life / p.maxLife;
+
+            if (p.isFireParticle) {
+                // Color fade: White -> Yellow -> Orange -> Dark Grey
+                const r = p.life / p.maxLife;
+                if (r > 0.8) p.color = `rgba(255, 255, 255, ${p.alpha})`;
+                else if (r > 0.5) p.color = `rgba(255, 255, 0, ${p.alpha})`;
+                else if (r > 0.2) p.color = `rgba(255, 69, 0, ${p.alpha})`;
+                else p.color = `rgba(50, 50, 50, ${p.alpha})`;
+            }
+
             if (p.life <= 0) particles.splice(i, 1);
         }
     }
@@ -5199,19 +5409,31 @@ let lastDisplayedContestTime = -1;
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
             if (ball.active) {
                 if (ball.isFire) {
-                     // Emit smoke: 0.5s duration -> 30 frames
-                     if (Math.random() < 0.8 * dt) {
+                     // Update Trail
+                     if (playerData.graphics === 'HIGH') {
+                         if (!ball.trail) ball.trail = [];
+                         ball.trail.push({ x: ball.x, y: ball.y, z: ball.z });
+                         if (ball.trail.length > 20) ball.trail.shift();
+                     }
+
+                     // Emit Fire Particles
+                     if (Math.random() < 1.0 * dt) { // Increased density slightly
+                         const life = 20 + Math.random() * 20;
                          particles.push({
                              x: ball.x + (Math.random()-0.5)*15,
                              y: ball.y + (Math.random()-0.5)*15,
                              z: ball.z + (Math.random()-0.5)*15,
-                             vx: (Math.random()-0.5)*2,
-                             vy: (Math.random()-0.5)*2,
-                             vz: 1 + Math.random()*2,
-                             life: 30, maxLife: 30,
-                             scale: 0.5 + Math.random()*0.5, alpha: 1.0
+                             vx: (Math.random()-0.5)*5,
+                             vy: (Math.random()-0.5)*5,
+                             vz: (Math.random()-0.5)*5,
+                             life: life, maxLife: life,
+                             scale: 0.8 + Math.random()*0.5, alpha: 1.0,
+                             isFireParticle: true
                          });
                      }
+                } else {
+                    // Reset trail if not on fire
+                    if(ball.trail && ball.trail.length > 0) ball.trail = [];
                 }
 
                 const prevZ = ball.z;
