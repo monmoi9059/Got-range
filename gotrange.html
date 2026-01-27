@@ -1291,6 +1291,12 @@
         return g_cachedStyleObj;
     }
 
+    function isMechanicalSkin(skinId) {
+        if (!skinId) return false;
+        const s = skinId.toLowerCase();
+        return s.includes('robot') || s.includes('cyborg') || s.includes('mech') || s.includes('cyber') || s.includes('android');
+    }
+
     // --- OPTIMIZATION: Fuzzy Noise Lookup Table ---
     const NOISE_LUT_SIZE = 4096;
     const g_noiseLUT = new Float32Array(NOISE_LUT_SIZE);
@@ -2402,22 +2408,46 @@ let lastDisplayedContestTime = -1;
         const waistY = topY + h * 0.55;
         const hipY = topY + h;
 
-        let points = [
-            {x: cx - sW/2, y: shoulderY},     // 0: Top Left
-            {x: cx + sW/2, y: shoulderY},     // 1: Top Right
-            {x: cx + wW/2, y: waistY},        // 2: Waist Right
-            {x: cx + hW/2, y: hipY},          // 3: Hip Right
-            {x: cx - hW/2, y: hipY},          // 4: Hip Left
-            {x: cx - wW/2, y: waistY}         // 5: Waist Left
-        ];
+        let points = [];
 
-        if (isFurry && roundness > 0) {
-             const rOffset = w * roundness;
-             const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
-             const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
-             const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
-             const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-             points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+        if (options.bodyShape === 'bear_new') {
+             // Bear Shape: Narrow shoulders, wide belly/hips (Pear)
+             const shoulderW = w * 0.8;
+             const bellyW = w * 1.6;
+             const hipW = w * 1.5;
+             const bellyY = topY + h * 0.6;
+
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY}, // Top Left
+                 {x: cx + shoulderW/2, y: shoulderY}, // Top Right
+                 // Right Side Curve
+                 {x: cx + w*1.1, y: topY + h*0.25},
+                 {x: cx + bellyW/2, y: bellyY},
+                 {x: cx + hipW/2, y: hipY},
+                 // Bottom
+                 {x: cx - hipW/2, y: hipY},
+                 // Left Side Curve
+                 {x: cx - bellyW/2, y: bellyY},
+                 {x: cx - w*1.1, y: topY + h*0.25}
+             ];
+        } else {
+            points = [
+                {x: cx - sW/2, y: shoulderY},     // 0: Top Left
+                {x: cx + sW/2, y: shoulderY},     // 1: Top Right
+                {x: cx + wW/2, y: waistY},        // 2: Waist Right
+                {x: cx + hW/2, y: hipY},          // 3: Hip Right
+                {x: cx - hW/2, y: hipY},          // 4: Hip Left
+                {x: cx - wW/2, y: waistY}         // 5: Waist Left
+            ];
+
+            if (isFurry && roundness > 0) {
+                 const rOffset = w * roundness;
+                 const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
+                 const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
+                 const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
+                 const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
+                 points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+            }
         }
 
         if (isFurry) {
@@ -2614,7 +2644,8 @@ let lastDisplayedContestTime = -1;
         ctx.restore();
     }
 
-    function drawJoint(x, y, radius, color) {
+    function drawJoint(x, y, radius, color, isMechanical) {
+        if (!isMechanical) return;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI*2);
         ctx.fillStyle = color;
@@ -3089,34 +3120,43 @@ let lastDisplayedContestTime = -1;
         ctx.translate(x1, y1);
         ctx.rotate(angle);
         
-        ctx.beginPath();
         const w = width / 2;
+        let startW = w;
+        let endW = w;
+
+        if (type === 'thigh') {
+            endW = w * 0.7;
+        } else if (type === 'calf') {
+            startW = w * 0.7;
+            endW = w * 0.5;
+        }
+
+        ctx.beginPath();
+
+        // Start Cap
+        ctx.arc(0, 0, startW, Math.PI/2, -Math.PI/2);
         
         if (type === 'thigh') {
-            // Thigh: Wide at top (0,0), taper to knee (len, 0)
+            // Thigh
             if (playerData.graphics === 'HIGH') {
-                 ctx.moveTo(0, -w);
-                 ctx.quadraticCurveTo(len*0.4, -w*1.3, len, -w * 0.7); // Quad bulge
-                 ctx.lineTo(len, w * 0.7);
-                 ctx.quadraticCurveTo(len*0.4, w*1.3, 0, w); // Hamstring
+                 ctx.quadraticCurveTo(len*0.4, -w*1.3, len, -endW);
+                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+                 ctx.quadraticCurveTo(len*0.4, w*1.3, 0, startW);
             } else {
-                 ctx.moveTo(0, -w);
-                 ctx.lineTo(len, -w * 0.7); // Knee is thinner
-                 ctx.lineTo(len, w * 0.7);
-                 ctx.lineTo(0, w);
+                 ctx.lineTo(len, -endW);
+                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+                 ctx.lineTo(0, startW);
             }
         } else if (type === 'calf') {
-            // Calf: Knee (0,0), Bulge at 1/3, Ankle (len, 0)
-            ctx.moveTo(0, -w * 0.7);
-            ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -w * 0.5); // Outer bulge
-            ctx.lineTo(len, w * 0.5);
-            ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, w * 0.7); // Inner bulge
+            // Calf
+            ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
+            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+            ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
         } else {
             // Standard
-            ctx.moveTo(0, -w);
-            ctx.lineTo(len, -w);
-            ctx.lineTo(len, w);
-            ctx.lineTo(0, w);
+            ctx.lineTo(len, -endW);
+            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+            ctx.lineTo(0, startW);
         }
         
         ctx.closePath();
@@ -3459,6 +3499,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawRealisticHuman(p, s, skinObj) {
+        const isMechanical = isMechanicalSkin(skinObj.id);
         // Base Setup
         const sizeMod = {
             w: skinObj.widthScale || 0.9,
@@ -3604,7 +3645,7 @@ let lastDisplayedContestTime = -1;
             if (!isRight && sleeveLeft) { uColor = sleeveLeft; fColor = sleeveLeft; }
 
             // Shoulder Joint
-            drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, uColor);
+            drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
             // Upper Arm (Deltoid to Elbow)
@@ -3615,7 +3656,7 @@ let lastDisplayedContestTime = -1;
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.w, fColor, 'thigh', s);
 
             // Elbow Joint
-            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, uColor);
+            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, uColor, isMechanical);
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -3642,8 +3683,8 @@ let lastDisplayedContestTime = -1;
 
         // Draw Thighs (Skin tone - under shorts)
         // Hip Joints
-        drawJoint(p.x - 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
-        drawJoint(p.x + 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone);
+        drawJoint(p.x - 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone, isMechanical);
+        drawJoint(p.x + 7*s, p.y - legLen, 7*s*sizeMod.w * 0.7, skinTone, isMechanical);
 
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.w, skinTone, 'thigh', s);
@@ -4249,6 +4290,7 @@ let lastDisplayedContestTime = -1;
             g_cachedSkinObj = skinObj;
         }
 
+        const isMechanical = isMechanicalSkin(skinObj.id);
         const currentAnimal = skinObj.animal;
         
         if (currentAnimal === 'human') {
@@ -4476,7 +4518,7 @@ let lastDisplayedContestTime = -1;
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
 
             // Shoulder Joint (Radius increased to 0.7)
-            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor);
+            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, isMechanical);
             else drawFuzzyCircle(sx, sy, 7*s*sizeMod.w * 0.7, thisUpperColor, seedBase, s, true);
 
             // Upper Arm
@@ -4494,7 +4536,7 @@ let lastDisplayedContestTime = -1;
             } else if (thisUpperColor === furColor) {
                 elbowColor = furColor;
             }
-            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor);
+            if(!armFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, isMechanical);
             else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.w * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -4514,8 +4556,8 @@ let lastDisplayedContestTime = -1;
         const legFurry = isFurry && (legColor === furColor);
         // Hip Joints
         if(!legFurry) {
-            drawJoint(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
-            drawJoint(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor);
+            drawJoint(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
+            drawJoint(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
         } else {
             drawFuzzyCircle(p.x - 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 10, s, true);
             drawFuzzyCircle(p.x + 8*s, p.y - legLen, 7*s*sizeMod.w * 0.7, thighColor, 30, s, true);
@@ -4533,7 +4575,7 @@ let lastDisplayedContestTime = -1;
 
              // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
              // Thigh was drawn before this function.
-             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor);
+             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor, isMechanical);
              else drawFuzzyCircle(xTop, yTop, 7*s*sizeMod.w * 0.7, thighColor, isRight?40:20, s, true);
 
              // Socks & Shoes Overlay
@@ -4569,8 +4611,8 @@ let lastDisplayedContestTime = -1;
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
         let bodyOptions = {};
-        if (currentAnimal === 'bear') { bodyOptions.waistScale = 1.35; bodyOptions.roundness = 0.25; }
-        if (currentAnimal === 'pig' || currentAnimal === 'cow') { bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.15; }
+        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
+        else if (currentAnimal === 'pig' || currentAnimal === 'cow') { bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.15; }
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
 
         // Auto-detect Jersey
