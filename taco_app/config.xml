@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="PLL.gBE.gotrange" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>taco basketball</name>
+    <description>
+        Taco Basketball Game
+    </description>
+    <author email="dev@example.com" href="https://example.com">
+        Developer
+    </author>
+    <content src="index.html" />
+    <icon src="res/icon.png" />
+    <platform name="android">
+        <preference name="Orientation" value="landscape" />
+        <preference name="Fullscreen" value="true" />
+    </platform>
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+</widget>
