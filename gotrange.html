@@ -1258,8 +1258,8 @@
         }
     }
 
-    const g_renderItemPool = [];
-    const g_renderList = [];
+    var g_renderItemPool = [];
+    var g_renderList = [];
     let g_poolIndex = 0;
 
     function getRenderItem() {
@@ -5658,7 +5658,12 @@ let lastDisplayedContestTime = -1;
              if(proj) {
                  const obj = getRenderItem();
                  obj.type = 'smoke';
-                 obj.depth = proj.depth;
+                 // Force streak fire particles behind the player (depth > 400)
+                 if (p.isFireParticle && p.customHue !== undefined) {
+                     obj.depth = Math.max(proj.depth, 420);
+                 } else {
+                     obj.depth = proj.depth;
+                 }
                  obj.proj = proj;
                  obj.alpha = p.alpha;
                  obj.color = p.color;
