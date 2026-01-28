@@ -1657,12 +1657,12 @@ const contestRackEl = document.getElementById('contestRack');
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
     let distanceLevel = 1;
-    let state = 'IDLE';
+    var state = 'IDLE';
     let feedback = "";
     let feedbackTimer = 0;
     let crowdCheerTimer = 0;
     let consecutiveMisses = 0;
-    let currentStreak = 0;
+    var currentStreak = 0;
     let spacePressed = false;
     let cameraZoom = 800;
     let cameraHeight = 300;
@@ -1676,9 +1676,9 @@ let lastDisplayedContestTime = -1;
     const GRAVITY = 0.5;
     const DEBUG = false;
     // Shift player start position to match new center (300 -> 433)
-    let player3D = { x: 433, y: 300, z: 0, vz: 0 };
-    let ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
-    let particles = [];
+    var player3D = { x: 433, y: 300, z: 0, vz: 0 };
+    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
+    var particles = [];
 
     // Expose for debugging
     if (DEBUG) {
@@ -1764,6 +1764,13 @@ let lastDisplayedContestTime = -1;
         // |timingError| <= 0.25 * dampener / (difficulty * finalDistPenalty)
 
         return (0.25 * dampener) / (playerData.difficulty * finalDistPenalty);
+    }
+
+    function getStreakFireHue(streak) {
+        // Map streak 10->100 to Hue 30 (Orange) -> 200 (Blue)
+        const s = Math.max(10, Math.min(100, streak));
+        const t = (s - 10) / 90;
+        return 30 + (t * 170);
     }
 
     function getCurrentVz() {
@@ -5886,12 +5893,20 @@ let lastDisplayedContestTime = -1;
             p.alpha = p.life / p.maxLife;
 
             if (p.isFireParticle) {
-                // Color fade: White -> Yellow -> Orange -> Dark Grey
                 const r = p.life / p.maxLife;
-                if (r > 0.8) p.color = `rgba(255, 255, 255, ${p.alpha})`;
-                else if (r > 0.5) p.color = `rgba(255, 255, 0, ${p.alpha})`;
-                else if (r > 0.2) p.color = `rgba(255, 69, 0, ${p.alpha})`;
-                else p.color = `rgba(50, 50, 50, ${p.alpha})`;
+                if (p.customHue !== undefined) {
+                    // Dynamic Streak Fire: White -> Bright -> Base -> Dark
+                    if (r > 0.8) p.color = `hsla(${p.customHue}, 100%, 95%, ${p.alpha})`;
+                    else if (r > 0.5) p.color = `hsla(${p.customHue}, 100%, 75%, ${p.alpha})`;
+                    else if (r > 0.2) p.color = `hsla(${p.customHue}, 100%, 50%, ${p.alpha})`;
+                    else p.color = `hsla(${p.customHue}, 30%, 30%, ${p.alpha})`;
+                } else {
+                    // Classic Fire: White -> Yellow -> Orange -> Dark Grey
+                    if (r > 0.8) p.color = `rgba(255, 255, 255, ${p.alpha})`;
+                    else if (r > 0.5) p.color = `rgba(255, 255, 0, ${p.alpha})`;
+                    else if (r > 0.2) p.color = `rgba(255, 69, 0, ${p.alpha})`;
+                    else p.color = `rgba(50, 50, 50, ${p.alpha})`;
+                }
             }
 
             if (p.life <= 0) {
@@ -5905,6 +5920,28 @@ let lastDisplayedContestTime = -1;
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
         weather.update(dt);
+
+        // Character Streak Fire
+        if (currentStreak >= 10 && state !== 'GAMEOVER') {
+             if (Math.random() < 0.8 * dt) {
+                 const hue = getStreakFireHue(currentStreak);
+                 const life = 20 + Math.random() * 20;
+                 particles.push({
+                     x: player3D.x + (Math.random()-0.5)*25,
+                     y: player3D.y + (Math.random()-0.5)*10,
+                     z: player3D.z + Math.random()*70,
+                     vx: (Math.random()-0.5)*2,
+                     vy: (Math.random()-0.5)*2,
+                     vz: 2 + Math.random()*3,
+                     life: life, maxLife: life,
+                     scale: 1.0 + Math.random(),
+                     alpha: 1.0,
+                     isFireParticle: true,
+                     customHue: hue
+                 });
+             }
+        }
+
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
@@ -5939,6 +5976,10 @@ let lastDisplayedContestTime = -1;
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) { // Increased density slightly
                          const life = 20 + Math.random() * 20;
+                         let customHue = undefined;
+                         if (currentStreak >= 10) {
+                             customHue = getStreakFireHue(currentStreak);
+                         }
                          particles.push({
                              x: ball.x + (Math.random()-0.5)*15,
                              y: ball.y + (Math.random()-0.5)*15,
@@ -5948,7 +5989,8 @@ let lastDisplayedContestTime = -1;
                              vz: (Math.random()-0.5)*5,
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
-                             isFireParticle: true
+                             isFireParticle: true,
+                             customHue: customHue
                          });
                      }
                 } else {
