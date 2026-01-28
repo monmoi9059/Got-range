@@ -3609,13 +3609,13 @@ let lastDisplayedContestTime = -1;
              // Outer Glow
              ctx.shadowBlur = 30 * s;
              ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
+             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.1)`;
              ctx.beginPath();
              ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
              ctx.fill();
              // Inner Core
              ctx.shadowBlur = 15 * s;
-             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
+             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.15)`;
              ctx.beginPath();
              ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
              ctx.fill();
@@ -5970,7 +5970,7 @@ let lastDisplayedContestTime = -1;
         if (currentStreak >= 10 && state !== 'GAMEOVER') {
              const spawnCount = 2;
              for(let k=0; k<spawnCount; k++) {
-                 if (Math.random() < 0.7 * dt) {
+                 if (Math.random() < 0.35 * dt) {
                      const hue = getStreakFireHue(currentStreak);
                      const life = 15 + Math.random() * 15;
 
