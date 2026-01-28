@@ -5970,7 +5970,7 @@ let lastDisplayedContestTime = -1;
         if (currentStreak >= 10 && state !== 'GAMEOVER') {
              const spawnCount = 2;
              for(let k=0; k<spawnCount; k++) {
-                 if (Math.random() < 0.35 * dt) {
+                 if (Math.random() < 0.175 * dt) {
                      const hue = getStreakFireHue(currentStreak);
                      const life = 15 + Math.random() * 15;
 
