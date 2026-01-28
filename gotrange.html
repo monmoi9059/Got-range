@@ -3602,6 +3602,26 @@ let lastDisplayedContestTime = -1;
         let headY = torsoY - (10 * s * sizeMod.head);
         const headRadius = 12 * s * sizeMod.head;
 
+        // Super Saiyan Aura
+        if (currentStreak >= 10) {
+             const hue = getStreakFireHue(currentStreak);
+             ctx.save();
+             // Outer Glow
+             ctx.shadowBlur = 30 * s;
+             ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
+             ctx.beginPath();
+             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
+             ctx.fill();
+             // Inner Core
+             ctx.shadowBlur = 15 * s;
+             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
+             ctx.beginPath();
+             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
+             ctx.fill();
+             ctx.restore();
+        }
+
         // 0. Calculate Arm Configuration EARLY (needed for Ball Placement)
         const currentStyle = playerData.currentStyle || 'classic';
         const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
@@ -4482,6 +4502,26 @@ let lastDisplayedContestTime = -1;
         let torsoY = p.y - legLen - bodyH;
         let headY = torsoY - (10 * s * sizeMod.head);
         let headRadius = 12 * s * sizeMod.head;
+
+        // Super Saiyan Aura
+        if (currentStreak >= 10) {
+             const hue = getStreakFireHue(currentStreak);
+             ctx.save();
+             // Outer Glow
+             ctx.shadowBlur = 30 * s;
+             ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
+             ctx.beginPath();
+             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
+             ctx.fill();
+             // Inner Core
+             ctx.shadowBlur = 15 * s;
+             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
+             ctx.beginPath();
+             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
+             ctx.fill();
+             ctx.restore();
+        }
 
         let shoulderY = torsoY + (5*s);
         // Stance modifier for shoulder width and hip width
@@ -5921,24 +5961,32 @@ let lastDisplayedContestTime = -1;
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
         weather.update(dt);
 
-        // Character Streak Fire
+        // Character Streak Fire (Super Saiyan Effect)
         if (currentStreak >= 10 && state !== 'GAMEOVER') {
-             if (Math.random() < 0.8 * dt) {
-                 const hue = getStreakFireHue(currentStreak);
-                 const life = 20 + Math.random() * 20;
-                 particles.push({
-                     x: player3D.x + (Math.random()-0.5)*25,
-                     y: player3D.y + (Math.random()-0.5)*10,
-                     z: player3D.z + Math.random()*70,
-                     vx: (Math.random()-0.5)*2,
-                     vy: (Math.random()-0.5)*2,
-                     vz: 2 + Math.random()*3,
-                     life: life, maxLife: life,
-                     scale: 1.0 + Math.random(),
-                     alpha: 1.0,
-                     isFireParticle: true,
-                     customHue: hue
-                 });
+             const spawnCount = 2;
+             for(let k=0; k<spawnCount; k++) {
+                 if (Math.random() < 0.7 * dt) {
+                     const hue = getStreakFireHue(currentStreak);
+                     const life = 15 + Math.random() * 15;
+
+                     // Spawn in a cylinder around player to create "outline"
+                     const angle = Math.random() * Math.PI * 2;
+                     const radius = 25 + Math.random() * 10;
+
+                     particles.push({
+                         x: player3D.x + Math.cos(angle) * radius,
+                         y: player3D.y + Math.sin(angle) * radius * 0.4,
+                         z: player3D.z + Math.random()*90,
+                         vx: Math.cos(angle) * 0.5,
+                         vy: Math.sin(angle) * 0.5,
+                         vz: 6 + Math.random()*6, // Fast upward energy
+                         life: life, maxLife: life,
+                         scale: 1.5 + Math.random(),
+                         alpha: 0.8,
+                         isFireParticle: true,
+                         customHue: hue
+                     });
+                 }
              }
         }
 
