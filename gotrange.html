@@ -2980,35 +2980,42 @@ let lastDisplayedContestTime = -1;
                 ctx.restore();
             }
 
-            // Muscle Definition (High Graphics)
+            // Muscle Definition (High Graphics) - BACK VIEW
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
-                 ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                 // Pectorals
-                 const chestY = shoulderY + h * 0.25;
-                 const chestW = w * 0.4;
-                 ctx.beginPath();
-                 // Left Pec
-                 ctx.ellipse(cx - chestW*0.6, chestY, chestW*0.8, h*0.15, 0.2, 0, Math.PI*2);
-                 ctx.fill();
-                 // Right Pec
-                 ctx.beginPath();
-                 ctx.ellipse(cx + chestW*0.6, chestY, chestW*0.8, h*0.15, -0.2, 0, Math.PI*2);
-                 ctx.fill();
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
 
-                 // Abs (6-pack)
-                 const absY = chestY + h * 0.25;
-                 const absW = w * 0.25;
-                 const absH = h * 0.35;
+                 // Spine Indentation
+                 ctx.beginPath();
+                 ctx.moveTo(cx, topY + h * 0.2);
+                 ctx.lineTo(cx, topY + h * 0.8);
+                 ctx.lineWidth = w * 0.05;
+                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                 ctx.stroke();
+
+                 // Shoulder Blades (Scapula)
+                 const scapY = topY + h * 0.25;
+
+                 // Left Scapula
+                 ctx.beginPath();
+                 ctx.moveTo(cx - w*0.15, scapY);
+                 ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
+                 ctx.lineWidth = w * 0.03;
+                 ctx.stroke();
+
+                 // Right Scapula
+                 ctx.beginPath();
+                 ctx.moveTo(cx + w*0.15, scapY);
+                 ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
+                 ctx.stroke();
+
+                 // Trapezius / Upper Back shading
                  ctx.fillStyle = 'rgba(0,0,0,0.05)';
-
-                 const gap = 2*scale;
-                 const cellW = (absW - gap)/2;
-                 const cellH = (absH - gap*2)/3;
-
-                 for(let r=0; r<3; r++) {
-                     ctx.fillRect(cx - absW/2, absY + r*(cellH+gap), cellW, cellH);
-                     ctx.fillRect(cx + gap/2, absY + r*(cellH+gap), cellW, cellH);
-                 }
+                 ctx.beginPath();
+                 ctx.moveTo(cx, topY + h*0.1);
+                 ctx.lineTo(cx - w*0.3, topY + h*0.2);
+                 ctx.lineTo(cx, topY + h*0.4);
+                 ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                 ctx.fill();
             }
 
             // Rim Light
@@ -4225,7 +4232,7 @@ let lastDisplayedContestTime = -1;
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
             
-            if (skinObj.jerseyType === 'tshirt') uColor = jerseyColor;
+            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
 
             if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
             if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
@@ -4641,6 +4648,26 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
+        }
         else if (skinObj.headAccessory === 'helmet') {
              ctx.fillStyle = skinObj.hatColor || '#87CEEB';
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 1*s, 0, Math.PI*2); ctx.fill();
@@ -4721,6 +4748,77 @@ let lastDisplayedContestTime = -1;
              const bp = skinObj.backProp;
              const centerX = p.x;
              const centerY = torsoY + bodyH * 0.4;
+
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
+             }
 
              if (bp === 'axe') {
                  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 4*s;
@@ -5057,7 +5155,7 @@ let lastDisplayedContestTime = -1;
             let activeSleeveColor = null;
 
             // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt') {
+            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 thisUpperColor = torsoColor;
             }
 
@@ -5261,6 +5359,7 @@ let lastDisplayedContestTime = -1;
             bodyOptions.isJersey = true;
         }
 
+        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
