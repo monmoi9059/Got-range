@@ -3223,23 +3223,51 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 2*s); ctx.lineTo(p.x - 5*s, p.y - 2*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x + 2*s, p.y + 2*s); ctx.lineTo(p.x + 8*s, p.y + 2*s); ctx.stroke();
         }
-        else if (type === 'castle') {
-            const w = 40 * s; const h = 60 * s;
-            ctx.fillStyle = '#808080';
+        else if (type === 'castle') { // Now Residential Houses
+            const wallColors = ['#F5F5DC', '#FFFACD', '#E0FFFF', '#FFC0CB', '#98FB98', '#D3D3D3', '#F0E68C', '#ADD8E6'];
+            const roofColors = ['#8B4513', '#A52A2A', '#2F4F4F', '#696969', '#800000', '#556B2F'];
+
+            // Deterministic selection
+            const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
+            const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
+
+            const w = 50 * s;
+            const h = 50 * s;
+
+            // Body
+            ctx.fillStyle = wallColor;
             ctx.fillRect(p.x - w/2, p.y - h, w, h);
-            ctx.fillStyle = '#696969';
-            ctx.fillRect(p.x - w/2 - 10*s, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillRect(p.x + w/2, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillStyle = '#808080';
-            const bW = w/3;
-            ctx.fillRect(p.x - w/2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW*2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillStyle = '#8B0000';
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 - 12*s, p.y - h*0.8); ctx.lineTo(p.x - w/2 - 5*s, p.y - h*1.1); ctx.lineTo(p.x - w/2 + 2*s, p.y - h*0.8); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 2*s, p.y - h*0.8); ctx.lineTo(p.x + w/2 + 5*s, p.y - h*1.1); ctx.lineTo(p.x + w/2 + 12*s, p.y - h*0.8); ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, Math.PI, 0); ctx.fill();
+
+            // Roof (Pitched)
+            ctx.fillStyle = roofColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.fill();
+
+            // Door
+            ctx.fillStyle = '#4E342E';
+            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            // Knob
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+
+            // Windows
+            ctx.fillStyle = '#87CEEB';
+            // Window 1
+            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            // Window 2
+            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+
+            // Window Frames
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            // Cross 1
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            // Cross 2
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
