@@ -1016,7 +1016,7 @@
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
-        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket' },
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
 
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
@@ -4071,7 +4071,7 @@ let lastDisplayedContestTime = -1;
         // 1. Colors
         const jerseyColor = skinObj.jerseyColor || '#FFF';
         const shortsColor = skinObj.shortsColor || '#FFF';
-        const sleeveRight = skinObj.sleeveRight;
+        const sleeveRight = skinObj.sleeveRight || skinObj.sleeveColor;
         const sleeveLeft = skinObj.sleeveLeft || skinObj.sleeveColor;
         const socksColor = skinObj.socksColor;
         const shoesColor = skinObj.shoesColor;
@@ -4200,7 +4200,9 @@ let lastDisplayedContestTime = -1;
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, skinTone, 'calf', s);
+             let calfCol = skinTone;
+             if (skinObj.legType === 'pants') calfCol = shortsColor;
+             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
              // Socks
              if(socksColor) {
                  const sockH = 7 * s;
