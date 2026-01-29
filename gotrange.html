@@ -1748,6 +1748,7 @@ let lastDisplayedContestTime = -1;
         let aimBonus = (playerData.stats.aim - 1);
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
+        if (currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
         let dampener = baseDampener + aimBonus;
 
         if(mods.timingWindow) dampener *= mods.timingWindow;
@@ -5832,16 +5833,14 @@ let lastDisplayedContestTime = -1;
 
         shoot(timingError);
     }
-    function retryShot() { player3D.z = 0; player3D.vz = 0; state = 'IDLE'; }
+    function retryShot() {
+        player3D.z = 0; player3D.vz = 0;
+        state = 'IDLE';
+        activeBalls = []; // Clear any remaining balls
+    }
 
     function shoot(timingError) {
-        if (currentGameMode !== 'TIME_ATTACK') {
-            state = 'SHOOTING';
-        } else {
-            // Instant reset for rapid fire
-            state = 'IDLE';
-            player3D.z = 0; player3D.vz = 0; // Ground player
-        }
+        state = 'SHOOTING';
 
         if (playerData.currentStyle === 'airbud') airbudJumpTime = 0;
 
@@ -5915,6 +5914,9 @@ let lastDisplayedContestTime = -1;
         }
 
         activeBalls.push(newBall);
+
+        // Legacy Sync: Update global ball for compatibility
+        ball = Object.assign({}, newBall);
     }
 
     function handleScore(b) {
@@ -5932,7 +5934,7 @@ let lastDisplayedContestTime = -1;
         } else if (currentGameMode === 'TIME_ATTACK') {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
-             feedbackTimer = 30;
+             feedbackTimer = 30; updateContestUI();
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
@@ -6046,6 +6048,7 @@ let lastDisplayedContestTime = -1;
                     timeAttackData.timer = 0;
                     endTimeAttack();
                 }
+                if(Math.ceil(timeAttackData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
             }
         }
         if (state === 'JUMPING') {
@@ -6062,6 +6065,10 @@ let lastDisplayedContestTime = -1;
         if (state === 'SHOOTING') {
             if (playerData.currentStyle === 'airbud') airbudJumpTime += 1 * dt;
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
+            if (currentGameMode === 'TIME_ATTACK' && player3D.z <= 0) {
+                state = 'IDLE';
+                player3D.z = 0;
+            }
         }
 
         // Process Active Balls
@@ -6195,13 +6202,14 @@ let lastDisplayedContestTime = -1;
         // Contest UI has Time, Score. Perfect for Time Attack.
         // Rack info is irrelevant.
         document.getElementById('contest-ui').style.display = 'block';
-        document.getElementById('contestRack').parentElement.style.display = 'none'; // Hide station info
+        const rackEl = document.getElementById('contestRack').parentElement;
+        rackEl.style.display = 'block';
+        // Hack: change the innerHTML to show RECORD label, keeping the span id
+        rackEl.innerHTML = 'RECORD: <span id="contestRack">' + (playerData.timeAttackHighScore || 0) + '</span>';
 
         state = 'IDLE';
         updateUI();
-        // Force update of timer display
-        document.getElementById('contestTime').innerText = "60";
-        document.getElementById('contestScore').innerText = "0";
+        updateContestUI();
 
         invalidateBackgroundCache();
     }
@@ -6271,11 +6279,12 @@ let lastDisplayedContestTime = -1;
             contestTimeEl.innerText = newTime;
             lastDisplayedContestTime = newTime;
             contestScoreEl.innerText = timeAttackData.score;
-            // Best score?
-            if (playerData.timeAttackHighScore) {
-                // Maybe reuse Rack element for Best Score?
-                // contestRackEl.innerText = playerData.timeAttackHighScore;
-            }
+            // Best score
+            const best = playerData.timeAttackHighScore || 0;
+            // Need to re-query if the element was replaced?
+            // Actually innerText on the span with id 'contestRack' should work if ID is preserved.
+            const rEl = document.getElementById('contestRack');
+            if (rEl) rEl.innerText = best;
         }
     }
 
@@ -6298,6 +6307,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function resetGame() {
+        activeBalls = []; // Clear all balls on reset
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
         else {
