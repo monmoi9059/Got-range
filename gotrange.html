@@ -4463,6 +4463,39 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.arc(ex, ey, 2.5*s, 0, Math.PI*2); ctx.fill();
              }
         }
+        else if(skinObj.hairStyle === 'hat') {
+             const hColor = skinObj.hairColor || '#3c2415';
+             const capColor = skinObj.hatColor || '#F00';
+
+             // 1. Hair (Bottom/Side visibility)
+             ctx.fillStyle = hColor;
+             ctx.beginPath();
+             // Draw hair extending lower than the hat
+             ctx.arc(p.x, headY + 3*s, headRadius * 1.05, 0, Math.PI);
+             ctx.lineTo(p.x + headRadius * 1.05, headY);
+             ctx.lineTo(p.x - headRadius * 1.05, headY);
+             ctx.fill();
+
+             // 2. Cap Dome (Oversized to fit over head)
+             ctx.fillStyle = capColor;
+             ctx.beginPath();
+             // Top Dome
+             ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+             // Sides down to ears
+             ctx.lineTo(p.x + headRadius * 1.2, headY + 4*s);
+             // Bottom curve of cap (back strap area)
+             ctx.quadraticCurveTo(p.x, headY + 8*s, p.x - headRadius * 1.2, headY + 4*s);
+             ctx.lineTo(p.x - headRadius * 1.2, headY - 2*s);
+             ctx.fill();
+
+             // 3. Optional Shading
+             if (playerData.graphics === 'HIGH') {
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+                 ctx.fill();
+             }
+        }
 
         if(skinObj.beard) {
              ctx.fillStyle = skinObj.beardColor || '#000';
