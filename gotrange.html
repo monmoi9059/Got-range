@@ -5388,7 +5388,7 @@ let lastDisplayedContestTime = -1;
         const p = project(wx, wy, 0); return p ? p.y : canvas.height;
     }
 
-    function drawMountainLayer(layer, horizonY, dx) {
+    function drawMountainLayer(layer, horizonY, dx, scale) {
         if (playerData.graphics === 'HIGH') {
             if (!layer.gradient) {
                 const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
@@ -5401,10 +5401,12 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = layer.color;
         }
 
+        if (!scale) scale = 1.0;
+
         ctx.beginPath();
-        ctx.moveTo(layer.points[0].x + dx, horizonY);
-        layer.points.forEach(p => { ctx.lineTo(p.x + dx, horizonY - p.y); });
-        ctx.lineTo(layer.points[layer.points.length-1].x + dx, horizonY);
+        ctx.moveTo((layer.points[0].x * scale) + dx, horizonY);
+        layer.points.forEach(p => { ctx.lineTo((p.x * scale) + dx, horizonY - (p.y * scale)); });
+        ctx.lineTo((layer.points[layer.points.length-1].x * scale) + dx, horizonY);
         ctx.fill();
     }
 
@@ -5608,17 +5610,20 @@ let lastDisplayedContestTime = -1;
         }
 
         // BACKGROUND MOUNTAINS
+        const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
+
         mountainLayers.forEach(layer => {
              const shift = (player3D.x + player3D.y) * layer.speed;
-             const loopWidth = 2000;
+             const loopWidth = 2000 * mountainScale;
              const offset = shift % loopWidth;
              let startX = -offset;
              if (startX > 0) startX -= loopWidth;
 
-             // Draw enough copies to cover screen
-             drawMountainLayer(layer, horizonY, startX);
-             drawMountainLayer(layer, horizonY, startX + loopWidth);
-             if(startX + loopWidth < 0) drawMountainLayer(layer, horizonY, startX + loopWidth * 2);
+             let currentX = startX;
+             while(currentX < canvas.width) {
+                 drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                 currentX += loopWidth;
+             }
         });
 
         // CLOUDS
