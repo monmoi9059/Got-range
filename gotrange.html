@@ -431,6 +431,7 @@
             <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
             <hr style="border-color:#555; margin:15px 0;">
             <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
+            <p style="overflow:hidden;">Record Time Attack: <span id="statTimeAttack" style="color:#FF4500; float:right">0</span></p>
         </div>
 
         <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
@@ -1678,6 +1679,8 @@ let lastDisplayedContestTime = -1;
     // Shift player start position to match new center (300 -> 433)
     var player3D = { x: 433, y: 300, z: 0, vz: 0 };
     var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
+    var activeBalls = [];
+    var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
     var particles = [];
 
     // Expose for debugging
@@ -1745,6 +1748,7 @@ let lastDisplayedContestTime = -1;
         let aimBonus = (playerData.stats.aim - 1);
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
+        if (currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
         let dampener = baseDampener + aimBonus;
 
         if(mods.timingWindow) dampener *= mods.timingWindow;
@@ -2085,8 +2089,10 @@ let lastDisplayedContestTime = -1;
             ctx.fillText(`Distance: ${dist} pi`, canvas.width/2, y + 30);
             ctx.font = "italic 16px 'Segoe UI'"; ctx.fillStyle = "#aaa";
             ctx.fillText(`(Équivalent: ${scaleObj.name})`, canvas.width/2, y + 55);
-        } else {
+        } else if (currentGameMode === 'CONTEST') {
              ctx.fillText(`CONCOURS 3 POINTS`, canvas.width/2, y + 30);
+        } else if (currentGameMode === 'TIME_ATTACK') {
+             ctx.fillText(`TIME ATTACK`, canvas.width/2, y + 30);
         }
         const margin = 100; const lineY = y + 80; const lineLen = canvas.width - (margin * 2);
         ctx.strokeStyle = '#555'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(margin, lineY); ctx.lineTo(margin + lineLen, lineY); ctx.stroke();
@@ -2180,23 +2186,24 @@ let lastDisplayedContestTime = -1;
         ctx.shadowBlur = 0; // Reset
     }
 
-    function drawBall(p) {
+    function drawBall(p, ballRef) {
         if (!p) return;
+        const targetBall = ballRef || ball; // Fallback for safety
 
         // Draw Trail (High Graphics)
-        if (ball.isFire && ball.trail && ball.trail.length > 1 && playerData.graphics === 'HIGH') {
+        if (targetBall.isFire && targetBall.trail && targetBall.trail.length > 1 && playerData.graphics === 'HIGH') {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            for (let i = 0; i < ball.trail.length - 1; i++) {
-                const pt1 = ball.trail[i];
-                const pt2 = ball.trail[i+1];
+            for (let i = 0; i < targetBall.trail.length - 1; i++) {
+                const pt1 = targetBall.trail[i];
+                const pt2 = targetBall.trail[i+1];
 
                 // Project both points
                 const proj1 = project(pt1.x, pt1.y, pt1.z, g_camCache);
                 const proj2 = project(pt2.x, pt2.y, pt2.z, g_camCache);
 
                 if (proj1 && proj2) {
-                    const ratio = i / ball.trail.length; // 0 (oldest) to 1 (newest)
+                    const ratio = i / targetBall.trail.length; // 0 (oldest) to 1 (newest)
                     const alpha = ratio * 0.6;
                     ctx.lineWidth = (5 + 15 * ratio) * proj1.scale;
 
@@ -2223,7 +2230,7 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        drawBallSprite(p.x, p.y, p.scale, ball.isFire, ball.rotationX);
+        drawBallSprite(p.x, p.y, p.scale, targetBall.isFire, targetBall.rotationX);
     }
 
     function drawDetachedBall(p, s, torsoY, bodyH, headY) {
@@ -5642,16 +5649,19 @@ let lastDisplayedContestTime = -1;
             g_renderList.push(obj);
         }
 
-        if (state === 'SHOOTING' && ball.active) {
-            const ballProj = project(ball.x, ball.y, ball.z);
-            if (ballProj) {
-                const obj = getRenderItem();
-                obj.type = 'ball';
-                obj.depth = ballProj.depth;
-                obj.proj = ballProj;
-                g_renderList.push(obj);
+        activeBalls.forEach(b => {
+            if (b.active) {
+                const ballProj = project(b.x, b.y, b.z);
+                if (ballProj) {
+                    const obj = getRenderItem();
+                    obj.type = 'ball';
+                    obj.depth = ballProj.depth;
+                    obj.proj = ballProj;
+                    obj.ballRef = b;
+                    g_renderList.push(obj);
+                }
             }
-        }
+        });
 
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
@@ -5677,7 +5687,7 @@ let lastDisplayedContestTime = -1;
             if (obj.type === 'hoop') drawHoop(obj.proj);
             if (obj.type === 'shadow') drawShadow(obj.proj);
             if (obj.type === 'player') drawPlayer(obj.proj);
-            if (obj.type === 'ball') drawBall(obj.proj);
+            if (obj.type === 'ball') drawBall(obj.proj, obj.ballRef);
             if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha, obj.color);
         });
 
@@ -5823,13 +5833,17 @@ let lastDisplayedContestTime = -1;
 
         shoot(timingError);
     }
-    function retryShot() { player3D.z = 0; player3D.vz = 0; state = 'IDLE'; }
+    function retryShot() {
+        player3D.z = 0; player3D.vz = 0;
+        state = 'IDLE';
+        activeBalls = []; // Clear any remaining balls
+    }
 
     function shoot(timingError) {
         state = 'SHOOTING';
+
         if (playerData.currentStyle === 'airbud') airbudJumpTime = 0;
-        ball.trail = []; // Reset trail for new shot
-        ball.rotationX = 0; // Reset rotation
+
         playerData.lifetimeStats.shots++;
         checkAchievements('shot_stats');
 
@@ -5846,9 +5860,17 @@ let lastDisplayedContestTime = -1;
         if (styleId === 'airbud') spawnZ = 95;
         if (styleId === 'telekinesis' || styleId === 'peekaboo') spawnZ = 130;
 
-        ball.x = player3D.x; ball.y = player3D.y; ball.z = player3D.z + spawnZ;
-        ball.active = true;
-        ball.isFire = (currentStreak >= 5);
+        let newBall = {
+            x: player3D.x,
+            y: player3D.y,
+            z: player3D.z + spawnZ,
+            vx: 0, vy: 0, vz: 0,
+            active: true,
+            isFire: (currentStreak >= 5 && currentGameMode !== 'TIME_ATTACK'),
+            trail: [],
+            rotationX: 0,
+            isWindow: false
+        };
 
         let flightTime = Math.min(120, 40 + (distanceLevel * 0.8));
         if(mods.speed) flightTime /= mods.speed;
@@ -5856,7 +5878,7 @@ let lastDisplayedContestTime = -1;
         // Enforce minimum arc (parabola)
         flightTime = Math.max(32, flightTime);
 
-        ball.vx = (dx / flightTime); ball.vy = (dy / flightTime); ball.vz = (HOOP_POS.z - ball.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
+        newBall.vx = (dx / flightTime); newBall.vy = (dy / flightTime); newBall.vz = (HOOP_POS.z - newBall.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
 
         let isMiss = Math.abs(timingError) > threshold;
 
@@ -5878,23 +5900,29 @@ let lastDisplayedContestTime = -1;
 
                 const len = Math.sqrt(dx*dx + dy*dy); const perpX = -dy / len; const perpY = dx / len;
                 const scatter = (Math.random() > 0.5 ? 1 : -1) * Math.abs(accuracyMagnitude) * 15;
-                ball.vx += perpX * scatter; ball.vy += perpY * scatter; ball.vz -= Math.abs(accuracyMagnitude) * 5;
+                newBall.vx += perpX * scatter; newBall.vy += perpY * scatter; newBall.vz -= Math.abs(accuracyMagnitude) * 5;
 
                 if (Math.abs(timingError) > threshold * 3) {
                     feedback = "VITRE CASSÉE !";
-                    ball.isWindow = true;
+                    newBall.isWindow = true;
                 } else {
                     feedback = Math.abs(accuracyMagnitude) > 0.5 ? "AIRBALL" : "BRIQUE";
-                    ball.isWindow = false;
+                    newBall.isWindow = false;
                 }
                 feedbackTimer = 30;
             }
         }
+
+        activeBalls.push(newBall);
+
+        // Legacy Sync: Update global ball for compatibility
+        ball = Object.assign({}, newBall);
     }
 
-    function handleScore() {
+    function handleScore(b) {
+        const targetBall = b || ball;
         AudioSystem.playSwish();
-        ball.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+        targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -5903,6 +5931,10 @@ let lastDisplayedContestTime = -1;
             contestData.score += points;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
             feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500);
+        } else if (currentGameMode === 'TIME_ATTACK') {
+             timeAttackData.score++;
+             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
+             feedbackTimer = 30; updateContestUI();
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
@@ -5910,12 +5942,16 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function handleMiss() {
+    function handleMiss(b) {
+        const targetBall = b || ball;
         if(state === 'GAMEOVER') return;
         AudioSystem.playFloorHit();
+        targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
+        } else if (currentGameMode === 'TIME_ATTACK') {
+             feedback = "Manqué"; feedbackTimer = 30;
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
@@ -5996,11 +6032,23 @@ let lastDisplayedContestTime = -1;
         }
 
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
+
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
                 contestData.timer -= (1/60) * dt;
                 if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
                 if(Math.ceil(contestData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
+            }
+        }
+
+        if(currentGameMode === 'TIME_ATTACK' && state !== 'GAMEOVER') {
+            if(timeAttackData.timer > 0) {
+                timeAttackData.timer -= (1/60) * dt;
+                if(timeAttackData.timer <= 0) {
+                    timeAttackData.timer = 0;
+                    endTimeAttack();
+                }
+                if(Math.ceil(timeAttackData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
             }
         }
         if (state === 'JUMPING') {
@@ -6017,26 +6065,35 @@ let lastDisplayedContestTime = -1;
         if (state === 'SHOOTING') {
             if (playerData.currentStyle === 'airbud') airbudJumpTime += 1 * dt;
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
-            if (ball.active) {
-                if (ball.isFire) {
+            if (currentGameMode === 'TIME_ATTACK' && player3D.z <= 0) {
+                state = 'IDLE';
+                player3D.z = 0;
+            }
+        }
+
+        // Process Active Balls
+        for (let i = activeBalls.length - 1; i >= 0; i--) {
+            let b = activeBalls[i];
+            if (b.active) {
+                if (b.isFire) {
                      // Update Trail
                      if (playerData.graphics === 'HIGH') {
-                         if (!ball.trail) ball.trail = [];
-                         ball.trail.push({ x: ball.x, y: ball.y, z: ball.z });
-                         if (ball.trail.length > 20) ball.trail.shift();
+                         if (!b.trail) b.trail = [];
+                         b.trail.push({ x: b.x, y: b.y, z: b.z });
+                         if (b.trail.length > 20) b.trail.shift();
                      }
 
                      // Emit Fire Particles
-                     if (Math.random() < 1.0 * dt) { // Increased density slightly
+                     if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
                          let customHue = undefined;
                          if (currentStreak >= 10) {
                              customHue = getStreakFireHue(currentStreak);
                          }
                          particles.push({
-                             x: ball.x + (Math.random()-0.5)*15,
-                             y: ball.y + (Math.random()-0.5)*15,
-                             z: ball.z + (Math.random()-0.5)*15,
+                             x: b.x + (Math.random()-0.5)*15,
+                             y: b.y + (Math.random()-0.5)*15,
+                             z: b.z + (Math.random()-0.5)*15,
                              vx: (Math.random()-0.5)*5,
                              vy: (Math.random()-0.5)*5,
                              vz: (Math.random()-0.5)*5,
@@ -6047,40 +6104,42 @@ let lastDisplayedContestTime = -1;
                          });
                      }
                 } else {
-                    // Reset trail if not on fire
-                    if(ball.trail && ball.trail.length > 0) ball.trail = [];
+                    if(b.trail && b.trail.length > 0) b.trail = [];
                 }
 
-                const prevZ = ball.z;
-                const prevX = ball.x;
-                const prevY = ball.y;
+                const prevZ = b.z;
+                const prevX = b.x;
+                const prevY = b.y;
 
-                // Update Rotation (Backspin proportional to speed, or fixed visual effect)
-                // 0.2 rad/frame * dt approx 10 rad/sec
-                ball.rotationX -= 0.2 * dt;
+                b.rotationX -= 0.2 * dt;
 
-                ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.z += ball.vz * dt; ball.vz -= GRAVITY * dt;
-                if (prevZ >= HOOP_POS.z && ball.z <= HOOP_POS.z) {
+                b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= GRAVITY * dt;
+
+                // Collision Logic
+                if (prevZ >= HOOP_POS.z && b.z <= HOOP_POS.z) {
                     let t = 0;
-                    if (prevZ !== ball.z) {
-                         t = (HOOP_POS.z - prevZ) / (ball.z - prevZ);
+                    if (prevZ !== b.z) {
+                         t = (HOOP_POS.z - prevZ) / (b.z - prevZ);
                     }
-                    const crossX = prevX + (ball.x - prevX) * t;
-                    const crossY = prevY + (ball.y - prevY) * t;
+                    const crossX = prevX + (b.x - prevX) * t;
+                    const crossY = prevY + (b.y - prevY) * t;
 
                     const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
-                    if (distToHoopCenter < 25) { handleScore(); return; }
+                    if (distToHoopCenter < 25) { handleScore(b); continue; }
 
-                    if (ball.isWindow) {
+                    if (b.isWindow) {
                         AudioSystem.playWindowBreak();
                     } else if (feedback !== "AIRBALL") {
                         AudioSystem.playBrick();
                     }
                 }
                 const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(ball.x - player3D.x, 2) + Math.pow(ball.y - player3D.y, 2));
-                if (ball.z < -50 || currentDist > distToHoop + 5000) { ball.active = false; handleMiss(); return; }
-                if (ball.z <= 0) { ball.z = 0; ball.active = false; handleMiss(); return; }
+                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+
+                if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
+                if (b.z <= 0) { b.z = 0; b.active = false; handleMiss(b); continue; }
+            } else {
+                activeBalls.splice(i, 1);
             }
         }
         if (feedbackTimer > 0) feedbackTimer -= 1 * dt;
@@ -6096,6 +6155,8 @@ let lastDisplayedContestTime = -1;
                 else { setPlayerPositionForRack(contestData.rack); }
             }
             updateContestUI(); state = 'IDLE';
+        } else if (currentGameMode === 'TIME_ATTACK') {
+             // Continuous play, no level reset logic needed here usually
         } else {
             const baseReward = 1 * distanceLevel * playerData.difficulty;
             const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
@@ -6124,6 +6185,62 @@ let lastDisplayedContestTime = -1;
         checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
     }
 
+    function startTimeAttack() {
+        timeAttackData = { timer: 60, score: 0, active: true };
+        currentStreak = 0;
+        activeBalls = []; // Clear any existing balls
+
+        // 30ft Position
+        // Hoop: 733, 150. Dist: 127 px.
+        // Approx Angle: same as start (dx=300, dy=150) -> (619, 207)
+        player3D.x = 619; player3D.y = 207; player3D.z = 0; player3D.vz = 0;
+
+        document.getElementById('classic-stats').style.display = 'none';
+        strikesEl.style.display = 'none';
+        contestUI.style.display = 'none'; // Reusing contest UI might be easier if we adapt updateContestUI?
+        // Let's reuse contest-ui but modify labels via JS if needed, or stick to a simple display
+        // Contest UI has Time, Score. Perfect for Time Attack.
+        // Rack info is irrelevant.
+        document.getElementById('contest-ui').style.display = 'block';
+        const rackEl = document.getElementById('contestRack').parentElement;
+        rackEl.style.display = 'block';
+        // Hack: change the innerHTML to show RECORD label, keeping the span id
+        rackEl.innerHTML = 'RECORD: <span id="contestRack">' + (playerData.timeAttackHighScore || 0) + '</span>';
+
+        state = 'IDLE';
+        updateUI();
+        updateContestUI();
+
+        invalidateBackgroundCache();
+    }
+
+    function endTimeAttack() {
+        timeAttackData.active = false;
+        state = 'GAMEOVER';
+
+        // Reward
+        const reward = timeAttackData.score * 5 * playerData.difficulty;
+        playerData.tacos += reward;
+
+        // Save High Score
+        let isRecord = false;
+        if (!playerData.timeAttackHighScore || timeAttackData.score > playerData.timeAttackHighScore) {
+            playerData.timeAttackHighScore = timeAttackData.score;
+            isRecord = true;
+        }
+
+        if (isRecord) {
+            feedback = `NOUVEAU RECORD: ${timeAttackData.score}!`;
+        } else {
+            feedback = `SCORE: ${timeAttackData.score} (RECORD: ${playerData.timeAttackHighScore})`;
+        }
+
+        feedbackTimer = 180;
+
+        saveData();
+        setTimeout(openShop, 3000);
+    }
+
     function updateUI() {
         scoreEl.innerText = playerData.tacos;
         if(currentGameMode === 'CLASSIC') {
@@ -6131,7 +6248,12 @@ let lastDisplayedContestTime = -1;
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
             const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
-        } else { courtNameEl.innerText = "CONCOURS 3 POINTS"; }
+        } else if (currentGameMode === 'CONTEST') {
+            courtNameEl.innerText = "CONCOURS 3 POINTS";
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            courtNameEl.innerText = "TIME ATTACK";
+            // Update Timer/Score in UI loop, but title here is good
+        }
     }
 
     function setPlayerPositionForRack(rackNum) {
@@ -6146,11 +6268,24 @@ let lastDisplayedContestTime = -1;
     }
 
     function updateContestUI() {
-        const newTime = Math.ceil(contestData.timer);
-        contestTimeEl.innerText = newTime;
-        lastDisplayedContestTime = newTime;
-        contestScoreEl.innerText = contestData.score;
-        contestRackEl.innerText = contestData.rack;
+        if (currentGameMode === 'CONTEST') {
+            const newTime = Math.ceil(contestData.timer);
+            contestTimeEl.innerText = newTime;
+            lastDisplayedContestTime = newTime;
+            contestScoreEl.innerText = contestData.score;
+            contestRackEl.innerText = contestData.rack;
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            const newTime = Math.ceil(timeAttackData.timer);
+            contestTimeEl.innerText = newTime;
+            lastDisplayedContestTime = newTime;
+            contestScoreEl.innerText = timeAttackData.score;
+            // Best score
+            const best = playerData.timeAttackHighScore || 0;
+            // Need to re-query if the element was replaced?
+            // Actually innerText on the span with id 'contestRack' should work if ID is preserved.
+            const rEl = document.getElementById('contestRack');
+            if (rEl) rEl.innerText = best;
+        }
     }
 
     function startContest() {
@@ -6161,6 +6296,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('classic-stats').style.display = 'none';
         strikesEl.style.display = 'none';
         contestUI.style.display = 'block';
+        document.getElementById('contestRack').parentElement.style.display = 'block'; // Show station info
 
         setPlayerPositionForRack(1);
 
@@ -6171,7 +6307,9 @@ let lastDisplayedContestTime = -1;
     }
 
     function resetGame() {
+        activeBalls = []; // Clear all balls on reset
         if(currentGameMode === 'CONTEST') { startContest(); }
+        else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
         else {
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
@@ -6206,6 +6344,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statMisses').innerText = ls.misses;
         document.getElementById('statContests').innerText = ls.contests;
         document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
+        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
         let acc = 0;
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
@@ -6574,8 +6713,16 @@ let lastDisplayedContestTime = -1;
     }
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if(currentGameMode === 'CLASSIC') { currentGameMode = 'CONTEST'; document.getElementById('modeBtnText').innerText = "CONCOURS"; }
-        else { currentGameMode = 'CLASSIC'; document.getElementById('modeBtnText').innerText = "CLASSIQUE"; }
+        if(currentGameMode === 'CLASSIC') {
+            currentGameMode = 'CONTEST';
+            document.getElementById('modeBtnText').innerText = "CONCOURS";
+        } else if (currentGameMode === 'CONTEST') {
+            currentGameMode = 'TIME_ATTACK';
+            document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else {
+            currentGameMode = 'CLASSIC';
+            document.getElementById('modeBtnText').innerText = "CLASSIQUE";
+        }
         resetGame();
     }
     window.toggleMuteUI = function() {
