@@ -1,7 +1,7 @@
 const { Jimp } = require('jimp');
 const path = require('path');
 
-const inputFile = '/tmp/file_attachments/unnamed.jpg';
+const inputFile = path.join(__dirname, 'taco_app/assets/icon_source.png');
 const outputFile = path.join(__dirname, 'taco_app/res/icon.png');
 
 Jimp.read(inputFile)
