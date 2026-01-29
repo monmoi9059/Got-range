@@ -1001,8 +1001,8 @@
         // FAKE VIDEO GAME CHARACTERS
         { id: 'fake_mario', animal: 'human', name: 'Plombier Rouge', cost: 10000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#F00', shortsColor: '#00F', number: 'M', numberColor: '#F00', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#F00', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
         { id: 'fake_luigi', animal: 'human', name: 'Plombier Vert', cost: 10000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#00A000', shortsColor: '#00F', number: 'L', numberColor: '#00A000', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#00A000', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#00A000', shortsColor: '#FFF', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', headAccessory: 'wizard_hat', hatColor: '#00A000', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyColor: '#B22222', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#FFF', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'tattoo_red', socksColor: '#333', shoesColor: '#333' },
+        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyType: 'link_tunic', jerseyColor: '#00A000', shortsColor: '#EEE', legType: 'tights', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', ears: 'elf', headAccessory: 'floppy_cap', hatColor: '#00A000', backProp: 'hero_gear', socksColor: '#EEE', shoesColor: '#3c2415' },
+        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyType: 'none', shortsType: 'kilt', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#F0F0F0', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'spartan_tattoo', backProp: 'chaos_blades', headDetail: 'tattoo_stripe', socksColor: '#333', shoesColor: '#333' },
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
@@ -2963,6 +2963,23 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = fillStyle;
             ctx.fill();
 
+            if (options.pattern === 'spartan_tattoo') {
+                ctx.save();
+                ctx.clip(); // Clip to body shape
+
+                ctx.strokeStyle = '#8B0000'; // Blood Red
+                ctx.lineWidth = w * 0.25;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                // Over Left Shoulder (Back View Left)
+                ctx.moveTo(cx - w*0.5, topY - h*0.1);
+                ctx.quadraticCurveTo(cx - w*0.1, topY + h*0.4, cx - w*0.6, topY + h*0.8);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
             // Muscle Definition (High Graphics)
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
                  ctx.fillStyle = 'rgba(0,0,0,0.08)';
@@ -3831,7 +3848,94 @@ let lastDisplayedContestTime = -1;
         ctx.fill();
     }
 
+    function drawLinkTunic(cx, topY, w, h, scale, skinObj) {
+        const color = skinObj.jerseyColor || '#00A000';
+        const beltColor = '#8B4513';
+
+        // Extended length for tunic
+        const tunicLen = h * 1.2;
+        const shoulderW = w * 1.6;
+        const waistW = w * 1.0;
+        const bottomW = w * 1.3; // Flared bottom
+
+        const shoulderY = topY;
+        const waistY = topY + h * 0.55;
+        const bottomY = topY + tunicLen;
+
+        // Main Tunic Shape
+        ctx.beginPath();
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
+
+        // Sides to waist
+        ctx.lineTo(cx + waistW/2, waistY);
+        // Flared bottom (Skirt part of tunic)
+        ctx.lineTo(cx + bottomW/2, bottomY);
+        ctx.lineTo(cx - bottomW/2, bottomY);
+        ctx.lineTo(cx - waistW/2, waistY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
+        ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Shading
+        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Belt
+        ctx.fillStyle = beltColor;
+        ctx.fillRect(cx - waistW*0.55, waistY - 5*scale, waistW*1.1, 10*scale);
+        // Buckle (silver)
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(cx - 5*scale, waistY - 5*scale, 10*scale, 10*scale);
+
+        // Collar (Back)
+        ctx.fillStyle = '#EEE'; // White undershirt collar
+        ctx.beginPath();
+        ctx.moveTo(cx - 10*scale, topY);
+        ctx.quadraticCurveTo(cx, topY + 5*scale, cx + 10*scale, topY);
+        ctx.lineTo(cx + 8*scale, topY - 2*scale);
+        ctx.quadraticCurveTo(cx, topY + 3*scale, cx - 8*scale, topY - 2*scale);
+        ctx.fill();
+    }
+
     function drawShorts(cx, waistY, w, h, scale, skinObj) {
+        if (skinObj.shortsType === 'kilt') {
+             const color = skinObj.shortsColor || '#5D4037'; // Leather
+             const beltH = 5 * scale;
+             const stripCount = 5;
+             const stripW = w / stripCount;
+
+             // Belt
+             ctx.fillStyle = '#3E2723';
+             ctx.fillRect(cx - w/2, waistY, w, beltH);
+             // Gold Buckle
+             ctx.fillStyle = '#FFD700';
+             ctx.fillRect(cx - w*0.1, waistY, w*0.2, beltH);
+
+             // Pteruges (Strips)
+             for(let i=0; i<stripCount; i++) {
+                 const sx = (cx - w/2) + i*stripW;
+                 ctx.fillStyle = color;
+                 // Main Strip
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, stripW - 2*scale, h - beltH);
+
+                 // Shadow/Edge
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, 1*scale, h - beltH);
+
+                 // Stud Detail
+                 ctx.fillStyle = '#C0C0C0';
+                 ctx.beginPath(); ctx.arc(sx + stripW/2, waistY + h - 5*scale, 2*scale, 0, Math.PI*2); ctx.fill();
+             }
+             return;
+        }
+
         // Baggy Shorts
         const color = skinObj.shortsColor || '#FFF';
         const waistW = w * 1.0; 
@@ -4196,10 +4300,12 @@ let lastDisplayedContestTime = -1;
         // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
         if (skinObj.jerseyType === 'none') {
              // Bare Torso
-             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null });
+             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null, pattern: skinObj.pattern });
              // Muscle Detail (Spine/Pecs)
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.moveTo(p.x, torsoY + 10*s); ctx.lineTo(p.x, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + 10*s); ctx.fill();
+        } else if (skinObj.jerseyType === 'link_tunic') {
+             drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         } else {
              drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         }
@@ -4850,6 +4956,7 @@ let lastDisplayedContestTime = -1;
 
         // Legs: If "trousers" (long pants), calf follows thigh color
         if (skinObj.legType === 'pants') calfColor = thighColor;
+        if (skinObj.legType === 'tights') calfColor = thighColor;
 
         // Panda Logic (Black limbs)
         if (skinObj.legType === 'panda_limbs') {
@@ -5358,8 +5465,25 @@ let lastDisplayedContestTime = -1;
         } else if (currentAnimal === 'human') {
             // Human Ears
             ctx.fillStyle = furColor;
-            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            if (skinObj.ears === 'elf') {
+                // Pointy Elf Ears
+                // Left Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x - 10*s, headY);
+                ctx.lineTo(p.x - 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x - 10*s, headY + 6*s);
+                ctx.fill();
+                // Right Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x + 10*s, headY);
+                ctx.lineTo(p.x + 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x + 10*s, headY + 6*s);
+                ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+
             if(skinObj.hairStyle === 'afro') {
                  ctx.fillStyle = skinObj.hairColor || '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
@@ -5419,6 +5543,16 @@ let lastDisplayedContestTime = -1;
              ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
              ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        if(skinObj.headDetail === 'tattoo_stripe') {
+             ctx.fillStyle = '#FF0000';
+             // Stripe going up the back left side of the head (Kratos)
+             ctx.beginPath();
+             ctx.moveTo(p.x - 4*s, headY + headRadius * 0.8);
+             ctx.quadraticCurveTo(p.x - 12*s, headY, p.x - 4*s, headY - headRadius * 0.9);
+             ctx.lineTo(p.x - 8*s, headY - headRadius * 0.9);
+             ctx.quadraticCurveTo(p.x - 16*s, headY, p.x - 8*s, headY + headRadius * 0.8);
+             ctx.fill();
         }
         if(skinObj.headDetail === 'bandana_ties') {
              ctx.fillStyle = 'red';
@@ -5522,6 +5656,26 @@ let lastDisplayedContestTime = -1;
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
+        }
         else if (skinObj.headAccessory === 'top_hat') {
              ctx.fillStyle = '#111';
              // Brim
@@ -5598,6 +5752,76 @@ let lastDisplayedContestTime = -1;
                  ctx.lineTo(centerX - 20*s, centerY - 20*s);
                  ctx.quadraticCurveTo(centerX - 10*s, centerY - 25*s, centerX - 5*s, centerY - 15*s);
                  ctx.fill();
+             }
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
              }
              if (bp === 'guitar') {
                  // Guitar Body
