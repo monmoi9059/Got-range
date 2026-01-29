@@ -7268,7 +7268,7 @@ let lastDisplayedContestTime = -1;
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
         if (state === 'IDLE' && playerData.mobileControls) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
