@@ -480,14 +480,6 @@
             <div class="sb-content">
                 <div id="classic-stats" style="display:flex; gap:25px;">
                     <div class="sb-stat">
-                        <span class="sb-label">DISTANCE</span>
-                        <span class="sb-value" id="distVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
-                        <span class="sb-label">RECORD</span>
-                        <span class="sb-value sb-highlight" id="highScoreVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
                         <span class="sb-label">MISSES</span>
                         <span class="sb-value sb-danger" id="missVal">0</span>
                     </div>
@@ -1835,8 +1827,6 @@
     sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
 
     const scoreEl = document.getElementById('scoreVal');
-    const distEl = document.getElementById('distVal');
-    const highScoreEl = document.getElementById('highScoreVal');
     const shopUI = document.getElementById('shopUI');
     const achUI = document.getElementById('achUI');
     const statsUI = document.getElementById('statsUI');
@@ -1938,8 +1928,6 @@ let lastDisplayedContestTime = -1;
 
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
-
-    highScoreEl.innerText = playerData.highScore + " pi";
 
     // --- 3. HELPER FUNCTIONS ---
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
@@ -2310,7 +2298,15 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 20); ctx.lineTo(canvas.width / 2, canvas.height - 20); ctx.stroke();
 
         if (currentGameMode === 'CLASSIC') {
-            // LEFT SIDE: Distance
+            // LEFT SIDE: Record & Current Distance
+            // Record
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 250, y + 85);
+
+            // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
             ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, y + 45);
@@ -6419,7 +6415,7 @@ let lastDisplayedContestTime = -1;
             const jump = (playerData.stats.moonwalk !== undefined) ? playerData.stats.moonwalk : 1;
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
-            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
+            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
@@ -6490,7 +6486,6 @@ let lastDisplayedContestTime = -1;
     function updateUI() {
         scoreEl.innerText = playerData.tacos;
         if(currentGameMode === 'CLASSIC') {
-            distEl.innerText = (10 + (distanceLevel * 5)) + " pi";
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
             const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
@@ -6645,7 +6640,7 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame();
+        updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
     }
     window.unlockAllSkins = function() {
@@ -7273,7 +7268,7 @@ let lastDisplayedContestTime = -1;
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
         if (state === 'IDLE' && playerData.mobileControls) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
