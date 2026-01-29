@@ -539,6 +539,21 @@
     <!-- MODALS -->
     <div id="statsUI" class="modal">
         <div class="modal-header">STATISTIQUES À VIE</div>
+
+        <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
+             <div style="transform: skewX(5deg);">
+                 <h3 style="margin:0 0 10px 0; color:#FFD700; text-transform:uppercase; font-family: var(--broadcast-font-title);">📅 DÉFI DU JOUR</h3>
+                 <div id="dailyDesc" style="color:#FFF; font-size:1.1em; margin-bottom:8px; font-weight:bold;">Chargement...</div>
+                 <div style="background:#000; height:12px; width:100%; border:1px solid #555;">
+                     <div id="dailyBar" style="background:#00FF00; height:100%; width:0%; transition: width 0.5s;"></div>
+                 </div>
+                 <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.9em; color:#aaa; font-family: var(--broadcast-font-body);">
+                     <span id="dailyProgressText" style="color:#FFF;">0 / 0</span>
+                     <span id="dailyRewardText" style="color:#FFD700;">+500 Tacos</span>
+                 </div>
+             </div>
+        </div>
+
         <div style="text-align:left; padding: 10px; font-size: 1.2em;">
             <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
             <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
@@ -723,6 +738,20 @@
         { id: 'dist_18000', name: 'Camp de Base', desc: 'Atteindre 18000 pi', reward: 1600, type: 'distance', threshold: 18000 },
         { id: 'dist_19000', name: 'Kilimanjaro', desc: 'Atteindre 19000 pi', reward: 1800, type: 'distance', threshold: 19000 },
         { id: 'dist_20000', name: 'Denali', desc: 'Atteindre 20000 pi', reward: 2000, type: 'distance', threshold: 20000 }
+    ];
+
+    var DAILY_CHALLENGES = [
+        { id: 'makes_50', type: 'makes', desc: 'Marquer 50 Paniers', target: 50, reward: 500 },
+        { id: 'makes_100', type: 'makes', desc: 'Marquer 100 Paniers', target: 100, reward: 1200 },
+        { id: 'streak_5', type: 'streak', desc: 'Faire une série de 5', target: 5, reward: 300 },
+        { id: 'streak_10', type: 'streak', desc: 'Faire une série de 10', target: 10, reward: 1000 },
+        { id: 'contest_20', type: 'contest_score', desc: 'Marquer 20 pts (Concours)', target: 20, reward: 600 },
+        { id: 'contest_50', type: 'contest_score', desc: 'Marquer 50 pts (Concours)', target: 50, reward: 1500 },
+        { id: 'time_30', type: 'time_attack_score', desc: 'Marquer 30 pts (Time Attack)', target: 30, reward: 600 },
+        { id: 'time_60', type: 'time_attack_score', desc: 'Marquer 60 pts (Time Attack)', target: 60, reward: 1500 },
+        { id: 'distance_500', type: 'distance', desc: 'Parcourir 500 pieds', target: 500, reward: 500 },
+        { id: 'play_contest_3', type: 'play_contest', desc: 'Jouer 3 Concours', target: 3, reward: 500 },
+        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
     ];
 
     var COURT_ZONES = [
@@ -1885,6 +1914,7 @@ let lastDisplayedContestTime = -1;
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+        dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
         unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
         mobileControls: false, platformChosen: false,
@@ -1909,6 +1939,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
@@ -1929,8 +1960,63 @@ let lastDisplayedContestTime = -1;
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
+    // Initialize Daily Challenge
+    initDailyChallenge();
+
     // --- 3. HELPER FUNCTIONS ---
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+
+    function initDailyChallenge() {
+        const today = new Date().toDateString();
+        // Reset if date changed or if data is missing/corrupt
+        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
+            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
+            const challenge = DAILY_CHALLENGES[randomIndex];
+            playerData.dailyChallenge = {
+                date: today,
+                id: challenge.id,
+                progress: 0,
+                claimed: false
+            };
+            saveData();
+        }
+    }
+
+    function checkDailyProgress(type, amount) {
+        const dc = playerData.dailyChallenge;
+        if (dc.claimed) return;
+
+        const challengeDef = DAILY_CHALLENGES.find(c => c.id === dc.id);
+        if (!challengeDef) return;
+
+        // If the active challenge type matches the event
+        if (challengeDef.type === type) {
+            if (type === 'streak') {
+                // Streak is "reach X", not cumulative
+                if (amount >= challengeDef.target) {
+                    completeDailyChallenge(challengeDef);
+                }
+            } else {
+                // Cumulative
+                dc.progress += amount;
+                if (dc.progress >= challengeDef.target) {
+                    dc.progress = challengeDef.target;
+                    completeDailyChallenge(challengeDef);
+                } else {
+                    saveData();
+                }
+            }
+        }
+    }
+
+    function completeDailyChallenge(def) {
+        if(playerData.dailyChallenge.claimed) return;
+        playerData.dailyChallenge.claimed = true;
+        playerData.tacos += def.reward;
+        saveData();
+        showNotification("DÉFI COMPLÉTÉ !", def.reward);
+        // Visual flair could go here
+    }
 
     function calculateShotThreshold() {
         const style = getCurrentStyle();
@@ -6166,6 +6252,11 @@ let lastDisplayedContestTime = -1;
         const targetBall = b || ball;
         AudioSystem.playSwish();
         targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+
+        // Daily Challenge Hooks
+        checkDailyProgress('makes', 1);
+        checkDailyProgress('streak', currentStreak);
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -6413,6 +6504,10 @@ let lastDisplayedContestTime = -1;
             if (currentStreak > 1) reward += currentStreak * 2;
             playerData.tacos += reward;
             const jump = (playerData.stats.moonwalk !== undefined) ? playerData.stats.moonwalk : 1;
+
+            // Hook Distance Challenge
+            checkDailyProgress('distance', jump * 5);
+
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
@@ -6424,7 +6519,14 @@ let lastDisplayedContestTime = -1;
 
     function endContest() {
         state = 'GAMEOVER'; feedback = "TERMINÉ !"; feedbackTimer = 120;
-        const reward = contestData.score * 10; playerData.tacos += reward;
+
+        // Increased Reward (x25 instead of x10)
+        const reward = contestData.score * 25;
+        playerData.tacos += reward;
+
+        checkDailyProgress('contest_score', contestData.score);
+        checkDailyProgress('play_contest', 1);
+
         checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
     }
 
@@ -6460,9 +6562,12 @@ let lastDisplayedContestTime = -1;
         timeAttackData.active = false;
         state = 'GAMEOVER';
 
-        // Reward
-        const reward = timeAttackData.score * 5 * playerData.difficulty;
+        // Reward (Increased from x5 to x15)
+        const reward = timeAttackData.score * 15 * playerData.difficulty;
         playerData.tacos += reward;
+
+        checkDailyProgress('time_attack_score', timeAttackData.score);
+        checkDailyProgress('play_time_attack', 1);
 
         // Save High Score
         let isRecord = false;
@@ -6593,6 +6698,29 @@ let lastDisplayedContestTime = -1;
         let acc = 0;
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
+
+        // Daily Challenge UI Update
+        const dc = playerData.dailyChallenge;
+        if (dc && dc.id) {
+            const def = DAILY_CHALLENGES.find(c => c.id === dc.id);
+            if (def) {
+                document.getElementById('dailyDesc').innerText = def.desc;
+                let pct = (dc.progress / def.target) * 100;
+                if (pct > 100) pct = 100;
+                document.getElementById('dailyBar').style.width = pct + "%";
+
+                let statusText = dc.progress + " / " + def.target;
+                if (dc.claimed) {
+                    statusText = "COMPLÉTÉ !";
+                    document.getElementById('dailyBar').style.background = "#FFD700";
+                } else {
+                    document.getElementById('dailyBar').style.background = "#00FF00";
+                }
+                document.getElementById('dailyProgressText').innerText = statusText;
+                document.getElementById('dailyRewardText').innerText = "+" + def.reward + " Tacos";
+            }
+        }
+
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
         const btnGraph = document.getElementById('btnToggleGraphics');
