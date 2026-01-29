@@ -1374,12 +1374,15 @@
         constructor() {
             this.type = null;
             this.depth = 0;
-            this.proj = null;
+            this.x = 0;
+            this.y = 0;
+            this.scale = 0;
             this.zoneType = null;
             this.variant = null;
             this.seed = 0;
             this.alpha = 0;
             this.color = null;
+            this.ballRef = null;
         }
     }
 
@@ -5845,19 +5848,25 @@ let lastDisplayedContestTime = -1;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 400 in project()
-            if (400 - ry <= 0) continue;
+            const depth = 400 - ry;
+            if (depth <= 0) continue;
 
-            const proj = project(d.x, d.y, 0);
-            if (proj) {
-                const obj = getRenderItem();
-                obj.type = 'decor';
-                obj.depth = proj.depth;
-                obj.proj = proj;
-                obj.zoneType = d.zoneType;
-                obj.variant = d.variant;
-                obj.seed = d.seed;
-                g_renderList.push(obj);
-            }
+            // Inline projection
+            const rx = dx * camCos - dy * camSin;
+            const scale = camZoom / depth;
+            const screenX = canvas.width / 2 + (rx * scale);
+            const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            const obj = getRenderItem();
+            obj.type = 'decor';
+            obj.depth = depth;
+            obj.x = screenX;
+            obj.y = screenY;
+            obj.scale = scale;
+            obj.zoneType = d.zoneType;
+            obj.variant = d.variant;
+            obj.seed = d.seed;
+            g_renderList.push(obj);
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
@@ -5865,7 +5874,7 @@ let lastDisplayedContestTime = -1;
             const obj = getRenderItem();
             obj.type = 'hoop';
             obj.depth = hoopProj.depth;
-            obj.proj = hoopProj;
+            obj.x = hoopProj.x; obj.y = hoopProj.y; obj.scale = hoopProj.scale;
             g_renderList.push(obj);
         }
 
@@ -5874,7 +5883,7 @@ let lastDisplayedContestTime = -1;
             const obj = getRenderItem();
             obj.type = 'player';
             obj.depth = playerProj.depth;
-            obj.proj = playerProj;
+            obj.x = playerProj.x; obj.y = playerProj.y; obj.scale = playerProj.scale;
             g_renderList.push(obj);
         }
 
@@ -5883,7 +5892,7 @@ let lastDisplayedContestTime = -1;
             const obj = getRenderItem();
             obj.type = 'shadow';
             obj.depth = shadowProj.depth;
-            obj.proj = shadowProj;
+            obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
             g_renderList.push(obj);
         }
 
@@ -5894,7 +5903,7 @@ let lastDisplayedContestTime = -1;
                     const obj = getRenderItem();
                     obj.type = 'ball';
                     obj.depth = ballProj.depth;
-                    obj.proj = ballProj;
+                    obj.x = ballProj.x; obj.y = ballProj.y; obj.scale = ballProj.scale;
                     obj.ballRef = b;
                     g_renderList.push(obj);
                 }
@@ -5912,7 +5921,7 @@ let lastDisplayedContestTime = -1;
                  } else {
                      obj.depth = proj.depth;
                  }
-                 obj.proj = proj;
+                 obj.x = proj.x; obj.y = proj.y; obj.scale = proj.scale;
                  obj.alpha = p.alpha;
                  obj.color = p.color;
                  g_renderList.push(obj);
@@ -5921,12 +5930,12 @@ let lastDisplayedContestTime = -1;
 
         g_renderList.sort((a, b) => b.depth - a.depth);
         g_renderList.forEach(obj => {
-            if (obj.type === 'decor') drawDecor(obj.proj, obj.zoneType, obj.variant, obj.seed);
-            if (obj.type === 'hoop') drawHoop(obj.proj);
-            if (obj.type === 'shadow') drawShadow(obj.proj);
-            if (obj.type === 'player') drawPlayer(obj.proj);
-            if (obj.type === 'ball') drawBall(obj.proj, obj.ballRef);
-            if (obj.type === 'smoke') drawSmoke(obj.proj, obj.alpha, obj.color);
+            if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
+            if (obj.type === 'hoop') drawHoop(obj);
+            if (obj.type === 'shadow') drawShadow(obj);
+            if (obj.type === 'player') drawPlayer(obj);
+            if (obj.type === 'ball') drawBall(obj, obj.ballRef);
+            if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
         });
 
         // Draw Weather overlay on top of 3D scene but behind UI
