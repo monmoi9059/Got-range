@@ -3701,13 +3701,6 @@ let lastDisplayedContestTime = -1;
             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
-            const shootWristAngle = isRightHand ? wristAngle : -wristAngle; // Fix for lefty check? wristAngle is already adjusted above
-
-            // Wait, wristAngle calculation above:
-            // Lefty: wristAngle = -r_w
-            // Righty: wristAngle = r_w
-            // So 'wristAngle' IS the shooting hand's wrist angle relative to forearm.
-            // But we need to apply it correctly.
 
             let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
