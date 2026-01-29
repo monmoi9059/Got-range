@@ -494,16 +494,6 @@
         </div>
     </div>
 
-    <div id="contest-ui" style="display:none; position:absolute; top:100px; left:50%; transform:translateX(-50%); text-align:center; z-index:90;">
-        <div style="background:rgba(0,0,0,0.8); border:2px solid #FFD700; padding:10px 30px; display:inline-block; transform:skewX(-10deg);">
-            <div style="transform:skewX(10deg); display:flex; gap:30px;">
-                <div class="sb-stat"><span class="sb-label">TIME</span><span class="sb-value" id="contestTime">60</span></div>
-                <div class="sb-stat"><span class="sb-label">SCORE</span><span class="sb-value sb-highlight" id="contestScore">0</span></div>
-                <div class="sb-stat"><span class="sb-label">RACK</span><span class="sb-value" id="contestRack">1</span></div>
-            </div>
-        </div>
-    </div>
-
     <div id="controls">
         <div class="broadcast-btn" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
         <div class="broadcast-btn" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
@@ -1863,10 +1853,6 @@
     const courtNameEl = document.getElementById('courtNameDisplay');
     const missValEl = document.getElementById('missVal');
     const container = document.getElementById('game-container');
-    const contestUI = document.getElementById('contest-ui');
-const contestTimeEl = document.getElementById('contestTime');
-const contestScoreEl = document.getElementById('contestScore');
-const contestRackEl = document.getElementById('contestRack');
 
     canvas.width = 1066;
     canvas.height = 600;
@@ -2416,20 +2402,54 @@ let lastDisplayedContestTime = -1;
             ctx.fillText(scaleObj.name.toUpperCase(), iconX + 40, y + 85);
         }
         else if (currentGameMode === 'CONTEST') {
-            // Contest Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText("3-POINT CONTEST", canvas.width / 2, y + 75);
+            const time = Math.ceil(contestData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("QUEBEC EDITION", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(contestData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RACK
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RACK", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, y + 85);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
-            // Time Attack Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FF4500"; ctx.font = fontValue;
-            ctx.fillText("TIME ATTACK MODE", canvas.width / 2, y + 75);
+            const time = Math.ceil(timeAttackData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE AS FAST AS YOU CAN", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RECORD
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, y + 85);
         }
 
         // Live Indicator
@@ -6570,17 +6590,6 @@ let lastDisplayedContestTime = -1;
 
         document.getElementById('classic-stats').style.display = 'none';
 
-        // Setup Contest UI for Time Attack
-        document.getElementById('contest-ui').style.display = 'block';
-
-        // Update Labels for Time Attack
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RECORD";
-            rackVal.innerText = (playerData.timeAttackHighScore || 0);
-        }
-
         state = 'IDLE';
         updateUI();
         updateContestUI();
@@ -6644,24 +6653,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function updateContestUI() {
-        if (currentGameMode === 'CONTEST') {
-            const newTime = Math.ceil(contestData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = contestData.score;
-            contestRackEl.innerText = contestData.rack;
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            const newTime = Math.ceil(timeAttackData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = timeAttackData.score;
-            // Best score
-            const best = playerData.timeAttackHighScore || 0;
-            // Need to re-query if the element was replaced?
-            // Actually innerText on the span with id 'contestRack' should work if ID is preserved.
-            const rEl = document.getElementById('contestRack');
-            if (rEl) rEl.innerText = best;
-        }
+        // Now handled in drawBroadcastLowerThird
     }
 
     function startContest() {
@@ -6670,14 +6662,6 @@ let lastDisplayedContestTime = -1;
         currentStreak = 0;
 
         document.getElementById('classic-stats').style.display = 'none';
-        contestUI.style.display = 'block';
-
-        // Reset labels
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RACK";
-        }
 
         setPlayerPositionForRack(1);
 
@@ -6695,7 +6679,6 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            contestUI.style.display = 'none';
             state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
         }
