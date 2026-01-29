@@ -398,7 +398,11 @@
         <div class="ui-btn" onclick="openAchievements()">TROPHÉES [O]</div>
         <div class="ui-btn" onclick="openStats()">STATS [S]</div>
     </div>
-    <div id="btn-mute" class="ui-btn" style="position: absolute; bottom: 20px; right: 20px; z-index: 100; width: 50px; height: 50px; padding: 0; line-height: 46px; border-radius: 50%; font-size: 24px; text-align: center;" onclick="toggleMuteUI()">🔊</div>
+    <div style="position: absolute; bottom: 20px; right: 20px; z-index: 100; display:flex; gap:10px; align-items:center;">
+        <div class="ui-btn" style="width: 40px; height: 40px; padding: 0; line-height: 36px; border-radius: 50%; font-size: 20px; text-align: center;" onclick="prevTrack()">◀</div>
+        <div id="btn-mute" class="ui-btn" style="width: 50px; height: 50px; padding: 0; line-height: 46px; border-radius: 50%; font-size: 24px; text-align: center;" onclick="toggleMuteUI()">🔊</div>
+        <div class="ui-btn" style="width: 40px; height: 40px; padding: 0; line-height: 36px; border-radius: 50%; font-size: 20px; text-align: center;" onclick="nextTrack()">▶</div>
+    </div>
     <div id="notification">
         <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
         <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
@@ -1349,12 +1353,76 @@
         lookahead: 25.0,
         scheduleAheadTime: 0.1,
         timerID: null,
+        currentTrackIndex: 0,
+        tracks: [],
 
         init: function() {
             if (this.ctx) return;
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
             if(this.ctx.state === 'suspended') this.ctx.resume();
+
+            this.tracks = [
+                {
+                    name: 'Lo-Fi Chill',
+                    tempo: 0.2, // Seconds per 16th note (approx 75 BPM)
+                    schedule: (beat, time, sys) => {
+                        if (beat % 16 === 0 || beat % 16 === 10) sys.playKick(time, {freq: 150, decay: 0.5});
+                        if (beat % 16 === 8) sys.playSnare(time, {tone: 250, noise: 1000});
+                        if (beat % 2 === 0) sys.playHiHat(time, {freq: 7000, decay: 0.05, vol: 0.1});
+                        if (beat === 0) sys.playChord(time, [261.6, 311.1, 392.0, 466.2], 'triangle', 800);
+                        if (beat === 16) sys.playChord(time, [174.6, 207.7, 261.6, 311.1], 'triangle', 800);
+                    }
+                },
+                {
+                    name: 'Rock Arena',
+                    tempo: 0.15, // Faster (100 BPM)
+                    schedule: (beat, time, sys) => {
+                        if (beat % 16 === 0 || beat % 16 === 10 || beat % 16 === 14) sys.playKick(time, {freq: 120, decay: 0.3, type:'square'});
+                        if (beat % 16 === 4 || beat % 16 === 12) sys.playSnare(time, {tone: 200, noise: 800, decay: 0.2, vol: 0.3});
+                        if (beat % 4 === 0) sys.playHiHat(time, {freq: 5000, decay: 0.1, vol: 0.2});
+                        if (beat === 0) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 2000, 0.1); // C3 Power
+                        if (beat === 16) sys.playChord(time, [110.0, 164.8, 220.0], 'sawtooth', 2000, 0.1); // A2 Power
+                    }
+                },
+                {
+                    name: '8-Bit Arcade',
+                    tempo: 0.12, // Fast (125 BPM)
+                    schedule: (beat, time, sys) => {
+                         if (beat % 8 === 0) sys.playKick(time, {freq: 200, decay: 0.1, type: 'square'});
+                         if (beat % 8 === 4) sys.playSnare(time, {noise: 3000, decay: 0.1, vol: 0.2, type: 'noise_only'});
+                         const arpeggio = [523.25, 659.25, 783.99, 1046.50]; // C Major
+                         if (beat % 2 === 0) {
+                             const note = arpeggio[(beat/2) % 4];
+                             sys.playTone(time, note, 'square', 0.1);
+                         }
+                    }
+                },
+                {
+                    name: 'Trap Beat',
+                    tempo: 0.18, // ~83 BPM
+                    schedule: (beat, time, sys) => {
+                        if (beat % 32 === 0 || beat % 32 === 10 || beat % 32 === 22) sys.playKick(time, {freq: 60, decay: 1.0, type: 'sine', vol: 0.8});
+                        if (beat % 16 === 8) sys.playSnare(time, {tone: 400, noise: 2000, decay: 0.15, vol: 0.4});
+                        if (beat % 2 === 0) {
+                             if (beat === 28 || beat === 30) {
+                                 sys.playHiHat(time, {freq: 8000, decay: 0.02, vol: 0.2});
+                                 sys.playHiHat(time + 0.06, {freq: 8000, decay: 0.02, vol: 0.15});
+                                 sys.playHiHat(time + 0.12, {freq: 8000, decay: 0.02, vol: 0.1});
+                             } else {
+                                 sys.playHiHat(time, {freq: 8000, decay: 0.05, vol: 0.25});
+                             }
+                        }
+                        if (beat === 0) sys.playChord(time, [261.6, 311.1, 392.0], 'sine', 400, 0.05);
+                        if (beat === 16) sys.playChord(time, [233.0, 277.1, 349.2], 'sine', 400, 0.05);
+                    }
+                }
+            ];
+
+            if (playerData.currentTrackIndex !== undefined) {
+                this.currentTrackIndex = playerData.currentTrackIndex;
+                if(this.currentTrackIndex >= this.tracks.length) this.currentTrackIndex = 0;
+            }
             this.startMusic();
         },
 
@@ -1367,7 +1435,16 @@
             return this.isMuted;
         },
 
-        // --- SYNTHESIZERS ---
+        changeTrack: function(direction) {
+            this.currentTrackIndex += direction;
+            if (this.currentTrackIndex >= this.tracks.length) this.currentTrackIndex = 0;
+            if (this.currentTrackIndex < 0) this.currentTrackIndex = this.tracks.length - 1;
+
+            playerData.currentTrackIndex = this.currentTrackIndex;
+            saveData();
+            showNotification("🎵 " + this.tracks[this.currentTrackIndex].name, 0);
+        },
+
         createOscillator: function(type, freq, start, dur, vol) {
             if (!this.ctx || this.isMuted) return;
             const t = this.ctx.currentTime + (start || 0);
@@ -1384,7 +1461,10 @@
             return { osc, gain };
         },
 
-        // --- SFX ---
+        playTone: function(time, freq, type, dur) {
+            this.createOscillator(type, freq, 0, dur, 0.1);
+        },
+
         playSwish: function() {
             if (!this.ctx || this.isMuted) return;
             const t = this.ctx.currentTime;
@@ -1404,7 +1484,7 @@
             filter.frequency.linearRampToValueAtTime(300, t + dur);
 
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.2, t); // Lower volume
+            gain.gain.setValueAtTime(0.2, t);
             gain.gain.linearRampToValueAtTime(0, t + dur);
 
             noise.connect(filter);
@@ -1415,7 +1495,6 @@
 
         playBrick: function() {
             if (!this.ctx || this.isMuted) return;
-            // Clank
             const t = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
@@ -1432,15 +1511,12 @@
 
         playFloorHit: function() {
             if (!this.ctx || this.isMuted) return;
-            // Thud
             this.createOscillator('triangle', 80, 0, 0.1, 0.2);
         },
 
         playWindowBreak: function() {
             if (!this.ctx || this.isMuted) return;
             const t = this.ctx.currentTime;
-
-            // High pitched noise
             const dur = 0.6;
             const bufferSize = this.ctx.sampleRate * dur;
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -1463,7 +1539,6 @@
             gain.connect(this.ctx.destination);
             noise.start(t);
 
-            // Glass shards (random sine pings)
             for(let i=0; i<5; i++) {
                 setTimeout(() => {
                     if(this.ctx && !this.isMuted) this.createOscillator('sine', 2000 + Math.random()*3000, 0, 0.1, 0.05);
@@ -1471,37 +1546,48 @@
             }
         },
 
-        // --- MUSIC SEQUENCER (Low-Fi Hip Hop) ---
-        playKick: function(time) {
+        playKick: function(time, opts={}) {
             if(!this.ctx || this.isMuted) return;
+            const freq = opts.freq || 150;
+            const decay = opts.decay || 0.5;
+            const type = opts.type || 'sine';
+            const vol = opts.vol || 0.4;
+
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
-            osc.frequency.setValueAtTime(150, time);
-            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
-            gain.gain.setValueAtTime(0.4, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + decay);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
             osc.start(time);
-            osc.stop(time + 0.5);
+            osc.stop(time + decay);
         },
 
-        playSnare: function(time) {
+        playSnare: function(time, opts={}) {
             if(!this.ctx || this.isMuted) return;
-            // Tone
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(250, time);
-            gain.gain.setValueAtTime(0.15, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(time);
-            osc.stop(time + 0.1);
+            const toneFreq = opts.tone || 250;
+            const noiseFilter = opts.noise || 1000;
+            const decay = opts.decay || 0.1;
+            const vol = opts.vol || 0.15;
+            const type = opts.type || 'triangle';
 
-            // Noise
-            const dur = 0.2;
+            if (type !== 'noise_only') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(toneFreq, time);
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + decay);
+            }
+
+            const dur = decay * 2;
             const bufferSize = this.ctx.sampleRate * dur;
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
             const data = buffer.getChannelData(0);
@@ -1511,8 +1597,8 @@
             const nGain = this.ctx.createGain();
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'highpass';
-            filter.frequency.value = 1000;
-            nGain.gain.setValueAtTime(0.15, time);
+            filter.frequency.value = noiseFilter;
+            nGain.gain.setValueAtTime(vol, time);
             nGain.gain.exponentialRampToValueAtTime(0.01, time + dur);
             noise.connect(filter);
             filter.connect(nGain);
@@ -1520,9 +1606,13 @@
             noise.start(time);
         },
 
-        playHiHat: function(time) {
+        playHiHat: function(time, opts={}) {
             if(!this.ctx || this.isMuted) return;
-            const dur = 0.05;
+            const freq = opts.freq || 7000;
+            const decay = opts.decay || 0.05;
+            const vol = opts.vol || 0.1;
+
+            const dur = decay;
             const bufferSize = this.ctx.sampleRate * dur;
             const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
             const data = buffer.getChannelData(0);
@@ -1531,9 +1621,9 @@
             noise.buffer = buffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'highpass';
-            filter.frequency.value = 7000;
+            filter.frequency.value = freq;
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.1, time); // Low volume
+            gain.gain.setValueAtTime(vol, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
             noise.connect(filter);
             filter.connect(gain);
@@ -1541,70 +1631,59 @@
             noise.start(time);
         },
 
-        playChord: function(time, notes) {
+        playChord: function(time, notes, type='triangle', filterFreq=800, vol=0.04) {
             if(!this.ctx || this.isMuted) return;
-            // Wobbly electric piano
             notes.forEach((freq, i) => {
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                const lfo = this.ctx.createOscillator();
-                const lfoGain = this.ctx.createGain();
-
-                osc.type = 'triangle';
+                osc.type = type;
                 osc.frequency.value = freq;
 
-                // LFO for pitch wobble (Lo-Fi)
-                lfo.frequency.value = 2 + Math.random(); // Slow wobble
-                lfoGain.gain.value = 1.5; // Depth
-                lfo.connect(lfoGain);
-                lfoGain.connect(osc.frequency);
+                if (type === 'triangle') {
+                    const lfo = this.ctx.createOscillator();
+                    const lfoGain = this.ctx.createGain();
+                    lfo.frequency.value = 2 + Math.random();
+                    lfoGain.gain.value = 1.5;
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+                    lfo.start(time);
+                    lfo.stop(time + 2.0);
+                }
 
-                // Filter
                 const filter = this.ctx.createBiquadFilter();
                 filter.type = 'lowpass';
-                filter.frequency.value = 800;
+                filter.frequency.value = filterFreq;
 
-                gain.gain.setValueAtTime(0.04, time);
-                gain.gain.linearRampToValueAtTime(0.06, time + 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 2.0); // Long sustain
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.linearRampToValueAtTime(vol * 1.5, time + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 2.0);
 
                 osc.connect(filter);
                 filter.connect(gain);
                 gain.connect(this.ctx.destination);
 
                 osc.start(time);
-                lfo.start(time);
                 osc.stop(time + 2.0);
-                lfo.stop(time + 2.0);
             });
         },
 
         scheduler: function() {
+            if (!this.tracks || this.tracks.length === 0) return;
+            const track = this.tracks[this.currentTrackIndex] || this.tracks[0];
+            const beatInterval = track.tempo;
+
             while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
                 this.scheduleNote(this.beatCount, this.nextNoteTime);
-                this.nextNoteTime += 0.2;
+                this.nextNoteTime += beatInterval;
                 this.beatCount++;
-                if(this.beatCount >= 32) this.beatCount = 0; // 2 bar loop (16 * 2)
+                if(this.beatCount >= 32) this.beatCount = 0;
             }
             this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
         },
 
         scheduleNote: function(beatNumber, time) {
-            if (beatNumber % 16 === 0 || beatNumber % 16 === 10) {
-                this.playKick(time);
-            }
-            if (beatNumber % 16 === 8) {
-                this.playSnare(time);
-            }
-            if (beatNumber % 2 === 0) {
-                this.playHiHat(time);
-            }
-            if (beatNumber === 0) {
-                this.playChord(time, [261.6, 311.1, 392.0, 466.2]);
-            }
-            if (beatNumber === 16) {
-                this.playChord(time, [174.6, 207.7, 261.6, 311.1]);
-            }
+            const track = this.tracks[this.currentTrackIndex] || this.tracks[0];
+            if(track.schedule) track.schedule(beatNumber, time, this);
         },
 
         startMusic: function() {
@@ -1699,7 +1778,8 @@ let lastDisplayedContestTime = -1;
         mobileControls: false, platformChosen: false,
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
         releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
-        graphics: 'HIGH' // 'HIGH' or 'LOW'
+        graphics: 'HIGH', // 'HIGH' or 'LOW'
+        currentTrackIndex: 0
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -1721,6 +1801,7 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
+    if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -6723,6 +6804,14 @@ let lastDisplayedContestTime = -1;
         const isMuted = AudioSystem.toggleMute();
         const btn = document.getElementById('btn-mute');
         if (btn) btn.innerText = isMuted ? "🔇" : "🔊";
+    }
+    window.prevTrack = function() {
+        if (!AudioSystem.ctx) AudioSystem.init();
+        AudioSystem.changeTrack(-1);
+    }
+    window.nextTrack = function() {
+        if (!AudioSystem.ctx) AudioSystem.init();
+        AudioSystem.changeTrack(1);
     }
 
     // --- GAME LOOP ---
