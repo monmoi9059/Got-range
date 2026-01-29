@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <script src="cordova.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Taco Basket Ball - Québec Édition</title>
@@ -449,7 +450,6 @@
             position: relative;
         }
     </style>
-    <script src="cordova.js"></script>
 </head>
 <body>
 
@@ -481,14 +481,6 @@
             <div class="sb-content">
                 <div id="classic-stats" style="display:flex; gap:25px;">
                     <div class="sb-stat">
-                        <span class="sb-label">DISTANCE</span>
-                        <span class="sb-value" id="distVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
-                        <span class="sb-label">RECORD</span>
-                        <span class="sb-value sb-highlight" id="highScoreVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
                         <span class="sb-label">MISSES</span>
                         <span class="sb-value sb-danger" id="missVal">0</span>
                     </div>
@@ -499,16 +491,6 @@
                     <span class="sb-label">LOCATION</span>
                     <span class="sb-value" id="courtNameDisplay" style="font-size: 18px; white-space: nowrap;">COUR ARRIÈRE</span>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="contest-ui" style="display:none; position:absolute; top:100px; left:50%; transform:translateX(-50%); text-align:center; z-index:90;">
-        <div style="background:rgba(0,0,0,0.8); border:2px solid #FFD700; padding:10px 30px; display:inline-block; transform:skewX(-10deg);">
-            <div style="transform:skewX(10deg); display:flex; gap:30px;">
-                <div class="sb-stat"><span class="sb-label">TIME</span><span class="sb-value" id="contestTime">60</span></div>
-                <div class="sb-stat"><span class="sb-label">SCORE</span><span class="sb-value sb-highlight" id="contestScore">0</span></div>
-                <div class="sb-stat"><span class="sb-label">RACK</span><span class="sb-value" id="contestRack">1</span></div>
             </div>
         </div>
     </div>
@@ -548,6 +530,21 @@
     <!-- MODALS -->
     <div id="statsUI" class="modal">
         <div class="modal-header">STATISTIQUES À VIE</div>
+
+        <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
+             <div style="transform: skewX(5deg);">
+                 <h3 style="margin:0 0 10px 0; color:#FFD700; text-transform:uppercase; font-family: var(--broadcast-font-title);">📅 DÉFI DU JOUR</h3>
+                 <div id="dailyDesc" style="color:#FFF; font-size:1.1em; margin-bottom:8px; font-weight:bold;">Chargement...</div>
+                 <div style="background:#000; height:12px; width:100%; border:1px solid #555;">
+                     <div id="dailyBar" style="background:#00FF00; height:100%; width:0%; transition: width 0.5s;"></div>
+                 </div>
+                 <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.9em; color:#aaa; font-family: var(--broadcast-font-body);">
+                     <span id="dailyProgressText" style="color:#FFF;">0 / 0</span>
+                     <span id="dailyRewardText" style="color:#FFD700;">+500 Tacos</span>
+                 </div>
+             </div>
+        </div>
+
         <div style="text-align:left; padding: 10px; font-size: 1.2em;">
             <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
             <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
@@ -732,6 +729,20 @@
         { id: 'dist_18000', name: 'Camp de Base', desc: 'Atteindre 18000 pi', reward: 1600, type: 'distance', threshold: 18000 },
         { id: 'dist_19000', name: 'Kilimanjaro', desc: 'Atteindre 19000 pi', reward: 1800, type: 'distance', threshold: 19000 },
         { id: 'dist_20000', name: 'Denali', desc: 'Atteindre 20000 pi', reward: 2000, type: 'distance', threshold: 20000 }
+    ];
+
+    var DAILY_CHALLENGES = [
+        { id: 'makes_50', type: 'makes', desc: 'Marquer 50 Paniers', target: 50, reward: 500 },
+        { id: 'makes_100', type: 'makes', desc: 'Marquer 100 Paniers', target: 100, reward: 1200 },
+        { id: 'streak_5', type: 'streak', desc: 'Faire une série de 5', target: 5, reward: 300 },
+        { id: 'streak_10', type: 'streak', desc: 'Faire une série de 10', target: 10, reward: 1000 },
+        { id: 'contest_20', type: 'contest_score', desc: 'Marquer 20 pts (Concours)', target: 20, reward: 600 },
+        { id: 'contest_50', type: 'contest_score', desc: 'Marquer 50 pts (Concours)', target: 50, reward: 1500 },
+        { id: 'time_30', type: 'time_attack_score', desc: 'Marquer 30 pts (Time Attack)', target: 30, reward: 600 },
+        { id: 'time_60', type: 'time_attack_score', desc: 'Marquer 60 pts (Time Attack)', target: 60, reward: 1500 },
+        { id: 'distance_500', type: 'distance', desc: 'Parcourir 500 pieds', target: 500, reward: 500 },
+        { id: 'play_contest_3', type: 'play_contest', desc: 'Jouer 3 Concours', target: 3, reward: 500 },
+        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
     ];
 
     var COURT_ZONES = [
@@ -991,12 +1002,12 @@
         // FAKE VIDEO GAME CHARACTERS
         { id: 'fake_mario', animal: 'human', name: 'Plombier Rouge', cost: 10000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#F00', shortsColor: '#00F', number: 'M', numberColor: '#F00', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#F00', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
         { id: 'fake_luigi', animal: 'human', name: 'Plombier Vert', cost: 10000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#00A000', shortsColor: '#00F', number: 'L', numberColor: '#00A000', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#00A000', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#00A000', shortsColor: '#FFF', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', headAccessory: 'wizard_hat', hatColor: '#00A000', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyColor: '#B22222', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#FFF', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'tattoo_red', socksColor: '#333', shoesColor: '#333' },
+        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyType: 'link_tunic', jerseyColor: '#00A000', shortsColor: '#EEE', legType: 'tights', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', ears: 'elf', headAccessory: 'floppy_cap', hatColor: '#00A000', backProp: 'hero_gear', socksColor: '#EEE', shoesColor: '#3c2415' },
+        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyType: 'none', shortsType: 'kilt', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#F0F0F0', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'spartan_tattoo', backProp: 'chaos_blades', headDetail: 'tattoo_stripe', socksColor: '#333', shoesColor: '#333' },
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
-        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket' },
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
 
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
@@ -1836,8 +1847,6 @@
     sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
 
     const scoreEl = document.getElementById('scoreVal');
-    const distEl = document.getElementById('distVal');
-    const highScoreEl = document.getElementById('highScoreVal');
     const shopUI = document.getElementById('shopUI');
     const achUI = document.getElementById('achUI');
     const statsUI = document.getElementById('statsUI');
@@ -1845,10 +1854,6 @@
     const courtNameEl = document.getElementById('courtNameDisplay');
     const missValEl = document.getElementById('missVal');
     const container = document.getElementById('game-container');
-    const contestUI = document.getElementById('contest-ui');
-const contestTimeEl = document.getElementById('contestTime');
-const contestScoreEl = document.getElementById('contestScore');
-const contestRackEl = document.getElementById('contestRack');
 
     canvas.width = 1066;
     canvas.height = 600;
@@ -1896,6 +1901,7 @@ let lastDisplayedContestTime = -1;
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+        dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
         unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
         unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
         mobileControls: false, platformChosen: false,
@@ -1920,6 +1926,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
@@ -1940,10 +1947,63 @@ let lastDisplayedContestTime = -1;
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
-    highScoreEl.innerText = playerData.highScore + " pi";
+    // Initialize Daily Challenge
+    initDailyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+
+    function initDailyChallenge() {
+        const today = new Date().toDateString();
+        // Reset if date changed or if data is missing/corrupt
+        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
+            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
+            const challenge = DAILY_CHALLENGES[randomIndex];
+            playerData.dailyChallenge = {
+                date: today,
+                id: challenge.id,
+                progress: 0,
+                claimed: false
+            };
+            saveData();
+        }
+    }
+
+    function checkDailyProgress(type, amount) {
+        const dc = playerData.dailyChallenge;
+        if (dc.claimed) return;
+
+        const challengeDef = DAILY_CHALLENGES.find(c => c.id === dc.id);
+        if (!challengeDef) return;
+
+        // If the active challenge type matches the event
+        if (challengeDef.type === type) {
+            if (type === 'streak') {
+                // Streak is "reach X", not cumulative
+                if (amount >= challengeDef.target) {
+                    completeDailyChallenge(challengeDef);
+                }
+            } else {
+                // Cumulative
+                dc.progress += amount;
+                if (dc.progress >= challengeDef.target) {
+                    dc.progress = challengeDef.target;
+                    completeDailyChallenge(challengeDef);
+                } else {
+                    saveData();
+                }
+            }
+        }
+    }
+
+    function completeDailyChallenge(def) {
+        if(playerData.dailyChallenge.claimed) return;
+        playerData.dailyChallenge.claimed = true;
+        playerData.tacos += def.reward;
+        saveData();
+        showNotification("DÉFI COMPLÉTÉ !", def.reward);
+        // Visual flair could go here
+    }
 
     function calculateShotThreshold() {
         const style = getCurrentStyle();
@@ -2311,7 +2371,15 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 20); ctx.lineTo(canvas.width / 2, canvas.height - 20); ctx.stroke();
 
         if (currentGameMode === 'CLASSIC') {
-            // LEFT SIDE: Distance
+            // LEFT SIDE: Record & Current Distance
+            // Record
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 250, y + 85);
+
+            // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
             ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, y + 45);
@@ -2335,20 +2403,54 @@ let lastDisplayedContestTime = -1;
             ctx.fillText(scaleObj.name.toUpperCase(), iconX + 40, y + 85);
         }
         else if (currentGameMode === 'CONTEST') {
-            // Contest Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText("3-POINT CONTEST", canvas.width / 2, y + 75);
+            const time = Math.ceil(contestData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("QUEBEC EDITION", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(contestData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RACK
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RACK", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, y + 85);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
-            // Time Attack Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FF4500"; ctx.font = fontValue;
-            ctx.fillText("TIME ATTACK MODE", canvas.width / 2, y + 75);
+            const time = Math.ceil(timeAttackData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE AS FAST AS YOU CAN", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RECORD
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, y + 85);
         }
 
         // Live Indicator
@@ -2862,35 +2964,59 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = fillStyle;
             ctx.fill();
 
-            // Muscle Definition (High Graphics)
+            if (options.pattern === 'spartan_tattoo') {
+                ctx.save();
+                ctx.clip(); // Clip to body shape
+
+                ctx.strokeStyle = '#8B0000'; // Blood Red
+                ctx.lineWidth = w * 0.25;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                // Over Left Shoulder (Back View Left)
+                ctx.moveTo(cx - w*0.5, topY - h*0.1);
+                ctx.quadraticCurveTo(cx - w*0.1, topY + h*0.4, cx - w*0.6, topY + h*0.8);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Muscle Definition (High Graphics) - BACK VIEW
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
-                 ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                 // Pectorals
-                 const chestY = shoulderY + h * 0.25;
-                 const chestW = w * 0.4;
-                 ctx.beginPath();
-                 // Left Pec
-                 ctx.ellipse(cx - chestW*0.6, chestY, chestW*0.8, h*0.15, 0.2, 0, Math.PI*2);
-                 ctx.fill();
-                 // Right Pec
-                 ctx.beginPath();
-                 ctx.ellipse(cx + chestW*0.6, chestY, chestW*0.8, h*0.15, -0.2, 0, Math.PI*2);
-                 ctx.fill();
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
 
-                 // Abs (6-pack)
-                 const absY = chestY + h * 0.25;
-                 const absW = w * 0.25;
-                 const absH = h * 0.35;
+                 // Spine Indentation
+                 ctx.beginPath();
+                 ctx.moveTo(cx, topY + h * 0.2);
+                 ctx.lineTo(cx, topY + h * 0.8);
+                 ctx.lineWidth = w * 0.05;
+                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                 ctx.stroke();
+
+                 // Shoulder Blades (Scapula)
+                 const scapY = topY + h * 0.25;
+
+                 // Left Scapula
+                 ctx.beginPath();
+                 ctx.moveTo(cx - w*0.15, scapY);
+                 ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
+                 ctx.lineWidth = w * 0.03;
+                 ctx.stroke();
+
+                 // Right Scapula
+                 ctx.beginPath();
+                 ctx.moveTo(cx + w*0.15, scapY);
+                 ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
+                 ctx.stroke();
+
+                 // Trapezius / Upper Back shading
                  ctx.fillStyle = 'rgba(0,0,0,0.05)';
-
-                 const gap = 2*scale;
-                 const cellW = (absW - gap)/2;
-                 const cellH = (absH - gap*2)/3;
-
-                 for(let r=0; r<3; r++) {
-                     ctx.fillRect(cx - absW/2, absY + r*(cellH+gap), cellW, cellH);
-                     ctx.fillRect(cx + gap/2, absY + r*(cellH+gap), cellW, cellH);
-                 }
+                 ctx.beginPath();
+                 ctx.moveTo(cx, topY + h*0.1);
+                 ctx.lineTo(cx - w*0.3, topY + h*0.2);
+                 ctx.lineTo(cx, topY + h*0.4);
+                 ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                 ctx.fill();
             }
 
             // Rim Light
@@ -3142,23 +3268,51 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 2*s); ctx.lineTo(p.x - 5*s, p.y - 2*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x + 2*s, p.y + 2*s); ctx.lineTo(p.x + 8*s, p.y + 2*s); ctx.stroke();
         }
-        else if (type === 'castle') {
-            const w = 40 * s; const h = 60 * s;
-            ctx.fillStyle = '#808080';
+        else if (type === 'castle') { // Now Residential Houses
+            const wallColors = ['#F5F5DC', '#FFFACD', '#E0FFFF', '#FFC0CB', '#98FB98', '#D3D3D3', '#F0E68C', '#ADD8E6'];
+            const roofColors = ['#8B4513', '#A52A2A', '#2F4F4F', '#696969', '#800000', '#556B2F'];
+
+            // Deterministic selection
+            const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
+            const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
+
+            const w = 50 * s;
+            const h = 50 * s;
+
+            // Body
+            ctx.fillStyle = wallColor;
             ctx.fillRect(p.x - w/2, p.y - h, w, h);
-            ctx.fillStyle = '#696969';
-            ctx.fillRect(p.x - w/2 - 10*s, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillRect(p.x + w/2, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillStyle = '#808080';
-            const bW = w/3;
-            ctx.fillRect(p.x - w/2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW*2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillStyle = '#8B0000';
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 - 12*s, p.y - h*0.8); ctx.lineTo(p.x - w/2 - 5*s, p.y - h*1.1); ctx.lineTo(p.x - w/2 + 2*s, p.y - h*0.8); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 2*s, p.y - h*0.8); ctx.lineTo(p.x + w/2 + 5*s, p.y - h*1.1); ctx.lineTo(p.x + w/2 + 12*s, p.y - h*0.8); ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, Math.PI, 0); ctx.fill();
+
+            // Roof (Pitched)
+            ctx.fillStyle = roofColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.fill();
+
+            // Door
+            ctx.fillStyle = '#4E342E';
+            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            // Knob
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+
+            // Windows
+            ctx.fillStyle = '#87CEEB';
+            // Window 1
+            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            // Window 2
+            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+
+            // Window Frames
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            // Cross 1
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            // Cross 2
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -3702,7 +3856,94 @@ let lastDisplayedContestTime = -1;
         ctx.fill();
     }
 
+    function drawLinkTunic(cx, topY, w, h, scale, skinObj) {
+        const color = skinObj.jerseyColor || '#00A000';
+        const beltColor = '#8B4513';
+
+        // Extended length for tunic
+        const tunicLen = h * 1.2;
+        const shoulderW = w * 1.6;
+        const waistW = w * 1.0;
+        const bottomW = w * 1.3; // Flared bottom
+
+        const shoulderY = topY;
+        const waistY = topY + h * 0.55;
+        const bottomY = topY + tunicLen;
+
+        // Main Tunic Shape
+        ctx.beginPath();
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
+
+        // Sides to waist
+        ctx.lineTo(cx + waistW/2, waistY);
+        // Flared bottom (Skirt part of tunic)
+        ctx.lineTo(cx + bottomW/2, bottomY);
+        ctx.lineTo(cx - bottomW/2, bottomY);
+        ctx.lineTo(cx - waistW/2, waistY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
+        ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Shading
+        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Belt
+        ctx.fillStyle = beltColor;
+        ctx.fillRect(cx - waistW*0.55, waistY - 5*scale, waistW*1.1, 10*scale);
+        // Buckle (silver)
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(cx - 5*scale, waistY - 5*scale, 10*scale, 10*scale);
+
+        // Collar (Back)
+        ctx.fillStyle = '#EEE'; // White undershirt collar
+        ctx.beginPath();
+        ctx.moveTo(cx - 10*scale, topY);
+        ctx.quadraticCurveTo(cx, topY + 5*scale, cx + 10*scale, topY);
+        ctx.lineTo(cx + 8*scale, topY - 2*scale);
+        ctx.quadraticCurveTo(cx, topY + 3*scale, cx - 8*scale, topY - 2*scale);
+        ctx.fill();
+    }
+
     function drawShorts(cx, waistY, w, h, scale, skinObj) {
+        if (skinObj.shortsType === 'kilt') {
+             const color = skinObj.shortsColor || '#5D4037'; // Leather
+             const beltH = 5 * scale;
+             const stripCount = 5;
+             const stripW = w / stripCount;
+
+             // Belt
+             ctx.fillStyle = '#3E2723';
+             ctx.fillRect(cx - w/2, waistY, w, beltH);
+             // Gold Buckle
+             ctx.fillStyle = '#FFD700';
+             ctx.fillRect(cx - w*0.1, waistY, w*0.2, beltH);
+
+             // Pteruges (Strips)
+             for(let i=0; i<stripCount; i++) {
+                 const sx = (cx - w/2) + i*stripW;
+                 ctx.fillStyle = color;
+                 // Main Strip
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, stripW - 2*scale, h - beltH);
+
+                 // Shadow/Edge
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, 1*scale, h - beltH);
+
+                 // Stud Detail
+                 ctx.fillStyle = '#C0C0C0';
+                 ctx.beginPath(); ctx.arc(sx + stripW/2, waistY + h - 5*scale, 2*scale, 0, Math.PI*2); ctx.fill();
+             }
+             return;
+        }
+
         // Baggy Shorts
         const color = skinObj.shortsColor || '#FFF';
         const waistW = w * 1.0;
@@ -3962,7 +4203,7 @@ let lastDisplayedContestTime = -1;
         // 1. Colors
         const jerseyColor = skinObj.jerseyColor || '#FFF';
         const shortsColor = skinObj.shortsColor || '#FFF';
-        const sleeveRight = skinObj.sleeveRight;
+        const sleeveRight = skinObj.sleeveRight || skinObj.sleeveColor;
         const sleeveLeft = skinObj.sleeveLeft || skinObj.sleeveColor;
         const socksColor = skinObj.socksColor;
         const shoesColor = skinObj.shoesColor;
@@ -3992,7 +4233,7 @@ let lastDisplayedContestTime = -1;
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
 
-            if (skinObj.jerseyType === 'tshirt') uColor = jerseyColor;
+            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
 
             if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
             if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
@@ -4067,10 +4308,12 @@ let lastDisplayedContestTime = -1;
         // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
         if (skinObj.jerseyType === 'none') {
              // Bare Torso
-             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null });
+             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null, pattern: skinObj.pattern });
              // Muscle Detail (Spine/Pecs)
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.moveTo(p.x, torsoY + 10*s); ctx.lineTo(p.x, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + 10*s); ctx.fill();
+        } else if (skinObj.jerseyType === 'link_tunic') {
+             drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         } else {
              drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         }
@@ -4091,7 +4334,9 @@ let lastDisplayedContestTime = -1;
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, skinTone, 'calf', s);
+             let calfCol = skinTone;
+             if (skinObj.legType === 'pants') calfCol = shortsColor;
+             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
              // Socks
              if(socksColor) {
                  const sockH = 7 * s;
@@ -4332,6 +4577,39 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.arc(ex, ey, 2.5*s, 0, Math.PI*2); ctx.fill();
              }
         }
+        else if(skinObj.hairStyle === 'hat') {
+             const hColor = skinObj.hairColor || '#3c2415';
+             const capColor = skinObj.hatColor || '#F00';
+
+             // 1. Hair (Bottom/Side visibility)
+             ctx.fillStyle = hColor;
+             ctx.beginPath();
+             // Draw hair extending lower than the hat
+             ctx.arc(p.x, headY + 3*s, headRadius * 1.05, 0, Math.PI);
+             ctx.lineTo(p.x + headRadius * 1.05, headY);
+             ctx.lineTo(p.x - headRadius * 1.05, headY);
+             ctx.fill();
+
+             // 2. Cap Dome (Oversized to fit over head)
+             ctx.fillStyle = capColor;
+             ctx.beginPath();
+             // Top Dome
+             ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+             // Sides down to ears
+             ctx.lineTo(p.x + headRadius * 1.2, headY + 4*s);
+             // Bottom curve of cap (back strap area)
+             ctx.quadraticCurveTo(p.x, headY + 8*s, p.x - headRadius * 1.2, headY + 4*s);
+             ctx.lineTo(p.x - headRadius * 1.2, headY - 2*s);
+             ctx.fill();
+
+             // 3. Optional Shading
+             if (playerData.graphics === 'HIGH') {
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+                 ctx.fill();
+             }
+        }
 
         if(skinObj.beard) {
              ctx.fillStyle = skinObj.beardColor || '#000';
@@ -4370,6 +4648,26 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = skinObj.hatColor || '#5D4037';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
         }
         else if (skinObj.headAccessory === 'helmet') {
              ctx.fillStyle = skinObj.hatColor || '#87CEEB';
@@ -4451,6 +4749,77 @@ let lastDisplayedContestTime = -1;
              const bp = skinObj.backProp;
              const centerX = p.x;
              const centerY = torsoY + bodyH * 0.4;
+
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
+             }
 
              if (bp === 'axe') {
                  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 4*s;
@@ -4686,6 +5055,7 @@ let lastDisplayedContestTime = -1;
 
         // Legs: If "trousers" (long pants), calf follows thigh color
         if (skinObj.legType === 'pants') calfColor = thighColor;
+        if (skinObj.legType === 'tights') calfColor = thighColor;
 
         // Panda Logic (Black limbs)
         if (skinObj.legType === 'panda_limbs') {
@@ -4786,7 +5156,7 @@ let lastDisplayedContestTime = -1;
             let activeSleeveColor = null;
 
             // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt') {
+            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 thisUpperColor = torsoColor;
             }
 
@@ -4990,6 +5360,7 @@ let lastDisplayedContestTime = -1;
             bodyOptions.isJersey = true;
         }
 
+        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
@@ -5194,8 +5565,25 @@ let lastDisplayedContestTime = -1;
         } else if (currentAnimal === 'human') {
             // Human Ears
             ctx.fillStyle = furColor;
-            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            if (skinObj.ears === 'elf') {
+                // Pointy Elf Ears
+                // Left Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x - 10*s, headY);
+                ctx.lineTo(p.x - 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x - 10*s, headY + 6*s);
+                ctx.fill();
+                // Right Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x + 10*s, headY);
+                ctx.lineTo(p.x + 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x + 10*s, headY + 6*s);
+                ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+
             if(skinObj.hairStyle === 'afro') {
                  ctx.fillStyle = skinObj.hairColor || '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
@@ -5255,6 +5643,16 @@ let lastDisplayedContestTime = -1;
              ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
              ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        if(skinObj.headDetail === 'tattoo_stripe') {
+             ctx.fillStyle = '#FF0000';
+             // Stripe going up the back left side of the head (Kratos)
+             ctx.beginPath();
+             ctx.moveTo(p.x - 4*s, headY + headRadius * 0.8);
+             ctx.quadraticCurveTo(p.x - 12*s, headY, p.x - 4*s, headY - headRadius * 0.9);
+             ctx.lineTo(p.x - 8*s, headY - headRadius * 0.9);
+             ctx.quadraticCurveTo(p.x - 16*s, headY, p.x - 8*s, headY + headRadius * 0.8);
+             ctx.fill();
         }
         if(skinObj.headDetail === 'bandana_ties') {
              ctx.fillStyle = 'red';
@@ -5358,6 +5756,26 @@ let lastDisplayedContestTime = -1;
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
+        }
         else if (skinObj.headAccessory === 'top_hat') {
              ctx.fillStyle = '#111';
              // Brim
@@ -5434,6 +5852,76 @@ let lastDisplayedContestTime = -1;
                  ctx.lineTo(centerX - 20*s, centerY - 20*s);
                  ctx.quadraticCurveTo(centerX - 10*s, centerY - 25*s, centerX - 5*s, centerY - 15*s);
                  ctx.fill();
+             }
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
              }
              if (bp === 'guitar') {
                  // Guitar Body
@@ -6171,6 +6659,11 @@ let lastDisplayedContestTime = -1;
         const targetBall = b || ball;
         AudioSystem.playSwish();
         targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+
+        // Daily Challenge Hooks
+        checkDailyProgress('makes', 1);
+        checkDailyProgress('streak', currentStreak);
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -6418,9 +6911,13 @@ let lastDisplayedContestTime = -1;
             if (currentStreak > 1) reward += currentStreak * 2;
             playerData.tacos += reward;
             const jump = (playerData.stats.moonwalk !== undefined) ? playerData.stats.moonwalk : 1;
+
+            // Hook Distance Challenge
+            checkDailyProgress('distance', jump * 5);
+
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
-            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
+            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
@@ -6429,7 +6926,14 @@ let lastDisplayedContestTime = -1;
 
     function endContest() {
         state = 'GAMEOVER'; feedback = "TERMINÉ !"; feedbackTimer = 120;
-        const reward = contestData.score * 10; playerData.tacos += reward;
+
+        // Increased Reward (x25 instead of x10)
+        const reward = contestData.score * 25;
+        playerData.tacos += reward;
+
+        checkDailyProgress('contest_score', contestData.score);
+        checkDailyProgress('play_contest', 1);
+
         checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
     }
 
@@ -6443,17 +6947,6 @@ let lastDisplayedContestTime = -1;
 
         document.getElementById('classic-stats').style.display = 'none';
 
-        // Setup Contest UI for Time Attack
-        document.getElementById('contest-ui').style.display = 'block';
-
-        // Update Labels for Time Attack
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RECORD";
-            rackVal.innerText = (playerData.timeAttackHighScore || 0);
-        }
-
         state = 'IDLE';
         updateUI();
         updateContestUI();
@@ -6465,9 +6958,12 @@ let lastDisplayedContestTime = -1;
         timeAttackData.active = false;
         state = 'GAMEOVER';
 
-        // Reward
-        const reward = timeAttackData.score * 5 * playerData.difficulty;
+        // Reward (Increased from x5 to x15)
+        const reward = timeAttackData.score * 15 * playerData.difficulty;
         playerData.tacos += reward;
+
+        checkDailyProgress('time_attack_score', timeAttackData.score);
+        checkDailyProgress('play_time_attack', 1);
 
         // Save High Score
         let isRecord = false;
@@ -6491,7 +6987,6 @@ let lastDisplayedContestTime = -1;
     function updateUI() {
         scoreEl.innerText = playerData.tacos;
         if(currentGameMode === 'CLASSIC') {
-            distEl.innerText = (10 + (distanceLevel * 5)) + " pi";
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
             const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
@@ -6515,24 +7010,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function updateContestUI() {
-        if (currentGameMode === 'CONTEST') {
-            const newTime = Math.ceil(contestData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = contestData.score;
-            contestRackEl.innerText = contestData.rack;
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            const newTime = Math.ceil(timeAttackData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = timeAttackData.score;
-            // Best score
-            const best = playerData.timeAttackHighScore || 0;
-            // Need to re-query if the element was replaced?
-            // Actually innerText on the span with id 'contestRack' should work if ID is preserved.
-            const rEl = document.getElementById('contestRack');
-            if (rEl) rEl.innerText = best;
-        }
+        // Now handled in drawBroadcastLowerThird
     }
 
     function startContest() {
@@ -6541,14 +7019,6 @@ let lastDisplayedContestTime = -1;
         currentStreak = 0;
 
         document.getElementById('classic-stats').style.display = 'none';
-        contestUI.style.display = 'block';
-
-        // Reset labels
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RACK";
-        }
 
         setPlayerPositionForRack(1);
 
@@ -6566,7 +7036,6 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            contestUI.style.display = 'none';
             state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
         }
@@ -6599,6 +7068,29 @@ let lastDisplayedContestTime = -1;
         let acc = 0;
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
+
+        // Daily Challenge UI Update
+        const dc = playerData.dailyChallenge;
+        if (dc && dc.id) {
+            const def = DAILY_CHALLENGES.find(c => c.id === dc.id);
+            if (def) {
+                document.getElementById('dailyDesc').innerText = def.desc;
+                let pct = (dc.progress / def.target) * 100;
+                if (pct > 100) pct = 100;
+                document.getElementById('dailyBar').style.width = pct + "%";
+
+                let statusText = dc.progress + " / " + def.target;
+                if (dc.claimed) {
+                    statusText = "COMPLÉTÉ !";
+                    document.getElementById('dailyBar').style.background = "#FFD700";
+                } else {
+                    document.getElementById('dailyBar').style.background = "#00FF00";
+                }
+                document.getElementById('dailyProgressText').innerText = statusText;
+                document.getElementById('dailyRewardText').innerText = "+" + def.reward + " Tacos";
+            }
+        }
+
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
         const btnGraph = document.getElementById('btnToggleGraphics');
@@ -6646,7 +7138,7 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame();
+        updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
     }
     window.unlockAllSkins = function() {
@@ -7274,7 +7766,7 @@ let lastDisplayedContestTime = -1;
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
         if (state === 'IDLE' && playerData.mobileControls) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
@@ -7298,5 +7790,6 @@ document.addEventListener('deviceready', function() {
     }
 }, false);
 </script>
+
 </body>
 </html>

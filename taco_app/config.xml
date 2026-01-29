@@ -8,7 +8,6 @@
         Developer
     </author>
     <content src="index.html" />
-    <icon src="res/icon.png" />
     <platform name="android">
         <preference name="Orientation" value="landscape" />
         <preference name="Fullscreen" value="true" />
