@@ -1109,6 +1109,32 @@
     ];
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
+
+    var ANIMAL_ANATOMY = {
+        'rat':      { type: 'PLANTIGRADE', snout: 'POINTY', foot: 'PAW', tail: 'THIN' },
+        'cat':      { type: 'DIGITIGRADE', snout: 'SHORT',  foot: 'PAW', tail: 'THIN' },
+        'dog':      { type: 'DIGITIGRADE', snout: 'LONG',   foot: 'PAW', tail: 'THIN' },
+        'bear':     { type: 'PLANTIGRADE', snout: 'BROAD',  foot: 'PAW', tail: 'STUBBY' },
+        'rabbit':   { type: 'DIGITIGRADE', snout: 'SHORT',  foot: 'PAW', tail: 'COTTON' },
+        'moose':    { type: 'UNGULATE',    snout: 'LONG_BROAD', foot: 'HOOF', tail: 'STUBBY' },
+        'fox':      { type: 'DIGITIGRADE', snout: 'LONG',   foot: 'PAW', tail: 'BUSHY' },
+        'wolf':     { type: 'DIGITIGRADE', snout: 'LONG',   foot: 'PAW', tail: 'BUSHY' },
+        'lion':     { type: 'DIGITIGRADE', snout: 'BROAD',  foot: 'PAW', tail: 'TUFTED' },
+        'tiger':    { type: 'DIGITIGRADE', snout: 'BROAD',  foot: 'PAW', tail: 'THIN' },
+        'pig':      { type: 'UNGULATE',    snout: 'FLAT_NOSE', foot: 'HOOF', tail: 'CURLY' },
+        'cow':      { type: 'UNGULATE',    snout: 'BROAD',  foot: 'HOOF', tail: 'TUFTED' },
+        'monkey':   { type: 'PLANTIGRADE', snout: 'FLAT',   foot: 'HAND', tail: 'THIN' }, // Knuckle-walker logic
+        'penguin':  { type: 'BIPEDAL',     snout: 'BEAK',   foot: 'WEB',  tail: 'STUBBY' },
+        'chicken':  { type: 'BIPEDAL',     snout: 'BEAK',   foot: 'CLAW', tail: 'FEATHER' },
+        'frog':     { type: 'PLANTIGRADE', snout: 'WIDE',   foot: 'WEB',  tail: 'NONE' },
+        'turtle':   { type: 'PLANTIGRADE', snout: 'BEAK',   foot: 'STUB', tail: 'THIN' },
+        'elephant': { type: 'UNGULATE',    snout: 'TRUNK',  foot: 'ROUND', tail: 'TUFTED' }, // Special trunk handling
+        'dino':     { type: 'BIPEDAL',     snout: 'LONG',   foot: 'CLAW', tail: 'THICK' },
+        'zebra':    { type: 'UNGULATE',    snout: 'LONG_BROAD', foot: 'HOOF', tail: 'TUFTED' },
+        'giraffe':  { type: 'UNGULATE',    snout: 'LONG_BROAD', foot: 'HOOF', tail: 'TUFTED' },
+        'human':    { type: 'BIPEDAL',     snout: 'FLAT',   foot: 'FOOT', tail: 'NONE' }
+    };
+
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     // --- BALL GEOMETRY & RENDERER ---
@@ -5592,6 +5618,252 @@ let lastDisplayedContestTime = -1;
     let g_cachedSkinId = null;
     let g_cachedSkinObj = null;
 
+    function drawPaw(ctx, x, y, radius, color, s, isFront) {
+        // Main Pad
+        drawFuzzyCircle(x, y, radius, color, 80, s, true);
+
+        // Toes
+        const toeR = radius * 0.6;
+        const offset = radius * 1.0;
+        // Simple 3-toe paw (Top-down/Back view)
+        drawFuzzyCircle(x - offset*0.7, y - offset*0.8, toeR, color, 81, s, true);
+        drawFuzzyCircle(x + offset*0.7, y - offset*0.8, toeR, color, 82, s, true);
+        drawFuzzyCircle(x, y - offset*1.2, toeR, color, 83, s, true);
+    }
+
+    function drawHoof(ctx, x, y, w, h, color, s) {
+        ctx.fillStyle = '#111'; // Hooves are usually dark
+        if(color === '#FFF') ctx.fillStyle = '#DDD'; // White hoof exception
+
+        // Cloven hoof shape
+        ctx.beginPath();
+        ctx.moveTo(x - w/2, y);
+        ctx.lineTo(x + w/2, y);
+        ctx.lineTo(x + w/2 + 2*s, y + h); // Flare out slightly
+        ctx.lineTo(x, y + h - 2*s); // Split notch
+        ctx.lineTo(x - w/2 - 2*s, y + h);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function drawTail(tx, ty, color, anatomy, skinObj, s, currentAnimal) {
+        if(currentAnimal === 'bear' || currentAnimal === 'human' || skinObj.id.includes('astronaut') || skinObj.id.includes('robot')) return;
+
+        const tailColor = color; // Simplified, assuming body color for now unless skinObj overrides
+
+        if (skinObj.tailType === 'devil') {
+            ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
+            ctx.beginPath(); ctx.moveTo(tx, ty);
+            ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 25*s, ty - 20*s); ctx.stroke();
+            // Triangle Tip
+            ctx.fillStyle = '#8B0000'; ctx.beginPath();
+            const ttx = tx + 25*s, tty = ty - 20*s;
+            ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
+        }
+        else if (currentAnimal === 'fox' || currentAnimal === 'wolf' || skinObj.tailType === 'multi') {
+            // Bushy Tail
+            const tailPoints = [
+                {x: tx, y: ty},
+                {x: tx + 15*s, y: ty + 5*s},
+                {x: tx + 30*s, y: ty - 10*s}, // Tip
+                {x: tx + 15*s, y: ty - 15*s}
+            ];
+            if(skinObj.tailType === 'multi') { // Kitsune
+                for(let k=0; k<3; k++) {
+                    const off = (k-1)*10*s;
+                    drawFuzzyPath([{x:tx,y:ty},{x:tx+15*s+off,y:ty+5*s},{x:tx+30*s+off,y:ty-10*s},{x:tx+15*s+off,y:ty-15*s}], '#FFD700', s, true, 100+k);
+                }
+            } else {
+                drawFuzzyPath(tailPoints, tailColor, s, true, 99);
+                // White tip for classic fox
+                if(currentAnimal === 'fox' && skinObj.id === 'fox_classic') {
+                    const tipPoints = [{x: tx + 20*s, y: ty - 5*s}, {x: tx + 30*s, y: ty - 10*s}, {x: tx + 20*s, y: ty - 12*s}];
+                    drawFuzzyPath(tipPoints, '#FFF', s, true, 100);
+                }
+            }
+        }
+        else if (currentAnimal === 'rabbit') {
+            // Round Fluffy Tail
+            drawFuzzyCircle(tx, ty - 2*s, 6*s, tailColor, 102, s, true);
+        }
+        else if (currentAnimal === 'elephant') {
+            // Tufted Tail
+            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
+            ctx.moveTo(tx, ty);
+            ctx.quadraticCurveTo(tx + 5*s, ty + 10*s, tx + 8*s, ty + 15*s); ctx.stroke();
+            drawFuzzyPath([{x: tx+8*s, y: ty+15*s}, {x: tx+12*s, y: ty+20*s}], tailColor, s, false, 101);
+        }
+        else if (currentAnimal === 'pig') {
+            // Curly Tail
+            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
+            ctx.moveTo(tx, ty);
+            ctx.bezierCurveTo(tx + 10*s, ty - 5*s, tx + 10*s, ty + 10*s, tx + 20*s, ty);
+            ctx.stroke();
+        }
+        else if (currentAnimal === 'lion' || currentAnimal === 'cow') {
+            // Tufted Tail
+            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
+            ctx.moveTo(tx, ty);
+            ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
+            // Tuft
+            let tuftColor = (currentAnimal === 'lion') ? '#8B4513' : '#000';
+            if(currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
+            drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], tuftColor, s, true, 101);
+        }
+        else if (currentAnimal === 'penguin') {
+            // Stubby Tail
+            ctx.fillStyle = tailColor;
+            ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + 10*s, ty + 5*s); ctx.lineTo(tx + 5*s, ty + 10*s); ctx.fill();
+        }
+        else {
+            // Standard Thin Tail
+            ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
+            ctx.lineCap = 'round'; ctx.moveTo(tx, ty);
+            ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 20*s, ty - 10*s); ctx.stroke();
+            if(currentAnimal === 'tiger' || skinObj.pattern === 'tiger_stripes') {
+                // Stripes on tail
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
+                ctx.beginPath(); ctx.moveTo(tx+5*s, ty); ctx.lineTo(tx+5*s, ty+3*s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(tx+10*s, ty); ctx.lineTo(tx+10*s, ty+3*s); ctx.stroke();
+            }
+        }
+    }
+
+    function drawQuadLeg(jx, jy, groundY, isNear, type, anatomy, s, color, sizeMod, skinObj) {
+        const width = 6 * s * sizeMod.legWidth;
+        const legColor = color;
+
+        if (type === 'FRONT') {
+            const elbowY = jy + (groundY - jy) * 0.5;
+            drawFuzzyLimb(jx, jy, jx, elbowY, width, legColor, s, true, 10);
+            drawFuzzyLimb(jx, elbowY, jx, groundY, width, legColor, s, true, 11);
+            if (anatomy.foot === 'HOOF') drawHoof(ctx, jx, groundY, width*1.5, width*1.5, '#111', s);
+            else drawPaw(ctx, jx, groundY, width*1.2, legColor, s, true);
+        } else {
+            const kneeX = jx + 10 * s;
+            const kneeY = jy + (groundY - jy) * 0.3;
+            const hockX = jx - 5 * s;
+            const hockY = jy + (groundY - jy) * 0.7;
+
+            drawFuzzyLimb(jx, jy, kneeX, kneeY, width, legColor, s, true, 20);
+            drawFuzzyLimb(kneeX, kneeY, hockX, hockY, width, legColor, s, true, 21);
+            drawFuzzyLimb(hockX, hockY, jx, groundY, width, legColor, s, true, 22);
+            if (anatomy.foot === 'HOOF') drawHoof(ctx, jx, groundY, width*1.5, width*1.5, '#111', s);
+            else drawPaw(ctx, jx, groundY, width*1.2, legColor, s, false);
+        }
+    }
+
+    function drawQuadrupedBody(p, s, color, anatomy, skinObj, isFurry, sizeMod, currentAnimal) {
+        const bodyLen = 45 * s * sizeMod.h;
+        const bodyThick = 25 * s * sizeMod.w;
+        const torsoY = p.y - 20 * s * sizeMod.h;
+        const torsoX = p.x;
+        const dir = 1; // Facing Right
+
+        const hipX = torsoX - (bodyLen * 0.4 * dir);
+        const shoulderX = torsoX + (bodyLen * 0.4 * dir);
+
+        // Far Legs
+        drawQuadLeg(hipX + 5*s, torsoY, p.y, false, 'BACK', anatomy, s, color, sizeMod, skinObj);
+        drawQuadLeg(shoulderX + 5*s, torsoY, p.y, false, 'FRONT', anatomy, s, color, sizeMod, skinObj);
+
+        // Tail
+        drawTail(hipX - 10*s, torsoY - 5*s, color, anatomy, skinObj, s, currentAnimal);
+
+        // Body
+        ctx.fillStyle = color;
+        if(isFurry) {
+             const path = [{x: shoulderX, y: torsoY - bodyThick*0.5}, {x: hipX, y: torsoY - bodyThick*0.5}, {x: hipX, y: torsoY + bodyThick*0.5}, {x: shoulderX, y: torsoY + bodyThick*0.5}];
+             drawFuzzyPath(path, color, s, true, 101);
+        } else {
+             ctx.beginPath(); ctx.ellipse(torsoX, torsoY, bodyLen * 0.5, bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Near Legs
+        drawQuadLeg(hipX - 5*s, torsoY, p.y, true, 'BACK', anatomy, s, color, sizeMod, skinObj);
+        drawQuadLeg(shoulderX - 5*s, torsoY, p.y, true, 'FRONT', anatomy, s, color, sizeMod, skinObj);
+
+        // Head
+        const headX = shoulderX + 10 * s;
+        const headY = torsoY - 15 * s;
+        const headRadius = 12 * s * sizeMod.head;
+
+        // Neck
+        ctx.lineWidth = 10*s; ctx.lineCap = 'round'; ctx.strokeStyle = color;
+        ctx.beginPath(); ctx.moveTo(shoulderX, torsoY); ctx.lineTo(headX, headY); ctx.stroke();
+
+        drawRealisticHead(headX, headY, headRadius, color, s, anatomy, skinObj, isFurry);
+    }
+
+    function drawRealisticHead(x, y, radius, color, s, anatomy, skinObj, isFurry) {
+        if (!anatomy) {
+            drawFuzzyCircle(x, y, radius, color, 60, s, isFurry);
+            return;
+        }
+
+        const snout = anatomy.snout;
+        ctx.fillStyle = color;
+
+        // Base Head Shape
+        if (anatomy.type === 'UNGULATE' || snout === 'LONG_BROAD' || snout === 'BROAD') {
+            // Oblong / Rectangular (Cow, Moose, Bear)
+            const w = radius * 1.2;
+            const h = radius * 1.0;
+
+            if (isFurry) {
+                // Approximate fuzzy ellipse/rectangle
+                const points = [];
+                const res = 12;
+                for(let i=0; i<res; i++) {
+                    const a = (i/res) * Math.PI*2;
+                    // Superellipse-ish
+                    const cx = Math.cos(a) * w;
+                    const cy = Math.sin(a) * h;
+                    // Squarify slightly
+                    points.push({x: x + cx, y: y + cy});
+                }
+                drawFuzzyPath(points, color, s, true, 60);
+            } else {
+                ctx.beginPath();
+                ctx.ellipse(x, y, w, h, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        else if (snout === 'LONG') {
+            // Diamond shape (Wolf, Fox, Dog)
+            // Draw central circle
+            drawFuzzyCircle(x, y, radius * 0.9, color, 60, s, true);
+
+            // Cheek Fluffs
+            // Left Cheek
+            drawFuzzyPath([
+                {x: x - radius*0.5, y: y},
+                {x: x - radius*1.4, y: y + radius*0.3},
+                {x: x - radius*0.8, y: y + radius*0.9}
+            ], color, s, true, 61);
+
+            // Right Cheek
+            drawFuzzyPath([
+                {x: x + radius*0.5, y: y},
+                {x: x + radius*1.4, y: y + radius*0.3},
+                {x: x + radius*0.8, y: y + radius*0.9}
+            ], color, s, true, 62);
+        }
+        else if (snout === 'SHORT' || snout === 'FLAT' || snout === 'POINTY') {
+             // Cat, Rat
+             drawFuzzyCircle(x, y, radius, color, 60, s, isFurry);
+
+             if (snout === 'SHORT' && anatomy.type === 'DIGITIGRADE') { // Cat cheeks
+                 const cheekY = y + radius * 0.4;
+                 drawFuzzyPath([{x:x-radius*0.8, y:cheekY}, {x:x-radius*1.2, y:cheekY+radius*0.4}, {x:x-radius*0.5, y:y+radius*0.9}], color, s, true, 63);
+                 drawFuzzyPath([{x:x+radius*0.8, y:cheekY}, {x:x+radius*1.2, y:cheekY+radius*0.4}, {x:x+radius*0.5, y:y+radius*0.9}], color, s, true, 64);
+             }
+        }
+        else {
+            drawFuzzyCircle(x, y, radius, color, 60, s, isFurry);
+        }
+    }
+
     function drawPlayer(p) {
         if (!p) return;
         const s = p.scale;
@@ -5609,6 +5881,7 @@ let lastDisplayedContestTime = -1;
 
         const isMechanical = isMechanicalSkin(skinObj.id);
         const currentAnimal = skinObj.animal;
+        const anatomy = ANIMAL_ANATOMY[currentAnimal];
         
         if (currentAnimal === 'human') {
             drawRealisticHuman(p, s, skinObj);
@@ -5869,7 +6142,17 @@ let lastDisplayedContestTime = -1;
             else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+
+            if (anatomy && currentAnimal !== 'human') {
+                if (anatomy.foot === 'HOOF' || anatomy.foot === 'ROUND') drawHoof(ctx, 0, 0, 8*s, 10*s, furColor, s); // Front Hoof
+                else if (anatomy.foot === 'PAW' || anatomy.foot === 'HAND') drawPaw(ctx, 0, 0, 6*s, furColor, s, true);
+                else { // Claws/Web
+                     ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            }
+
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
@@ -5877,6 +6160,14 @@ let lastDisplayedContestTime = -1;
             // Ball removed (drawn earlier)
             ctx.restore();
         };
+
+        // QUADRUPED IDLE STANCE
+        if (state === 'IDLE' && anatomy && (anatomy.type === 'DIGITIGRADE' || anatomy.type === 'UNGULATE' || anatomy.type === 'PLANTIGRADE') && currentAnimal !== 'human' && currentAnimal !== 'monkey') {
+             if(anatomy.type !== 'BIPEDAL') {
+                 drawQuadrupedBody(p, s, furColor, anatomy, skinObj, isFurry, sizeMod, currentAnimal);
+                 return;
+             }
+        }
 
         // Arms First (Layer 1) - Arms behind legs
         drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
@@ -5956,39 +6247,66 @@ let lastDisplayedContestTime = -1;
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             const calfBaseColor = calfColor;
-
-             // Draw Base Calf
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.legWidth, calfBaseColor, s, legFurry, isRight?4:2);
-
-             // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
-             // Thigh was drawn before this function.
+             // 1. Determine Anatomy Logic
+             const isDigitigrade = (anatomy && (anatomy.type === 'DIGITIGRADE' || anatomy.type === 'UNGULATE') && currentAnimal !== 'human');
+             // Knee Joint
              if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
              else drawFuzzyCircle(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isRight?40:20, s, true);
 
-             // Socks & Shoes Overlay
-             if(skinObj.socksColor || skinObj.shoesColor) {
-                 const shoeH = 5 * s; const sockH = 7 * s;
-                 // Calculate local Y relative to the foot Y
-                 const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
+             if (isDigitigrade) {
+                 // Calculate Hock Position (Visual Hack for 2D Standing)
+                 const t = 0.6;
+                 const hockY = yTop + (yBot - yTop) * t;
+                 const hockX = xTop + (xBot - xTop) * t;
 
-                 // Interpolate X/Y
-                 const getXAtY = (y) => {
-                     const t = (y - yTop) / (yBot - yTop);
-                     return xTop + (xBot - xTop) * t;
-                 };
+                 // Draw Shin (Knee to Hock)
+                 drawFuzzyLimb(xTop, yTop, hockX, hockY, 5.5*s*sizeMod.legWidth, calfColor, s, legFurry, isRight?4:2);
 
-                 if(skinObj.socksColor) {
-                     const sockTopX = getXAtY(sockY);
-                     const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, 5.8*s*sizeMod.legWidth, skinObj.socksColor, s, false, 0);
+                 // Draw Hock Joint
+                 drawFuzzyCircle(hockX, hockY, 5*s*sizeMod.legWidth, calfColor, isRight?41:21, s, true);
+
+                 // Draw Metatarsus (Hock to Foot)
+                 drawFuzzyLimb(hockX, hockY, xBot, yBot, 4.5*s*sizeMod.legWidth, calfColor, s, legFurry, isRight?5:3);
+
+                 // Draw Foot (Paw/Hoof)
+                 if (anatomy.foot === 'HOOF' || anatomy.foot === 'ROUND') {
+                     drawHoof(ctx, xBot, yBot, 10*s, 10*s, skinObj.shoesColor || '#111', s);
+                 } else {
+                     drawPaw(ctx, xBot, yBot, 7*s, skinObj.shoesColor || calfColor, s, false);
                  }
-                 if(skinObj.shoesColor) {
-                     const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, 6*s*sizeMod.legWidth, skinObj.shoesColor, s, false, 0);
-                     // Shoe Foot
-                     ctx.fillStyle = skinObj.shoesColor;
-                     ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+             } else {
+                 // Standard Plantigrade Leg
+                 drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.legWidth, calfColor, s, legFurry, isRight?4:2);
+
+                 // Socks/Shoes logic (keep existing for humans/bears in clothes)
+                 if(skinObj.socksColor || skinObj.shoesColor) {
+                     const shoeH = 5 * s; const sockH = 7 * s;
+                     const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
+                     const getXAtY = (y) => xTop + (xBot - xTop) * ((y - yTop) / (yBot - yTop));
+
+                     if(skinObj.socksColor) {
+                         const sockTopX = getXAtY(sockY); const ankleX = getXAtY(ankleY);
+                         drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, 5.8*s*sizeMod.legWidth, skinObj.socksColor, s, false, 0);
+                     }
+                     if(skinObj.shoesColor) {
+                         const ankleX = getXAtY(ankleY);
+                         drawFuzzyLimb(ankleX, ankleY, xBot, yBot, 6*s*sizeMod.legWidth, skinObj.shoesColor, s, false, 0);
+                         ctx.fillStyle = skinObj.shoesColor;
+                         ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+                     }
+                 } else {
+                     // Naked Plantigrade Foot (Bear, Monkey)
+                     if (anatomy && (anatomy.foot === 'PAW' || anatomy.foot === 'HAND')) {
+                         drawPaw(ctx, xBot, yBot, 7*s, calfColor, s, false);
+                     } else if (anatomy && anatomy.foot === 'WEB') {
+                         // Penguin/Duck foot
+                         ctx.fillStyle = skinObj.shoesColor || '#FFA500';
+                         ctx.beginPath(); ctx.moveTo(xBot, yBot); ctx.lineTo(xBot-5*s, yBot+5*s); ctx.lineTo(xBot+5*s, yBot+5*s); ctx.fill();
+                     } else {
+                         // Fallback
+                         ctx.fillStyle = calfColor;
+                         ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+                     }
                  }
              }
         };
@@ -6115,86 +6433,8 @@ let lastDisplayedContestTime = -1;
         }
 
         // 7. Draw Tail (Layer 3)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            const tx = p.x; const ty = p.y - legLen - 5*s;
-            if (skinObj.tailType === 'devil') {
-                ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
-                ctx.beginPath(); ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 25*s, ty - 20*s); ctx.stroke();
-                // Triangle Tip
-                ctx.fillStyle = '#8B0000'; ctx.beginPath();
-                const ttx = tx + 25*s, tty = ty - 20*s;
-                ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
-            }
-            else if (currentAnimal === 'fox' || currentAnimal === 'wolf' || skinObj.tailType === 'multi') {
-                // Bushy Tail
-                const tailPoints = [
-                    {x: tx, y: ty},
-                    {x: tx + 15*s, y: ty + 5*s},
-                    {x: tx + 30*s, y: ty - 10*s}, // Tip
-                    {x: tx + 15*s, y: ty - 15*s}
-                ];
-                let tColor = tailColor;
-                if(skinObj.tailType === 'multi') { // Kitsune
-                    for(let k=0; k<3; k++) {
-                        const off = (k-1)*10*s;
-                        drawFuzzyPath([{x:tx,y:ty},{x:tx+15*s+off,y:ty+5*s},{x:tx+30*s+off,y:ty-10*s},{x:tx+15*s+off,y:ty-15*s}], '#FFD700', s, true, 100+k);
-                    }
-                } else {
-                    drawFuzzyPath(tailPoints, tColor, s, true, 99);
-                    // White tip for classic fox
-                    if(currentAnimal === 'fox' && skin === 'fox_classic') {
-                        const tipPoints = [{x: tx + 20*s, y: ty - 5*s}, {x: tx + 30*s, y: ty - 10*s}, {x: tx + 20*s, y: ty - 12*s}];
-                        drawFuzzyPath(tipPoints, '#FFF', s, true, 100);
-                    }
-                }
-            }
-            else if (currentAnimal === 'rabbit') {
-                // Round Fluffy Tail
-                drawFuzzyCircle(p.x, ty - 2*s, 6*s, tailColor, 102, s, true);
-            }
-            else if (currentAnimal === 'elephant') {
-                // Tufted Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 5*s, ty + 10*s, tx + 8*s, ty + 15*s); ctx.stroke();
-                drawFuzzyPath([{x: tx+8*s, y: ty+15*s}, {x: tx+12*s, y: ty+20*s}], tailColor, s, false, 101);
-            }
-            else if (currentAnimal === 'pig') {
-                // Curly Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.bezierCurveTo(tx + 10*s, ty - 5*s, tx + 10*s, ty + 10*s, tx + 20*s, ty);
-                ctx.stroke();
-            }
-            else if (currentAnimal === 'lion' || currentAnimal === 'cow') {
-                // Tufted Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
-                // Tuft
-                const tuftColor = (currentAnimal === 'lion') ? '#8B4513' : '#000';
-                if(currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
-                drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], tuftColor, s, true, 101);
-            }
-            else if (currentAnimal === 'penguin') {
-                // Stubby Tail
-                ctx.fillStyle = tailColor;
-                ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + 10*s, ty + 5*s); ctx.lineTo(tx + 5*s, ty + 10*s); ctx.fill();
-            }
-            else {
-                // Standard Thin Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
-                ctx.lineCap = 'round'; ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 20*s, ty - 10*s); ctx.stroke();
-                if(currentAnimal === 'tiger' || skinObj.pattern === 'tiger_stripes') {
-                    // Stripes on tail
-                    ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
-                    ctx.beginPath(); ctx.moveTo(tx+5*s, ty); ctx.lineTo(tx+5*s, ty+3*s); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(tx+10*s, ty); ctx.lineTo(tx+10*s, ty+3*s); ctx.stroke();
-                }
-            }
-        }
+        const tailY = p.y - legLen - 5*s;
+        drawTail(p.x, tailY, tailColor, anatomy, skinObj, s, currentAnimal);
 
         // 8. Draw Head & Ears (Layer 4)
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
@@ -6316,7 +6556,11 @@ let lastDisplayedContestTime = -1;
              else headColor = '#8B4513';
         }
 
-        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        if (anatomy && currentAnimal !== 'human') {
+             drawRealisticHead(p.x, headY, headRadius, headColor, s, anatomy, skinObj, isFurry);
+        } else {
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        }
 
         // FOREHEAD MANE (Lion) - Fix baldness
         if(currentAnimal === 'lion' && skin !== 'lion_scar') {
