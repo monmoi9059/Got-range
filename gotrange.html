@@ -5729,69 +5729,187 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function drawQuadLeg(jx, jy, groundY, isNear, type, anatomy, s, color, sizeMod, skinObj) {
+    function drawQuadLeg(jx, jy, groundY, isNear, type, anatomy, s, color, sizeMod, skinObj, poseConfig) {
         const width = 6 * s * sizeMod.legWidth;
         const legColor = color;
+        const isRight = (type === 'FRONT') ? !isNear : isNear; // Seed var
 
         if (type === 'FRONT') {
             const elbowY = jy + (groundY - jy) * 0.5;
-            drawFuzzyLimb(jx, jy, jx, elbowY, width, legColor, s, true, 10);
-            drawFuzzyLimb(jx, elbowY, jx, groundY, width, legColor, s, true, 11);
+            // Slight backward bend for elbow
+            const elbowX = jx - 5 * s;
+
+            drawFuzzyLimb(jx, jy, elbowX, elbowY, width, legColor, s, true, isRight?10:12);
+            drawFuzzyLimb(elbowX, elbowY, jx, groundY, width, legColor, s, true, isRight?11:13);
+
             if (anatomy.foot === 'HOOF') drawHoof(ctx, jx, groundY, width*1.5, width*1.5, '#111', s);
             else drawPaw(ctx, jx, groundY, width*1.2, legColor, s, true);
         } else {
-            const kneeX = jx + 10 * s;
-            const kneeY = jy + (groundY - jy) * 0.3;
-            const hockX = jx - 5 * s;
-            const hockY = jy + (groundY - jy) * 0.7;
+            // BACK LEG
+            let kneeX, kneeY, hockX, hockY;
 
-            drawFuzzyLimb(jx, jy, kneeX, kneeY, width, legColor, s, true, 20);
-            drawFuzzyLimb(kneeX, kneeY, hockX, hockY, width, legColor, s, true, 21);
-            drawFuzzyLimb(hockX, hockY, jx, groundY, width, legColor, s, true, 22);
+            if (anatomy.type === 'DIGITIGRADE') {
+                // Dog/Cat/Wolf leg
+                kneeX = jx + 15 * s;
+                kneeY = jy + (groundY - jy) * 0.35;
+                hockX = jx - 10 * s;
+                hockY = jy + (groundY - jy) * 0.75;
+            } else if (anatomy.type === 'UNGULATE') {
+                // Cow/Moose - straighter but hocked
+                kneeX = jx + 8 * s;
+                kneeY = jy + (groundY - jy) * 0.4;
+                hockX = jx - 2 * s;
+                hockY = jy + (groundY - jy) * 0.7;
+            } else {
+                // Bear/Rat (Plantigrade/Crouch)
+                kneeX = jx + 12 * s;
+                kneeY = jy + (groundY - jy) * 0.4;
+                hockX = jx + 5 * s; // More vertical
+                hockY = jy + (groundY - jy) * 0.8;
+            }
+
+            drawFuzzyLimb(jx, jy, kneeX, kneeY, width*1.2, legColor, s, true, isRight?20:23); // Thigh
+            drawFuzzyLimb(kneeX, kneeY, hockX, hockY, width, legColor, s, true, isRight?21:24); // Shin
+            drawFuzzyLimb(hockX, hockY, jx, groundY, width*0.9, legColor, s, true, isRight?22:25); // Metatarsus
+
             if (anatomy.foot === 'HOOF') drawHoof(ctx, jx, groundY, width*1.5, width*1.5, '#111', s);
             else drawPaw(ctx, jx, groundY, width*1.2, legColor, s, false);
         }
     }
 
     function drawQuadrupedBody(p, s, color, anatomy, skinObj, isFurry, sizeMod, currentAnimal) {
-        const bodyLen = 45 * s * sizeMod.h;
-        const bodyThick = 25 * s * sizeMod.w;
-        const torsoY = p.y - 20 * s * sizeMod.h;
-        const torsoX = p.x;
-        const dir = 1; // Facing Right
+        // Configuration based on animal family
+        let pose = {
+            bodyLen: 45 * s,
+            bodyThick: 25 * s,
+            spineCurve: 'flat', // flat, arched, dipped
+            chestDepth: 1.0,
+            bellyTuck: 0.0,
+            neckAngle: -0.5, // Radians, 0 is horizontal right, -PI/2 is up
+            neckLen: 15 * s,
+            legStance: 1.0,
+            shoulderHeightMod: 0
+        };
 
-        const hipX = torsoX - (bodyLen * 0.4 * dir);
-        const shoulderX = torsoX + (bodyLen * 0.4 * dir);
-
-        // Far Legs
-        drawQuadLeg(hipX + 5*s, torsoY, p.y, false, 'BACK', anatomy, s, color, sizeMod, skinObj);
-        drawQuadLeg(shoulderX + 5*s, torsoY, p.y, false, 'FRONT', anatomy, s, color, sizeMod, skinObj);
-
-        // Tail
-        drawTail(hipX - 10*s, torsoY - 5*s, color, anatomy, skinObj, s, currentAnimal);
-
-        // Body
-        ctx.fillStyle = color;
-        if(isFurry) {
-             const path = [{x: shoulderX, y: torsoY - bodyThick*0.5}, {x: hipX, y: torsoY - bodyThick*0.5}, {x: hipX, y: torsoY + bodyThick*0.5}, {x: shoulderX, y: torsoY + bodyThick*0.5}];
-             drawFuzzyPath(path, color, s, true, 101);
-        } else {
-             ctx.beginPath(); ctx.ellipse(torsoX, torsoY, bodyLen * 0.5, bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill();
+        if (anatomy.type === 'DIGITIGRADE') {
+            // Canines/Felines
+            pose.bodyLen = 50 * s;
+            pose.bodyThick = 22 * s;
+            pose.chestDepth = 1.2;
+            pose.bellyTuck = 10 * s;
+            pose.neckAngle = -0.6;
+            pose.neckLen = 20 * s;
+        }
+        else if (anatomy.type === 'UNGULATE') {
+            // Cow/Moose
+            pose.bodyLen = 55 * s;
+            pose.bodyThick = 35 * s;
+            pose.spineCurve = 'flat';
+            pose.neckAngle = -0.2; // Lower head
+            if(currentAnimal === 'giraffe') {
+                pose.neckAngle = -1.2; // High up
+                pose.neckLen = 60 * s;
+                pose.bodyLen = 45 * s; // Short body relative to height
+            }
+        }
+        else if (currentAnimal === 'rat' || currentAnimal === 'rabbit') {
+            pose.spineCurve = 'arched';
+            pose.bodyLen = 35 * s;
+            pose.bodyThick = 25 * s;
+            pose.neckAngle = -0.3;
+            pose.neckLen = 8 * s;
+        }
+        else if (currentAnimal === 'bear') {
+            pose.bodyThick = 35 * s;
+            pose.shoulderHeightMod = 10 * s; // Hump
+            pose.neckAngle = -0.3;
         }
 
-        // Near Legs
-        drawQuadLeg(hipX - 5*s, torsoY, p.y, true, 'BACK', anatomy, s, color, sizeMod, skinObj);
-        drawQuadLeg(shoulderX - 5*s, torsoY, p.y, true, 'FRONT', anatomy, s, color, sizeMod, skinObj);
+        // Apply Size Mods
+        pose.bodyLen *= sizeMod.h;
+        pose.bodyThick *= sizeMod.w;
 
-        // Head
-        const headX = shoulderX + 10 * s;
-        const headY = torsoY - 15 * s;
+        const torsoY = p.y - 25 * s * sizeMod.h; // Lift torso
+        const torsoX = p.x;
+        const dir = 1;
+
+        const hipX = torsoX - (pose.bodyLen * 0.5 * dir);
+        const shoulderX = torsoX + (pose.bodyLen * 0.5 * dir);
+        const groundY = p.y;
+
+        // Neck & Head Calc
+        const neckBaseX = shoulderX;
+        const neckBaseY = torsoY - (pose.shoulderHeightMod * 0.5);
+        const headX = neckBaseX + Math.cos(pose.neckAngle) * pose.neckLen;
+        const headY = neckBaseY + Math.sin(pose.neckAngle) * pose.neckLen;
         const headRadius = 12 * s * sizeMod.head;
 
-        // Neck
-        ctx.lineWidth = 10*s; ctx.lineCap = 'round'; ctx.strokeStyle = color;
+        // --- DRAW BACK LAYER ---
+        // Far Legs
+        drawQuadLeg(hipX + 5*s, torsoY, groundY, false, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
+        drawQuadLeg(shoulderX + 5*s, torsoY, groundY, false, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
+
+        // Tail
+        let tailX = hipX - 5*s;
+        let tailY = torsoY - 5*s;
+        if (pose.spineCurve === 'arched') tailY += 10*s;
+        drawTail(tailX, tailY, color, anatomy, skinObj, s, currentAnimal);
+
+        // Body Shape
+        ctx.fillStyle = color;
+        const bodyTop = torsoY - pose.bodyThick * 0.5;
+        const bodyBot = torsoY + pose.bodyThick * 0.5;
+
+        if (isFurry) {
+            // Construct complex polygon for body
+            let points = [];
+
+            // Topline
+            if (pose.spineCurve === 'arched') {
+                // Roach back (Rat)
+                points.push({x: shoulderX, y: bodyTop + 5*s});
+                points.push({x: torsoX, y: bodyTop - 10*s}); // Peak
+                points.push({x: hipX, y: bodyTop + 15*s}); // Dropped rump
+            } else {
+                // Standard
+                points.push({x: shoulderX, y: bodyTop - pose.shoulderHeightMod});
+                points.push({x: hipX, y: bodyTop});
+            }
+
+            // Rump
+            points.push({x: hipX - 5*s, y: bodyBot - 5*s});
+
+            // Underline (Belly)
+            if (pose.bellyTuck > 0) {
+                // Tucked (Wolf)
+                points.push({x: hipX + 10*s, y: bodyBot - pose.bellyTuck}); // Tucked flank
+                points.push({x: shoulderX - 10*s, y: bodyBot + 5*s}); // Deep chest
+            } else {
+                // Flat/Round (Cow/Bear)
+                points.push({x: hipX + 5*s, y: bodyBot});
+                points.push({x: shoulderX - 5*s, y: bodyBot});
+            }
+
+            // Chest front
+            points.push({x: shoulderX + 5*s, y: bodyTop + 10*s});
+
+            drawFuzzyPath(points, color, s, true, 101);
+        } else {
+             // Fallback for simple rendering
+             ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen * 0.5, pose.bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Neck Connection
+        ctx.lineWidth = (currentAnimal === 'giraffe' ? 10 : 18) * s;
+        ctx.lineCap = 'round'; ctx.strokeStyle = color;
         ctx.beginPath(); ctx.moveTo(shoulderX, torsoY); ctx.lineTo(headX, headY); ctx.stroke();
 
+        // --- DRAW FRONT LAYER ---
+        // Near Legs
+        drawQuadLeg(hipX - 5*s, torsoY, groundY, true, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
+        drawQuadLeg(shoulderX - 5*s, torsoY, groundY, true, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
+
+        // Head
         drawRealisticHead(headX, headY, headRadius, color, s, anatomy, skinObj, isFurry);
     }
 
