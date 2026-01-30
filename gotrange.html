@@ -3613,40 +3613,93 @@ let lastDisplayedContestTime = -1;
 
             // Muscle Definition (High Graphics) - BACK VIEW
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
+                 const animal = options.animal || 'human';
                  ctx.fillStyle = 'rgba(0,0,0,0.1)';
-
-                 // Spine Indentation
-                 ctx.beginPath();
-                 ctx.moveTo(cx, topY + h * 0.2);
-                 ctx.lineTo(cx, topY + h * 0.8);
-                 ctx.lineWidth = w * 0.05;
                  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                 ctx.stroke();
 
-                 // Shoulder Blades (Scapula)
-                 const scapY = topY + h * 0.25;
+                 if (animal === 'dino') {
+                     // Dino: Spine Ridge (Protruding vertebrae)
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h * 0.1);
+                     ctx.lineTo(cx, topY + h * 0.9);
+                     ctx.lineWidth = w * 0.08;
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)'; // Darker spine
+                     ctx.stroke();
 
-                 // Left Scapula
-                 ctx.beginPath();
-                 ctx.moveTo(cx - w*0.15, scapY);
-                 ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
-                 ctx.lineWidth = w * 0.03;
-                 ctx.stroke();
+                     // Horizontal Skin Folds
+                     ctx.lineWidth = w * 0.04;
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.3); ctx.lineTo(cx + w*0.3, topY + h*0.35); ctx.stroke();
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.5); ctx.lineTo(cx + w*0.3, topY + h*0.55); ctx.stroke();
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.7); ctx.lineTo(cx + w*0.3, topY + h*0.75); ctx.stroke();
+                 }
+                 else if (animal === 'elephant') {
+                     // Elephant: Deep Spine Indent + Wrinkles
+                     ctx.lineWidth = w * 0.05;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.1); ctx.lineTo(cx, topY + h * 0.9); ctx.stroke();
 
-                 // Right Scapula
-                 ctx.beginPath();
-                 ctx.moveTo(cx + w*0.15, scapY);
-                 ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
-                 ctx.stroke();
+                     // Wrinkles
+                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                     ctx.lineWidth = w * 0.02;
+                     for(let i=1; i<5; i++) {
+                         let y = topY + h * (0.2 * i);
+                         ctx.beginPath();
+                         ctx.moveTo(cx - w*0.4, y);
+                         ctx.quadraticCurveTo(cx, y + h*0.05, cx + w*0.4, y);
+                         ctx.stroke();
+                     }
+                 }
+                 else if (animal === 'frog') {
+                     // Frog: Angular Spine hump
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                     ctx.lineWidth = w * 0.06;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
+                     // Hip Bumps
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                     ctx.beginPath(); ctx.arc(cx - w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
+                     ctx.beginPath(); ctx.arc(cx + w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
+                 }
+                 else if (animal === 'penguin') {
+                     // Smooth, just faint spine
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     ctx.lineWidth = w * 0.03;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
+                 }
+                 else if (animal === 'human' || animal === 'monkey') {
+                     // Human / Monkey (Scapula)
+                     // Spine Indentation
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h * 0.2);
+                     ctx.lineTo(cx, topY + h * 0.8);
+                     ctx.lineWidth = w * 0.05;
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     ctx.stroke();
 
-                 // Trapezius / Upper Back shading
-                 ctx.fillStyle = 'rgba(0,0,0,0.05)';
-                 ctx.beginPath();
-                 ctx.moveTo(cx, topY + h*0.1);
-                 ctx.lineTo(cx - w*0.3, topY + h*0.2);
-                 ctx.lineTo(cx, topY + h*0.4);
-                 ctx.lineTo(cx + w*0.3, topY + h*0.2);
-                 ctx.fill();
+                     // Shoulder Blades (Scapula)
+                     const scapY = topY + h * 0.25;
+
+                     // Left Scapula
+                     ctx.beginPath();
+                     ctx.moveTo(cx - w*0.15, scapY);
+                     ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
+                     ctx.lineWidth = w * 0.03;
+                     ctx.stroke();
+
+                     // Right Scapula
+                     ctx.beginPath();
+                     ctx.moveTo(cx + w*0.15, scapY);
+                     ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
+                     ctx.stroke();
+
+                     // Trapezius / Upper Back shading
+                     ctx.fillStyle = 'rgba(0,0,0,0.05)';
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h*0.1);
+                     ctx.lineTo(cx - w*0.3, topY + h*0.2);
+                     ctx.lineTo(cx, topY + h*0.4);
+                     ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                     ctx.fill();
+                 }
+                 // Turtles and others get no muscle definition (shell or smooth)
             }
 
             // Rim Light
@@ -6059,6 +6112,7 @@ let lastDisplayedContestTime = -1;
         }
 
         bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
+        bodyOptions.animal = currentAnimal;
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
