@@ -448,6 +448,28 @@
             z-index: 9999;
             position: relative;
         }
+
+        /* Leaderboard Styles */
+        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; }
+        .lb-tab { background: #333; color: #888; border: 1px solid #444; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-family: var(--broadcast-font-title); }
+        .lb-tab.active { background: var(--broadcast-accent); color: #000; border-color: #FFF; }
+
+        .lb-list { height: 350px; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; }
+        .lb-list::-webkit-scrollbar { width: 8px; }
+        .lb-list::-webkit-scrollbar-track { background: #222; }
+        .lb-list::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
+
+        .lb-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #222; font-family: 'Courier New', monospace; font-size: 1.2em; }
+        .lb-row:nth-child(even) { background: #1a1a1a; }
+        .lb-row.highlight { background: rgba(255, 215, 0, 0.2); border: 1px solid var(--broadcast-accent); }
+        .lb-rank { color: #888; width: 40px; text-align: right; margin-right: 15px; }
+        .lb-name { color: var(--broadcast-accent); flex-grow: 1; text-align: left; letter-spacing: 2px; }
+        .lb-score { color: #FFF; text-align: right; }
+
+        /* High Score Input */
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
+        .hs-input { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 200px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 30px 0; outline: none; }
+        .hs-input:focus { border-color: var(--broadcast-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
     </style>
     <script src="cordova.js"></script>
 </head>
@@ -481,14 +503,6 @@
             <div class="sb-content">
                 <div id="classic-stats" style="display:flex; gap:25px;">
                     <div class="sb-stat">
-                        <span class="sb-label">DISTANCE</span>
-                        <span class="sb-value" id="distVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
-                        <span class="sb-label">RECORD</span>
-                        <span class="sb-value sb-highlight" id="highScoreVal">10 ft</span>
-                    </div>
-                    <div class="sb-stat">
                         <span class="sb-label">MISSES</span>
                         <span class="sb-value sb-danger" id="missVal">0</span>
                     </div>
@@ -503,20 +517,11 @@
         </div>
     </div>
 
-    <div id="contest-ui" style="display:none; position:absolute; top:100px; left:50%; transform:translateX(-50%); text-align:center; z-index:90;">
-        <div style="background:rgba(0,0,0,0.8); border:2px solid #FFD700; padding:10px 30px; display:inline-block; transform:skewX(-10deg);">
-            <div style="transform:skewX(10deg); display:flex; gap:30px;">
-                <div class="sb-stat"><span class="sb-label">TIME</span><span class="sb-value" id="contestTime">60</span></div>
-                <div class="sb-stat"><span class="sb-label">SCORE</span><span class="sb-value sb-highlight" id="contestScore">0</span></div>
-                <div class="sb-stat"><span class="sb-label">RACK</span><span class="sb-value" id="contestRack">1</span></div>
-            </div>
-        </div>
-    </div>
-
     <div id="controls">
         <div class="broadcast-btn" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
         <div class="broadcast-btn" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
         <div class="broadcast-btn" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
+        <div class="broadcast-btn" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
         <div class="broadcast-btn" onclick="openStats()"><span>STATS [S]</span></div>
     </div>
     <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
@@ -548,6 +553,21 @@
     <!-- MODALS -->
     <div id="statsUI" class="modal">
         <div class="modal-header">STATISTIQUES À VIE</div>
+
+        <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
+             <div style="transform: skewX(5deg);">
+                 <h3 style="margin:0 0 10px 0; color:#FFD700; text-transform:uppercase; font-family: var(--broadcast-font-title);">📅 DÉFI DU JOUR</h3>
+                 <div id="dailyDesc" style="color:#FFF; font-size:1.1em; margin-bottom:8px; font-weight:bold;">Chargement...</div>
+                 <div style="background:#000; height:12px; width:100%; border:1px solid #555;">
+                     <div id="dailyBar" style="background:#00FF00; height:100%; width:0%; transition: width 0.5s;"></div>
+                 </div>
+                 <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.9em; color:#aaa; font-family: var(--broadcast-font-body);">
+                     <span id="dailyProgressText" style="color:#FFF;">0 / 0</span>
+                     <span id="dailyRewardText" style="color:#FFD700;">+500 Tacos</span>
+                 </div>
+             </div>
+        </div>
+
         <div style="text-align:left; padding: 10px; font-size: 1.2em;">
             <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
             <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
@@ -604,6 +624,11 @@
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
+            <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
+
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
             <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
             <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
@@ -620,118 +645,160 @@
         <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
     </div>
 
+    <div id="leaderboardUI" class="modal">
+        <div class="modal-header">CLASSEMENT</div>
+        <div class="modal-content-wrapper">
+            <div class="lb-tab-container">
+                <button id="btnTabClassic" class="lb-tab active" onclick="switchLeaderboardTab('classic')">CLASSIQUE</button>
+                <button id="btnTabContest" class="lb-tab" onclick="switchLeaderboardTab('contest')">CONCOURS</button>
+                <button id="btnTabTime" class="lb-tab" onclick="switchLeaderboardTab('time_attack')">TIME ATK</button>
+            </div>
+            <div id="lbList" class="lb-list">
+                <!-- Rows injected via JS -->
+                <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
+            </div>
+            <button class="btn btn-close" onclick="closeLeaderboard()">FERMER</button>
+        </div>
+    </div>
+
+    <div id="highScoreUI" class="modal" style="height: auto; top: 40%;">
+        <div class="modal-header">NOUVEAU RECORD !</div>
+        <div class="hs-input-container">
+            <div style="color: #AAA; font-size: 1.2em;">ENTREZ VOS INITIALES</div>
+            <input type="text" id="hsNameInput" class="hs-input" maxlength="3" oninput="this.value = this.value.toUpperCase()">
+            <button class="btn" style="font-size: 1.5em; padding: 15px 40px; background: var(--broadcast-accent); color: #000;" onclick="submitHighScoreInput()">CONFIRMER</button>
+        </div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
+    var preJumpTimer = 0;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
-        { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 10 },
-        { id: 'veteran', name: 'Vétéran', desc: 'Marquer 100 paniers au total', reward: 150 },
-        { id: 'ball_hog', name: 'Ball Hog', desc: 'Tirer 500 fois', reward: 100 },
-        { id: 'bricklayer', name: 'Briqueur', desc: 'Rater 50 tirs', reward: 25 },
-        { id: 'amateur', name: 'Amateur', desc: 'Atteindre 25 pi', reward: 25 },
-        { id: 'sniper', name: 'Sniper', desc: 'Atteindre 50 pi', reward: 50 },
-        { id: 'pro', name: 'Pro Shooter', desc: 'Atteindre 75 pi', reward: 75 },
-        { id: 'parking_lot', name: 'Parking', desc: 'Atteindre 100 pi', reward: 100 },
-        { id: 'longshot', name: 'Longue Distance', desc: 'Atteindre 125 pi', reward: 125 },
-        { id: 'levis_legend', name: 'Lévis Legend', desc: 'Atteindre 150 pi', reward: 200 },
-        { id: 'interstellar', name: 'Interstellaire', desc: 'Atteindre 200 pi', reward: 300 },
-        { id: 'moonwalker', name: 'Marcheur Lunaire', desc: 'Atteindre 500 pi', reward: 500 },
-        { id: 'demigod', name: 'Demi-Dieu', desc: 'Atteindre 1000 pi', reward: 1000 },
-        { id: 'contest_winner', name: 'Roi du Concours', desc: 'Score > 10 au Concours', reward: 200 },
-        { id: 'contest_perfect', name: 'Perfection', desc: 'Score > 20 au Concours', reward: 500 },
-        { id: 'pocket_change', name: 'Fond de poche', desc: 'Avoir 100 Tacos', reward: 10 },
-        { id: 'tycoon', name: 'Taco Tycoon', desc: 'Avoir 500 Tacos', reward: 50 },
-        { id: 'millionaire', name: 'Millionaire', desc: 'Avoir 2000 Tacos', reward: 200 },
-        { id: 'sweet_tooth', name: 'Bec Sucré', desc: 'Sirop Érable Niv 5', reward: 100 },
-        { id: 'hawkeye', name: 'Oeil de Lynx', desc: 'Visée Assistée Niv 5', reward: 100 },
-        { id: 'leprechaun', name: 'Chanceux', desc: 'Taco Grease Niv 5', reward: 100 },
-        { id: 'fashionista', name: 'Fashionista', desc: 'Débloquer 5 skins', reward: 100 },
-        { id: 'wardrobe_malfunction', name: 'Garde-robe Pleine', desc: 'Débloquer 10 skins', reward: 300 },
-        { id: 'collector', name: 'Collectionneur', desc: 'Débloquer 15 skins', reward: 500 },
-        { id: 'zoo', name: 'Gardien de Zoo', desc: 'Skins pour 3 animaux différents', reward: 150 },
-        { id: 'lucky', name: 'Chance Pure', desc: 'Avoir un rebond chanceux', reward: 25 },
-        { id: 'daredevil', name: 'Casse-cou', desc: 'Marquer en difficulté max', reward: 50 },
-        { id: 'hard_mode', name: 'Travaillant', desc: 'Marquer en mode Difficile', reward: 25 },
-        { id: 'cosplay', name: 'Cosplay', desc: 'Équiper Robot/Alien/Ninja', reward: 20 },
-        { id: 'eh', name: 'Canadien', desc: 'Équiper Bûcheron ou Hockey', reward: 20 },
-        { id: 'spooky', name: 'Effrayant', desc: 'Équiper Zombie/Vampire/Diable', reward: 20 },
-        { id: 'urban_legend', name: 'Légende Urbaine', desc: 'Jouer sur le Terrain de Rue', reward: 50 },
-        { id: 'ice_cold', name: 'Glace', desc: 'Jouer sur la Patinoire', reward: 100 },
-        { id: 'astronaut_training', name: 'Cadet Spatial', desc: 'Jouer sur la Lune', reward: 150 },
+        { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 100 },
+        { id: 'veteran', name: 'Vétéran', desc: 'Marquer 100 paniers au total', reward: 1000 },
+        { id: 'ball_hog', name: 'Ball Hog', desc: 'Tirer 500 fois', reward: 500 },
+        { id: 'bricklayer', name: 'Briqueur', desc: 'Rater 50 tirs', reward: 250 },
+        { id: 'amateur', name: 'Amateur', desc: 'Atteindre 25 pi', reward: 100 },
+        { id: 'sniper', name: 'Sniper', desc: 'Atteindre 50 pi', reward: 200 },
+        { id: 'pro', name: 'Pro Shooter', desc: 'Atteindre 75 pi', reward: 300 },
+        { id: 'parking_lot', name: 'Parking', desc: 'Atteindre 100 pi', reward: 500 },
+        { id: 'longshot', name: 'Longue Distance', desc: 'Atteindre 125 pi', reward: 600 },
+        { id: 'levis_legend', name: 'Lévis Legend', desc: 'Atteindre 150 pi', reward: 1000 },
+        { id: 'interstellar', name: 'Interstellaire', desc: 'Atteindre 200 pi', reward: 1500 },
+        { id: 'moonwalker', name: 'Marcheur Lunaire', desc: 'Atteindre 500 pi', reward: 2500 },
+        { id: 'demigod', name: 'Demi-Dieu', desc: 'Atteindre 1000 pi', reward: 5000 },
+        { id: 'contest_winner', name: 'Roi du Concours', desc: 'Score > 10 au Concours', reward: 1000 },
+        { id: 'contest_perfect', name: 'Perfection', desc: 'Score > 20 au Concours', reward: 2500 },
+        { id: 'pocket_change', name: 'Fond de poche', desc: 'Avoir 100 Tacos', reward: 50 },
+        { id: 'tycoon', name: 'Taco Tycoon', desc: 'Avoir 500 Tacos', reward: 250 },
+        { id: 'millionaire', name: 'Millionaire', desc: 'Avoir 50000 Tacos', reward: 5000 },
+        { id: 'sweet_tooth', name: 'Bec Sucré', desc: 'Sirop Érable Niv 5', reward: 500 },
+        { id: 'hawkeye', name: 'Oeil de Lynx', desc: 'Visée Assistée Niv 5', reward: 500 },
+        { id: 'leprechaun', name: 'Chanceux', desc: 'Taco Grease Niv 5', reward: 500 },
+        { id: 'moonwalker_pro', name: 'Moonwalker Pro', desc: 'Moonwalk Niv 5', reward: 500 },
+        { id: 'fashionista', name: 'Fashionista', desc: 'Débloquer 5 skins', reward: 1000 },
+        { id: 'wardrobe_malfunction', name: 'Garde-robe Pleine', desc: 'Débloquer 10 skins', reward: 2500 },
+        { id: 'collector', name: 'Collectionneur', desc: 'Débloquer 15 skins', reward: 5000 },
+        { id: 'zoo', name: 'Gardien de Zoo', desc: 'Skins pour 3 animaux différents', reward: 1000 },
+        { id: 'lucky', name: 'Chance Pure', desc: 'Avoir un rebond chanceux', reward: 100 },
+        { id: 'daredevil', name: 'Casse-cou', desc: 'Marquer en difficulté max', reward: 500 },
+        { id: 'hard_mode', name: 'Travaillant', desc: 'Marquer en mode Difficile', reward: 250 },
+        { id: 'cosplay', name: 'Cosplay', desc: 'Équiper Robot/Alien/Ninja', reward: 250 },
+        { id: 'eh', name: 'Canadien', desc: 'Équiper Bûcheron ou Hockey', reward: 250 },
+        { id: 'spooky', name: 'Effrayant', desc: 'Équiper Zombie/Vampire/Diable', reward: 250 },
+        { id: 'poutine_chef', name: 'Chef Poutine', desc: 'Équiper Poutine', reward: 250 },
+        { id: 'urban_legend', name: 'Légende Urbaine', desc: 'Jouer sur le Terrain de Rue', reward: 500 },
+        { id: 'ice_cold', name: 'Glace', desc: 'Jouer sur la Patinoire', reward: 1000 },
+        { id: 'astronaut_training', name: 'Cadet Spatial', desc: 'Jouer sur la Lune', reward: 2500 },
         // STREAK ACHIEVEMENTS
-        { id: 'streak_2', name: 'Le Début', desc: '2 paniers de suite', reward: 5, type: 'streak', threshold: 2 },
-        { id: 'streak_3', name: 'Le Hat Trick', desc: '3 paniers de suite', reward: 10, type: 'streak', threshold: 3 },
-        { id: 'streak_4', name: 'Le Quatuor', desc: '4 paniers de suite', reward: 15, type: 'streak', threshold: 4 },
-        { id: 'streak_5', name: 'En Feu', desc: '5 paniers de suite', reward: 20, type: 'streak', threshold: 5 },
-        { id: 'streak_6', name: 'Six-pack', desc: '6 paniers de suite', reward: 25, type: 'streak', threshold: 6 },
-        { id: 'streak_7', name: 'Chanceux 7', desc: '7 paniers de suite', reward: 30, type: 'streak', threshold: 7 },
-        { id: 'streak_8', name: 'Huitre', desc: '8 paniers de suite', reward: 35, type: 'streak', threshold: 8 },
-        { id: 'streak_9', name: 'Le Neuf', desc: '9 paniers de suite', reward: 40, type: 'streak', threshold: 9 },
-        { id: 'streak_10', name: 'La Dizaine', desc: '10 paniers de suite', reward: 50, type: 'streak', threshold: 10 },
-        { id: 'streak_11', name: 'Onze', desc: '11 paniers de suite', reward: 55, type: 'streak', threshold: 11 },
-        { id: 'streak_12', name: 'Douzaine', desc: '12 paniers de suite', reward: 60, type: 'streak', threshold: 12 },
-        { id: 'streak_13', name: 'Malchance?', desc: '13 paniers de suite', reward: 65, type: 'streak', threshold: 13 },
-        { id: 'streak_14', name: 'Quatorze', desc: '14 paniers de suite', reward: 70, type: 'streak', threshold: 14 },
-        { id: 'streak_15', name: 'Quinze', desc: '15 paniers de suite', reward: 75, type: 'streak', threshold: 15 },
-        { id: 'streak_16', name: 'Seize', desc: '16 paniers de suite', reward: 80, type: 'streak', threshold: 16 },
-        { id: 'streak_17', name: 'Dix-sept', desc: '17 paniers de suite', reward: 85, type: 'streak', threshold: 17 },
-        { id: 'streak_18', name: 'Majeur', desc: '18 paniers de suite', reward: 90, type: 'streak', threshold: 18 },
-        { id: 'streak_19', name: 'Presque 20', desc: '19 paniers de suite', reward: 95, type: 'streak', threshold: 19 },
-        { id: 'streak_20', name: 'Vingtaine', desc: '20 paniers de suite', reward: 100, type: 'streak', threshold: 20 },
-        { id: 'streak_25', name: 'Quart de Siècle', desc: '25 paniers de suite', reward: 150, type: 'streak', threshold: 25 },
-        { id: 'streak_30', name: 'Trente', desc: '30 paniers de suite', reward: 200, type: 'streak', threshold: 30 },
-        { id: 'streak_35', name: 'Trente-Cinq', desc: '35 paniers de suite', reward: 250, type: 'streak', threshold: 35 },
-        { id: 'streak_40', name: 'Quarantaine', desc: '40 paniers de suite', reward: 300, type: 'streak', threshold: 40 },
-        { id: 'streak_45', name: 'Mi-temps', desc: '45 paniers de suite', reward: 350, type: 'streak', threshold: 45 },
-        { id: 'streak_50', name: 'Demi-Centenaire', desc: '50 paniers de suite', reward: 500, type: 'streak', threshold: 50 },
-        { id: 'streak_55', name: 'Vitesse de Croisière', desc: '55 paniers de suite', reward: 550, type: 'streak', threshold: 55 },
-        { id: 'streak_60', name: 'Soixante', desc: '60 paniers de suite', reward: 600, type: 'streak', threshold: 60 },
-        { id: 'streak_65', name: 'L\'Âge d\'Or', desc: '65 paniers de suite', reward: 650, type: 'streak', threshold: 65 },
-        { id: 'streak_70', name: 'Septante', desc: '70 paniers de suite', reward: 700, type: 'streak', threshold: 70 },
-        { id: 'streak_75', name: 'Trois Quarts', desc: '75 paniers de suite', reward: 750, type: 'streak', threshold: 75 },
-        { id: 'streak_80', name: 'Quatre-Vingts', desc: '80 paniers de suite', reward: 800, type: 'streak', threshold: 80 },
-        { id: 'streak_85', name: 'Inarrêtable', desc: '85 paniers de suite', reward: 850, type: 'streak', threshold: 85 },
-        { id: 'streak_90', name: 'L\'Élite', desc: '90 paniers de suite', reward: 900, type: 'streak', threshold: 90 },
-        { id: 'streak_95', name: 'Presque Là', desc: '95 paniers de suite', reward: 950, type: 'streak', threshold: 95 },
-        { id: 'streak_100', name: 'Le Centenaire', desc: '100 paniers de suite !', reward: 2000, type: 'streak', threshold: 100 },
+        { id: 'streak_2', name: 'Le Début', desc: '2 paniers de suite', reward: 25, type: 'streak', threshold: 2 },
+        { id: 'streak_3', name: 'Le Hat Trick', desc: '3 paniers de suite', reward: 50, type: 'streak', threshold: 3 },
+        { id: 'streak_4', name: 'Le Quatuor', desc: '4 paniers de suite', reward: 75, type: 'streak', threshold: 4 },
+        { id: 'streak_5', name: 'En Feu', desc: '5 paniers de suite', reward: 100, type: 'streak', threshold: 5 },
+        { id: 'streak_6', name: 'Six-pack', desc: '6 paniers de suite', reward: 125, type: 'streak', threshold: 6 },
+        { id: 'streak_7', name: 'Chanceux 7', desc: '7 paniers de suite', reward: 150, type: 'streak', threshold: 7 },
+        { id: 'streak_8', name: 'Huitre', desc: '8 paniers de suite', reward: 175, type: 'streak', threshold: 8 },
+        { id: 'streak_9', name: 'Le Neuf', desc: '9 paniers de suite', reward: 200, type: 'streak', threshold: 9 },
+        { id: 'streak_10', name: 'La Dizaine', desc: '10 paniers de suite', reward: 500, type: 'streak', threshold: 10 },
+        { id: 'streak_11', name: 'Onze', desc: '11 paniers de suite', reward: 550, type: 'streak', threshold: 11 },
+        { id: 'streak_12', name: 'Douzaine', desc: '12 paniers de suite', reward: 600, type: 'streak', threshold: 12 },
+        { id: 'streak_13', name: 'Malchance?', desc: '13 paniers de suite', reward: 650, type: 'streak', threshold: 13 },
+        { id: 'streak_14', name: 'Quatorze', desc: '14 paniers de suite', reward: 700, type: 'streak', threshold: 14 },
+        { id: 'streak_15', name: 'Quinze', desc: '15 paniers de suite', reward: 750, type: 'streak', threshold: 15 },
+        { id: 'streak_16', name: 'Seize', desc: '16 paniers de suite', reward: 800, type: 'streak', threshold: 16 },
+        { id: 'streak_17', name: 'Dix-sept', desc: '17 paniers de suite', reward: 850, type: 'streak', threshold: 17 },
+        { id: 'streak_18', name: 'Majeur', desc: '18 paniers de suite', reward: 900, type: 'streak', threshold: 18 },
+        { id: 'streak_19', name: 'Presque 20', desc: '19 paniers de suite', reward: 950, type: 'streak', threshold: 19 },
+        { id: 'streak_20', name: 'Vingtaine', desc: '20 paniers de suite', reward: 1000, type: 'streak', threshold: 20 },
+        { id: 'streak_25', name: 'Quart de Siècle', desc: '25 paniers de suite', reward: 1500, type: 'streak', threshold: 25 },
+        { id: 'streak_30', name: 'Trente', desc: '30 paniers de suite', reward: 2000, type: 'streak', threshold: 30 },
+        { id: 'streak_35', name: 'Trente-Cinq', desc: '35 paniers de suite', reward: 2500, type: 'streak', threshold: 35 },
+        { id: 'streak_40', name: 'Quarantaine', desc: '40 paniers de suite', reward: 3000, type: 'streak', threshold: 40 },
+        { id: 'streak_45', name: 'Mi-temps', desc: '45 paniers de suite', reward: 3500, type: 'streak', threshold: 45 },
+        { id: 'streak_50', name: 'Demi-Centenaire', desc: '50 paniers de suite', reward: 5000, type: 'streak', threshold: 50 },
+        { id: 'streak_55', name: 'Vitesse de Croisière', desc: '55 paniers de suite', reward: 5500, type: 'streak', threshold: 55 },
+        { id: 'streak_60', name: 'Soixante', desc: '60 paniers de suite', reward: 6000, type: 'streak', threshold: 60 },
+        { id: 'streak_65', name: 'L\'Âge d\'Or', desc: '65 paniers de suite', reward: 6500, type: 'streak', threshold: 65 },
+        { id: 'streak_70', name: 'Septante', desc: '70 paniers de suite', reward: 7000, type: 'streak', threshold: 70 },
+        { id: 'streak_75', name: 'Trois Quarts', desc: '75 paniers de suite', reward: 7500, type: 'streak', threshold: 75 },
+        { id: 'streak_80', name: 'Quatre-Vingts', desc: '80 paniers de suite', reward: 8000, type: 'streak', threshold: 80 },
+        { id: 'streak_85', name: 'Inarrêtable', desc: '85 paniers de suite', reward: 8500, type: 'streak', threshold: 85 },
+        { id: 'streak_90', name: 'L\'Élite', desc: '90 paniers de suite', reward: 9000, type: 'streak', threshold: 90 },
+        { id: 'streak_95', name: 'Presque Là', desc: '95 paniers de suite', reward: 9500, type: 'streak', threshold: 95 },
+        { id: 'streak_100', name: 'Le Centenaire', desc: '100 paniers de suite !', reward: 25000, type: 'streak', threshold: 100 },
         // DISTANCE ACHIEVEMENTS
-        { id: 'dist_250', name: 'La Colline', desc: 'Atteindre 250 pi', reward: 100, type: 'distance', threshold: 250 },
-        { id: 'dist_300', name: 'Tour Eiffel (presque)', desc: 'Atteindre 300 pi', reward: 120, type: 'distance', threshold: 300 },
-        { id: 'dist_350', name: 'Gratte-ciel', desc: 'Atteindre 350 pi', reward: 140, type: 'distance', threshold: 350 },
-        { id: 'dist_400', name: 'Hauteur de la Tour', desc: 'Atteindre 400 pi', reward: 160, type: 'distance', threshold: 400 },
-        { id: 'dist_450', name: 'Vue Panoramique', desc: 'Atteindre 450 pi', reward: 180, type: 'distance', threshold: 450 },
-        { id: 'dist_600', name: 'Space Needle', desc: 'Atteindre 600 pi', reward: 200, type: 'distance', threshold: 600 },
-        { id: 'dist_700', name: 'Haut Perche', desc: 'Atteindre 700 pi', reward: 220, type: 'distance', threshold: 700 },
-        { id: 'dist_800', name: 'Nuages Bas', desc: 'Atteindre 800 pi', reward: 240, type: 'distance', threshold: 800 },
-        { id: 'dist_900', name: 'Tour Eiffel (Sommet)', desc: 'Atteindre 900 pi', reward: 260, type: 'distance', threshold: 900 },
-        { id: 'dist_1100', name: 'Le Mille +', desc: 'Atteindre 1100 pi', reward: 300, type: 'distance', threshold: 1100 },
-        { id: 'dist_1200', name: 'Empire State', desc: 'Atteindre 1200 pi', reward: 320, type: 'distance', threshold: 1200 },
-        { id: 'dist_1300', name: 'Chicago', desc: 'Atteindre 1300 pi', reward: 340, type: 'distance', threshold: 1300 },
-        { id: 'dist_1400', name: 'CN Tower (Base)', desc: 'Atteindre 1400 pi', reward: 360, type: 'distance', threshold: 1400 },
-        { id: 'dist_1500', name: 'CN Tower (Sommet)', desc: 'Atteindre 1500 pi', reward: 380, type: 'distance', threshold: 1500 },
-        { id: 'dist_1750', name: 'One World Trade', desc: 'Atteindre 1750 pi', reward: 400, type: 'distance', threshold: 1750 },
-        { id: 'dist_2000', name: 'Burj Khalifa (Base)', desc: 'Atteindre 2000 pi', reward: 450, type: 'distance', threshold: 2000 },
-        { id: 'dist_2250', name: 'Burj Khalifa (Demi)', desc: 'Atteindre 2250 pi', reward: 500, type: 'distance', threshold: 2250 },
-        { id: 'dist_2500', name: 'Burj Khalifa (Sommet)', desc: 'Atteindre 2500 pi', reward: 550, type: 'distance', threshold: 2500 },
-        { id: 'dist_2717', name: 'Plus Haut Batiment', desc: 'Atteindre 2717 pi', reward: 600, type: 'distance', threshold: 2717 },
-        { id: 'dist_3000', name: 'Montagne', desc: 'Atteindre 3000 pi', reward: 650, type: 'distance', threshold: 3000 },
-        { id: 'dist_3500', name: 'Kilomètre Vertical', desc: 'Atteindre 3500 pi', reward: 700, type: 'distance', threshold: 3500 },
-        { id: 'dist_4000', name: 'Hélicoptère', desc: 'Atteindre 4000 pi', reward: 750, type: 'distance', threshold: 4000 },
-        { id: 'dist_4500', name: 'Grand Canyon', desc: 'Atteindre 4500 pi', reward: 800, type: 'distance', threshold: 4500 },
-        { id: 'dist_5000', name: 'Un Mille Marin', desc: 'Atteindre 5000 pi', reward: 850, type: 'distance', threshold: 5000 },
-        { id: 'dist_6000', name: 'Denver', desc: 'Atteindre 6000 pi', reward: 900, type: 'distance', threshold: 6000 },
-        { id: 'dist_7000', name: 'Mexico City', desc: 'Atteindre 7000 pi', reward: 950, type: 'distance', threshold: 7000 },
-        { id: 'dist_8000', name: 'Machu Picchu', desc: 'Atteindre 8000 pi', reward: 1000, type: 'distance', threshold: 8000 },
-        { id: 'dist_9000', name: 'Quito', desc: 'Atteindre 9000 pi', reward: 1100, type: 'distance', threshold: 9000 },
-        { id: 'dist_10000', name: 'Aviation Légère', desc: 'Atteindre 10000 pi', reward: 1200, type: 'distance', threshold: 10000 },
-        { id: 'dist_12000', name: 'Mont Fuji', desc: 'Atteindre 12000 pi', reward: 1300, type: 'distance', threshold: 12000 },
-        { id: 'dist_14000', name: 'Mont Rainier', desc: 'Atteindre 14000 pi', reward: 1400, type: 'distance', threshold: 14000 },
-        { id: 'dist_16000', name: 'Mont Blanc', desc: 'Atteindre 16000 pi', reward: 1500, type: 'distance', threshold: 16000 },
-        { id: 'dist_18000', name: 'Camp de Base', desc: 'Atteindre 18000 pi', reward: 1600, type: 'distance', threshold: 18000 },
-        { id: 'dist_19000', name: 'Kilimanjaro', desc: 'Atteindre 19000 pi', reward: 1800, type: 'distance', threshold: 19000 },
-        { id: 'dist_20000', name: 'Denali', desc: 'Atteindre 20000 pi', reward: 2000, type: 'distance', threshold: 20000 }
+        { id: 'dist_250', name: 'La Colline', desc: 'Atteindre 250 pi', reward: 500, type: 'distance', threshold: 250 },
+        { id: 'dist_300', name: 'Tour Eiffel (presque)', desc: 'Atteindre 300 pi', reward: 600, type: 'distance', threshold: 300 },
+        { id: 'dist_350', name: 'Gratte-ciel', desc: 'Atteindre 350 pi', reward: 700, type: 'distance', threshold: 350 },
+        { id: 'dist_400', name: 'Hauteur de la Tour', desc: 'Atteindre 400 pi', reward: 800, type: 'distance', threshold: 400 },
+        { id: 'dist_450', name: 'Vue Panoramique', desc: 'Atteindre 450 pi', reward: 900, type: 'distance', threshold: 450 },
+        { id: 'dist_600', name: 'Space Needle', desc: 'Atteindre 600 pi', reward: 1200, type: 'distance', threshold: 600 },
+        { id: 'dist_700', name: 'Haut Perche', desc: 'Atteindre 700 pi', reward: 1400, type: 'distance', threshold: 700 },
+        { id: 'dist_800', name: 'Nuages Bas', desc: 'Atteindre 800 pi', reward: 1600, type: 'distance', threshold: 800 },
+        { id: 'dist_900', name: 'Tour Eiffel (Sommet)', desc: 'Atteindre 900 pi', reward: 1800, type: 'distance', threshold: 900 },
+        { id: 'dist_1100', name: 'Le Mille +', desc: 'Atteindre 1100 pi', reward: 2000, type: 'distance', threshold: 1100 },
+        { id: 'dist_1200', name: 'Empire State', desc: 'Atteindre 1200 pi', reward: 2200, type: 'distance', threshold: 1200 },
+        { id: 'dist_1300', name: 'Chicago', desc: 'Atteindre 1300 pi', reward: 2400, type: 'distance', threshold: 1300 },
+        { id: 'dist_1400', name: 'CN Tower (Base)', desc: 'Atteindre 1400 pi', reward: 2600, type: 'distance', threshold: 1400 },
+        { id: 'dist_1500', name: 'CN Tower (Sommet)', desc: 'Atteindre 1500 pi', reward: 2800, type: 'distance', threshold: 1500 },
+        { id: 'dist_1750', name: 'One World Trade', desc: 'Atteindre 1750 pi', reward: 3000, type: 'distance', threshold: 1750 },
+        { id: 'dist_2000', name: 'Burj Khalifa (Base)', desc: 'Atteindre 2000 pi', reward: 3500, type: 'distance', threshold: 2000 },
+        { id: 'dist_2250', name: 'Burj Khalifa (Demi)', desc: 'Atteindre 2250 pi', reward: 4000, type: 'distance', threshold: 2250 },
+        { id: 'dist_2500', name: 'Burj Khalifa (Sommet)', desc: 'Atteindre 2500 pi', reward: 4500, type: 'distance', threshold: 2500 },
+        { id: 'dist_2717', name: 'Plus Haut Batiment', desc: 'Atteindre 2717 pi', reward: 5000, type: 'distance', threshold: 2717 },
+        { id: 'dist_3000', name: 'Montagne', desc: 'Atteindre 3000 pi', reward: 5500, type: 'distance', threshold: 3000 },
+        { id: 'dist_3500', name: 'Kilomètre Vertical', desc: 'Atteindre 3500 pi', reward: 6000, type: 'distance', threshold: 3500 },
+        { id: 'dist_4000', name: 'Hélicoptère', desc: 'Atteindre 4000 pi', reward: 6500, type: 'distance', threshold: 4000 },
+        { id: 'dist_4500', name: 'Grand Canyon', desc: 'Atteindre 4500 pi', reward: 7000, type: 'distance', threshold: 4500 },
+        { id: 'dist_5000', name: 'Un Mille Marin', desc: 'Atteindre 5000 pi', reward: 7500, type: 'distance', threshold: 5000 },
+        { id: 'dist_6000', name: 'Denver', desc: 'Atteindre 6000 pi', reward: 8000, type: 'distance', threshold: 6000 },
+        { id: 'dist_7000', name: 'Mexico City', desc: 'Atteindre 7000 pi', reward: 8500, type: 'distance', threshold: 7000 },
+        { id: 'dist_8000', name: 'Machu Picchu', desc: 'Atteindre 8000 pi', reward: 9000, type: 'distance', threshold: 8000 },
+        { id: 'dist_9000', name: 'Quito', desc: 'Atteindre 9000 pi', reward: 9500, type: 'distance', threshold: 9000 },
+        { id: 'dist_10000', name: 'Aviation Légère', desc: 'Atteindre 10000 pi', reward: 10000, type: 'distance', threshold: 10000 },
+        { id: 'dist_12000', name: 'Mont Fuji', desc: 'Atteindre 12000 pi', reward: 12000, type: 'distance', threshold: 12000 },
+        { id: 'dist_14000', name: 'Mont Rainier', desc: 'Atteindre 14000 pi', reward: 14000, type: 'distance', threshold: 14000 },
+        { id: 'dist_16000', name: 'Mont Blanc', desc: 'Atteindre 16000 pi', reward: 16000, type: 'distance', threshold: 16000 },
+        { id: 'dist_18000', name: 'Camp de Base', desc: 'Atteindre 18000 pi', reward: 18000, type: 'distance', threshold: 18000 },
+        { id: 'dist_19000', name: 'Kilimanjaro', desc: 'Atteindre 19000 pi', reward: 19000, type: 'distance', threshold: 19000 },
+        { id: 'dist_20000', name: 'Denali', desc: 'Atteindre 20000 pi', reward: 20000, type: 'distance', threshold: 20000 }
+    ];
+
+    var DAILY_CHALLENGES = [
+        { id: 'makes_50', type: 'makes', desc: 'Marquer 50 Paniers', target: 50, reward: 500 },
+        { id: 'makes_100', type: 'makes', desc: 'Marquer 100 Paniers', target: 100, reward: 1200 },
+        { id: 'streak_5', type: 'streak', desc: 'Faire une série de 5', target: 5, reward: 300 },
+        { id: 'streak_10', type: 'streak', desc: 'Faire une série de 10', target: 10, reward: 1000 },
+        { id: 'contest_20', type: 'contest_score', desc: 'Marquer 20 pts (Concours)', target: 20, reward: 600 },
+        { id: 'contest_50', type: 'contest_score', desc: 'Marquer 50 pts (Concours)', target: 50, reward: 1500 },
+        { id: 'time_30', type: 'time_attack_score', desc: 'Marquer 30 pts (Time Attack)', target: 30, reward: 600 },
+        { id: 'time_60', type: 'time_attack_score', desc: 'Marquer 60 pts (Time Attack)', target: 60, reward: 1500 },
+        { id: 'distance_500', type: 'distance', desc: 'Parcourir 500 pieds', target: 500, reward: 500 },
+        { id: 'play_contest_3', type: 'play_contest', desc: 'Jouer 3 Concours', target: 3, reward: 500 },
+        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
     ];
 
     var COURT_ZONES = [
@@ -784,7 +851,7 @@
 
     var SKINS_DB = [
         // RATS
-        { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 0 },
+        { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 250, bodyShape: 'oval' },
         { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie', hatColor: '#FF0000', backProp: 'axe', clothingDetail: 'suspenders' },
         { id: 'rat_mariachi', animal: 'rat', name: 'El Mariachi', cost: 1000, jerseyColor: '#1a1a1a', shortsColor: '#1a1a1a', legType: 'pants', shoesColor: '#000', pattern: 'suit', headAccessory: 'sombrero', hatColor: '#1a1a1a', backProp: 'guitar' },
         { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500, jerseyColor: '#008000', shortsColor: '#008000', legType: 'pants', shoesColor: '#000', socksColor: '#FFF' },
@@ -811,7 +878,7 @@
         { id: 'rat_detective', animal: 'rat', name: 'Détective', cost: 4000, jerseyColor: '#D2B48C', shortsColor: '#8B4513', legType: 'pants', headAccessory: 'hat', hatColor: '#8B4513' },
 
         // CATS
-        { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
+        { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250, bodyShape: 'oval' },
         { id: 'cat_tabby', animal: 'cat', name: 'Tigré', cost: 1000, furColor: '#FFA500' },
         { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000, furColor: '#111' },
         // NEW CATS
@@ -822,7 +889,7 @@
         { id: 'cat_persian', animal: 'cat', name: 'Persan', cost: 4000, furColor: '#FFF', headAccessory: 'bow', hatColor: '#800080' },
 
         // DOGS
-        { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
+        { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250, bodyShape: 'athletic_animal' },
         { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000, furColor: '#FFF', hasSpots: true },
         { id: 'dog_pug', animal: 'dog', name: 'Carlin', cost: 1500, furColor: '#d2b48c' },
         // NEW DOGS
@@ -834,7 +901,7 @@
         { id: 'dog_airbud', animal: 'dog', name: 'Golden Bud', cost: 500, furColor: '#DAA520', jerseyColor: '#191970', shortsColor: '#191970', trimColor: '#FFD700', number: '1', numberColor: '#FFD700' },
 
         // BEARS
-        { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
+        { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500, bodyShape: 'bear_new', widthScale: 1.3 },
         { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000, furColor: '#FFF', legType: 'panda_limbs' },
         { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#F0F8FF' },
         // NEW BEARS
@@ -874,7 +941,7 @@
         { id: 'fox_gentleman', animal: 'fox', name: 'Gentleman', cost: 4000, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', pattern: 'suit', headAccessory: 'top_hat' },
 
         // WOLVES (NEW)
-        { id: 'wolf_classic', animal: 'wolf', name: 'Classique', cost: 1000 },
+        { id: 'wolf_classic', animal: 'wolf', name: 'Classique', cost: 1000, bodyShape: 'athletic_animal' },
         { id: 'wolf_black', animal: 'wolf', name: 'Noir', cost: 2000, furColor: '#1a1a1a', headAccessory: 'collar', hatColor: '#FF0000' },
         { id: 'wolf_white', animal: 'wolf', name: 'Blanc', cost: 2000, furColor: '#FFF', headAccessory: 'scarf', hatColor: '#00008B' },
         { id: 'wolf_alpha', animal: 'wolf', name: 'Alpha', cost: 5000, furColor: '#333' },
@@ -906,7 +973,7 @@
         { id: 'pig_gentleman', animal: 'pig', name: 'Riche', cost: 5000, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', headAccessory: 'top_hat', pattern: 'suit' },
 
         // COWS (NEW)
-        { id: 'cow_classic', animal: 'cow', name: 'Classique', cost: 1000, pattern: 'cow_spots' },
+        { id: 'cow_classic', animal: 'cow', name: 'Classique', cost: 500, bodyShape: 'round' },
         { id: 'cow_highland', animal: 'cow', name: 'Highland', cost: 3000, furColor: '#8B0000' },
         { id: 'cow_bull', animal: 'cow', name: 'Taureau', cost: 3500, furColor: '#000', headAccessory: 'bandana_neck' },
         { id: 'cow_strawberry', animal: 'cow', name: 'Fraise', cost: 2500, furColor: '#FFC0CB', pattern: 'cow_spots', headAccessory: 'flower' },
@@ -914,7 +981,7 @@
         { id: 'cow_space', animal: 'cow', name: 'Espace', cost: 5000, furColor: '#00FF00', headAccessory: 'helmet' },
 
         // MONKEYS (NEW)
-        { id: 'monkey_classic', animal: 'monkey', name: 'Classique', cost: 1000 },
+        { id: 'monkey_classic', animal: 'monkey', name: 'Classique', cost: 500, bodyShape: 'athletic_animal', armLen: 1.2 },
         { id: 'monkey_gorilla', animal: 'monkey', name: 'Gorille', cost: 3000, furColor: '#000', backProp: 'barrel' },
         { id: 'monkey_chimp', animal: 'monkey', name: 'Chimpanzé', cost: 2500, furColor: '#333', headAccessory: 'fez' },
         { id: 'monkey_wukong', animal: 'monkey', name: 'Wukong', cost: 10000, furColor: '#FFD700', headAccessory: 'crown', backProp: 'staff' },
@@ -922,7 +989,7 @@
         { id: 'monkey_zombie', animal: 'monkey', name: 'Zombie', cost: 3000, furColor: '#556B2F' },
 
         // PENGUINS (NEW)
-        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 1000 },
+        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 500, bodyShape: 'penguin', limbLen: 0.5 },
         { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 2500, headDetail: 'yellow_neck' },
         { id: 'penguin_tuxedo', animal: 'penguin', name: 'Tuxedo', cost: 2000, pattern: 'suit' },
         { id: 'penguin_icy', animal: 'penguin', name: 'Glace', cost: 3000, furColor: '#ADD8E6', headAccessory: 'ear_muffs', hatColor: '#FFF' },
@@ -991,21 +1058,459 @@
         // FAKE VIDEO GAME CHARACTERS
         { id: 'fake_mario', animal: 'human', name: 'Plombier Rouge', cost: 10000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#F00', shortsColor: '#00F', number: 'M', numberColor: '#F00', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#F00', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
         { id: 'fake_luigi', animal: 'human', name: 'Plombier Vert', cost: 10000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#00A000', shortsColor: '#00F', number: 'L', numberColor: '#00A000', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#00A000', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#00A000', shortsColor: '#FFF', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', headAccessory: 'wizard_hat', hatColor: '#00A000', socksColor: '#FFF', shoesColor: '#3c2415' },
-        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyColor: '#B22222', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#FFF', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'tattoo_red', socksColor: '#333', shoesColor: '#333' },
+        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyType: 'link_tunic', jerseyColor: '#00A000', shortsColor: '#EEE', legType: 'tights', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', ears: 'elf', headAccessory: 'floppy_cap', hatColor: '#00A000', backProp: 'hero_gear', socksColor: '#EEE', shoesColor: '#3c2415' },
+        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyType: 'none', shortsType: 'kilt', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#F0F0F0', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'spartan_tattoo', backProp: 'chaos_blades', headDetail: 'tattoo_stripe', socksColor: '#333', shoesColor: '#333' },
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
-        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket' },
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
 
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
         { id: 'hybrid_gorgon', animal: 'human', name: 'Gorgone', cost: 25000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#228B22', shortsColor: '#333', skinTone: '#90EE90', hairStyle: 'snakes', hairColor: '#006400', tailType: 'snake' },
-        { id: 'hybrid_anubis', animal: 'human', name: 'Anubis', cost: 30000, headType: 'jackal', heightScale: 1.2, widthScale: 0.95, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#000', furColor: '#000', headAccessory: 'gold_bands' }
+        { id: 'hybrid_anubis', animal: 'human', name: 'Anubis', cost: 30000, headType: 'jackal', heightScale: 1.2, widthScale: 0.95, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#000', furColor: '#000', headAccessory: 'gold_bands' },
+
+        // NEW ADDITIONS
+        { id: 'human_deadpool', animal: 'human', name: 'Mercenaire', cost: 15000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#FF0000', shortsColor: '#000', legType: 'pants', sleeveColor: '#FF0000', skinTone: '#FF0000', headAccessory: 'helmet', hatColor: '#FF0000', backProp: 'katanas', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#333', shoesColor: '#FFA500' },
+
+        // CHICKENS
+        { id: 'chicken_classic', animal: 'chicken', name: 'Poulet', cost: 1000, furColor: '#FFF', headDetail: 'mohawk', hairColor: '#FF0000', shoesColor: '#FFD700' },
+        { id: 'chicken_rooster', animal: 'chicken', name: 'Coq', cost: 2500, furColor: '#A52A2A', headDetail: 'mohawk', hairColor: '#FF0000', tailType: 'multi', tailColor: '#006400' },
+
+        // FROGS
+        { id: 'frog_classic', animal: 'frog', name: 'Grenouille', cost: 1000, furColor: '#32CD32', shoesColor: '#32CD32' },
+        { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' },
+
+        // TURTLES
+        { id: 'turtle_classic', animal: 'turtle', name: 'Tortue', cost: 1000, furColor: '#228B22', backAccessory: 'backpack', backColor: '#006400' },
+        { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'backpack', backColor: '#006400' },
+
+        // ELEPHANTS
+        { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 2000, bodyShape: 'heavy', widthScale: 1.4, armWidthScale: 1.4, legWidthScale: 1.4 },
+        { id: 'elephant_circus', animal: 'elephant', name: 'Cirque', cost: 3000, furColor: '#A9A9A9', headAccessory: 'fez' },
+
+        // DINOS
+        { id: 'dino_rex', animal: 'dino', name: 'T-Rex', cost: 5000, furColor: '#2E8B57', armWidthScale: 0.6, armLen: 0.6, tailType: 'reptile' },
+        { id: 'dino_purple', animal: 'dino', name: 'Barney', cost: 3000, furColor: '#800080', tailType: 'reptile', pattern: 'spots', spotColor: '#00FF00', armLen: 0.85 },
+
+        // ZEBRAS
+        { id: 'zebra_classic', animal: 'zebra', name: 'Zèbre', cost: 2000, furColor: '#FFF', pattern: 'tiger_stripes' },
+        { id: 'zebra_rainbow', animal: 'zebra', name: 'Disco', cost: 5000, furColor: '#FF69B4', pattern: 'tiger_stripes' },
+
+        // GIRAFFES
+        { id: 'giraffe_classic', animal: 'giraffe', name: 'Girafe', cost: 2000, furColor: '#FFFF00', pattern: 'cow_spots', spotColor: '#8B4513', heightScale: 1.3, widthScale: 0.9, neckLength: 40, bodyShape: 'giraffe', limbLen: 1.4 },
+
+        // NEW HUMANS
+        { id: 'human_bouffon', animal: 'human', name: 'Bouffon Fou', cost: 20000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', skinTone: '#FFF', hairStyle: 'short', hairColor: '#00FF00', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_iron', animal: 'human', name: 'Homme Fer', cost: 25000, jerseyColor: '#8B0000', shortsColor: '#8B0000', legType: 'pants', sleeveColor: '#8B0000', skinTone: '#FFD700', headAccessory: 'helmet', hatColor: '#8B0000', headDetail: 'visor', shoesColor: '#FFD700' },
+        { id: 'human_spider', animal: 'human', name: 'Araignée', cost: 25000, jerseyColor: '#FF0000', shortsColor: '#0000FF', legType: 'tights', sleeveColor: '#FF0000', skinTone: '#FF0000', pattern: 'grid', shoesColor: '#FF0000', headAccessory: 'mask', hatColor: '#FF0000' },
+        { id: 'human_hulk', animal: 'human', name: 'Géant Vert', cost: 20000, heightScale: 1.25, widthScale: 1.4, jerseyType: 'none', shortsColor: '#800080', skinTone: '#32CD32', hairStyle: 'short', hairColor: '#000', shoesColor: '#32CD32' },
+        { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000' },
+        { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'human'];
-    var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦'];
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
+    var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
+
+    // --- BALL GEOMETRY & RENDERER ---
+    var Geometry = {
+        basketball: [],
+        soccer: [],
+        seam: [],
+        dimples: [],
+        beach: [],
+        watermelon: [],
+
+        init: function() {
+            // Basketball (3 Rings - Orthogonal)
+            var res = 32;
+            // Ring 1 (XY)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:Math.cos(a), y:Math.sin(a), z:0}); }
+            // Ring 2 (YZ)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:0, y:Math.cos(a), z:Math.sin(a)}); }
+            // Ring 3 (XZ)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:Math.cos(a), y:0, z:Math.sin(a)}); }
+
+            // Soccer (Pentagons)
+            var t = (1.0 + Math.sqrt(5.0)) / 2.0;
+            var icosa = [
+                [-1,  t,  0], [ 1,  t,  0], [-1, -t,  0], [ 1, -t,  0],
+                [ 0, -1,  t], [ 0,  1,  t], [ 0, -1, -t], [ 0,  1, -t],
+                [ t,  0, -1], [ t,  0,  1], [-t,  0, -1], [-t,  0,  1]
+            ];
+
+            var self = this;
+            icosa.forEach(function(center) {
+                var len = Math.sqrt(center[0]*center[0] + center[1]*center[1] + center[2]*center[2]);
+                var cx = center[0]/len; var cy = center[1]/len; var cz = center[2]/len;
+
+                var up = [0, 1, 0];
+                if (Math.abs(cy) > 0.9) up = [1, 0, 0];
+
+                var tx = up[1]*cz - up[2]*cy;
+                var ty = up[2]*cx - up[0]*cz;
+                var tz = up[0]*cy - up[1]*cx;
+                var tLen = Math.sqrt(tx*tx + ty*ty + tz*tz);
+
+                var ux = tx/tLen; var uy = ty/tLen; var uz = tz/tLen;
+                var vx = cy*uz - cz*uy;
+                var vy = cz*ux - cx*uz;
+                var vz = cx*uy - cy*ux;
+
+                var pentagon = [];
+                var radius = 0.25;
+
+                for(var i=0; i<5; i++) {
+                    var angle = (i/5) * Math.PI * 2;
+                    var px = ux * Math.cos(angle) * radius + vx * Math.sin(angle) * radius;
+                    var py = uy * Math.cos(angle) * radius + vy * Math.sin(angle) * radius;
+                    var pz = uz * Math.cos(angle) * radius + vz * Math.sin(angle) * radius;
+
+                    var fx = cx + px; var fy = cy + py; var fz = cz + pz;
+                    var fl = Math.sqrt(fx*fx + fy*fy + fz*fz);
+                    pentagon.push({x:fx/fl, y:fy/fl, z:fz/fl});
+                }
+                self.soccer.push(pentagon);
+            });
+
+            // Seam (Baseball/Tennis)
+            for(var i=0; i<=100; i++) {
+                var t = (i/100)*Math.PI*2;
+                var r0 = 0.4;
+                var x = Math.sin(t) - r0 * Math.sin(3*t);
+                var y = Math.cos(t) + r0 * Math.cos(3*t);
+                var z = 1.4 * Math.cos(2*t);
+                var len = Math.sqrt(x*x + y*y + z*z);
+                this.seam.push({x:x/len, y:y/len, z:z/len});
+            }
+
+            // Dimples (Golf)
+            var numDimples = 200;
+            var phi = Math.PI * (3. - Math.sqrt(5.));
+            for (var i=0; i<numDimples; i++) {
+                var y = 1 - (i / (numDimples - 1)) * 2;
+                var radius = Math.sqrt(1 - y * y);
+                var theta = phi * i;
+                var x = Math.cos(theta) * radius;
+                var z = Math.sin(theta) * radius;
+                this.dimples.push({x:x, y:y, z:z});
+            }
+
+            // Beach Ball
+            for(var s=0; s<6; s++) {
+                var angle = (s/6)*Math.PI*2;
+                var line = [];
+                for(var i=0; i<=20; i++) {
+                    var lat = -Math.PI/2 + (i/20)*Math.PI;
+                    var x = Math.cos(lat) * Math.cos(angle);
+                    var y = Math.sin(lat);
+                    var z = Math.cos(lat) * Math.sin(angle);
+                    line.push({x:x, y:y, z:z});
+                }
+                this.beach.push(line);
+            }
+
+            // Watermelon
+             for(var s=0; s<8; s++) {
+                var angle = (s/8)*Math.PI*2;
+                var line = [];
+                for(var i=0; i<=20; i++) {
+                    var lat = -Math.PI/2 + (i/20)*Math.PI;
+                    var wobble = Math.sin(i * 1.5) * 0.1;
+                    var localAngle = angle + wobble;
+                    var x = Math.cos(lat) * Math.cos(localAngle);
+                    var y = Math.sin(lat);
+                    var z = Math.cos(lat) * Math.sin(localAngle);
+                    line.push({x:x, y:y, z:z});
+                }
+                this.watermelon.push(line);
+            }
+        }
+    };
+    Geometry.init();
+
+    var BallRenderer = {
+        draw: function(ctx, x, y, scale, rotation, ball) {
+            var radius = 25 * scale;
+            if (radius < 1) return; // Cull if too small
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Clip to sphere
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.clip();
+
+            this.drawBackground(ctx, radius, ball);
+            this.drawPattern(ctx, radius, rotation, ball);
+            this.drawLighting(ctx, radius, ball);
+
+            // Border
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2);
+            ctx.lineWidth = 1 * scale;
+            if(ctx.lineWidth < 1) ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
+
+            ctx.restore();
+        },
+
+        drawBackground: function(ctx, r, ball) {
+            var type = ball.type || 'basketball';
+
+            if (type === 'soccer' || type === 'baseball' || type === 'golf') ctx.fillStyle = ball.color1;
+            else if (type === 'tennis') ctx.fillStyle = ball.color1;
+            else if (type === 'eyeball') ctx.fillStyle = '#EEE';
+            else if (type === 'bille8') ctx.fillStyle = '#000';
+            else if (type === 'donut') ctx.fillStyle = '#D2691E';
+            else if (type === 'watermelon') ctx.fillStyle = '#228B22';
+            else if (type === 'earth') ctx.fillStyle = '#0000FF';
+            else {
+                // Gradient default
+                var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.2, 0, 0, r);
+                grad.addColorStop(0, ball.color1);
+                grad.addColorStop(1, ball.color2);
+                ctx.fillStyle = grad;
+            }
+            ctx.fillRect(-r, -r, r*2, r*2);
+
+            // Texture Noise
+            if (ball.texture === 'leather' || ball.texture === 'fuzzy') {
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                // Reduce noise count for performance
+                var count = 10;
+                for(var i=0; i<count; i++) {
+                    ctx.fillRect((Math.random()-0.5)*2*r, (Math.random()-0.5)*2*r, 2, 2);
+                }
+            }
+        },
+
+        drawPattern: function(ctx, r, rot, ball) {
+            var type = ball.type || 'basketball';
+            var cosR = Math.cos(rot);
+            var sinR = Math.sin(rot);
+
+            var project = function(p) {
+                var ry = p.y * cosR - p.z * sinR;
+                var rz = p.y * sinR + p.z * cosR;
+                return { x: p.x * r, y: ry * r, z: rz };
+            };
+
+            if (type === 'basketball') {
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 2 * (r/25);
+
+                // Draw Geometry.basketball
+                ctx.beginPath();
+                var first = true;
+                for(var i=0; i<Geometry.basketball.length; i++) {
+                     if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
+                     var proj = project(Geometry.basketball[i]);
+                     if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                     else ctx.lineTo(proj.x, proj.y);
+                }
+                ctx.stroke();
+            }
+            else if (type === 'soccer') {
+                ctx.fillStyle = ball.color2;
+                for(var i=0; i<Geometry.soccer.length; i++) {
+                    var face = Geometry.soccer[i];
+                    var projPoints = [];
+                    var avgZ = 0;
+                    for(var j=0; j<face.length; j++) {
+                        var p = project(face[j]);
+                        projPoints.push(p);
+                        avgZ += p.z;
+                    }
+                    if (avgZ > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(projPoints[0].x, projPoints[0].y);
+                        for(var k=1; k<5; k++) ctx.lineTo(projPoints[k].x, projPoints[k].y);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+            else if (type === 'baseball' || type === 'tennis') {
+                ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
+                ctx.lineWidth = 3 * (r/25);
+                if (type === 'baseball') ctx.setLineDash([4, 3]);
+
+                ctx.beginPath();
+                var first = true;
+                for(var i=0; i<Geometry.seam.length; i++) {
+                    var proj = project(Geometry.seam[i]);
+                    if (proj.z > -0.5) {
+                        if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                        else ctx.lineTo(proj.x, proj.y);
+                    } else {
+                        first = true;
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            else if (type === 'golf') {
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                for(var i=0; i<Geometry.dimples.length; i++) {
+                    var proj = project(Geometry.dimples[i]);
+                    if (proj.z > 0) {
+                        ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.06, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            }
+            else if (type === 'bille8') {
+                var proj = project({x:0, y:0, z:1});
+                if (proj.z > 0) {
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.45, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold ' + (r*0.6) + 'px Arial';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('8', proj.x, proj.y);
+                }
+            }
+            else if (type === 'bowling') {
+                 var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
+                 ctx.fillStyle = '#111';
+                 holes.forEach(function(h) {
+                     var proj = project(h);
+                     if (proj.z > 0) {
+                         ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.12, 0, Math.PI*2); ctx.fill();
+                     }
+                 });
+            }
+            else if (type === 'eyeball') {
+                var proj = project({x:0, y:0, z:1});
+                if (proj.z > 0) {
+                    ctx.fillStyle = ball.color2;
+                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.beginPath(); ctx.arc(proj.x - r*0.15, proj.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            else if (type === 'beach') {
+                var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
+                for(var s=0; s<6; s++) {
+                     ctx.strokeStyle = colors[s];
+                     ctx.lineWidth = r * 0.8;
+                     ctx.lineCap = 'round';
+                     var first = true;
+                     ctx.beginPath();
+                     var line = Geometry.beach[s];
+                     for(var i=0; i<line.length; i++) {
+                         var proj = project(line[i]);
+                         if (proj.z > -0.2) {
+                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                             else ctx.lineTo(proj.x, proj.y);
+                         } else first = true;
+                     }
+                     ctx.stroke();
+                }
+                ctx.fillStyle = '#FFF';
+                ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
+            }
+            else if (type === 'donut') {
+                 var icingCenter = project({x:0, y:-0.9, z:0});
+                 if (icingCenter.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.arc(icingCenter.x, icingCenter.y, r * 0.85, 0, Math.PI*2); ctx.fill();
+                     // Sprinkles
+                     var sprinkleColors = ['#FFF', '#FF0', '#0FF'];
+                     for(var i=0; i<8; i++) {
+                         ctx.fillStyle = sprinkleColors[i%3];
+                         ctx.fillRect(icingCenter.x + Math.cos(i)*r*0.5, icingCenter.y + Math.sin(i)*r*0.5, 4, 2);
+                     }
+                 }
+                 ctx.fillStyle = '#222';
+                 ctx.beginPath(); ctx.arc(0, 0, r*0.25, 0, Math.PI*2); ctx.fill();
+            }
+            else if (type === 'watermelon') {
+                 ctx.strokeStyle = '#155e15'; ctx.lineWidth = 4 * (r/25);
+                 for(var s=0; s<Geometry.watermelon.length; s++) {
+                     ctx.beginPath();
+                     var first = true;
+                     var line = Geometry.watermelon[s];
+                     for(var i=0; i<line.length; i++) {
+                         var proj = project(line[i]);
+                         if(proj.z > -0.2) {
+                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                             else ctx.lineTo(proj.x, proj.y);
+                         } else first = true;
+                     }
+                     ctx.stroke();
+                 }
+            }
+            else if (type === 'camo') {
+                ctx.fillStyle = ball.color2;
+                var patches = [1,2,3,4];
+                patches.forEach(function(i) {
+                    var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
+                    var proj = project(p);
+                    if (proj.z > 0) {
+                        ctx.beginPath();
+                        ctx.arc(proj.x, proj.y, r * 0.4, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                });
+            }
+            else if (type === 'earth') {
+                 ctx.fillStyle = '#228B22';
+                 var continents = [0, 2, 4];
+                 continents.forEach(function(i) {
+                    var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
+                    var proj = project(p);
+                     if (proj.z > 0) {
+                        ctx.beginPath();
+                        ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                 });
+            }
+        },
+
+        drawLighting: function(ctx, r, ball) {
+            var shininess = ball.shininess || 0.3;
+            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, -r*0.3, -r*0.3, r*1.2);
+            grad.addColorStop(0, 'rgba(255,255,255,' + shininess + ')');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            var shadow = ctx.createRadialGradient(0, 0, r*0.8, 0, 0, r);
+            shadow.addColorStop(0, 'rgba(0,0,0,0)');
+            shadow.addColorStop(1, 'rgba(0,0,0,0.4)');
+            ctx.fillStyle = shadow;
+            ctx.fill();
+        }
+    };
+
+    var BALLS_DB = [
+        { id: 'ball_classic', name: 'Classique', cost: 0, type: 'basketball', color1: '#ff6600', color2: '#cc5500', texture: 'leather' },
+        { id: 'ball_aba', name: 'ABA', cost: 1000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'leather' },
+        { id: 'ball_money', name: 'Money Ball', cost: 2000, type: 'basketball', color1: '#FFFFFF', color2: '#0000FF', texture: 'leather' },
+        { id: 'ball_tennis', name: 'Tennis', cost: 1500, type: 'tennis', color1: '#CCFF00', color2: '#99CC00', texture: 'fuzzy' },
+        { id: 'ball_bowling', name: 'Bowling', cost: 2000, type: 'bowling', color1: '#111', color2: '#333', shininess: 0.9 },
+        { id: 'ball_ice', name: 'Glace', cost: 3000, type: 'basketball', color1: '#E0FFFF', color2: '#FFF', texture: 'ice' },
+        { id: 'ball_night', name: 'Nuit', cost: 3500, type: 'basketball', color1: '#4B0082', color2: '#000', texture: 'leather' },
+        { id: 'ball_gold', name: 'Or', cost: 5000, type: 'basketball', color1: '#FFD700', color2: '#DAA520', shininess: 1.0, texture: 'leather' },
+        { id: 'ball_slime', name: 'Radioactif', cost: 4000, type: 'basketball', color1: '#00FF00', color2: '#006400', texture: 'slime' },
+        { id: 'ball_galaxy', name: 'Galaxie', cost: 10000, type: 'basketball', color1: '#8A2BE2', color2: '#4B0082', texture: 'galaxy' },
+
+        { id: 'ball_soccer', name: 'Soccer', cost: 1000, type: 'soccer', color1: '#FFFFFF', color2: '#000000' },
+        { id: 'ball_baseball', name: 'Baseball', cost: 1000, type: 'baseball', color1: '#FFFFFF', color2: '#FF0000' },
+        { id: 'ball_8ball', name: 'Bille 8', cost: 1500, type: 'bille8', color1: '#000000', color2: '#111111', shininess: 0.8 },
+        { id: 'ball_golf', name: 'Golf', cost: 1000, type: 'golf', color1: '#FFFFFF', color2: '#EEE' },
+        { id: 'ball_watermelon', name: 'Pastèque', cost: 2000, type: 'watermelon', color1: '#FF6347', color2: '#228B22' },
+        { id: 'ball_donut', name: 'Beigne', cost: 2500, type: 'donut', color1: '#FF69B4', color2: '#D2691E' },
+        { id: 'ball_earth', name: 'Terre', cost: 3000, type: 'earth', color1: '#0000FF', color2: '#228B22' },
+        { id: 'ball_lava', name: 'Magma', cost: 4000, type: 'lava', color1: '#FF4500', color2: '#8B0000' },
+        { id: 'ball_rainbow', name: 'Arc-en-ciel', cost: 5000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'rainbow' },
+        { id: 'ball_camo', name: 'Camouflage', cost: 2500, type: 'camo', color1: '#556B2F', color2: '#8B4513' },
+        { id: 'ball_beach', name: 'Plage', cost: 1500, type: 'beach', color1: '#FFFF00', color2: '#0000FF' },
+        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' }
+    ];
 
     var SHOOTING_STYLES = [
         // KEPT
@@ -1045,7 +1550,14 @@
         { id: 'tpose', name: 'Le Glitch', cost: 0, desc: 'T-Pose menaçante. (Au sol)', modifiers: { jumpVelocity: 0, speed: 3.0, timingWindow: 0.3 } },
         { id: 'airbud', name: 'Le Museau', cost: 0, desc: 'Passe de la truffe.', modifiers: { speed: 1.2, jumpVelocity: 0 } },
         { id: 'telekinesis', name: 'Psychokinésie', cost: 0, desc: 'Par la pensée.', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
-        { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } }
+        { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } },
+        { id: 'soccer', name: 'Touche', cost: 0, desc: 'Remise en jeu.', modifiers: { jumpVelocity: 0, speed: 1.1 } },
+        { id: 'no_look', name: 'Aveugle', cost: 0, desc: 'Trop facile.', modifiers: { speed: 1.0 } },
+        { id: 'shot_put', name: 'Poids', cost: 0, desc: 'Lancer lourd.', modifiers: { speed: 0.6 } },
+        { id: 'dab', name: 'Le Dab', cost: 0, desc: 'Style swag.', modifiers: { speed: 1.0 } },
+        { id: 'helicopter', name: 'Hélico', cost: 0, desc: 'Rotation rapide.', modifiers: { speed: 1.2 } },
+        { id: 'prayer', name: 'Prière', cost: 0, desc: 'Espoir divin.', modifiers: { speed: 0.8, jumpVelocity: 5.0 } },
+        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -1220,6 +1732,41 @@
             ready: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0 }, // Hands on face
             set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0 }, // Still on face
             release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0 } // Fling Out
+        },
+        soccer: {
+            ready: { la: 2.5, ra: 0.6, lfa: 2.0, rfa: 1.0, w: 0 }, // Overhead
+            set: { la: 2.8, ra: 0.3, lfa: 2.5, rfa: 0.5, w: 0 }, // Back
+            release: { la: -1.5, ra: -1.6, lfa: 0.1, rfa: -0.1, w: 0 } // Throw
+        },
+        no_look: {
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0 },
+            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0 }
+        },
+        shot_put: {
+            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -2.5, w: 0 }, // Ball at neck
+            set: { la: -1.0, ra: -1.0, lfa: -1.0, rfa: -2.8, w: 0 }, // Crouch
+            release: { la: -2.0, ra: -1.5, lfa: -2.0, rfa: -0.5, w: 0 } // Push out
+        },
+        dab: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.0, ra: -2.0, lfa: -1.0, rfa: -1.0, w: 0 },
+            release: { la: -0.5, ra: -2.5, lfa: 2.5, rfa: -0.5, w: 0 } // Dab pose
+        },
+        helicopter: {
+            ready: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0 }, // Arms up
+            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 }, // Down
+            release: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0 } // Up again
+        },
+        prayer: {
+            ready: { la: -1.5, ra: -1.6, lfa: -1.0, rfa: -2.1, w: 0 }, // Hands clasped
+            set: { la: -1.8, ra: -1.9, lfa: -1.0, rfa: -2.1, w: 0 }, // Look up
+            release: { la: -2.0, ra: -2.1, lfa: -0.5, rfa: -2.6, w: 0 } // Reach up
+        },
+        spirit_bomb: {
+            ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0 }, // Hands high V shape
+            set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0 }, // Charge
+            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0 } // Throw down
         }
     };
 
@@ -1434,23 +1981,6 @@
         g_noiseLUT[i] = Math.random();
     }
 
-    // --- BASKETBALL GEOMETRY (For Rotation) ---
-    var g_ballGeo = [];
-    function generateBasketballGeometry() {
-        const paths = [];
-        const res = 24; // Points per circle
-
-        // Circle 1: Facing Viewer (XY Plane)
-        let c1 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c1.push({x:Math.cos(a), y:Math.sin(a), z:0}); }
-        // Circle 2: Perpendicular Vertical (YZ Plane)
-        let c2 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c2.push({x:0, y:Math.cos(a), z:Math.sin(a)}); }
-        // Circle 3: Perpendicular Horizontal (XZ Plane)
-        let c3 = []; for(let i=0; i<=res; i++) { const a = (i/res)*Math.PI*2; c3.push({x:Math.cos(a), y:0, z:Math.sin(a)}); }
-
-        paths.push(c1, c2, c3);
-        return paths;
-    }
-    g_ballGeo = generateBasketballGeometry();
 
     function binarySearchLowerBound(arr, val) {
         let l = 0, r = arr.length - 1;
@@ -1836,8 +2366,6 @@
     sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
 
     const scoreEl = document.getElementById('scoreVal');
-    const distEl = document.getElementById('distVal');
-    const highScoreEl = document.getElementById('highScoreVal');
     const shopUI = document.getElementById('shopUI');
     const achUI = document.getElementById('achUI');
     const statsUI = document.getElementById('statsUI');
@@ -1845,10 +2373,6 @@
     const courtNameEl = document.getElementById('courtNameDisplay');
     const missValEl = document.getElementById('missVal');
     const container = document.getElementById('game-container');
-    const contestUI = document.getElementById('contest-ui');
-const contestTimeEl = document.getElementById('contestTime');
-const contestScoreEl = document.getElementById('contestScore');
-const contestRackEl = document.getElementById('contestRack');
 
     canvas.width = 1066;
     canvas.height = 600;
@@ -1856,6 +2380,7 @@ const contestRackEl = document.getElementById('contestRack');
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
     let viewingStyleIndex = 0;
+    let viewingBallIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -1896,13 +2421,15 @@ let lastDisplayedContestTime = -1;
         stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+        dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
         unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
-        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
+        unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
         mobileControls: false, platformChosen: false,
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
         releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
         graphics: 'HIGH', // 'HIGH' or 'LOW'
-        currentTrackIndex: 0
+        currentTrackIndex: 0,
+        leaderboards: { classic: [], contest: [], time_attack: [] }
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -1919,12 +2446,15 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -1940,10 +2470,169 @@ let lastDisplayedContestTime = -1;
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
-    highScoreEl.innerText = playerData.highScore + " pi";
+    // Initialize Daily Challenge
+    initDailyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
     function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+
+    function initDailyChallenge() {
+        const today = new Date().toDateString();
+        // Reset if date changed or if data is missing/corrupt
+        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
+            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
+            const challenge = DAILY_CHALLENGES[randomIndex];
+            playerData.dailyChallenge = {
+                date: today,
+                id: challenge.id,
+                progress: 0,
+                claimed: false
+            };
+            saveData();
+        }
+    }
+
+    // --- LEADERBOARD LOGIC ---
+    let pendingHighScore = { mode: null, score: 0 };
+
+    function getLeaderboard(mode) {
+        if (!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+        if (!playerData.leaderboards[mode]) playerData.leaderboards[mode] = [];
+        return playerData.leaderboards[mode];
+    }
+
+    function isHighScore(mode, score) {
+        const list = getLeaderboard(mode);
+        if (list.length < 50) return true;
+        const lowest = list[list.length - 1].score;
+        return score > lowest;
+    }
+
+    function addHighScore(mode, score, name) {
+        const list = getLeaderboard(mode);
+        const entry = {
+            name: name.toUpperCase().substring(0, 3),
+            score: score,
+            date: new Date().toDateString()
+        };
+        list.push(entry);
+        list.sort((a, b) => b.score - a.score);
+        if (list.length > 50) list.length = 50;
+        saveData();
+    }
+
+    function openLeaderboard() {
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'LEADERBOARD';
+        document.getElementById('leaderboardUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboardUI').style.display = 'none';
+        state = 'IDLE';
+        // If coming from Game Over flow?
+        if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
+    }
+
+    function switchLeaderboardTab(mode) {
+        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
+
+        const list = getLeaderboard(mode);
+        const container = document.getElementById('lbList');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
+            return;
+        }
+
+        list.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            // Highlight pending score? Not easy to track unique ID without adding one.
+            // Just basic render.
+            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+            container.appendChild(div);
+        });
+    }
+
+    function handleHighScoreInput() {
+        // Called when game detects high score
+        state = 'HIGHSCORE_INPUT';
+        document.getElementById('highScoreUI').style.display = 'block';
+        setTimeout(() => {
+             const inp = document.getElementById('hsNameInput');
+             inp.value = '';
+             inp.focus();
+        }, 100);
+    }
+
+    function submitHighScoreInput() {
+        const name = document.getElementById('hsNameInput').value;
+        if (!name) return;
+
+        addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
+        document.getElementById('highScoreUI').style.display = 'none';
+
+        // Reset state so leaderboard can open
+        state = 'IDLE';
+        // Show Leaderboard to confirm
+        openLeaderboard();
+        // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
+
+    function checkGameOverSequence(mode, score) {
+        // Update Game Over State Logic
+        if (isHighScore(mode, score)) {
+            pendingHighScore = { mode: mode, score: score };
+            handleHighScoreInput();
+        } else {
+            openShop();
+        }
+    }
+
+    function checkDailyProgress(type, amount) {
+        const dc = playerData.dailyChallenge;
+        if (dc.claimed) return;
+
+        const challengeDef = DAILY_CHALLENGES.find(c => c.id === dc.id);
+        if (!challengeDef) return;
+
+        // If the active challenge type matches the event
+        if (challengeDef.type === type) {
+            if (type === 'streak') {
+                // Streak is "reach X", not cumulative
+                if (amount >= challengeDef.target) {
+                    completeDailyChallenge(challengeDef);
+                }
+            } else {
+                // Cumulative
+                dc.progress += amount;
+                if (dc.progress >= challengeDef.target) {
+                    dc.progress = challengeDef.target;
+                    completeDailyChallenge(challengeDef);
+                } else {
+                    saveData();
+                }
+            }
+        }
+    }
+
+    function completeDailyChallenge(def) {
+        if(playerData.dailyChallenge.claimed) return;
+        playerData.dailyChallenge.claimed = true;
+        playerData.tacos += def.reward;
+        saveData();
+        showNotification("DÉFI COMPLÉTÉ !", def.reward);
+        // Visual flair could go here
+    }
 
     function calculateShotThreshold() {
         const style = getCurrentStyle();
@@ -2311,7 +3000,15 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 20); ctx.lineTo(canvas.width / 2, canvas.height - 20); ctx.stroke();
 
         if (currentGameMode === 'CLASSIC') {
-            // LEFT SIDE: Distance
+            // LEFT SIDE: Record & Current Distance
+            // Record
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 250, y + 85);
+
+            // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
             ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, y + 45);
@@ -2335,20 +3032,54 @@ let lastDisplayedContestTime = -1;
             ctx.fillText(scaleObj.name.toUpperCase(), iconX + 40, y + 85);
         }
         else if (currentGameMode === 'CONTEST') {
-            // Contest Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText("3-POINT CONTEST", canvas.width / 2, y + 75);
+            const time = Math.ceil(contestData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("QUEBEC EDITION", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(contestData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RACK
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RACK", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, y + 85);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
-            // Time Attack Stats
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#FF4500"; ctx.font = fontValue;
-            ctx.fillText("TIME ATTACK MODE", canvas.width / 2, y + 75);
+            const time = Math.ceil(timeAttackData.timer);
+
+            // LEFT SIDE: TIME & SCORE
+            // Time
+            ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE AS FAST AS YOU CAN", canvas.width / 2, y + 40);
+            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
+            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+
+            // Score
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
+            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, y + 85);
+
+            // RIGHT SIDE: RECORD
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
+            ctx.fillText("RECORD", canvas.width / 2 + 25, y + 45);
+
+            ctx.fillStyle = "#fff"; ctx.font = fontValue;
+            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, y + 85);
         }
 
         // Live Indicator
@@ -2357,77 +3088,41 @@ let lastDisplayedContestTime = -1;
         ctx.fillText("LIVE", 35, y + 28);
     }
 
-    function drawBallSprite(x, y, scale, isFire = false, rotation = 0) {
-        let color1 = '#ff6600'; let color2 = '#cc5500';
-        let key = 'ball_default';
+    function drawBallSprite(x, y, scale, isFire, rotation) {
+        if (isFire === undefined) isFire = false;
+        if (rotation === undefined) rotation = 0;
 
+        // Determine Ball Object
+        var ballObj = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            color1 = '#FFFFFF'; color2 = '#0000FF'; key = 'ball_money';
-        } else if (isFire) {
-            color1 = '#FFFF00'; color2 = '#FF0000'; key = 'ball_fire';
+            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+        } else {
+            var ballId = playerData.currentBall || 'ball_classic';
+            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
         }
+        if (!ballObj) ballObj = BALLS_DB[0];
 
-        // Bloom Effect (High Graphics)
-        if (isFire && playerData.graphics === 'HIGH') {
-            ctx.shadowColor = '#FF4500';
-            ctx.shadowBlur = 20 * scale;
+        // Draw High Quality Ball (Scale adjusted: The old function used 8*scale radius, BallRenderer uses 25*scale.
+        // We need to match visual size.
+        // 8 * scale was the visual radius.
+        // BallRenderer.draw uses radius = 25 * passedScale.
+        // So passedScale should be scale * (8/25) = scale * 0.32.
+
+        BallRenderer.draw(ctx, x, y, scale * 0.32, rotation, ballObj);
+
+        // Fire Effect Glow (Overlay)
+        if (isFire) {
+            ctx.save();
+            ctx.translate(x, y);
+            var r = 8 * scale; // Match visual radius
+            var glow = ctx.createRadialGradient(0, 0, r, 0, 0, r * 2.0);
+            var hue = (typeof getStreakFireHue === 'function') ? getStreakFireHue(currentStreak || 10) : 30;
+            glow.addColorStop(0, 'hsla('+hue+', 100%, 50%, 0.6)');
+            glow.addColorStop(1, 'hsla('+hue+', 100%, 50%, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath(); ctx.arc(0, 0, r * 2.0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
         }
-
-        const fillStyle = getCachedPattern(key, (gradCtx, size) => {
-            const r = size / 2;
-            const grad = gradCtx.createRadialGradient(r*0.8, r*0.8, 1, r, r, r);
-            grad.addColorStop(0, color1);
-            grad.addColorStop(1, color2);
-            gradCtx.fillStyle = grad;
-            gradCtx.fillRect(0, 0, size, size);
-        });
-
-        ctx.fillStyle = fillStyle;
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1 * scale;
-
-        // Base Circle
-        ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-
-        // Setup Lines
-        ctx.save();
-        ctx.beginPath(); ctx.arc(x, y, 8 * scale, 0, Math.PI*2); ctx.clip(); // Clip lines to ball
-
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) { ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 2 * scale; }
-        else if (isFire) { ctx.strokeStyle = '#FFFF00'; ctx.lineWidth = 2 * scale; }
-        else { ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.5 * scale; }
-
-        // Draw Rotated Geometry
-        const radius = 8 * scale;
-        const cosR = Math.cos(rotation);
-        const sinR = Math.sin(rotation);
-
-        if (g_ballGeo && g_ballGeo.length > 0) {
-            g_ballGeo.forEach(path => {
-                ctx.beginPath();
-                for(let i=0; i<path.length; i++) {
-                    const p = path[i];
-                    // Rotate around X-axis (Backspin: Texture moves Down)
-                    // y' = y*cos - z*sin
-                    // z' = y*sin + z*cos
-                    // We render (x, y')
-
-                    const ry = p.y * cosR - p.z * sinR;
-                    // For z-depth cull (optional, not strictly needed for wireframe on sphere)
-                    // const rz = p.y * sinR + p.z * cosR;
-
-                    const px = x + p.x * radius;
-                    const py = y + ry * radius;
-
-                    if (i===0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
-                }
-                ctx.stroke();
-            });
-        }
-
-        ctx.restore();
-        ctx.shadowBlur = 0; // Reset
     }
 
     function drawBall(p, ballRef) {
@@ -2753,6 +3448,44 @@ let lastDisplayedContestTime = -1;
                 {x: cx - w*0.5, y: waistY}
             ];
         }
+        else if (options.bodyShape === 'giraffe') {
+             // Sloping shoulders, narrow chest
+             const shoulderW = w * 0.8;
+             const hipW = w * 0.9;
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY + h*0.1}, // Sloped down
+                 {x: cx, y: shoulderY}, // Neck connect point (virtual)
+                 {x: cx + shoulderW/2, y: shoulderY + h*0.1}, // Sloped down
+                 {x: cx + hipW/2, y: hipY},
+                 {x: cx - hipW/2, y: hipY}
+             ];
+        }
+        else if (options.bodyShape === 'heavy') {
+             // Elephant/Hippo - Boxy and wide
+             const shoulderW = w * 1.3;
+             const bellyW = w * 1.4;
+             const hipW = w * 1.3;
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY},
+                 {x: cx + shoulderW/2, y: shoulderY},
+                 {x: cx + bellyW/2, y: topY + h*0.5},
+                 {x: cx + hipW/2, y: hipY},
+                 {x: cx - hipW/2, y: hipY},
+                 {x: cx - bellyW/2, y: topY + h*0.5}
+             ];
+        }
+        else if (options.bodyShape === 'penguin') {
+             // Tear drop
+             const topW = w * 0.5;
+             const botW = w * 1.5;
+             points = [
+                 {x: cx - topW/2, y: shoulderY},
+                 {x: cx + topW/2, y: shoulderY},
+                 {x: cx + botW/2, y: hipY - h*0.2},
+                 {x: cx, y: hipY + h*0.1}, // Pointy tail/bottom
+                 {x: cx - botW/2, y: hipY - h*0.2}
+             ];
+        }
         else {
             // Default Humanoid (Hourglass/Trapezoid)
             points = [
@@ -2845,7 +3578,7 @@ let lastDisplayedContestTime = -1;
                      const matrix = new DOMMatrix();
                      matrix.translateSelf(cx, topY);
                      fillStyle.setTransform(matrix);
-                 }
+                }
             } else {
                  const cacheKey = `anatomic_body_${color}`;
                  fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
@@ -2862,35 +3595,112 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = fillStyle;
             ctx.fill();
 
-            // Muscle Definition (High Graphics)
+            if (options.pattern === 'spartan_tattoo') {
+                ctx.save();
+                ctx.clip(); // Clip to body shape
+
+                ctx.strokeStyle = '#8B0000'; // Blood Red
+                ctx.lineWidth = w * 0.25;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                // Over Left Shoulder (Back View Left)
+                ctx.moveTo(cx - w*0.5, topY - h*0.1);
+                ctx.quadraticCurveTo(cx - w*0.1, topY + h*0.4, cx - w*0.6, topY + h*0.8);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Muscle Definition (High Graphics) - BACK VIEW
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
-                 ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                 // Pectorals
-                 const chestY = shoulderY + h * 0.25;
-                 const chestW = w * 0.4;
-                 ctx.beginPath();
-                 // Left Pec
-                 ctx.ellipse(cx - chestW*0.6, chestY, chestW*0.8, h*0.15, 0.2, 0, Math.PI*2);
-                 ctx.fill();
-                 // Right Pec
-                 ctx.beginPath();
-                 ctx.ellipse(cx + chestW*0.6, chestY, chestW*0.8, h*0.15, -0.2, 0, Math.PI*2);
-                 ctx.fill();
+                 const animal = options.animal || 'human';
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
 
-                 // Abs (6-pack)
-                 const absY = chestY + h * 0.25;
-                 const absW = w * 0.25;
-                 const absH = h * 0.35;
-                 ctx.fillStyle = 'rgba(0,0,0,0.05)';
+                 if (animal === 'dino') {
+                     // Dino: Spine Ridge (Protruding vertebrae)
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h * 0.1);
+                     ctx.lineTo(cx, topY + h * 0.9);
+                     ctx.lineWidth = w * 0.08;
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)'; // Darker spine
+                     ctx.stroke();
 
-                 const gap = 2*scale;
-                 const cellW = (absW - gap)/2;
-                 const cellH = (absH - gap*2)/3;
-
-                 for(let r=0; r<3; r++) {
-                     ctx.fillRect(cx - absW/2, absY + r*(cellH+gap), cellW, cellH);
-                     ctx.fillRect(cx + gap/2, absY + r*(cellH+gap), cellW, cellH);
+                     // Horizontal Skin Folds
+                     ctx.lineWidth = w * 0.04;
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.3); ctx.lineTo(cx + w*0.3, topY + h*0.35); ctx.stroke();
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.5); ctx.lineTo(cx + w*0.3, topY + h*0.55); ctx.stroke();
+                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.7); ctx.lineTo(cx + w*0.3, topY + h*0.75); ctx.stroke();
                  }
+                 else if (animal === 'elephant') {
+                     // Elephant: Deep Spine Indent + Wrinkles
+                     ctx.lineWidth = w * 0.05;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.1); ctx.lineTo(cx, topY + h * 0.9); ctx.stroke();
+
+                     // Wrinkles
+                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                     ctx.lineWidth = w * 0.02;
+                     for(let i=1; i<5; i++) {
+                         let y = topY + h * (0.2 * i);
+                         ctx.beginPath();
+                         ctx.moveTo(cx - w*0.4, y);
+                         ctx.quadraticCurveTo(cx, y + h*0.05, cx + w*0.4, y);
+                         ctx.stroke();
+                     }
+                 }
+                 else if (animal === 'frog') {
+                     // Frog: Angular Spine hump
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                     ctx.lineWidth = w * 0.06;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
+                     // Hip Bumps
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                     ctx.beginPath(); ctx.arc(cx - w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
+                     ctx.beginPath(); ctx.arc(cx + w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
+                 }
+                 else if (animal === 'penguin') {
+                     // Smooth, just faint spine
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     ctx.lineWidth = w * 0.03;
+                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
+                 }
+                 else if (animal === 'human' || animal === 'monkey') {
+                     // Human / Monkey (Scapula)
+                     // Spine Indentation
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h * 0.2);
+                     ctx.lineTo(cx, topY + h * 0.8);
+                     ctx.lineWidth = w * 0.05;
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     ctx.stroke();
+
+                     // Shoulder Blades (Scapula)
+                     const scapY = topY + h * 0.25;
+
+                     // Left Scapula
+                     ctx.beginPath();
+                     ctx.moveTo(cx - w*0.15, scapY);
+                     ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
+                     ctx.lineWidth = w * 0.03;
+                     ctx.stroke();
+
+                     // Right Scapula
+                     ctx.beginPath();
+                     ctx.moveTo(cx + w*0.15, scapY);
+                     ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
+                     ctx.stroke();
+
+                     // Trapezius / Upper Back shading
+                     ctx.fillStyle = 'rgba(0,0,0,0.05)';
+                     ctx.beginPath();
+                     ctx.moveTo(cx, topY + h*0.1);
+                     ctx.lineTo(cx - w*0.3, topY + h*0.2);
+                     ctx.lineTo(cx, topY + h*0.4);
+                     ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                     ctx.fill();
+                 }
+                 // Turtles and others get no muscle definition (shell or smooth)
             }
 
             // Rim Light
@@ -2932,6 +3742,7 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         }
     }
+
 
     function drawLimb(x1, y1, x2, y2, width, color) {
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
@@ -3142,23 +3953,51 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 2*s); ctx.lineTo(p.x - 5*s, p.y - 2*s); ctx.stroke();
              ctx.beginPath(); ctx.moveTo(p.x + 2*s, p.y + 2*s); ctx.lineTo(p.x + 8*s, p.y + 2*s); ctx.stroke();
         }
-        else if (type === 'castle') {
-            const w = 40 * s; const h = 60 * s;
-            ctx.fillStyle = '#808080';
+        else if (type === 'castle') { // Now Residential Houses
+            const wallColors = ['#F5F5DC', '#FFFACD', '#E0FFFF', '#FFC0CB', '#98FB98', '#D3D3D3', '#F0E68C', '#ADD8E6'];
+            const roofColors = ['#8B4513', '#A52A2A', '#2F4F4F', '#696969', '#800000', '#556B2F'];
+
+            // Deterministic selection
+            const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
+            const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
+
+            const w = 50 * s;
+            const h = 50 * s;
+
+            // Body
+            ctx.fillStyle = wallColor;
             ctx.fillRect(p.x - w/2, p.y - h, w, h);
-            ctx.fillStyle = '#696969';
-            ctx.fillRect(p.x - w/2 - 10*s, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillRect(p.x + w/2, p.y - h*0.8, 10*s, h*0.8);
-            ctx.fillStyle = '#808080';
-            const bW = w/3;
-            ctx.fillRect(p.x - w/2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillRect(p.x - w/2 + bW*2, p.y - h - 5*s, bW*0.6, 5*s);
-            ctx.fillStyle = '#8B0000';
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 - 12*s, p.y - h*0.8); ctx.lineTo(p.x - w/2 - 5*s, p.y - h*1.1); ctx.lineTo(p.x - w/2 + 2*s, p.y - h*0.8); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 2*s, p.y - h*0.8); ctx.lineTo(p.x + w/2 + 5*s, p.y - h*1.1); ctx.lineTo(p.x + w/2 + 12*s, p.y - h*0.8); ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath(); ctx.arc(p.x, p.y, 10*s, Math.PI, 0); ctx.fill();
+
+            // Roof (Pitched)
+            ctx.fillStyle = roofColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.fill();
+
+            // Door
+            ctx.fillStyle = '#4E342E';
+            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            // Knob
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+
+            // Windows
+            ctx.fillStyle = '#87CEEB';
+            // Window 1
+            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            // Window 2
+            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+
+            // Window Frames
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            // Cross 1
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            // Cross 2
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -3702,7 +4541,94 @@ let lastDisplayedContestTime = -1;
         ctx.fill();
     }
 
+    function drawLinkTunic(cx, topY, w, h, scale, skinObj) {
+        const color = skinObj.jerseyColor || '#00A000';
+        const beltColor = '#8B4513';
+
+        // Extended length for tunic
+        const tunicLen = h * 1.2;
+        const shoulderW = w * 1.6;
+        const waistW = w * 1.0;
+        const bottomW = w * 1.3; // Flared bottom
+
+        const shoulderY = topY;
+        const waistY = topY + h * 0.55;
+        const bottomY = topY + tunicLen;
+
+        // Main Tunic Shape
+        ctx.beginPath();
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
+
+        // Sides to waist
+        ctx.lineTo(cx + waistW/2, waistY);
+        // Flared bottom (Skirt part of tunic)
+        ctx.lineTo(cx + bottomW/2, bottomY);
+        ctx.lineTo(cx - bottomW/2, bottomY);
+        ctx.lineTo(cx - waistW/2, waistY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
+        ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Shading
+        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Belt
+        ctx.fillStyle = beltColor;
+        ctx.fillRect(cx - waistW*0.55, waistY - 5*scale, waistW*1.1, 10*scale);
+        // Buckle (silver)
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(cx - 5*scale, waistY - 5*scale, 10*scale, 10*scale);
+
+        // Collar (Back)
+        ctx.fillStyle = '#EEE'; // White undershirt collar
+        ctx.beginPath();
+        ctx.moveTo(cx - 10*scale, topY);
+        ctx.quadraticCurveTo(cx, topY + 5*scale, cx + 10*scale, topY);
+        ctx.lineTo(cx + 8*scale, topY - 2*scale);
+        ctx.quadraticCurveTo(cx, topY + 3*scale, cx - 8*scale, topY - 2*scale);
+        ctx.fill();
+    }
+
     function drawShorts(cx, waistY, w, h, scale, skinObj) {
+        if (skinObj.shortsType === 'kilt') {
+             const color = skinObj.shortsColor || '#5D4037'; // Leather
+             const beltH = 5 * scale;
+             const stripCount = 5;
+             const stripW = w / stripCount;
+
+             // Belt
+             ctx.fillStyle = '#3E2723';
+             ctx.fillRect(cx - w/2, waistY, w, beltH);
+             // Gold Buckle
+             ctx.fillStyle = '#FFD700';
+             ctx.fillRect(cx - w*0.1, waistY, w*0.2, beltH);
+
+             // Pteruges (Strips)
+             for(let i=0; i<stripCount; i++) {
+                 const sx = (cx - w/2) + i*stripW;
+                 ctx.fillStyle = color;
+                 // Main Strip
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, stripW - 2*scale, h - beltH);
+
+                 // Shadow/Edge
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, 1*scale, h - beltH);
+
+                 // Stud Detail
+                 ctx.fillStyle = '#C0C0C0';
+                 ctx.beginPath(); ctx.arc(sx + stripW/2, waistY + h - 5*scale, 2*scale, 0, Math.PI*2); ctx.fill();
+             }
+             return;
+        }
+
         // Baggy Shorts
         const color = skinObj.shortsColor || '#FFF';
         const waistW = w * 1.0;
@@ -3850,7 +4776,9 @@ let lastDisplayedContestTime = -1;
         const bodyH = 40 * s * sizeMod.h;
         const legLen = 30 * s * sizeMod.h;
         let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head);
+        let neckLen = 0;
+        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
+        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         const headRadius = 12 * s * sizeMod.head;
 
         // Super Saiyan Aura
@@ -3914,6 +4842,12 @@ let lastDisplayedContestTime = -1;
             wristAngle = r_w;
         }
 
+        // Draw Neck (Extension)
+        if (neckLen > 5*s) {
+            ctx.fillStyle = furColor;
+            const neckW = 12 * s * sizeMod.w * 0.7;
+            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
+        }
         let shoulderY = torsoY + (5*s);
         let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
@@ -3962,7 +4896,7 @@ let lastDisplayedContestTime = -1;
         // 1. Colors
         const jerseyColor = skinObj.jerseyColor || '#FFF';
         const shortsColor = skinObj.shortsColor || '#FFF';
-        const sleeveRight = skinObj.sleeveRight;
+        const sleeveRight = skinObj.sleeveRight || skinObj.sleeveColor;
         const sleeveLeft = skinObj.sleeveLeft || skinObj.sleeveColor;
         const socksColor = skinObj.socksColor;
         const shoesColor = skinObj.shoesColor;
@@ -3992,7 +4926,7 @@ let lastDisplayedContestTime = -1;
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
 
-            if (skinObj.jerseyType === 'tshirt') uColor = jerseyColor;
+            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
 
             if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
             if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
@@ -4067,10 +5001,12 @@ let lastDisplayedContestTime = -1;
         // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
         if (skinObj.jerseyType === 'none') {
              // Bare Torso
-             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null });
+             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null, pattern: skinObj.pattern });
              // Muscle Detail (Spine/Pecs)
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.moveTo(p.x, torsoY + 10*s); ctx.lineTo(p.x, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + 10*s); ctx.fill();
+        } else if (skinObj.jerseyType === 'link_tunic') {
+             drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         } else {
              drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         }
@@ -4091,7 +5027,9 @@ let lastDisplayedContestTime = -1;
 
         // Draw Calves/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, skinTone, 'calf', s);
+             let calfCol = skinTone;
+             if (skinObj.legType === 'pants') calfCol = shortsColor;
+             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
              // Socks
              if(socksColor) {
                  const sockH = 7 * s;
@@ -4332,6 +5270,39 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.arc(ex, ey, 2.5*s, 0, Math.PI*2); ctx.fill();
              }
         }
+        else if(skinObj.hairStyle === 'hat') {
+             const hColor = skinObj.hairColor || '#3c2415';
+             const capColor = skinObj.hatColor || '#F00';
+
+             // 1. Hair (Bottom/Side visibility)
+             ctx.fillStyle = hColor;
+             ctx.beginPath();
+             // Draw hair extending lower than the hat
+             ctx.arc(p.x, headY + 3*s, headRadius * 1.05, 0, Math.PI);
+             ctx.lineTo(p.x + headRadius * 1.05, headY);
+             ctx.lineTo(p.x - headRadius * 1.05, headY);
+             ctx.fill();
+
+             // 2. Cap Dome (Oversized to fit over head)
+             ctx.fillStyle = capColor;
+             ctx.beginPath();
+             // Top Dome
+             ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+             // Sides down to ears
+             ctx.lineTo(p.x + headRadius * 1.2, headY + 4*s);
+             // Bottom curve of cap (back strap area)
+             ctx.quadraticCurveTo(p.x, headY + 8*s, p.x - headRadius * 1.2, headY + 4*s);
+             ctx.lineTo(p.x - headRadius * 1.2, headY - 2*s);
+             ctx.fill();
+
+             // 3. Optional Shading
+             if (playerData.graphics === 'HIGH') {
+                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, headRadius * 1.2, Math.PI, 0);
+                 ctx.fill();
+             }
+        }
 
         if(skinObj.beard) {
              ctx.fillStyle = skinObj.beardColor || '#000';
@@ -4370,6 +5341,26 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = skinObj.hatColor || '#5D4037';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
         }
         else if (skinObj.headAccessory === 'helmet') {
              ctx.fillStyle = skinObj.hatColor || '#87CEEB';
@@ -4451,6 +5442,77 @@ let lastDisplayedContestTime = -1;
              const bp = skinObj.backProp;
              const centerX = p.x;
              const centerY = torsoY + bodyH * 0.4;
+
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
+             }
 
              if (bp === 'axe') {
                  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 4*s;
@@ -4625,16 +5687,29 @@ let lastDisplayedContestTime = -1;
             case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
             case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
             case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
+            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
+            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
+            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
+            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
+            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
         }
+
+        // Apply Skin Overrides (Size & Proportions)
+        if (skinObj.widthScale) sizeMod.w = skinObj.widthScale;
+        if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
+        if (skinObj.armWidthScale) sizeMod.armWidth = skinObj.armWidthScale;
+        if (skinObj.legWidthScale) sizeMod.legWidth = skinObj.legWidthScale;
 
         // Fill defaults if missing
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
 
         // Determine if Furry
-        let isFurry = !skin.includes('robot') && !skin.includes('astronaut') && !skin.includes('alien') && !skin.includes('ninja');
-        if (currentAnimal === 'human') isFurry = false;
-        if (currentAnimal === 'penguin') isFurry = false; // Smooth feathers
+        const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
+        const isNonFurrySkin = skin.includes('robot') || skin.includes('astronaut') || skin.includes('alien') || skin.includes('ninja');
+        let isFurry = !NON_FURRY_ANIMALS.includes(currentAnimal) && !isNonFurrySkin;
 
         // 1. Setup Base Colors
         let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
@@ -4686,6 +5761,7 @@ let lastDisplayedContestTime = -1;
 
         // Legs: If "trousers" (long pants), calf follows thigh color
         if (skinObj.legType === 'pants') calfColor = thighColor;
+        if (skinObj.legType === 'tights') calfColor = thighColor;
 
         // Panda Logic (Black limbs)
         if (skinObj.legType === 'panda_limbs') {
@@ -4743,8 +5819,22 @@ let lastDisplayedContestTime = -1;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
 
         let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
-        let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head);
+        let neckLen = 0;
+
+        // Pose Logic
+        const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
+        const isCrouching = (state === 'PRE_JUMP' && currentAnimal === 'human');
+
+        let torsoY;
+        if (isSitting) {
+             torsoY = p.y - bodyH * 0.85; // Low to ground
+        } else if (isCrouching) {
+             torsoY = p.y - legLen * 0.6 - bodyH; // Crouched
+        } else {
+             torsoY = p.y - legLen - bodyH;
+        }
+        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
+        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
 
         // Super Saiyan Aura
@@ -4767,13 +5857,20 @@ let lastDisplayedContestTime = -1;
              ctx.restore();
         }
 
+        // Draw Neck (Extension)
+        if (neckLen > 5*s) {
+            ctx.fillStyle = furColor;
+            const neckW = 12 * s * sizeMod.w * 0.7;
+            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
+        }
         let shoulderY = torsoY + (5*s);
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
         let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
 
         let armLenMod = sizeMod.limbLen || 1.0;
-        if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
+        if (skinObj.armLen) armLenMod = skinObj.armLen;
+        else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
@@ -4786,7 +5883,7 @@ let lastDisplayedContestTime = -1;
             let activeSleeveColor = null;
 
             // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt') {
+            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 thisUpperColor = torsoColor;
             }
 
@@ -4873,27 +5970,52 @@ let lastDisplayedContestTime = -1;
         // 0c. HELD BALL RENDERING (Layer 0)
         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
         if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
-             const isRightHand = !isLefty;
-             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
-             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
-             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+             let ballX, ballY;
 
-             let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
-             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+             if (isSitting) {
+                 // Ball in Lap
+                 ballX = p.x;
+                 ballY = torsoY + bodyH * 0.8;
+             } else {
+                 const isRightHand = !isLefty;
+                 const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+                 const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+                 const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
 
-             let theta = shootFAngle + wristAngle;
-             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
-             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+                 let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+                 let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+
+                 let theta = shootFAngle + wristAngle;
+                 ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+                 ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+             }
 
              drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
         }
 
         // 2. Legs (Base implementation)
-        const baseKneeY = p.y - (legLen * 0.5);
-        let lKneeX = p.x - 9*s*stanceMod, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s*stanceMod, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s*stanceMod, lFootY = p.y;
-        let rFootX = p.x + 10*s*stanceMod, rFootY = p.y;
+        let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
+
+        if (isSitting) {
+             // Sitting Pose: Knees wide, Feet forward/central
+             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
+             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
+             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
+             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
+        } else if (isCrouching) {
+             // Crouch Pose: Knees bent outward
+             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
+             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+        } else {
+             // Standing
+             const baseKneeY = p.y - (legLen * 0.5);
+             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
+             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
+             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+        }
 
         // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
@@ -4990,6 +6112,8 @@ let lastDisplayedContestTime = -1;
             bodyOptions.isJersey = true;
         }
 
+        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
+        bodyOptions.animal = currentAnimal;
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
@@ -5083,8 +6207,13 @@ let lastDisplayedContestTime = -1;
         }
 
         // 7. Draw Tail (Layer 3)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            const tx = p.x; const ty = p.y - legLen - 5*s;
+        // Skip for bears, humans, robots, astronauts, frogs (unless specific tail logic exists)
+        const hasTail = (!['bear', 'human', 'frog'].includes(currentAnimal) || skinObj.tailType) && !skin.includes('astronaut') && !skin.includes('robot');
+
+        if (hasTail) {
+            const tx = p.x;
+            const ty = (torsoY + bodyH) - 5*s;
+
             if (skinObj.tailType === 'devil') {
                 ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
                 ctx.beginPath(); ctx.moveTo(tx, ty);
@@ -5093,6 +6222,51 @@ let lastDisplayedContestTime = -1;
                 ctx.fillStyle = '#8B0000'; ctx.beginPath();
                 const ttx = tx + 25*s, tty = ty - 20*s;
                 ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
+            }
+            else if (skinObj.tailType === 'bull') {
+                 // Minotaur tail
+                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
+                 ctx.moveTo(tx, ty);
+                 ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
+                 drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], '#000', s, true, 101);
+            }
+            else if (currentAnimal === 'rat') {
+                // Rat: Long, thin, smooth, flesh colored
+                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3*s;
+                ctx.moveTo(tx, ty);
+                // S-curve down
+                ctx.bezierCurveTo(tx + 20*s, ty + 10*s, tx + 10*s, ty + 30*s, tx + 25*s, ty + 40*s);
+                ctx.stroke();
+            }
+            else if (currentAnimal === 'monkey') {
+                // Monkey: Long, curled up
+                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4*s;
+                ctx.moveTo(tx, ty);
+                ctx.bezierCurveTo(tx + 20*s, ty - 10*s, tx + 25*s, ty - 30*s, tx + 10*s, ty - 40*s);
+                ctx.stroke();
+            }
+            else if (currentAnimal === 'dino') {
+                // T-Rex: Thick, tapered
+                ctx.fillStyle = tailColor;
+                ctx.beginPath();
+                ctx.moveTo(tx - 5*s, ty);
+                ctx.lineTo(tx + 5*s, ty);
+                // Curve down to a point
+                ctx.quadraticCurveTo(tx + 30*s, ty + 10*s, tx + 45*s, ty + 5*s); // Tip
+                ctx.quadraticCurveTo(tx + 20*s, ty + 20*s, tx - 5*s, ty + 5*s);
+                ctx.fill();
+            }
+            else if (currentAnimal === 'turtle') {
+                // Turtle: Short pointed
+                ctx.fillStyle = tailColor;
+                ctx.beginPath(); ctx.moveTo(tx - 3*s, ty); ctx.lineTo(tx + 3*s, ty); ctx.lineTo(tx, ty + 10*s); ctx.fill();
+            }
+            else if (currentAnimal === 'chicken') {
+                // Chicken: Feathers
+                ctx.fillStyle = tailColor;
+                for(let i=-1; i<=1; i++) {
+                    ctx.beginPath(); ctx.ellipse(tx + (i*5*s), ty - 5*s, 4*s, 10*s, i*0.5, 0, Math.PI*2); ctx.fill();
+                }
             }
             else if (currentAnimal === 'fox' || currentAnimal === 'wolf' || skinObj.tailType === 'multi') {
                 // Bushy Tail
@@ -5117,6 +6291,10 @@ let lastDisplayedContestTime = -1;
                     }
                 }
             }
+            else if (currentAnimal === 'rabbit') {
+                // Round Fluffy Tail
+                drawFuzzyCircle(p.x, ty - 2*s, 6*s, tailColor, 102, s, true);
+            }
             else if (currentAnimal === 'pig') {
                 // Curly Tail
                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
@@ -5124,15 +6302,25 @@ let lastDisplayedContestTime = -1;
                 ctx.bezierCurveTo(tx + 10*s, ty - 5*s, tx + 10*s, ty + 10*s, tx + 20*s, ty);
                 ctx.stroke();
             }
-            else if (currentAnimal === 'lion' || currentAnimal === 'cow') {
+            else if (['lion', 'cow', 'zebra', 'giraffe'].includes(currentAnimal)) {
                 // Tufted Tail
                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
                 ctx.moveTo(tx, ty);
                 ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
                 // Tuft
-                const tuftColor = (currentAnimal === 'lion') ? '#8B4513' : '#000';
-                if(currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
+                let tuftColor = '#000';
+                if (currentAnimal === 'lion') tuftColor = '#8B4513';
+                if (currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
+                if (skin === 'lion_white') tuftColor = '#EEE';
+
                 drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], tuftColor, s, true, 101);
+            }
+            else if (currentAnimal === 'elephant') {
+                 // Thin tail with small tuft
+                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 2*s;
+                 ctx.moveTo(tx, ty);
+                 ctx.quadraticCurveTo(tx + 5*s, ty + 15*s, tx + 8*s, ty + 25*s); ctx.stroke();
+                 drawFuzzyCircle(tx + 8*s, ty + 25*s, 3*s, tailColor, 101, s, true);
             }
             else if (currentAnimal === 'penguin') {
                 // Stubby Tail
@@ -5191,11 +6379,54 @@ let lastDisplayedContestTime = -1;
             const earColor = ctx.fillStyle;
             ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(p.x + 14*s, headY - 2*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
+        } else if (currentAnimal === 'elephant') {
+            // Big Flappy Ears
+            ctx.fillStyle = furColor;
+            // Left
+            ctx.beginPath();
+            ctx.moveTo(p.x - 10*s, headY - 5*s);
+            ctx.bezierCurveTo(p.x - 35*s, headY - 15*s, p.x - 35*s, headY + 15*s, p.x - 12*s, headY + 10*s);
+            ctx.fill();
+            // Right
+            ctx.beginPath();
+            ctx.moveTo(p.x + 10*s, headY - 5*s);
+            ctx.bezierCurveTo(p.x + 35*s, headY - 15*s, p.x + 35*s, headY + 15*s, p.x + 12*s, headY + 10*s);
+            ctx.fill();
+        } else if (currentAnimal === 'giraffe') {
+            // Ossicones (Horns)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 8*s); ctx.lineTo(p.x - 6*s, headY - 18*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 18*s); ctx.stroke();
+            // Knobs
+            ctx.fillStyle = '#5D4037';
+            ctx.beginPath(); ctx.arc(p.x - 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
+            // Ears
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY - 5*s, 5*s, 3*s, 0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY - 5*s, 5*s, 3*s, -0.2, 0, Math.PI*2); ctx.fill();
         } else if (currentAnimal === 'human') {
             // Human Ears
             ctx.fillStyle = furColor;
-            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            if (skinObj.ears === 'elf') {
+                // Pointy Elf Ears
+                // Left Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x - 10*s, headY);
+                ctx.lineTo(p.x - 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x - 10*s, headY + 6*s);
+                ctx.fill();
+                // Right Ear
+                ctx.beginPath();
+                ctx.moveTo(p.x + 10*s, headY);
+                ctx.lineTo(p.x + 22*s, headY - 8*s); // Tip
+                ctx.lineTo(p.x + 10*s, headY + 6*s);
+                ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+
             if(skinObj.hairStyle === 'afro') {
                  ctx.fillStyle = skinObj.hairColor || '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
@@ -5230,7 +6461,45 @@ let lastDisplayedContestTime = -1;
              else headColor = '#8B4513';
         }
 
-        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
+             // Wide Head
+             if (isFurry) {
+                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true);
+                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true);
+             } else {
+                 ctx.fillStyle = headColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
+             }
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry);
+        }
+        else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
+             // Boxy / Snouty Head
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry);
+        }
+        else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
+             // Diamond / Tapered
+             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry);
+        }
+        else if (currentAnimal === 'penguin') {
+             // Continuous
+             ctx.fillStyle = headColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW/2, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW/2, torsoY + 5*s);
+             ctx.lineTo(p.x + headRadius, headY);
+             ctx.lineTo(p.x - headRadius, headY);
+             ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+        }
+        else if (currentAnimal === 'elephant') {
+             ctx.fillStyle = headColor;
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.2, 0, Math.PI*2); ctx.fill();
+        }
+        else {
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        }
 
         // FOREHEAD MANE (Lion) - Fix baldness
         if(currentAnimal === 'lion' && skin !== 'lion_scar') {
@@ -5255,6 +6524,16 @@ let lastDisplayedContestTime = -1;
              ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
              ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        if(skinObj.headDetail === 'tattoo_stripe') {
+             ctx.fillStyle = '#FF0000';
+             // Stripe going up the back left side of the head (Kratos)
+             ctx.beginPath();
+             ctx.moveTo(p.x - 4*s, headY + headRadius * 0.8);
+             ctx.quadraticCurveTo(p.x - 12*s, headY, p.x - 4*s, headY - headRadius * 0.9);
+             ctx.lineTo(p.x - 8*s, headY - headRadius * 0.9);
+             ctx.quadraticCurveTo(p.x - 16*s, headY, p.x - 8*s, headY + headRadius * 0.8);
+             ctx.fill();
         }
         if(skinObj.headDetail === 'bandana_ties') {
              ctx.fillStyle = 'red';
@@ -5358,6 +6637,26 @@ let lastDisplayedContestTime = -1;
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             // Base (Headband part)
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 2*s);
+             ctx.lineTo(p.x + headRadius, headY - 8*s);
+             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             ctx.fill();
+
+             // Floppy Tail
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
+             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             // Curve down and to the right/left
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.fill();
+        }
         else if (skinObj.headAccessory === 'top_hat') {
              ctx.fillStyle = '#111';
              // Brim
@@ -5434,6 +6733,76 @@ let lastDisplayedContestTime = -1;
                  ctx.lineTo(centerX - 20*s, centerY - 20*s);
                  ctx.quadraticCurveTo(centerX - 10*s, centerY - 25*s, centerX - 5*s, centerY - 15*s);
                  ctx.fill();
+             }
+             if (bp === 'hero_gear') {
+                 // Sword Hilt (Behind Shield)
+                 ctx.fillStyle = '#800080'; // Master Sword Hilt
+                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
+                 ctx.fillStyle = '#00008B'; // Handle
+                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
+
+                 // Shield
+                 ctx.fillStyle = '#00008B'; // Blue
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.fill();
+
+                 // Silver Trim
+                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
+                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
+                 ctx.lineTo(centerX, centerY + 20*s);
+                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
+                 ctx.closePath();
+                 ctx.stroke();
+
+                 // Triforce detail
+                 ctx.fillStyle = '#FFD700';
+                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
+             }
+             if (bp === 'chaos_blades') {
+                 // Two Crossed Blades
+                 const drawBlade = (x, y, angle, flip) => {
+                     ctx.save();
+                     ctx.translate(x, y);
+                     ctx.rotate(angle);
+                     if(flip) ctx.scale(-1, 1);
+
+                     // Blade
+                     ctx.fillStyle = '#A9A9A9'; // Metal
+                     ctx.beginPath();
+                     ctx.moveTo(0, 0);
+                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
+                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
+                     ctx.lineTo(-2*s, 0);
+                     ctx.fill();
+
+                     // Glow
+                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
+                     ctx.stroke();
+
+                     // Handle
+                     ctx.fillStyle = '#8B4513';
+                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
+
+                     ctx.restore();
+                 };
+
+                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
+                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
+
+                 // Chain
+                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+                 ctx.beginPath();
+                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
+                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
+                 ctx.stroke();
              }
              if (bp === 'guitar') {
                  // Guitar Body
@@ -5753,7 +7122,7 @@ let lastDisplayedContestTime = -1;
                  let sx = (i * 137) % canvas.width;
                  let sy = (i * 59) % (horizonY * 0.8);
                  ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
-             }
+            }
         } else {
              // Sun
              if (playerData.graphics === 'HIGH') {
@@ -5985,12 +7354,14 @@ let lastDisplayedContestTime = -1;
             if (ls.makes >= 100) unlockAchievement('veteran');
              if (dist >= 25) unlockAchievement('amateur'); if (dist >= 50) unlockAchievement('sniper');
             if (dist >= 75) unlockAchievement('pro');
-            if (dist >= 100) { unlockAchievement('parking_lot'); unlockAchievement('urban_legend'); }
+            if (dist >= 100) unlockAchievement('parking_lot');
             if (dist >= 125) unlockAchievement('longshot'); if (dist >= 150) unlockAchievement('levis_legend');
-            if (dist >= 300) unlockAchievement('chateau');
-            if (dist >= 1000) unlockAchievement('mountain');
-            if (dist >= 2000) unlockAchievement('astronaut');
-            if (dist >= 5000) unlockAchievement('demigod');
+            if (dist >= 200) unlockAchievement('interstellar');
+            if (dist >= 350) unlockAchievement('urban_legend');
+            if (dist >= 500) unlockAchievement('moonwalker');
+            if (dist >= 750) unlockAchievement('ice_cold');
+            if (dist >= 1000) unlockAchievement('demigod');
+            if (dist >= 4000) unlockAchievement('astronaut_training');
             if (playerData.difficulty >= 3) unlockAchievement('daredevil');
             if (playerData.difficulty >= 2) unlockAchievement('hard_mode');
         }
@@ -6049,6 +7420,19 @@ let lastDisplayedContestTime = -1;
     function startJump() {
         if (state !== 'IDLE') return;
         AudioSystem.init();
+
+        // Human Pre-Jump (Crouch)
+        const currentSkin = SKINS_DB.find(x => x.id === playerData.currentSkin);
+        const isHuman = (currentSkin && currentSkin.animal === 'human');
+
+        if (isHuman) {
+            state = 'PRE_JUMP';
+            preJumpTimer = 0.08; // ~5 frames
+            feedback = "";
+            return;
+        }
+
+        // Animal Sit -> Stand
         state = 'JUMPING';
         feedback = "";
 
@@ -6065,6 +7449,13 @@ let lastDisplayedContestTime = -1;
         }
     }
     function releaseShot() {
+        if (state === 'PRE_JUMP') {
+            state = 'JUMPING';
+            const style = getCurrentStyle();
+            const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            player3D.vz = jv; // Force launch if early release
+        }
+
         if (state !== 'JUMPING') return;
 
         const style = getCurrentStyle();
@@ -6171,6 +7562,11 @@ let lastDisplayedContestTime = -1;
         const targetBall = b || ball;
         AudioSystem.playSwish();
         targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+
+        // Daily Challenge Hooks
+        checkDailyProgress('makes', 1);
+        checkDailyProgress('streak', currentStreak);
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -6204,7 +7600,7 @@ let lastDisplayedContestTime = -1;
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
-                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(openShop, 1500);
+                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(() => checkGameOverSequence('classic', 10 + (distanceLevel * 5)), 1500);
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
             }
@@ -6281,6 +7677,24 @@ let lastDisplayedContestTime = -1;
 
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
 
+        if (state === 'PRE_JUMP') {
+            preJumpTimer -= dt * (1/60);
+            if (preJumpTimer <= 0) {
+                state = 'JUMPING';
+                const style = getCurrentStyle();
+                const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+
+                if (jv <= 0.5) {
+                    isGroundedShot = true;
+                    groundShotTimer = 0;
+                    player3D.vz = 0;
+                } else {
+                    isGroundedShot = false;
+                    player3D.vz = jv;
+                }
+            }
+        }
+
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
                 contestData.timer -= (1/60) * dt;
@@ -6350,7 +7764,7 @@ let lastDisplayedContestTime = -1;
                              isFireParticle: true,
                              customHue: customHue
                          });
-                     }
+                    }
                 } else {
                     if(b.trail && b.trail.length > 0) b.trail = [];
                 }
@@ -6418,9 +7832,13 @@ let lastDisplayedContestTime = -1;
             if (currentStreak > 1) reward += currentStreak * 2;
             playerData.tacos += reward;
             const jump = (playerData.stats.moonwalk !== undefined) ? playerData.stats.moonwalk : 1;
+
+            // Hook Distance Challenge
+            checkDailyProgress('distance', jump * 5);
+
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
-            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; highScoreEl.innerText = playerData.highScore + " pi"; }
+            if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
@@ -6429,8 +7847,15 @@ let lastDisplayedContestTime = -1;
 
     function endContest() {
         state = 'GAMEOVER'; feedback = "TERMINÉ !"; feedbackTimer = 120;
-        const reward = contestData.score * 10; playerData.tacos += reward;
-        checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
+
+        // Increased Reward (x25 instead of x10)
+        const reward = contestData.score * 25;
+        playerData.tacos += reward;
+
+        checkDailyProgress('contest_score', contestData.score);
+        checkDailyProgress('play_contest', 1);
+
+        checkAchievements('contest'); saveData(); setTimeout(() => checkGameOverSequence('contest', contestData.score), 2000);
     }
 
     function startTimeAttack() {
@@ -6443,17 +7868,6 @@ let lastDisplayedContestTime = -1;
 
         document.getElementById('classic-stats').style.display = 'none';
 
-        // Setup Contest UI for Time Attack
-        document.getElementById('contest-ui').style.display = 'block';
-
-        // Update Labels for Time Attack
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RECORD";
-            rackVal.innerText = (playerData.timeAttackHighScore || 0);
-        }
-
         state = 'IDLE';
         updateUI();
         updateContestUI();
@@ -6465,9 +7879,12 @@ let lastDisplayedContestTime = -1;
         timeAttackData.active = false;
         state = 'GAMEOVER';
 
-        // Reward
-        const reward = timeAttackData.score * 5 * playerData.difficulty;
+        // Reward (Increased from x5 to x15)
+        const reward = timeAttackData.score * 15 * playerData.difficulty;
         playerData.tacos += reward;
+
+        checkDailyProgress('time_attack_score', timeAttackData.score);
+        checkDailyProgress('play_time_attack', 1);
 
         // Save High Score
         let isRecord = false;
@@ -6485,13 +7902,12 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = 180;
 
         saveData();
-        setTimeout(openShop, 3000);
+        setTimeout(() => checkGameOverSequence('time_attack', timeAttackData.score), 3000);
     }
 
     function updateUI() {
         scoreEl.innerText = playerData.tacos;
         if(currentGameMode === 'CLASSIC') {
-            distEl.innerText = (10 + (distanceLevel * 5)) + " pi";
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
             const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
@@ -6515,24 +7931,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function updateContestUI() {
-        if (currentGameMode === 'CONTEST') {
-            const newTime = Math.ceil(contestData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = contestData.score;
-            contestRackEl.innerText = contestData.rack;
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            const newTime = Math.ceil(timeAttackData.timer);
-            contestTimeEl.innerText = newTime;
-            lastDisplayedContestTime = newTime;
-            contestScoreEl.innerText = timeAttackData.score;
-            // Best score
-            const best = playerData.timeAttackHighScore || 0;
-            // Need to re-query if the element was replaced?
-            // Actually innerText on the span with id 'contestRack' should work if ID is preserved.
-            const rEl = document.getElementById('contestRack');
-            if (rEl) rEl.innerText = best;
-        }
+        // Now handled in drawBroadcastLowerThird
     }
 
     function startContest() {
@@ -6541,14 +7940,6 @@ let lastDisplayedContestTime = -1;
         currentStreak = 0;
 
         document.getElementById('classic-stats').style.display = 'none';
-        contestUI.style.display = 'block';
-
-        // Reset labels
-        const rackVal = document.getElementById('contestRack');
-        if (rackVal && rackVal.parentElement) {
-            const label = rackVal.parentElement.querySelector('.sb-label');
-            if (label) label.innerText = "RACK";
-        }
 
         setPlayerPositionForRack(1);
 
@@ -6566,7 +7957,6 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            contestUI.style.display = 'none';
             state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
         }
@@ -6599,6 +7989,29 @@ let lastDisplayedContestTime = -1;
         let acc = 0;
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
+
+        // Daily Challenge UI Update
+        const dc = playerData.dailyChallenge;
+        if (dc && dc.id) {
+            const def = DAILY_CHALLENGES.find(c => c.id === dc.id);
+            if (def) {
+                document.getElementById('dailyDesc').innerText = def.desc;
+                let pct = (dc.progress / def.target) * 100;
+                if (pct > 100) pct = 100;
+                document.getElementById('dailyBar').style.width = pct + "%";
+
+                let statusText = dc.progress + " / " + def.target;
+                if (dc.claimed) {
+                    statusText = "COMPLÉTÉ !";
+                    document.getElementById('dailyBar').style.background = "#FFD700";
+                } else {
+                    document.getElementById('dailyBar').style.background = "#00FF00";
+                }
+                document.getElementById('dailyProgressText').innerText = statusText;
+                document.getElementById('dailyRewardText').innerText = "+" + def.reward + " Tacos";
+            }
+        }
+
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
         const btnGraph = document.getElementById('btnToggleGraphics');
@@ -6646,7 +8059,7 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        highScoreEl.innerText = playerData.highScore + " pi"; updateUI(); closeStats(); resetGame();
+        updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
     }
     window.unlockAllSkins = function() {
@@ -6751,6 +8164,28 @@ let lastDisplayedContestTime = -1;
         else if (playerData.tacos >= skin.cost) {
             playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
             checkAchievements('shop'); checkAchievements('skin');
+        }
+        saveData(); updateShopUI(); updateUI();
+    }
+    window.changeBall = function(dir) {
+        viewingBallIndex += dir;
+        if(viewingBallIndex < 0) viewingBallIndex = BALLS_DB.length - 1;
+        if(viewingBallIndex >= BALLS_DB.length) viewingBallIndex = 0;
+        updateShopUI();
+    }
+    window.buyOrEquipBall = function() {
+        const ball = BALLS_DB[viewingBallIndex];
+        if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
+
+        const isUnlocked = playerData.unlockedBalls.includes(ball.id);
+        if (isUnlocked) {
+            playerData.currentBall = ball.id;
+        }
+        else if (playerData.tacos >= ball.cost) {
+            playerData.tacos -= ball.cost;
+            playerData.unlockedBalls.push(ball.id);
+            playerData.currentBall = ball.id;
+            checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
     }
@@ -6939,6 +8374,19 @@ let lastDisplayedContestTime = -1;
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Ball UI
+        const ball = BALLS_DB[viewingBallIndex];
+        document.getElementById('ballName').innerText = ball.name;
+        const btnBall = document.getElementById('btnEquipBall');
+        const statusBall = document.getElementById('ballStatus');
+        if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
+        const isUnlockedBall = playerData.unlockedBalls.includes(ball.id);
+        const isEquippedBall = playerData.currentBall === ball.id;
+
+        if (isEquippedBall) { statusBall.innerText = "Équipé"; btnBall.style.display = 'none'; }
+        else if (isUnlockedBall) { statusBall.innerText = "Possédé"; btnBall.style.display = 'inline-block'; btnBall.innerText = "Équiper"; btnBall.disabled = false; }
+        else { statusBall.innerText = `Coût: ${ball.cost} Tacos`; btnBall.style.display = 'inline-block'; btnBall.innerText = "Acheter"; btnBall.disabled = playerData.tacos < ball.cost; }
 
         // Style UI
         const style = SHOOTING_STYLES[viewingStyleIndex];
@@ -7187,6 +8635,8 @@ let lastDisplayedContestTime = -1;
             else if (state === 'SHOP') containerSelector = '#shopUI';
             else if (state === 'STATS') containerSelector = '#statsUI';
             else if (state === 'ACHIEVEMENTS') containerSelector = '#achUI';
+            else if (state === 'LEADERBOARD') containerSelector = '#leaderboardUI';
+            else if (state === 'HIGHSCORE_INPUT') containerSelector = '#highScoreUI';
 
             if (!containerSelector) {
                 this.clearFocus();
@@ -7241,6 +8691,7 @@ let lastDisplayedContestTime = -1;
                 if (state === 'SHOP') closeShop();
                 else if (state === 'STATS') closeStats();
                 else if (state === 'ACHIEVEMENTS') closeAchievements();
+                else if (state === 'LEADERBOARD') closeLeaderboard();
             }
 
             // X Button: Shoot (Game Action)
@@ -7269,12 +8720,13 @@ let lastDisplayedContestTime = -1;
         if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
         if(state === 'STATS') { if(e.code === 'Escape') closeStats(); return; }
-        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats();
+        if(state === 'LEADERBOARD') { if(e.code === 'Escape') closeLeaderboard(); return; }
+        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats(); if(e.code === 'KeyL') openLeaderboard();
         if (e.code === 'Space' && !spacePressed) { spacePressed = true; if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump(); }
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
     window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn')) return;
+        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
         if (state === 'IDLE' && playerData.mobileControls) return;
         if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
     });
@@ -7298,5 +8750,6 @@ document.addEventListener('deviceready', function() {
     }
 }, false);
 </script>
+
 </body>
 </html>
