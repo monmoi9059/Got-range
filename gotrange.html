@@ -5618,6 +5618,106 @@ let lastDisplayedContestTime = -1;
     let g_cachedSkinId = null;
     let g_cachedSkinObj = null;
 
+    function drawTorso(ctx, x, y, w, h, s, color, skinObj, isFurry, currentAnimal, hasSpots, skinId) {
+        let bodyOptions = {};
+
+        // Auto-detect Jersey
+        if (!isFurry && color !== skinObj.furColor && !skinObj.pattern) {
+            bodyOptions.isJersey = true;
+        }
+
+        // Define Body Shapes
+        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
+        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) { bodyOptions.bodyShape = 'oval'; }
+        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) { bodyOptions.bodyShape = 'athletic_animal'; }
+        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) { bodyOptions.bodyShape = 'round'; bodyOptions.waistScale = 1.1; bodyOptions.roundness = 0.2; }
+
+        if (skinId === 'bear_panda') bodyOptions.chestStripeColor = '#000';
+        bodyOptions.pattern = skinObj.pattern;
+
+        drawAnatomicBody(x, y, w, h, s, color, isFurry, 40, bodyOptions);
+
+        // -- OVERLAYS --
+        if(currentAnimal === 'penguin' && color === skinObj.furColor) {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(x, y + h * 0.55, w * 0.7, h * 0.4, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        if(skinObj.pattern === 'tiger_stripes') {
+             ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(x - w/2, y + 10*s); ctx.lineTo(x - w/4, y + 15*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x + w/2, y + 10*s); ctx.lineTo(x + w/4, y + 15*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x - w/2, y + 25*s); ctx.lineTo(x - w/4, y + 30*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x + w/2, y + 25*s); ctx.lineTo(x + w/4, y + 30*s); ctx.stroke();
+        }
+        if(skinObj.pattern === 'cow_spots') {
+             ctx.fillStyle = (skinId === 'cow_strawberry') ? '#FF69B4' : '#000';
+             ctx.beginPath(); ctx.arc(x - 5*s, y + 10*s, 6*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(x + 8*s, y + 25*s, 5*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(x - 2*s, y + 30*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x, y + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
+        if(skinId.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(x-5*s, y+10*s); ctx.lineTo(x+5*s, y+10*s); ctx.stroke(); }
+
+        // Patterns
+        if(skinObj.pattern === 'plaid') {
+             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+             ctx.beginPath(); ctx.moveTo(x-w/2, y+10*s); ctx.lineTo(x+w/2, y+10*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x-w/2, y+20*s); ctx.lineTo(x+w/2, y+20*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x-w/2, y+30*s); ctx.lineTo(x+w/2, y+30*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y+h); ctx.stroke();
+        }
+        else if(skinObj.pattern === 'stripes') {
+             ctx.fillStyle = '#000';
+             ctx.fillRect(x-5*s, y, 10*s, h);
+             ctx.fillRect(x-15*s, y, 5*s, h);
+             ctx.fillRect(x+10*s, y, 5*s, h);
+        }
+        else if(skinObj.pattern === 'suit') {
+             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x, y + 15*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(x, y + 25*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = 'red';
+             ctx.beginPath(); ctx.moveTo(x, y+5*s); ctx.lineTo(x-5*s, y+2*s); ctx.lineTo(x-5*s, y+8*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(x, y+5*s); ctx.lineTo(x+5*s, y+2*s); ctx.lineTo(x+5*s, y+8*s); ctx.fill();
+        }
+        else if(skinObj.pattern === 'suit_jacket') {
+             ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1*s;
+             ctx.beginPath(); ctx.moveTo(x, y + h * 0.7); ctx.lineTo(x, y + h); ctx.stroke();
+             ctx.beginPath();
+             ctx.moveTo(x - w/2 + 5*s, y + 5*s);
+             ctx.quadraticCurveTo(x, y + 8*s, x + w/2 - 5*s, y + 5*s);
+             ctx.stroke();
+        }
+
+        // Clothing Details
+        if(skinObj.clothingDetail === 'suspenders') {
+             ctx.fillStyle = '#1a1a1a';
+             ctx.fillRect(x - w/2 + 2*s, y, 3*s, h);
+             ctx.fillRect(x + w/2 - 5*s, y, 3*s, h);
+        }
+        if(skinObj.clothingDetail === 'apron_ties') {
+             ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
+             ctx.beginPath();
+             ctx.moveTo(x, y + h*0.6);
+             ctx.lineTo(x - 10*s, y + h*0.6 + 5*s);
+             ctx.moveTo(x, y + h*0.6);
+             ctx.lineTo(x + 10*s, y + h*0.6 + 5*s);
+             ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(x, y+h*0.6, 3*s, 0, Math.PI*2); ctx.fill();
+             ctx.stroke();
+        }
+        if(skinObj.clothingDetail === 'overalls') {
+             ctx.fillStyle = skinObj.shortsColor || '#000080';
+             ctx.fillRect(x - w*0.3, y + h*0.3, w*0.6, h*0.4);
+             ctx.fillRect(x - w*0.3, y, w*0.1, h*0.3);
+             ctx.fillRect(x + w*0.2, y, w*0.1, h*0.3);
+        }
+        if(skinObj.clothingDetail === 'stitches') {
+             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+             ctx.beginPath(); ctx.moveTo(x-5*s, y+10*s); ctx.lineTo(x-5*s, y+15*s); ctx.moveTo(x-8*s, y+12*s); ctx.lineTo(x-2*s, y+12*s); ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(x+5*s, y+25*s); ctx.lineTo(x+5*s, y+30*s); ctx.moveTo(x+2*s, y+27*s); ctx.lineTo(x+8*s, y+27*s); ctx.stroke();
+        }
+    }
+
     function drawPaw(ctx, x, y, radius, color, s, isFront) {
         // Main Pad
         drawFuzzyCircle(x, y, radius, color, 80, s, true);
@@ -5778,181 +5878,158 @@ let lastDisplayedContestTime = -1;
     }
 
     function drawQuadrupedBody(p, s, color, anatomy, skinObj, isFurry, sizeMod, currentAnimal) {
-        // Configuration based on animal family
-        let pose = {
-            bodyLen: 45 * s,
-            bodyThick: 25 * s,
-            spineCurve: 'flat', // flat, arched, dipped
-            chestDepth: 1.0,
-            bellyTuck: 0.0,
-            neckAngle: -0.5, // Radians, 0 is horizontal right, -PI/2 is up
-            neckLen: 15 * s,
-            legStance: 1.0,
-            shoulderHeightMod: 0
-        };
+        // LEANING STANCE LOGIC:
+        // We reuse the standard "standing" body drawing logic (drawTorso) but rotate it forward (leanAngle).
+        // This ensures all jersey/shorts/pattern details are perfectly preserved from the upright pose.
 
-        if (anatomy.type === 'DIGITIGRADE') {
-            // Canines/Felines
-            pose.bodyLen = 50 * s;
-            pose.bodyThick = 22 * s;
-            pose.chestDepth = 1.2;
-            pose.bellyTuck = 10 * s;
-            pose.neckAngle = -0.7; // High alert
-            pose.neckLen = 20 * s;
-        }
-        else if (anatomy.type === 'UNGULATE') {
-            // Cow/Moose
-            pose.bodyLen = 55 * s;
-            pose.bodyThick = 35 * s;
-            pose.spineCurve = 'flat';
-            pose.neckAngle = -0.7; // Alert, looking up at basket
-            pose.neckLen = 18 * s; // Slightly longer to clear shoulders when raised
-            if(currentAnimal === 'giraffe') {
-                pose.neckAngle = -1.3; // Very High up
-                pose.neckLen = 60 * s;
-                pose.bodyLen = 45 * s; // Short body relative to height
-            }
-        }
-        else if (currentAnimal === 'rat' || currentAnimal === 'rabbit') {
-            pose.spineCurve = 'arched';
-            pose.bodyLen = 35 * s;
-            pose.bodyThick = 25 * s;
-            pose.neckAngle = -0.6; // Looking up
-            pose.neckLen = 10 * s;
-        }
-        else if (currentAnimal === 'bear') {
-            pose.bodyThick = 35 * s;
-            pose.shoulderHeightMod = 10 * s; // Hump
-            pose.neckAngle = -0.6; // Looking up
-            pose.neckLen = 15 * s;
-        }
+        const legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
+        const bodyH = 40 * s * sizeMod.h;
+        const bodyW = 20 * s * sizeMod.w * (currentAnimal === 'bear' ? 1.5 : 1.0);
 
-        // Apply Size Mods
-        pose.bodyLen *= sizeMod.h;
-        pose.bodyThick *= sizeMod.w;
-
-        // "Roadkill" Fix: Increase Height significantly
-        // Standard Human Height is roughly 90-100 units.
-        // A wolf shoulder height should be ~50-60 units.
-        // Currently it was 25, which is why it looked like it was crawling/dead.
-        const standingHeight = (anatomy.type === 'UNGULATE' ? 60 : 45) * s * sizeMod.h;
-
-        const torsoY = p.y - standingHeight;
-        const torsoX = p.x;
-        const dir = 1;
-
-        const hipX = torsoX - (pose.bodyLen * 0.5 * dir);
-        const shoulderX = torsoX + (pose.bodyLen * 0.5 * dir);
         const groundY = p.y;
 
-        // Neck & Head Calc
-        const neckBaseX = shoulderX;
-        const neckBaseY = torsoY - (pose.shoulderHeightMod * 0.5);
-        const headX = neckBaseX + Math.cos(pose.neckAngle) * pose.neckLen;
-        const headY = neckBaseY + Math.sin(pose.neckAngle) * pose.neckLen;
+        // Pivot Point: Hips
+        // In standing pose, hips are at: y - legLen.
+        // In quadruped, hips are supported by back legs.
+        // We place hips at a height derived from leg length + slight crouch.
+        const hipY = groundY - (legLen * 0.7); // Crouched hips
+        const hipX = p.x - 15 * s; // Shift back slightly to center stance
+
+        // Calculate Lean Angle
+        // We want the Shoulders (top of torso) to be positioned such that arms can reach ground.
+        // Torso Length approx = bodyH.
+        // Arm Length approx = legLen (simplified).
+        // Target: Shoulder Height ~ same as Hip Height (horizontal) or slightly higher/lower.
+
+        let leanAngle = -Math.PI / 2; // Horizontal (-90 deg)
+        let armReachX = hipX + bodyH; // If horizontal
+
+        // Specific Tweaks
+        if (anatomy.type === 'UNGULATE' || currentAnimal === 'giraffe') {
+            leanAngle = -Math.PI / 2; // Flat back
+        } else if (currentAnimal === 'bear') {
+            leanAngle = -Math.PI / 2 + 0.2; // Slight slope up
+        } else if (currentAnimal === 'rat' || currentAnimal === 'rabbit') {
+            leanAngle = -Math.PI / 2 - 0.2; // Slope down (crouch)
+        }
+
+        // Draw Context
+        ctx.save();
+        ctx.translate(hipX, hipY); // Move to Hip Pivot
+        ctx.rotate(leanAngle);     // Rotate body
+
+        // Draw Torso (Relative to Hip at 0,0)
+        // In standing: drawTorso(x, y...) where y is "torsoY".
+        // Here, 0,0 is the hip pivot (bottom of torso in standing frame).
+        // So we draw upwards from 0.
+        // Standing: hips at bottom, head at top.
+        // Rotated: hips at origin, body extends along positive X (if -90 deg)?
+        // Wait, standard rotation: 0 is Right. -90 is Up.
+        // If we rotate -90, "Up" becomes "Right".
+        // So drawing "Up" (negative Y) in local space will draw "Right" in world space.
+        // We want to draw the torso *up* from the hips in local space.
+
+        // drawTorso draws centered on x, from top y? No, let's check drawTorso.
+        // drawAnatomicBody draws from center x, top y.
+        // We need to position it such that the bottom of the torso aligns with our pivot.
+
+        // Local Coordinates:
+        // Hips are at (0,0). Body extends to (0, -bodyH).
+        // drawTorso expects (x, y) as top-left-ish or center-top.
+        // It draws center x. Top y.
+
+        // We need to counteract the global rotation for patterns? No, patterns should rotate with body.
+
+        // Draw Legs (Back) - Drawn BEFORE body rotation to stay grounded?
+        // No, back legs attach to hips. They should be drawn in World Space to ensure feet hit ground.
+        ctx.restore(); // Pop out to draw legs
+
+        // --- DRAW BACK LEGS (World Space) ---
+        // Using standing leg logic but crouched
+        drawQuadLeg(hipX, hipY, groundY, false, 'BACK', anatomy, s, color, sizeMod, skinObj, {});
+        drawQuadLeg(hipX, hipY, groundY, true, 'BACK', anatomy, s, color, sizeMod, skinObj, {}); // Near leg
+
+        // --- DRAW TORSO (Rotated) ---
+        ctx.save();
+        ctx.translate(hipX, hipY);
+        ctx.rotate(leanAngle + (Math.PI/2)); // Adjust so 0 is "Up" relative to body
+        // Actually, let's keep it simple.
+        // If leanAngle is -90deg (Horizontal pointing right),
+        // We want to draw the body "standing up" relative to the rotated axis?
+        // No, we want the "Head" of the body to point Right.
+        // So we draw the body "Up" (negative Y) relative to the pivot, then rotate 90 deg clockwise?
+        // Let's rely on standard rotation.
+        // If we rotate -90 deg (Counter Clockwise), the Y axis points Right.
+        // Drawing "Up" (Negative Y) goes Left.
+        // We want Positive X.
+
+        // Let's just rotate so that "Up" (Negative Y) points towards the head's target location.
+        // Target: Head is at Right.
+        // So we rotate +90 deg?
+        // Let's try: Translate to Hip. Rotate +90 deg. Draw Torso "Standing" at (0, -bodyH).
+        // Result: Body extends along Positive X. Correct.
+
+        const drawAngle = leanAngle + (Math.PI/2);
+        ctx.rotate(drawAngle);
+
+        // Torso Top (Shoulders) is at (0, -bodyH). Bottom (Hips) is at (0,0).
+        // drawTorso expects (x, y) of the TOP of the torso.
+        // So we pass (0, -bodyH).
+        // HACK: To fix center alignment, x should be 0.
+
+        const hasSpots = skinObj.hasSpots;
+        drawTorso(ctx, 0, -bodyH, bodyW, bodyH, s, color, skinObj, isFurry, currentAnimal, hasSpots, skinObj.id);
+
+        // --- DRAW TAIL (Local Space - attached to bottom) ---
+        drawTail(0, -5*s, color, anatomy, skinObj, s, currentAnimal);
+
+        // Calculate Shoulder Position in World Space for Front Legs/Head
+        // Local: (0, -bodyH)
+        // Matrix transform to world:
+        // x' = hipX + 0*cos - (-bodyH)*sin = hipX + bodyH*sin(drawAngle)
+        // y' = hipY + 0*sin + (-bodyH)*cos = hipY - bodyH*cos(drawAngle)
+
+        // Wait, drawAngle is roughly 0 (vertical) + lean (-90) = -90?
+        // If lean is -PI/2 (-1.57), drawAngle = 0. That's vertical.
+        // We want horizontal.
+        // Let's restart rotation logic.
+        // Standing: Body is Vertical.
+        // Quadruped: Body is Horizontal.
+        // We need to rotate 90 deg (PI/2).
+
+        ctx.restore();
+
+        // Recalculate Shoulder Pos in World Space
+        const shoulderX = hipX + Math.cos(leanAngle) * bodyH;
+        const shoulderY = hipY + Math.sin(leanAngle) * bodyH;
+
+        // --- DRAW FRONT LEGS (World Space) ---
+        // Attached to Shoulder
+        drawQuadLeg(shoulderX, shoulderY, groundY, false, 'FRONT', anatomy, s, color, sizeMod, skinObj, {});
+        drawQuadLeg(shoulderX, shoulderY, groundY, true, 'FRONT', anatomy, s, color, sizeMod, skinObj, {});
+
+        // --- DRAW HEAD (World Space) ---
+        // Head should look at basket (Up/Right)
+        // Neck connects Shoulder to Head
+
+        // Neck Angle: "Alert" means looking up.
+        // Relative to Body (-90 deg), Head should be ~ -45 deg or -30 deg.
+        let neckGlobalAngle = -0.7; // Default alert
+        if (currentAnimal === 'giraffe') neckGlobalAngle = -1.3;
+        if (currentAnimal === 'cow') neckGlobalAngle = -0.3; // Cows slightly lower but looking fwd
+
+        let neckLen = 15 * s;
+        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
+
+        const headX = shoulderX + Math.cos(neckGlobalAngle) * neckLen;
+        const headY = shoulderY + Math.sin(neckGlobalAngle) * neckLen;
         const headRadius = 12 * s * sizeMod.head;
 
-        // 3D Offset for 3/4 View
-        const zOffsetX = 10 * s;
-        const zOffsetY = -5 * s;
+        // Neck
+        ctx.lineWidth = (currentAnimal === 'giraffe' ? 10 : 18) * s;
+        ctx.lineCap = 'round'; ctx.strokeStyle = color;
+        ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY); ctx.lineTo(headX, headY); ctx.stroke();
 
-        // --- DRAW BACK LAYER (Far Side Legs) ---
-        // Draw these darker to show depth
-        ctx.filter = 'brightness(0.8)';
-        drawQuadLeg(hipX + 5*s + zOffsetX, torsoY + zOffsetY, groundY + zOffsetY, false, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
-        drawQuadLeg(shoulderX + 5*s + zOffsetX, torsoY + zOffsetY, groundY + zOffsetY, false, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
-        ctx.filter = 'none';
-
-        // Tail
-        let tailX = hipX - 5*s;
-        let tailY = torsoY - 5*s;
-        if (pose.spineCurve === 'arched') tailY += 10*s;
-        drawTail(tailX, tailY, color, anatomy, skinObj, s, currentAnimal);
-
-        // --- DRAW BODY (Middle Layer) ---
-        const hasJersey = (skinObj.jerseyColor && skinObj.jerseyColor !== color);
-        const hasShorts = (skinObj.shortsColor && skinObj.shortsColor !== color);
-
-        const bodyPoints = [];
-        const bodyTop = torsoY - pose.bodyThick * 0.5;
-        const bodyBot = torsoY + pose.bodyThick * 0.5;
-
-        // Simplified, Robust Body Shape
-        if (pose.spineCurve === 'arched') {
-            bodyPoints.push({x: shoulderX, y: bodyTop + 5*s});
-            bodyPoints.push({x: torsoX, y: bodyTop - 12*s}); // Higher arch
-            bodyPoints.push({x: hipX, y: bodyTop + 10*s});
-        } else {
-            bodyPoints.push({x: shoulderX + 5*s, y: bodyTop - pose.shoulderHeightMod});
-            bodyPoints.push({x: hipX - 5*s, y: bodyTop});
-        }
-
-        // Back/Rump
-        bodyPoints.push({x: hipX - 5*s, y: bodyBot - 5*s});
-
-        // Belly
-        if (pose.bellyTuck > 0) {
-            bodyPoints.push({x: hipX + 10*s, y: bodyBot - pose.bellyTuck});
-            bodyPoints.push({x: shoulderX - 5*s, y: bodyBot + 5*s});
-        } else {
-            bodyPoints.push({x: hipX + 5*s, y: bodyBot});
-            bodyPoints.push({x: shoulderX - 5*s, y: bodyBot});
-        }
-        // Chest Front
-        bodyPoints.push({x: shoulderX + 10*s, y: bodyTop + 10*s});
-
-        // DRAW BODY MASS
-        if (hasJersey || hasShorts) {
-            if(isFurry) drawFuzzyPath(bodyPoints, color, s, true, 101);
-            else { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen*0.5, pose.bodyThick*0.5, 0,0,Math.PI*2); ctx.fill(); }
-
-            if (hasJersey) {
-                const jColor = skinObj.jerseyColor;
-                ctx.save(); ctx.beginPath();
-                ctx.rect(torsoX - 5*s, torsoY - 50*s, 100*s, 100*s); ctx.clip();
-                drawFuzzyPath(bodyPoints, jColor, s, false, 102);
-                ctx.restore();
-                if (skinObj.number) {
-                    ctx.fillStyle = skinObj.numberColor || "#FFF";
-                    ctx.font = `bold ${12 * s}px Arial`; ctx.textAlign = "center";
-                    ctx.save(); ctx.translate(shoulderX - 5*s, torsoY); ctx.rotate(-0.1);
-                    ctx.fillText(skinObj.number, 0, 0); ctx.restore();
-                }
-            }
-            if (hasShorts) {
-                const sColor = skinObj.shortsColor;
-                ctx.save(); ctx.beginPath();
-                ctx.rect(torsoX - 100*s, torsoY - 50*s, 100*s, 100*s); ctx.clip();
-                drawFuzzyPath(bodyPoints, sColor, s, false, 103);
-                ctx.restore();
-            }
-        } else {
-            if (isFurry) drawFuzzyPath(bodyPoints, color, s, true, 101);
-            else { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen * 0.5, pose.bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill(); }
-        }
-
-        // --- DRAW NECK (Solid connection) ---
-        // Draw neck BEFORE front legs to allow legs to overlap chest, but ensure head is on top
-        const neckWidth = (currentAnimal === 'giraffe' ? 10 : 20) * s;
-        const neckPoints = [
-            {x: shoulderX + 5*s, y: torsoY - 10*s}, // Base Front
-            {x: shoulderX - 10*s, y: torsoY - 10*s}, // Base Back
-            {x: headX - neckWidth*0.4, y: headY + 5*s}, // Head Back
-            {x: headX + neckWidth*0.4, y: headY + 5*s}  // Head Front
-        ];
-
-        // Shadow for Neck to separate from Body
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.beginPath(); ctx.arc(shoulderX, torsoY - 10*s, 15*s, 0, Math.PI*2); ctx.fill();
-
-        drawFuzzyPath(neckPoints, color, s, true, 105);
-
-        // --- DRAW FRONT LAYER (Near Side Legs) ---
-        drawQuadLeg(hipX - 5*s, torsoY, groundY, true, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
-        drawQuadLeg(shoulderX - 5*s, torsoY, groundY, true, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
-
-        // --- DRAW HEAD (Top Layer) ---
-        // Ensure Head overlaps Neck
         drawRealisticHead(headX, headY, headRadius, color, s, anatomy, skinObj, isFurry);
     }
 
@@ -6477,119 +6554,13 @@ let lastDisplayedContestTime = -1;
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
-        let bodyOptions = {};
+        drawTorso(ctx, p.x, torsoY, bodyW, bodyH, s, torsoColor, skinObj, isFurry, currentAnimal, hasSpots, skin);
 
-        // Define Body Shapes for Animals
-        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
-        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'oval'; // Small animals
-        }
-        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
-        }
-        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'round'; // Chunky
-            bodyOptions.waistScale = 1.1;
-            bodyOptions.roundness = 0.2;
-        }
-
-        if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
-
-        // Auto-detect Jersey
-        if (!bodyFurry && torsoColor !== furColor && !skinObj.pattern) {
-            bodyOptions.isJersey = true;
-        }
-
-        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
-
-        if(currentAnimal === 'penguin' && torsoColor === furColor) {
-             ctx.fillStyle = '#FFF';
-             ctx.beginPath(); ctx.ellipse(p.x, torsoY + bodyH * 0.55, bodyW * 0.7, bodyH * 0.4, 0, 0, Math.PI*2); ctx.fill();
-        }
-        if(skinObj.pattern === 'tiger_stripes') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
-             // Body stripes
-             ctx.beginPath(); ctx.moveTo(p.x - bodyW/2, torsoY + 10*s); ctx.lineTo(p.x - bodyW/4, torsoY + 15*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + bodyW/2, torsoY + 10*s); ctx.lineTo(p.x + bodyW/4, torsoY + 15*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x - bodyW/2, torsoY + 25*s); ctx.lineTo(p.x - bodyW/4, torsoY + 30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + bodyW/2, torsoY + 25*s); ctx.lineTo(p.x + bodyW/4, torsoY + 30*s); ctx.stroke();
-        }
-        if(skinObj.pattern === 'cow_spots') {
-             ctx.fillStyle = (skin === 'cow_strawberry') ? '#FF69B4' : '#000';
-             ctx.beginPath(); ctx.arc(p.x - 5*s, torsoY + 10*s, 6*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 25*s, 5*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x - 2*s, torsoY + 30*s, 4*s, 0, Math.PI*2); ctx.fill();
-        }
-
-        if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
-        // Pattern Rendering
-        if(skinObj.pattern === 'plaid') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+20*s); ctx.lineTo(p.x+bodyW/2, torsoY+20*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+30*s); ctx.lineTo(p.x+bodyW/2, torsoY+30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
-        }
-        else if(skinObj.pattern === 'stripes') { // Referee or Bandit
-             ctx.fillStyle = '#000';
-             ctx.fillRect(p.x-5*s, torsoY, 10*s, bodyH); // Center stripe
-             ctx.fillRect(p.x-15*s, torsoY, 5*s, bodyH); // Left stripe
-             ctx.fillRect(p.x+10*s, torsoY, 5*s, bodyH); // Right stripe
-        }
-        else if(skinObj.pattern === 'suit') { // Tuxedo button
-             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 15*s, 2*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x, torsoY + 25*s, 2*s, 0, Math.PI*2); ctx.fill();
-             // Bowtie
-             ctx.fillStyle = 'red';
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x-5*s, torsoY+2*s); ctx.lineTo(p.x-5*s, torsoY+8*s); ctx.fill();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x+5*s, torsoY+2*s); ctx.lineTo(p.x+5*s, torsoY+8*s); ctx.fill();
-        }
-        else if(skinObj.pattern === 'suit_jacket') { // Back view of a suit
-             ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1*s;
-             // Center seam (Vent)
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY + bodyH * 0.7); ctx.lineTo(p.x, torsoY + bodyH); ctx.stroke();
-             // Shoulder seams
-             ctx.beginPath();
-             ctx.moveTo(p.x - bodyW/2 + 5*s, torsoY + 5*s);
-             ctx.quadraticCurveTo(p.x, torsoY + 8*s, p.x + bodyW/2 - 5*s, torsoY + 5*s);
-             ctx.stroke();
-        }
-
-        // Clothing Details (New Layer)
-        if(skinObj.clothingDetail === 'suspenders') {
-             ctx.fillStyle = '#1a1a1a'; // Dark suspenders
-             // Left
-             ctx.fillRect(p.x - bodyW/2 + 2*s, torsoY, 3*s, bodyH);
-             // Right
-             ctx.fillRect(p.x + bodyW/2 - 5*s, torsoY, 3*s, bodyH);
-        }
-        if(skinObj.clothingDetail === 'apron_ties') {
-             ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
-             ctx.lineTo(p.x - 10*s, torsoY + bodyH*0.6 + 5*s); // Left hanging
-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
-             ctx.lineTo(p.x + 10*s, torsoY + bodyH*0.6 + 5*s); // Right hanging
-             // Knot
-             ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, torsoY+bodyH*0.6, 3*s, 0, Math.PI*2); ctx.fill();
-             ctx.stroke();
-        }
-        if(skinObj.clothingDetail === 'overalls') {
-             ctx.fillStyle = skinObj.shortsColor || '#000080';
-             // Bib
-             ctx.fillRect(p.x - bodyW*0.3, torsoY + bodyH*0.3, bodyW*0.6, bodyH*0.4);
-             // Straps
-             ctx.fillRect(p.x - bodyW*0.3, torsoY, bodyW*0.1, bodyH*0.3);
-             ctx.fillRect(p.x + bodyW*0.2, torsoY, bodyW*0.1, bodyH*0.3);
-        }
+        // Stitches on head need to be separate or passed to head?
+        // The original code drew head stitches here based on torso coordinates, which was weird but okay.
+        // We will move head stitches to drawRealisticHead later if needed, but for now duplicate logic if critical.
         if(skinObj.clothingDetail === 'stitches') {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             // Random stitches
-             ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x-5*s, torsoY+15*s); ctx.moveTo(p.x-8*s, torsoY+12*s); ctx.lineTo(p.x-2*s, torsoY+12*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x+5*s, torsoY+25*s); ctx.lineTo(p.x+5*s, torsoY+30*s); ctx.moveTo(p.x+2*s, torsoY+27*s); ctx.lineTo(p.x+8*s, torsoY+27*s); ctx.stroke();
-             // Head stitch
              ctx.beginPath(); ctx.moveTo(p.x, headY-headRadius); ctx.lineTo(p.x, headY-headRadius+5*s); ctx.moveTo(p.x-3*s, headY-headRadius+2*s); ctx.lineTo(p.x+3*s, headY-headRadius+2*s); ctx.stroke();
         }
 
