@@ -623,6 +623,11 @@
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
+            <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
+
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
             <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
             <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
@@ -1061,11 +1066,36 @@
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
         { id: 'hybrid_gorgon', animal: 'human', name: 'Gorgone', cost: 25000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#228B22', shortsColor: '#333', skinTone: '#90EE90', hairStyle: 'snakes', hairColor: '#006400', tailType: 'snake' },
-        { id: 'hybrid_anubis', animal: 'human', name: 'Anubis', cost: 30000, headType: 'jackal', heightScale: 1.2, widthScale: 0.95, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#000', furColor: '#000', headAccessory: 'gold_bands' }
+        { id: 'hybrid_anubis', animal: 'human', name: 'Anubis', cost: 30000, headType: 'jackal', heightScale: 1.2, widthScale: 0.95, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#000', furColor: '#000', headAccessory: 'gold_bands' },
+
+        // NEW ADDITIONS
+        { id: 'human_deadpool', animal: 'human', name: 'Mercenaire', cost: 15000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#FF0000', shortsColor: '#000', legType: 'pants', sleeveColor: '#FF0000', skinTone: '#FF0000', headAccessory: 'helmet', hatColor: '#FF0000', backProp: 'katanas', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#333', shoesColor: '#FFA500' },
+
+        // CHICKENS
+        { id: 'chicken_classic', animal: 'chicken', name: 'Poulet', cost: 1000, furColor: '#FFF', headDetail: 'mohawk', hairColor: '#FF0000', shoesColor: '#FFD700' },
+        { id: 'chicken_rooster', animal: 'chicken', name: 'Coq', cost: 2500, furColor: '#A52A2A', headDetail: 'mohawk', hairColor: '#FF0000', tailType: 'multi', tailColor: '#006400' },
+
+        // FROGS
+        { id: 'frog_classic', animal: 'frog', name: 'Grenouille', cost: 1000, furColor: '#32CD32', shoesColor: '#32CD32' },
+        { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'human'];
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'human'];
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦'];
+
+    var BALLS_DB = [
+        { id: 'ball_classic', name: 'Classique', cost: 0, color1: '#ff6600', color2: '#cc5500' },
+        { id: 'ball_aba', name: 'ABA', cost: 1000, color1: '#FF0000', color2: '#0000FF' },
+        { id: 'ball_money', name: 'Money Ball', cost: 2000, color1: '#FFFFFF', color2: '#0000FF' },
+        { id: 'ball_tennis', name: 'Tennis', cost: 1500, color1: '#CCFF00', color2: '#99CC00' },
+        { id: 'ball_bowling', name: 'Bowling', cost: 2000, color1: '#111', color2: '#333' },
+        { id: 'ball_ice', name: 'Glace', cost: 3000, color1: '#E0FFFF', color2: '#FFF' },
+        { id: 'ball_night', name: 'Nuit', cost: 3500, color1: '#4B0082', color2: '#000' },
+        { id: 'ball_gold', name: 'Or', cost: 5000, color1: '#FFD700', color2: '#DAA520' },
+        { id: 'ball_slime', name: 'Radioactif', cost: 4000, color1: '#00FF00', color2: '#006400' },
+        { id: 'ball_galaxy', name: 'Galaxie', cost: 10000, color1: '#8A2BE2', color2: '#4B0082' }
+    ];
 
     var SHOOTING_STYLES = [
         // KEPT
@@ -1105,7 +1135,9 @@
         { id: 'tpose', name: 'Le Glitch', cost: 0, desc: 'T-Pose menaçante. (Au sol)', modifiers: { jumpVelocity: 0, speed: 3.0, timingWindow: 0.3 } },
         { id: 'airbud', name: 'Le Museau', cost: 0, desc: 'Passe de la truffe.', modifiers: { speed: 1.2, jumpVelocity: 0 } },
         { id: 'telekinesis', name: 'Psychokinésie', cost: 0, desc: 'Par la pensée.', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
-        { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } }
+        { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } },
+        { id: 'soccer', name: 'Touche', cost: 0, desc: 'Remise en jeu.', modifiers: { jumpVelocity: 0, speed: 1.1 } },
+        { id: 'no_look', name: 'Aveugle', cost: 0, desc: 'Trop facile.', modifiers: { speed: 1.0 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -1280,6 +1312,16 @@
             ready: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0 }, // Hands on face
             set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0 }, // Still on face
             release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0 } // Fling Out
+        },
+        soccer: {
+            ready: { la: 2.5, ra: 0.6, lfa: 2.0, rfa: 1.0, w: 0 }, // Overhead
+            set: { la: 2.8, ra: 0.3, lfa: 2.5, rfa: 0.5, w: 0 }, // Back
+            release: { la: -1.5, ra: -1.6, lfa: 0.1, rfa: -0.1, w: 0 } // Throw
+        },
+        no_look: {
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0 },
+            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0 }
         }
     };
 
@@ -1910,6 +1952,7 @@
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
     let viewingStyleIndex = 0;
+    let viewingBallIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -1952,7 +1995,7 @@ let lastDisplayedContestTime = -1;
         lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
         dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
         unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
-        unlockedStyles: ['classic'], currentStyle: 'classic', isLefty: false,
+        unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
         mobileControls: false, platformChosen: false,
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
         releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
@@ -2625,6 +2668,14 @@ let lastDisplayedContestTime = -1;
             color1 = '#FFFFFF'; color2 = '#0000FF'; key = 'ball_money';
         } else if (isFire) {
             color1 = '#FFFF00'; color2 = '#FF0000'; key = 'ball_fire';
+        } else {
+            const ballId = playerData.currentBall || 'ball_classic';
+            const ballSkin = BALLS_DB.find(b => b.id === ballId);
+            if(ballSkin) {
+                color1 = ballSkin.color1;
+                color2 = ballSkin.color2;
+                key = ballId;
+            }
         }
 
         // Bloom Effect (High Graphics)
@@ -7406,6 +7457,28 @@ let lastDisplayedContestTime = -1;
         }
         saveData(); updateShopUI(); updateUI();
     }
+    window.changeBall = function(dir) {
+        viewingBallIndex += dir;
+        if(viewingBallIndex < 0) viewingBallIndex = BALLS_DB.length - 1;
+        if(viewingBallIndex >= BALLS_DB.length) viewingBallIndex = 0;
+        updateShopUI();
+    }
+    window.buyOrEquipBall = function() {
+        const ball = BALLS_DB[viewingBallIndex];
+        if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
+
+        const isUnlocked = playerData.unlockedBalls.includes(ball.id);
+        if (isUnlocked) {
+            playerData.currentBall = ball.id;
+        }
+        else if (playerData.tacos >= ball.cost) {
+            playerData.tacos -= ball.cost;
+            playerData.unlockedBalls.push(ball.id);
+            playerData.currentBall = ball.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+    }
     window.changeShootingStyle = function(dir) {
         viewingStyleIndex += dir;
         if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
@@ -7591,6 +7664,19 @@ let lastDisplayedContestTime = -1;
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Ball UI
+        const ball = BALLS_DB[viewingBallIndex];
+        document.getElementById('ballName').innerText = ball.name;
+        const btnBall = document.getElementById('btnEquipBall');
+        const statusBall = document.getElementById('ballStatus');
+        if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
+        const isUnlockedBall = playerData.unlockedBalls.includes(ball.id);
+        const isEquippedBall = playerData.currentBall === ball.id;
+
+        if (isEquippedBall) { statusBall.innerText = "Équipé"; btnBall.style.display = 'none'; }
+        else if (isUnlockedBall) { statusBall.innerText = "Possédé"; btnBall.style.display = 'inline-block'; btnBall.innerText = "Équiper"; btnBall.disabled = false; }
+        else { statusBall.innerText = `Coût: ${ball.cost} Tacos`; btnBall.style.display = 'inline-block'; btnBall.innerText = "Acheter"; btnBall.disabled = playerData.tacos < ball.cost; }
 
         // Style UI
         const style = SHOOTING_STYLES[viewingStyleIndex];
