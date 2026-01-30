@@ -5653,10 +5653,9 @@ let lastDisplayedContestTime = -1;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
 
         // Determine if Furry
-        let isFurry = !skin.includes('robot') && !skin.includes('astronaut') && !skin.includes('alien') && !skin.includes('ninja');
-        if (currentAnimal === 'human') isFurry = false;
-        if (currentAnimal === 'penguin') isFurry = false; // Smooth feathers
-        if (currentAnimal === 'elephant') isFurry = false;
+        const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
+        const isNonFurrySkin = skin.includes('robot') || skin.includes('astronaut') || skin.includes('alien') || skin.includes('ninja');
+        let isFurry = !NON_FURRY_ANIMALS.includes(currentAnimal) && !isNonFurrySkin;
 
         // 1. Setup Base Colors
         let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
@@ -6153,8 +6152,13 @@ let lastDisplayedContestTime = -1;
         }
 
         // 7. Draw Tail (Layer 3)
-        if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            const tx = p.x; const ty = (torsoY + bodyH) - 5*s;
+        // Skip for bears, humans, robots, astronauts, frogs (unless specific tail logic exists)
+        const hasTail = (!['bear', 'human', 'frog'].includes(currentAnimal) || skinObj.tailType) && !skin.includes('astronaut') && !skin.includes('robot');
+
+        if (hasTail) {
+            const tx = p.x;
+            const ty = (torsoY + bodyH) - 5*s;
+
             if (skinObj.tailType === 'devil') {
                 ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
                 ctx.beginPath(); ctx.moveTo(tx, ty);
@@ -6163,6 +6167,51 @@ let lastDisplayedContestTime = -1;
                 ctx.fillStyle = '#8B0000'; ctx.beginPath();
                 const ttx = tx + 25*s, tty = ty - 20*s;
                 ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
+            }
+            else if (skinObj.tailType === 'bull') {
+                 // Minotaur tail
+                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
+                 ctx.moveTo(tx, ty);
+                 ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
+                 drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], '#000', s, true, 101);
+            }
+            else if (currentAnimal === 'rat') {
+                // Rat: Long, thin, smooth, flesh colored
+                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3*s;
+                ctx.moveTo(tx, ty);
+                // S-curve down
+                ctx.bezierCurveTo(tx + 20*s, ty + 10*s, tx + 10*s, ty + 30*s, tx + 25*s, ty + 40*s);
+                ctx.stroke();
+            }
+            else if (currentAnimal === 'monkey') {
+                // Monkey: Long, curled up
+                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4*s;
+                ctx.moveTo(tx, ty);
+                ctx.bezierCurveTo(tx + 20*s, ty - 10*s, tx + 25*s, ty - 30*s, tx + 10*s, ty - 40*s);
+                ctx.stroke();
+            }
+            else if (currentAnimal === 'dino') {
+                // T-Rex: Thick, tapered
+                ctx.fillStyle = tailColor;
+                ctx.beginPath();
+                ctx.moveTo(tx - 5*s, ty);
+                ctx.lineTo(tx + 5*s, ty);
+                // Curve down to a point
+                ctx.quadraticCurveTo(tx + 30*s, ty + 10*s, tx + 45*s, ty + 5*s); // Tip
+                ctx.quadraticCurveTo(tx + 20*s, ty + 20*s, tx - 5*s, ty + 5*s);
+                ctx.fill();
+            }
+            else if (currentAnimal === 'turtle') {
+                // Turtle: Short pointed
+                ctx.fillStyle = tailColor;
+                ctx.beginPath(); ctx.moveTo(tx - 3*s, ty); ctx.lineTo(tx + 3*s, ty); ctx.lineTo(tx, ty + 10*s); ctx.fill();
+            }
+            else if (currentAnimal === 'chicken') {
+                // Chicken: Feathers
+                ctx.fillStyle = tailColor;
+                for(let i=-1; i<=1; i++) {
+                    ctx.beginPath(); ctx.ellipse(tx + (i*5*s), ty - 5*s, 4*s, 10*s, i*0.5, 0, Math.PI*2); ctx.fill();
+                }
             }
             else if (currentAnimal === 'fox' || currentAnimal === 'wolf' || skinObj.tailType === 'multi') {
                 // Bushy Tail
@@ -6191,13 +6240,6 @@ let lastDisplayedContestTime = -1;
                 // Round Fluffy Tail
                 drawFuzzyCircle(p.x, ty - 2*s, 6*s, tailColor, 102, s, true);
             }
-            else if (currentAnimal === 'elephant') {
-                // Tufted Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 5*s, ty + 10*s, tx + 8*s, ty + 15*s); ctx.stroke();
-                drawFuzzyPath([{x: tx+8*s, y: ty+15*s}, {x: tx+12*s, y: ty+20*s}], tailColor, s, false, 101);
-            }
             else if (currentAnimal === 'pig') {
                 // Curly Tail
                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
@@ -6205,15 +6247,25 @@ let lastDisplayedContestTime = -1;
                 ctx.bezierCurveTo(tx + 10*s, ty - 5*s, tx + 10*s, ty + 10*s, tx + 20*s, ty);
                 ctx.stroke();
             }
-            else if (currentAnimal === 'lion' || currentAnimal === 'cow') {
+            else if (['lion', 'cow', 'zebra', 'giraffe'].includes(currentAnimal)) {
                 // Tufted Tail
                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
                 ctx.moveTo(tx, ty);
                 ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
                 // Tuft
-                const tuftColor = (currentAnimal === 'lion') ? '#8B4513' : '#000';
-                if(currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
+                let tuftColor = '#000';
+                if (currentAnimal === 'lion') tuftColor = '#8B4513';
+                if (currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
+                if (skin === 'lion_white') tuftColor = '#EEE';
+
                 drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], tuftColor, s, true, 101);
+            }
+            else if (currentAnimal === 'elephant') {
+                 // Thin tail with small tuft
+                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 2*s;
+                 ctx.moveTo(tx, ty);
+                 ctx.quadraticCurveTo(tx + 5*s, ty + 15*s, tx + 8*s, ty + 25*s); ctx.stroke();
+                 drawFuzzyCircle(tx + 8*s, ty + 25*s, 3*s, tailColor, 101, s, true);
             }
             else if (currentAnimal === 'penguin') {
                 // Stubby Tail
@@ -6354,7 +6406,45 @@ let lastDisplayedContestTime = -1;
              else headColor = '#8B4513';
         }
 
-        drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
+             // Wide Head
+             if (isFurry) {
+                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true);
+                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true);
+             } else {
+                 ctx.fillStyle = headColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
+             }
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry);
+        }
+        else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
+             // Boxy / Snouty Head
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry);
+        }
+        else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
+             // Diamond / Tapered
+             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry);
+        }
+        else if (currentAnimal === 'penguin') {
+             // Continuous
+             ctx.fillStyle = headColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW/2, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW/2, torsoY + 5*s);
+             ctx.lineTo(p.x + headRadius, headY);
+             ctx.lineTo(p.x - headRadius, headY);
+             ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+        }
+        else if (currentAnimal === 'elephant') {
+             ctx.fillStyle = headColor;
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.2, 0, Math.PI*2); ctx.fill();
+        }
+        else {
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+        }
 
         // FOREHEAD MANE (Lion) - Fix baldness
         if(currentAnimal === 'lion' && skin !== 'lion_scar') {
