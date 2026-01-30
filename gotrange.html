@@ -448,6 +448,28 @@
             z-index: 9999;
             position: relative;
         }
+
+        /* Leaderboard Styles */
+        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; }
+        .lb-tab { background: #333; color: #888; border: 1px solid #444; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-family: var(--broadcast-font-title); }
+        .lb-tab.active { background: var(--broadcast-accent); color: #000; border-color: #FFF; }
+
+        .lb-list { height: 350px; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; }
+        .lb-list::-webkit-scrollbar { width: 8px; }
+        .lb-list::-webkit-scrollbar-track { background: #222; }
+        .lb-list::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
+
+        .lb-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #222; font-family: 'Courier New', monospace; font-size: 1.2em; }
+        .lb-row:nth-child(even) { background: #1a1a1a; }
+        .lb-row.highlight { background: rgba(255, 215, 0, 0.2); border: 1px solid var(--broadcast-accent); }
+        .lb-rank { color: #888; width: 40px; text-align: right; margin-right: 15px; }
+        .lb-name { color: var(--broadcast-accent); flex-grow: 1; text-align: left; letter-spacing: 2px; }
+        .lb-score { color: #FFF; text-align: right; }
+
+        /* High Score Input */
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
+        .hs-input { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 200px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 30px 0; outline: none; }
+        .hs-input:focus { border-color: var(--broadcast-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
     </style>
 </head>
 <body>
@@ -498,6 +520,7 @@
         <div class="broadcast-btn" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
         <div class="broadcast-btn" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
         <div class="broadcast-btn" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
+        <div class="broadcast-btn" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
         <div class="broadcast-btn" onclick="openStats()"><span>STATS [S]</span></div>
     </div>
     <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
@@ -614,6 +637,31 @@
         <div class="modal-header">SALLE DES TROPHÉES</div>
         <div id="achList"></div>
         <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
+    </div>
+
+    <div id="leaderboardUI" class="modal">
+        <div class="modal-header">CLASSEMENT</div>
+        <div class="modal-content-wrapper">
+            <div class="lb-tab-container">
+                <button id="btnTabClassic" class="lb-tab active" onclick="switchLeaderboardTab('classic')">CLASSIQUE</button>
+                <button id="btnTabContest" class="lb-tab" onclick="switchLeaderboardTab('contest')">CONCOURS</button>
+                <button id="btnTabTime" class="lb-tab" onclick="switchLeaderboardTab('time_attack')">TIME ATK</button>
+            </div>
+            <div id="lbList" class="lb-list">
+                <!-- Rows injected via JS -->
+                <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
+            </div>
+            <button class="btn btn-close" onclick="closeLeaderboard()">FERMER</button>
+        </div>
+    </div>
+
+    <div id="highScoreUI" class="modal" style="height: auto; top: 40%;">
+        <div class="modal-header">NOUVEAU RECORD !</div>
+        <div class="hs-input-container">
+            <div style="color: #AAA; font-size: 1.2em;">ENTREZ VOS INITIALES</div>
+            <input type="text" id="hsNameInput" class="hs-input" maxlength="3" oninput="this.value = this.value.toUpperCase()">
+            <button class="btn" style="font-size: 1.5em; padding: 15px 40px; background: var(--broadcast-accent); color: #000;" onclick="submitHighScoreInput()">CONFIRMER</button>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -1907,7 +1955,8 @@ let lastDisplayedContestTime = -1;
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
         releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
         graphics: 'HIGH', // 'HIGH' or 'LOW'
-        currentTrackIndex: 0
+        currentTrackIndex: 0,
+        leaderboards: { classic: [], contest: [], time_attack: [] }
     };
 
     let savedData = localStorage.getItem('tacoSaveData');
@@ -1924,6 +1973,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
     if(!playerData.currentStyle) playerData.currentStyle = 'classic';
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
     if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
@@ -1931,6 +1981,7 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -1965,6 +2016,112 @@ let lastDisplayedContestTime = -1;
                 claimed: false
             };
             saveData();
+        }
+    }
+
+    // --- LEADERBOARD LOGIC ---
+    let pendingHighScore = { mode: null, score: 0 };
+
+    function getLeaderboard(mode) {
+        if (!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+        if (!playerData.leaderboards[mode]) playerData.leaderboards[mode] = [];
+        return playerData.leaderboards[mode];
+    }
+
+    function isHighScore(mode, score) {
+        const list = getLeaderboard(mode);
+        if (list.length < 50) return true;
+        const lowest = list[list.length - 1].score;
+        return score > lowest;
+    }
+
+    function addHighScore(mode, score, name) {
+        const list = getLeaderboard(mode);
+        const entry = {
+            name: name.toUpperCase().substring(0, 3),
+            score: score,
+            date: new Date().toDateString()
+        };
+        list.push(entry);
+        list.sort((a, b) => b.score - a.score);
+        if (list.length > 50) list.length = 50;
+        saveData();
+    }
+
+    function openLeaderboard() {
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'LEADERBOARD';
+        document.getElementById('leaderboardUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboardUI').style.display = 'none';
+        state = 'IDLE';
+        // If coming from Game Over flow?
+        if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
+    }
+
+    function switchLeaderboardTab(mode) {
+        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
+
+        const list = getLeaderboard(mode);
+        const container = document.getElementById('lbList');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
+            return;
+        }
+
+        list.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            // Highlight pending score? Not easy to track unique ID without adding one.
+            // Just basic render.
+            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+            container.appendChild(div);
+        });
+    }
+
+    function handleHighScoreInput() {
+        // Called when game detects high score
+        state = 'HIGHSCORE_INPUT';
+        document.getElementById('highScoreUI').style.display = 'block';
+        setTimeout(() => {
+             const inp = document.getElementById('hsNameInput');
+             inp.value = '';
+             inp.focus();
+        }, 100);
+    }
+
+    function submitHighScoreInput() {
+        const name = document.getElementById('hsNameInput').value;
+        if (!name) return;
+
+        addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
+        document.getElementById('highScoreUI').style.display = 'none';
+
+        // Reset state so leaderboard can open
+        state = 'IDLE';
+        // Show Leaderboard to confirm
+        openLeaderboard();
+        // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
+
+    function checkGameOverSequence(mode, score) {
+        // Update Game Over State Logic
+        if (isHighScore(mode, score)) {
+            pendingHighScore = { mode: mode, score: score };
+            handleHighScoreInput();
+        } else {
+            openShop();
         }
     }
 
@@ -6696,7 +6853,7 @@ let lastDisplayedContestTime = -1;
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
-                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(openShop, 1500);
+                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(() => checkGameOverSequence('classic', 10 + (distanceLevel * 5)), 1500);
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
             }
@@ -6933,7 +7090,7 @@ let lastDisplayedContestTime = -1;
         checkDailyProgress('contest_score', contestData.score);
         checkDailyProgress('play_contest', 1);
 
-        checkAchievements('contest'); saveData(); setTimeout(openShop, 2000);
+        checkAchievements('contest'); saveData(); setTimeout(() => checkGameOverSequence('contest', contestData.score), 2000);
     }
 
     function startTimeAttack() {
@@ -6980,7 +7137,7 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = 180;
 
         saveData();
-        setTimeout(openShop, 3000);
+        setTimeout(() => checkGameOverSequence('time_attack', timeAttackData.score), 3000);
     }
 
     function updateUI() {
@@ -7678,6 +7835,8 @@ let lastDisplayedContestTime = -1;
             else if (state === 'SHOP') containerSelector = '#shopUI';
             else if (state === 'STATS') containerSelector = '#statsUI';
             else if (state === 'ACHIEVEMENTS') containerSelector = '#achUI';
+            else if (state === 'LEADERBOARD') containerSelector = '#leaderboardUI';
+            else if (state === 'HIGHSCORE_INPUT') containerSelector = '#highScoreUI';
 
             if (!containerSelector) {
                 this.clearFocus();
@@ -7732,6 +7891,7 @@ let lastDisplayedContestTime = -1;
                 if (state === 'SHOP') closeShop();
                 else if (state === 'STATS') closeStats();
                 else if (state === 'ACHIEVEMENTS') closeAchievements();
+                else if (state === 'LEADERBOARD') closeLeaderboard();
             }
 
             // X Button: Shoot (Game Action)
@@ -7760,7 +7920,8 @@ let lastDisplayedContestTime = -1;
         if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
         if(state === 'STATS') { if(e.code === 'Escape') closeStats(); return; }
-        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats();
+        if(state === 'LEADERBOARD') { if(e.code === 'Escape') closeLeaderboard(); return; }
+        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats(); if(e.code === 'KeyL') openLeaderboard();
         if (e.code === 'Space' && !spacePressed) { spacePressed = true; if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump(); }
     });
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
