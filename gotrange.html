@@ -5797,7 +5797,7 @@ let lastDisplayedContestTime = -1;
             pose.bodyThick = 22 * s;
             pose.chestDepth = 1.2;
             pose.bellyTuck = 10 * s;
-            pose.neckAngle = -0.6;
+            pose.neckAngle = -0.7; // High alert
             pose.neckLen = 20 * s;
         }
         else if (anatomy.type === 'UNGULATE') {
@@ -5805,9 +5805,10 @@ let lastDisplayedContestTime = -1;
             pose.bodyLen = 55 * s;
             pose.bodyThick = 35 * s;
             pose.spineCurve = 'flat';
-            pose.neckAngle = -0.2; // Lower head
+            pose.neckAngle = -0.7; // Alert, looking up at basket
+            pose.neckLen = 18 * s; // Slightly longer to clear shoulders when raised
             if(currentAnimal === 'giraffe') {
-                pose.neckAngle = -1.2; // High up
+                pose.neckAngle = -1.3; // Very High up
                 pose.neckLen = 60 * s;
                 pose.bodyLen = 45 * s; // Short body relative to height
             }
@@ -5816,13 +5817,14 @@ let lastDisplayedContestTime = -1;
             pose.spineCurve = 'arched';
             pose.bodyLen = 35 * s;
             pose.bodyThick = 25 * s;
-            pose.neckAngle = -0.3;
-            pose.neckLen = 8 * s;
+            pose.neckAngle = -0.6; // Looking up
+            pose.neckLen = 10 * s;
         }
         else if (currentAnimal === 'bear') {
             pose.bodyThick = 35 * s;
             pose.shoulderHeightMod = 10 * s; // Hump
-            pose.neckAngle = -0.3;
+            pose.neckAngle = -0.6; // Looking up
+            pose.neckLen = 15 * s;
         }
 
         // Apply Size Mods
