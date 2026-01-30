@@ -5851,124 +5851,106 @@ let lastDisplayedContestTime = -1;
         const headRadius = 12 * s * sizeMod.head;
 
         // 3D Offset for 3/4 View
-        // Far legs should be slightly Up and Left (or Right depending on facing) to show depth.
         const zOffsetX = 10 * s;
         const zOffsetY = -5 * s;
 
-        // --- DRAW BACK LAYER (Far Side) ---
+        // --- DRAW BACK LAYER (Far Side Legs) ---
+        // Draw these darker to show depth
+        ctx.filter = 'brightness(0.8)';
         drawQuadLeg(hipX + 5*s + zOffsetX, torsoY + zOffsetY, groundY + zOffsetY, false, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
         drawQuadLeg(shoulderX + 5*s + zOffsetX, torsoY + zOffsetY, groundY + zOffsetY, false, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
+        ctx.filter = 'none';
 
-        // Tail (Attached to Rump)
+        // Tail
         let tailX = hipX - 5*s;
         let tailY = torsoY - 5*s;
         if (pose.spineCurve === 'arched') tailY += 10*s;
         drawTail(tailX, tailY, color, anatomy, skinObj, s, currentAnimal);
 
-        // Body Shape (Thicker for 3D look)
-        // We draw the main body mass here.
-        // SKIN MAPPING:
-        // If Skin has Jersey/Shorts, we split the body into Front (Jersey) and Back (Shorts) sections.
-
+        // --- DRAW BODY (Middle Layer) ---
         const hasJersey = (skinObj.jerseyColor && skinObj.jerseyColor !== color);
         const hasShorts = (skinObj.shortsColor && skinObj.shortsColor !== color);
 
-        // Base Body Geometry Function
-        const getBodyPolygon = (startX, endX) => {
-            let poly = [];
-            const bodyTop = torsoY - pose.bodyThick * 0.5;
-            const bodyBot = torsoY + pose.bodyThick * 0.5;
+        const bodyPoints = [];
+        const bodyTop = torsoY - pose.bodyThick * 0.5;
+        const bodyBot = torsoY + pose.bodyThick * 0.5;
 
-            // Generate full path then clip or generate sub-paths?
-            // Easier: Generate full outline points, then fill with logic.
+        // Simplified, Robust Body Shape
+        if (pose.spineCurve === 'arched') {
+            bodyPoints.push({x: shoulderX, y: bodyTop + 5*s});
+            bodyPoints.push({x: torsoX, y: bodyTop - 12*s}); // Higher arch
+            bodyPoints.push({x: hipX, y: bodyTop + 10*s});
+        } else {
+            bodyPoints.push({x: shoulderX + 5*s, y: bodyTop - pose.shoulderHeightMod});
+            bodyPoints.push({x: hipX - 5*s, y: bodyTop});
+        }
 
-            // Topline
-            if (pose.spineCurve === 'arched') {
-                poly.push({x: shoulderX, y: bodyTop + 5*s});
-                poly.push({x: torsoX, y: bodyTop - 10*s});
-                poly.push({x: hipX, y: bodyTop + 15*s});
-            } else {
-                poly.push({x: shoulderX, y: bodyTop - pose.shoulderHeightMod});
-                poly.push({x: hipX, y: bodyTop});
-            }
-            // Rump
-            poly.push({x: hipX - 5*s, y: bodyBot - 5*s});
-            // Underline
-            if (pose.bellyTuck > 0) {
-                poly.push({x: hipX + 10*s, y: bodyBot - pose.bellyTuck});
-                poly.push({x: shoulderX - 10*s, y: bodyBot + 5*s});
-            } else {
-                poly.push({x: hipX + 5*s, y: bodyBot});
-                poly.push({x: shoulderX - 5*s, y: bodyBot});
-            }
-            // Chest
-            poly.push({x: shoulderX + 5*s, y: bodyTop + 10*s});
+        // Back/Rump
+        bodyPoints.push({x: hipX - 5*s, y: bodyBot - 5*s});
 
-            return poly;
-        };
+        // Belly
+        if (pose.bellyTuck > 0) {
+            bodyPoints.push({x: hipX + 10*s, y: bodyBot - pose.bellyTuck});
+            bodyPoints.push({x: shoulderX - 5*s, y: bodyBot + 5*s});
+        } else {
+            bodyPoints.push({x: hipX + 5*s, y: bodyBot});
+            bodyPoints.push({x: shoulderX - 5*s, y: bodyBot});
+        }
+        // Chest Front
+        bodyPoints.push({x: shoulderX + 10*s, y: bodyTop + 10*s});
 
-        const bodyPoints = getBodyPolygon();
-
+        // DRAW BODY MASS
         if (hasJersey || hasShorts) {
-            // Draw Split Body
-            // 1. Draw Base Fur (for gaps)
             if(isFurry) drawFuzzyPath(bodyPoints, color, s, true, 101);
             else { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen*0.5, pose.bodyThick*0.5, 0,0,Math.PI*2); ctx.fill(); }
 
-            // 2. Draw Jersey (Front Half)
             if (hasJersey) {
                 const jColor = skinObj.jerseyColor;
-                // Clip region for jersey: x > torsoX
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(torsoX - 5*s, torsoY - 50*s, 100*s, 100*s); // Right side (Front)
-                ctx.clip();
-                drawFuzzyPath(bodyPoints, jColor, s, false, 102); // Clean fabric look
+                ctx.save(); ctx.beginPath();
+                ctx.rect(torsoX - 5*s, torsoY - 50*s, 100*s, 100*s); ctx.clip();
+                drawFuzzyPath(bodyPoints, jColor, s, false, 102);
                 ctx.restore();
-
-                // Trim/Number
                 if (skinObj.number) {
                     ctx.fillStyle = skinObj.numberColor || "#FFF";
-                    ctx.font = `bold ${12 * s}px Arial`;
-                    ctx.textAlign = "center";
-                    ctx.save();
-                    ctx.translate(shoulderX - 10*s, torsoY);
-                    ctx.rotate(-0.2);
-                    ctx.fillText(skinObj.number, 0, 0);
-                    ctx.restore();
+                    ctx.font = `bold ${12 * s}px Arial`; ctx.textAlign = "center";
+                    ctx.save(); ctx.translate(shoulderX - 5*s, torsoY); ctx.rotate(-0.1);
+                    ctx.fillText(skinObj.number, 0, 0); ctx.restore();
                 }
             }
-
-            // 3. Draw Shorts (Back Half)
             if (hasShorts) {
                 const sColor = skinObj.shortsColor;
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(torsoX - 100*s, torsoY - 50*s, 100*s, 100*s); // Left side (Back)
-                ctx.clip();
+                ctx.save(); ctx.beginPath();
+                ctx.rect(torsoX - 100*s, torsoY - 50*s, 100*s, 100*s); ctx.clip();
                 drawFuzzyPath(bodyPoints, sColor, s, false, 103);
                 ctx.restore();
             }
         } else {
-            // Naked Furry Body
-            if (isFurry) {
-                drawFuzzyPath(bodyPoints, color, s, true, 101);
-            } else {
-                 ctx.fillStyle = color;
-                 ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen * 0.5, pose.bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill();
-            }
+            if (isFurry) drawFuzzyPath(bodyPoints, color, s, true, 101);
+            else { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(torsoX, torsoY, pose.bodyLen * 0.5, pose.bodyThick * 0.5, 0, 0, Math.PI*2); ctx.fill(); }
         }
 
-        // Neck Connection
-        ctx.lineWidth = (currentAnimal === 'giraffe' ? 10 : 18) * s;
-        ctx.lineCap = 'round'; ctx.strokeStyle = color;
-        ctx.beginPath(); ctx.moveTo(shoulderX, torsoY); ctx.lineTo(headX, headY); ctx.stroke();
+        // --- DRAW NECK (Solid connection) ---
+        // Draw neck BEFORE front legs to allow legs to overlap chest, but ensure head is on top
+        const neckWidth = (currentAnimal === 'giraffe' ? 10 : 20) * s;
+        const neckPoints = [
+            {x: shoulderX + 5*s, y: torsoY - 10*s}, // Base Front
+            {x: shoulderX - 10*s, y: torsoY - 10*s}, // Base Back
+            {x: headX - neckWidth*0.4, y: headY + 5*s}, // Head Back
+            {x: headX + neckWidth*0.4, y: headY + 5*s}  // Head Front
+        ];
 
-        // --- DRAW FRONT LAYER (Near Side) ---
+        // Shadow for Neck to separate from Body
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.arc(shoulderX, torsoY - 10*s, 15*s, 0, Math.PI*2); ctx.fill();
+
+        drawFuzzyPath(neckPoints, color, s, true, 105);
+
+        // --- DRAW FRONT LAYER (Near Side Legs) ---
         drawQuadLeg(hipX - 5*s, torsoY, groundY, true, 'BACK', anatomy, s, color, sizeMod, skinObj, pose);
         drawQuadLeg(shoulderX - 5*s, torsoY, groundY, true, 'FRONT', anatomy, s, color, sizeMod, skinObj, pose);
 
-        // Head
+        // --- DRAW HEAD (Top Layer) ---
+        // Ensure Head overlaps Neck
         drawRealisticHead(headX, headY, headRadius, color, s, anatomy, skinObj, isFurry);
     }
 
