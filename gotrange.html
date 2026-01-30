@@ -1090,7 +1090,7 @@
 
         // DINOS
         { id: 'dino_rex', animal: 'dino', name: 'T-Rex', cost: 5000, furColor: '#2E8B57', armWidthScale: 0.6, armLen: 0.6, tailType: 'reptile' },
-        { id: 'dino_purple', animal: 'dino', name: 'Barney', cost: 3000, furColor: '#800080', tailType: 'reptile', pattern: 'spots', spotColor: '#00FF00' },
+        { id: 'dino_purple', animal: 'dino', name: 'Barney', cost: 3000, furColor: '#800080', tailType: 'reptile', pattern: 'spots', spotColor: '#00FF00', armLen: 0.85 },
 
         // ZEBRAS
         { id: 'zebra_classic', animal: 'zebra', name: 'Zèbre', cost: 2000, furColor: '#FFF', pattern: 'tiger_stripes' },
@@ -5273,7 +5273,20 @@ let lastDisplayedContestTime = -1;
             case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
             case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
             case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
+            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
+            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
+            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
+            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
+            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
         }
+
+        // Apply Skin Overrides (Size & Proportions)
+        if (skinObj.widthScale) sizeMod.w = skinObj.widthScale;
+        if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
+        if (skinObj.armWidthScale) sizeMod.armWidth = skinObj.armWidthScale;
+        if (skinObj.legWidthScale) sizeMod.legWidth = skinObj.legWidthScale;
 
         // Fill defaults if missing
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
@@ -5422,7 +5435,8 @@ let lastDisplayedContestTime = -1;
         let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
 
         let armLenMod = sizeMod.limbLen || 1.0;
-        if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
+        if (skinObj.armLen) armLenMod = skinObj.armLen;
+        else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
