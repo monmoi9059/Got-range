@@ -673,6 +673,7 @@
 </div>
 
 <script>
+    var preJumpTimer = 0;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 100 },
@@ -5765,8 +5766,20 @@ let lastDisplayedContestTime = -1;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
 
         let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
-        let torsoY = p.y - legLen - bodyH;
         let neckLen = 0;
+
+        // Pose Logic
+        const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
+        const isCrouching = (state === 'PRE_JUMP' && currentAnimal === 'human');
+
+        let torsoY;
+        if (isSitting) {
+             torsoY = p.y - bodyH * 0.85; // Low to ground
+        } else if (isCrouching) {
+             torsoY = p.y - legLen * 0.6 - bodyH; // Crouched
+        } else {
+             torsoY = p.y - legLen - bodyH;
+        }
         if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
         let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
@@ -5904,27 +5917,52 @@ let lastDisplayedContestTime = -1;
         // 0c. HELD BALL RENDERING (Layer 0)
         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
         if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
-             const isRightHand = !isLefty;
-             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
-             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
-             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+             let ballX, ballY;
 
-             let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
-             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+             if (isSitting) {
+                 // Ball in Lap
+                 ballX = p.x;
+                 ballY = torsoY + bodyH * 0.8;
+             } else {
+                 const isRightHand = !isLefty;
+                 const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+                 const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+                 const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
 
-             let theta = shootFAngle + wristAngle;
-             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
-             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+                 let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+                 let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+
+                 let theta = shootFAngle + wristAngle;
+                 ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+                 ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+             }
 
              drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
         }
 
         // 2. Legs (Base implementation)
-        const baseKneeY = p.y - (legLen * 0.5);
-        let lKneeX = p.x - 9*s*stanceMod, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s*stanceMod, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s*stanceMod, lFootY = p.y;
-        let rFootX = p.x + 10*s*stanceMod, rFootY = p.y;
+        let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
+
+        if (isSitting) {
+             // Sitting Pose: Knees wide, Feet forward/central
+             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
+             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
+             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
+             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
+        } else if (isCrouching) {
+             // Crouch Pose: Knees bent outward
+             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
+             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+        } else {
+             // Standing
+             const baseKneeY = p.y - (legLen * 0.5);
+             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
+             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
+             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+        }
 
         // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
@@ -6116,7 +6154,7 @@ let lastDisplayedContestTime = -1;
 
         // 7. Draw Tail (Layer 3)
         if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            const tx = p.x; const ty = p.y - legLen - 5*s;
+            const tx = p.x; const ty = (torsoY + bodyH) - 5*s;
             if (skinObj.tailType === 'devil') {
                 ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
                 ctx.beginPath(); ctx.moveTo(tx, ty);
@@ -7237,6 +7275,19 @@ let lastDisplayedContestTime = -1;
     function startJump() {
         if (state !== 'IDLE') return;
         AudioSystem.init();
+
+        // Human Pre-Jump (Crouch)
+        const currentSkin = SKINS_DB.find(x => x.id === playerData.currentSkin);
+        const isHuman = (currentSkin && currentSkin.animal === 'human');
+
+        if (isHuman) {
+            state = 'PRE_JUMP';
+            preJumpTimer = 0.08; // ~5 frames
+            feedback = "";
+            return;
+        }
+
+        // Animal Sit -> Stand
         state = 'JUMPING';
         feedback = "";
 
@@ -7253,6 +7304,13 @@ let lastDisplayedContestTime = -1;
         }
     }
     function releaseShot() {
+        if (state === 'PRE_JUMP') {
+            state = 'JUMPING';
+            const style = getCurrentStyle();
+            const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            player3D.vz = jv; // Force launch if early release
+        }
+
         if (state !== 'JUMPING') return;
 
         const style = getCurrentStyle();
@@ -7473,6 +7531,24 @@ let lastDisplayedContestTime = -1;
         }
 
         if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS') return;
+
+        if (state === 'PRE_JUMP') {
+            preJumpTimer -= dt * (1/60);
+            if (preJumpTimer <= 0) {
+                state = 'JUMPING';
+                const style = getCurrentStyle();
+                const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+
+                if (jv <= 0.5) {
+                    isGroundedShot = true;
+                    groundShotTimer = 0;
+                    player3D.vz = 0;
+                } else {
+                    isGroundedShot = false;
+                    player3D.vz = jv;
+                }
+            }
+        }
 
         if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
