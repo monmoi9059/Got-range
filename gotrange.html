@@ -6154,7 +6154,7 @@ let lastDisplayedContestTime = -1;
 
         // 7. Draw Tail (Layer 3)
         if(currentAnimal !== 'bear' && currentAnimal !== 'human' && !skin.includes('astronaut') && !skin.includes('robot')) {
-            const tx = p.x; const ty = p.y - legLen - 5*s;
+            const tx = p.x; const ty = (torsoY + bodyH) - 5*s;
             if (skinObj.tailType === 'devil') {
                 ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
                 ctx.beginPath(); ctx.moveTo(tx, ty);
