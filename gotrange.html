@@ -849,7 +849,7 @@
 
     var SKINS_DB = [
         // RATS
-        { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 0 },
+        { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 250, bodyShape: 'oval' },
         { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie', hatColor: '#FF0000', backProp: 'axe', clothingDetail: 'suspenders' },
         { id: 'rat_mariachi', animal: 'rat', name: 'El Mariachi', cost: 1000, jerseyColor: '#1a1a1a', shortsColor: '#1a1a1a', legType: 'pants', shoesColor: '#000', pattern: 'suit', headAccessory: 'sombrero', hatColor: '#1a1a1a', backProp: 'guitar' },
         { id: 'rat_luchador', animal: 'rat', name: 'Luchador', cost: 1500, jerseyColor: '#008000', shortsColor: '#008000', legType: 'pants', shoesColor: '#000', socksColor: '#FFF' },
@@ -876,7 +876,7 @@
         { id: 'rat_detective', animal: 'rat', name: 'Détective', cost: 4000, jerseyColor: '#D2B48C', shortsColor: '#8B4513', legType: 'pants', headAccessory: 'hat', hatColor: '#8B4513' },
 
         // CATS
-        { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250 },
+        { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250, bodyShape: 'oval' },
         { id: 'cat_tabby', animal: 'cat', name: 'Tigré', cost: 1000, furColor: '#FFA500' },
         { id: 'cat_tuxedo', animal: 'cat', name: 'Tuxedo', cost: 1000, furColor: '#111' },
         // NEW CATS
@@ -887,7 +887,7 @@
         { id: 'cat_persian', animal: 'cat', name: 'Persan', cost: 4000, furColor: '#FFF', headAccessory: 'bow', hatColor: '#800080' },
 
         // DOGS
-        { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250 },
+        { id: 'dog_classic', animal: 'dog', name: 'Classique', cost: 250, bodyShape: 'athletic_animal' },
         { id: 'dog_dalmation', animal: 'dog', name: 'Dalmatien', cost: 1000, furColor: '#FFF', hasSpots: true },
         { id: 'dog_pug', animal: 'dog', name: 'Carlin', cost: 1500, furColor: '#d2b48c' },
         // NEW DOGS
@@ -899,7 +899,7 @@
         { id: 'dog_airbud', animal: 'dog', name: 'Golden Bud', cost: 500, furColor: '#DAA520', jerseyColor: '#191970', shortsColor: '#191970', trimColor: '#FFD700', number: '1', numberColor: '#FFD700' },
 
         // BEARS
-        { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500 },
+        { id: 'bear_classic', animal: 'bear', name: 'Classique', cost: 500, bodyShape: 'bear_new', widthScale: 1.3 },
         { id: 'bear_panda', animal: 'bear', name: 'Panda', cost: 3000, furColor: '#FFF', legType: 'panda_limbs' },
         { id: 'bear_polar', animal: 'bear', name: 'Polaire', cost: 3000, furColor: '#F0F8FF' },
         // NEW BEARS
@@ -939,7 +939,7 @@
         { id: 'fox_gentleman', animal: 'fox', name: 'Gentleman', cost: 4000, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', pattern: 'suit', headAccessory: 'top_hat' },
 
         // WOLVES (NEW)
-        { id: 'wolf_classic', animal: 'wolf', name: 'Classique', cost: 1000 },
+        { id: 'wolf_classic', animal: 'wolf', name: 'Classique', cost: 1000, bodyShape: 'athletic_animal' },
         { id: 'wolf_black', animal: 'wolf', name: 'Noir', cost: 2000, furColor: '#1a1a1a', headAccessory: 'collar', hatColor: '#FF0000' },
         { id: 'wolf_white', animal: 'wolf', name: 'Blanc', cost: 2000, furColor: '#FFF', headAccessory: 'scarf', hatColor: '#00008B' },
         { id: 'wolf_alpha', animal: 'wolf', name: 'Alpha', cost: 5000, furColor: '#333' },
@@ -971,7 +971,7 @@
         { id: 'pig_gentleman', animal: 'pig', name: 'Riche', cost: 5000, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', headAccessory: 'top_hat', pattern: 'suit' },
 
         // COWS (NEW)
-        { id: 'cow_classic', animal: 'cow', name: 'Classique', cost: 1000, pattern: 'cow_spots' },
+        { id: 'cow_classic', animal: 'cow', name: 'Classique', cost: 500, bodyShape: 'round' },
         { id: 'cow_highland', animal: 'cow', name: 'Highland', cost: 3000, furColor: '#8B0000' },
         { id: 'cow_bull', animal: 'cow', name: 'Taureau', cost: 3500, furColor: '#000', headAccessory: 'bandana_neck' },
         { id: 'cow_strawberry', animal: 'cow', name: 'Fraise', cost: 2500, furColor: '#FFC0CB', pattern: 'cow_spots', headAccessory: 'flower' },
@@ -979,20 +979,20 @@
         { id: 'cow_space', animal: 'cow', name: 'Espace', cost: 5000, furColor: '#00FF00', headAccessory: 'helmet' },
 
         // MONKEYS (NEW)
-        { id: 'monkey_classic', animal: 'monkey', name: 'Classique', cost: 1000, armLen: 1.3, legLen: 0.9 },
-        { id: 'monkey_gorilla', animal: 'monkey', name: 'Gorille', cost: 3000, furColor: '#000', backProp: 'barrel', armLen: 1.4, legLen: 0.85, widthScale: 1.2, armWidthScale: 1.3 },
-        { id: 'monkey_chimp', animal: 'monkey', name: 'Chimpanzé', cost: 2500, furColor: '#333', headAccessory: 'fez', armLen: 1.3, legLen: 0.9 },
-        { id: 'monkey_wukong', animal: 'monkey', name: 'Wukong', cost: 10000, furColor: '#FFD700', headAccessory: 'crown', backProp: 'staff', armLen: 1.3, legLen: 0.9 },
-        { id: 'monkey_space', animal: 'monkey', name: 'Cosmonaute', cost: 4000, jerseyColor: '#FFA500', shortsColor: '#FFA500', legType: 'pants', headAccessory: 'helmet', armLen: 1.3, legLen: 0.9 },
-        { id: 'monkey_zombie', animal: 'monkey', name: 'Zombie', cost: 3000, furColor: '#556B2F', armLen: 1.3, legLen: 0.9 },
+        { id: 'monkey_classic', animal: 'monkey', name: 'Classique', cost: 500, bodyShape: 'athletic_animal', armLen: 1.2 },
+        { id: 'monkey_gorilla', animal: 'monkey', name: 'Gorille', cost: 3000, furColor: '#000', backProp: 'barrel' },
+        { id: 'monkey_chimp', animal: 'monkey', name: 'Chimpanzé', cost: 2500, furColor: '#333', headAccessory: 'fez' },
+        { id: 'monkey_wukong', animal: 'monkey', name: 'Wukong', cost: 10000, furColor: '#FFD700', headAccessory: 'crown', backProp: 'staff' },
+        { id: 'monkey_space', animal: 'monkey', name: 'Cosmonaute', cost: 4000, jerseyColor: '#FFA500', shortsColor: '#FFA500', legType: 'pants', headAccessory: 'helmet' },
+        { id: 'monkey_zombie', animal: 'monkey', name: 'Zombie', cost: 3000, furColor: '#556B2F' },
 
         // PENGUINS (NEW)
-        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 1000, bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
-        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 2500, headDetail: 'yellow_neck', bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
-        { id: 'penguin_tuxedo', animal: 'penguin', name: 'Tuxedo', cost: 2000, pattern: 'suit', bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
-        { id: 'penguin_icy', animal: 'penguin', name: 'Glace', cost: 3000, furColor: '#ADD8E6', headAccessory: 'ear_muffs', hatColor: '#FFF', bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
-        { id: 'penguin_pilot', animal: 'penguin', name: 'Pilote', cost: 3500, headAccessory: 'helmet', hatColor: '#CCC', bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
-        { id: 'penguin_rico', animal: 'penguin', name: 'Rico', cost: 3000, headDetail: 'mohawk', bodyShape: 'penguin', armLen: 0.7, legLen: 0.6, widthScale: 1.2, heightScale: 0.85 },
+        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 500, bodyShape: 'penguin', limbLen: 0.5 },
+        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 2500, headDetail: 'yellow_neck' },
+        { id: 'penguin_tuxedo', animal: 'penguin', name: 'Tuxedo', cost: 2000, pattern: 'suit' },
+        { id: 'penguin_icy', animal: 'penguin', name: 'Glace', cost: 3000, furColor: '#ADD8E6', headAccessory: 'ear_muffs', hatColor: '#FFF' },
+        { id: 'penguin_pilot', animal: 'penguin', name: 'Pilote', cost: 3500, headAccessory: 'helmet', hatColor: '#CCC' },
+        { id: 'penguin_rico', animal: 'penguin', name: 'Rico', cost: 3000, headDetail: 'mohawk' },
 
         // NBA LEGENDS (Humans - Accurate Colors & Patterns)
         { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, heightScale: 1.085, widthScale: 0.9, jerseyColor: '#FFF', shortsColor: '#FFF', sideStripesColor: '#002B5C', trimColor: '#E31837', number: '2', numberColor: '#E31837', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', sleeveRight: '#E31837' },
@@ -1085,7 +1085,7 @@
         { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'backpack', backColor: '#006400' },
 
         // ELEPHANTS
-        { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 1500, furColor: '#808080' },
+        { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 2000, bodyShape: 'heavy', widthScale: 1.4, armWidthScale: 1.4, legWidthScale: 1.4 },
         { id: 'elephant_circus', animal: 'elephant', name: 'Cirque', cost: 3000, furColor: '#A9A9A9', headAccessory: 'fez' },
 
         // DINOS
@@ -1097,7 +1097,7 @@
         { id: 'zebra_rainbow', animal: 'zebra', name: 'Disco', cost: 5000, furColor: '#FF69B4', pattern: 'tiger_stripes' },
 
         // GIRAFFES
-        { id: 'giraffe_classic', animal: 'giraffe', name: 'Girafe', cost: 2000, furColor: '#FFFF00', pattern: 'cow_spots', spotColor: '#8B4513', heightScale: 1.2, widthScale: 0.9 },
+        { id: 'giraffe_classic', animal: 'giraffe', name: 'Girafe', cost: 2000, furColor: '#FFFF00', pattern: 'cow_spots', spotColor: '#8B4513', heightScale: 1.3, widthScale: 0.9, neckLength: 40, bodyShape: 'giraffe', limbLen: 1.4 },
 
         // NEW HUMANS
         { id: 'human_bouffon', animal: 'human', name: 'Bouffon Fou', cost: 20000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', skinTone: '#FFF', hairStyle: 'short', hairColor: '#00FF00', pattern: 'suit', shoesColor: '#000' },
@@ -3446,6 +3446,44 @@ let lastDisplayedContestTime = -1;
                 {x: cx - w*0.5, y: waistY}
             ];
         }
+        else if (options.bodyShape === 'giraffe') {
+             // Sloping shoulders, narrow chest
+             const shoulderW = w * 0.8;
+             const hipW = w * 0.9;
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY + h*0.1}, // Sloped down
+                 {x: cx, y: shoulderY}, // Neck connect point (virtual)
+                 {x: cx + shoulderW/2, y: shoulderY + h*0.1}, // Sloped down
+                 {x: cx + hipW/2, y: hipY},
+                 {x: cx - hipW/2, y: hipY}
+             ];
+        }
+        else if (options.bodyShape === 'heavy') {
+             // Elephant/Hippo - Boxy and wide
+             const shoulderW = w * 1.3;
+             const bellyW = w * 1.4;
+             const hipW = w * 1.3;
+             points = [
+                 {x: cx - shoulderW/2, y: shoulderY},
+                 {x: cx + shoulderW/2, y: shoulderY},
+                 {x: cx + bellyW/2, y: topY + h*0.5},
+                 {x: cx + hipW/2, y: hipY},
+                 {x: cx - hipW/2, y: hipY},
+                 {x: cx - bellyW/2, y: topY + h*0.5}
+             ];
+        }
+        else if (options.bodyShape === 'penguin') {
+             // Tear drop
+             const topW = w * 0.5;
+             const botW = w * 1.5;
+             points = [
+                 {x: cx - topW/2, y: shoulderY},
+                 {x: cx + topW/2, y: shoulderY},
+                 {x: cx + botW/2, y: hipY - h*0.2},
+                 {x: cx, y: hipY + h*0.1}, // Pointy tail/bottom
+                 {x: cx - botW/2, y: hipY - h*0.2}
+             ];
+        }
         else {
             // Default Humanoid (Hourglass/Trapezoid)
             points = [
@@ -3649,6 +3687,7 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         }
     }
+
 
     function drawLimb(x1, y1, x2, y2, width, color) {
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
@@ -4682,7 +4721,9 @@ let lastDisplayedContestTime = -1;
         const bodyH = 40 * s * sizeMod.h;
         const legLen = 30 * s * sizeMod.h;
         let torsoY = p.y - legLen - bodyH;
-        let headY = torsoY - (10 * s * sizeMod.head);
+        let neckLen = 0;
+        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
+        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         const headRadius = 12 * s * sizeMod.head;
 
         // Super Saiyan Aura
@@ -4746,6 +4787,12 @@ let lastDisplayedContestTime = -1;
             wristAngle = r_w;
         }
 
+        // Draw Neck (Extension)
+        if (neckLen > 5*s) {
+            ctx.fillStyle = furColor;
+            const neckW = 12 * s * sizeMod.w * 0.7;
+            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
+        }
         let shoulderY = torsoY + (5*s);
         let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
@@ -5599,8 +5646,6 @@ let lastDisplayedContestTime = -1;
         if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
         if (skinObj.armWidthScale) sizeMod.armWidth = skinObj.armWidthScale;
         if (skinObj.legWidthScale) sizeMod.legWidth = skinObj.legWidthScale;
-        if (skinObj.armLen) sizeMod.armLen = skinObj.armLen;
-        if (skinObj.legLen) sizeMod.legLen = skinObj.legLen;
 
         // Fill defaults if missing
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
@@ -5718,16 +5763,12 @@ let lastDisplayedContestTime = -1;
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
 
-        let legLenMod = sizeMod.legLen || sizeMod.limbLen || 1.0;
-        let legLen = 30 * s * sizeMod.h * legLenMod;
+        let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
         let torsoY = p.y - legLen - bodyH;
-
-        let neckLen = skinObj.neckLength ? (skinObj.neckLength * s) : 0;
-        if (skinObj.bodyShape === 'giraffe' && !skinObj.neckLength) neckLen = 40 * s;
-
+        let neckLen = 0;
+        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
         let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
-        if (skinObj.headScale) headRadius *= skinObj.headScale;
 
         // Super Saiyan Aura
         if (currentStreak >= 10) {
@@ -5749,13 +5790,20 @@ let lastDisplayedContestTime = -1;
              ctx.restore();
         }
 
+        // Draw Neck (Extension)
+        if (neckLen > 5*s) {
+            ctx.fillStyle = furColor;
+            const neckW = 12 * s * sizeMod.w * 0.7;
+            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
+        }
         let shoulderY = torsoY + (5*s);
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
         let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
 
-        let armLenMod = sizeMod.armLen || sizeMod.limbLen || 1.0;
-        if (currentAnimal === 'bear' && !skinObj.armLen) armLenMod = 0.95;
+        let armLenMod = sizeMod.limbLen || 1.0;
+        if (skinObj.armLen) armLenMod = skinObj.armLen;
+        else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
@@ -5952,8 +6000,7 @@ let lastDisplayedContestTime = -1;
         let bodyOptions = {};
 
         // Define Body Shapes for Animals
-        if (skinObj.bodyShape) { bodyOptions.bodyShape = skinObj.bodyShape; }
-        else if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
+        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
         else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'oval'; // Small animals
         }
@@ -6138,29 +6185,6 @@ let lastDisplayedContestTime = -1;
         }
 
         // 8. Draw Head & Ears (Layer 4)
-
-        // Draw Neck if Needed
-        if (neckLen > 5*s) {
-            const neckW = (skinObj.bodyShape === 'giraffe') ? 12*s : 15*s;
-            const neckColor = furColor;
-            if (isFurry) {
-                drawFuzzyLimb(p.x, torsoY + 5*s, p.x, headY + 5*s, neckW, neckColor, s, true, 50);
-            } else {
-                ctx.fillStyle = neckColor;
-                ctx.beginPath();
-                ctx.moveTo(p.x - neckW/2, torsoY + 5*s);
-                ctx.lineTo(p.x + neckW/2, torsoY + 5*s);
-                ctx.lineTo(p.x + neckW*0.4, headY);
-                ctx.lineTo(p.x - neckW*0.4, headY);
-                ctx.fill();
-            }
-            if(skinObj.pattern === 'cow_spots' && skinObj.bodyShape === 'giraffe') {
-                 ctx.fillStyle = skinObj.spotColor || '#8B4513';
-                 ctx.beginPath(); ctx.arc(p.x, torsoY - neckLen*0.5, 4*s, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.arc(p.x - 2*s, torsoY - neckLen*0.2, 3*s, 0, Math.PI*2); ctx.fill();
-            }
-        }
-
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
 
