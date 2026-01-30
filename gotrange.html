@@ -1078,11 +1078,38 @@
 
         // FROGS
         { id: 'frog_classic', animal: 'frog', name: 'Grenouille', cost: 1000, furColor: '#32CD32', shoesColor: '#32CD32' },
-        { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' }
+        { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' },
+
+        // TURTLES
+        { id: 'turtle_classic', animal: 'turtle', name: 'Tortue', cost: 1000, furColor: '#228B22', backAccessory: 'backpack', backColor: '#006400' },
+        { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'backpack', backColor: '#006400' },
+
+        // ELEPHANTS
+        { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 1500, furColor: '#808080' },
+        { id: 'elephant_circus', animal: 'elephant', name: 'Cirque', cost: 3000, furColor: '#A9A9A9', headAccessory: 'fez' },
+
+        // DINOS
+        { id: 'dino_rex', animal: 'dino', name: 'T-Rex', cost: 5000, furColor: '#2E8B57', armWidthScale: 0.6, armLen: 0.6, tailType: 'reptile' },
+        { id: 'dino_purple', animal: 'dino', name: 'Barney', cost: 3000, furColor: '#800080', tailType: 'reptile', pattern: 'spots', spotColor: '#00FF00' },
+
+        // ZEBRAS
+        { id: 'zebra_classic', animal: 'zebra', name: 'Zèbre', cost: 2000, furColor: '#FFF', pattern: 'tiger_stripes' },
+        { id: 'zebra_rainbow', animal: 'zebra', name: 'Disco', cost: 5000, furColor: '#FF69B4', pattern: 'tiger_stripes' },
+
+        // GIRAFFES
+        { id: 'giraffe_classic', animal: 'giraffe', name: 'Girafe', cost: 2000, furColor: '#FFFF00', pattern: 'cow_spots', spotColor: '#8B4513', heightScale: 1.2, widthScale: 0.9 },
+
+        // NEW HUMANS
+        { id: 'human_joker', animal: 'human', name: 'Bouffon Fou', cost: 20000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', skinTone: '#FFF', hairStyle: 'short', hairColor: '#00FF00', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_iron', animal: 'human', name: 'Homme Fer', cost: 25000, jerseyColor: '#8B0000', shortsColor: '#8B0000', legType: 'pants', sleeveColor: '#8B0000', skinTone: '#FFD700', headAccessory: 'helmet', hatColor: '#8B0000', headDetail: 'visor', shoesColor: '#FFD700' },
+        { id: 'human_spider', animal: 'human', name: 'Araignée', cost: 25000, jerseyColor: '#FF0000', shortsColor: '#0000FF', legType: 'tights', sleeveColor: '#FF0000', skinTone: '#FF0000', pattern: 'grid', shoesColor: '#FF0000', headAccessory: 'mask', hatColor: '#FF0000' },
+        { id: 'human_hulk', animal: 'human', name: 'Géant Vert', cost: 20000, heightScale: 1.25, widthScale: 1.4, jerseyType: 'none', shortsColor: '#800080', skinTone: '#32CD32', hairStyle: 'short', hairColor: '#000', shoesColor: '#32CD32' },
+        { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000' },
+        { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'human'];
-    var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦'];
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
+    var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     var BALLS_DB = [
         { id: 'ball_classic', name: 'Classique', cost: 0, color1: '#ff6600', color2: '#cc5500' },
@@ -1094,7 +1121,20 @@
         { id: 'ball_night', name: 'Nuit', cost: 3500, color1: '#4B0082', color2: '#000' },
         { id: 'ball_gold', name: 'Or', cost: 5000, color1: '#FFD700', color2: '#DAA520' },
         { id: 'ball_slime', name: 'Radioactif', cost: 4000, color1: '#00FF00', color2: '#006400' },
-        { id: 'ball_galaxy', name: 'Galaxie', cost: 10000, color1: '#8A2BE2', color2: '#4B0082' }
+        { id: 'ball_galaxy', name: 'Galaxie', cost: 10000, color1: '#8A2BE2', color2: '#4B0082' },
+        // NEW BALLS
+        { id: 'ball_soccer', name: 'Soccer', cost: 1000, color1: '#FFFFFF', color2: '#000000' },
+        { id: 'ball_baseball', name: 'Baseball', cost: 1000, color1: '#FFFFFF', color2: '#FF0000' },
+        { id: 'ball_8ball', name: 'Bille 8', cost: 1500, color1: '#000000', color2: '#111111' },
+        { id: 'ball_golf', name: 'Golf', cost: 1000, color1: '#FFFFFF', color2: '#EEE' },
+        { id: 'ball_watermelon', name: 'Pastèque', cost: 2000, color1: '#FF6347', color2: '#228B22' },
+        { id: 'ball_donut', name: 'Beigne', cost: 2500, color1: '#FF69B4', color2: '#D2691E' },
+        { id: 'ball_earth', name: 'Terre', cost: 3000, color1: '#0000FF', color2: '#228B22' },
+        { id: 'ball_lava', name: 'Magma', cost: 4000, color1: '#FF4500', color2: '#8B0000' },
+        { id: 'ball_rainbow', name: 'Arc-en-ciel', cost: 5000, color1: '#FF0000', color2: '#0000FF' },
+        { id: 'ball_camo', name: 'Camouflage', cost: 2500, color1: '#556B2F', color2: '#8B4513' },
+        { id: 'ball_beach', name: 'Plage', cost: 1500, color1: '#FFFF00', color2: '#0000FF' },
+        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, color1: '#FFFFFF', color2: '#FF0000' }
     ];
 
     var SHOOTING_STYLES = [
@@ -1137,7 +1177,12 @@
         { id: 'telekinesis', name: 'Psychokinésie', cost: 0, desc: 'Par la pensée.', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
         { id: 'peekaboo', name: 'Coucou !', cost: 0, desc: 'Où est-il ?', modifiers: { jumpVelocity: 0, speed: 0.8 } },
         { id: 'soccer', name: 'Touche', cost: 0, desc: 'Remise en jeu.', modifiers: { jumpVelocity: 0, speed: 1.1 } },
-        { id: 'no_look', name: 'Aveugle', cost: 0, desc: 'Trop facile.', modifiers: { speed: 1.0 } }
+        { id: 'no_look', name: 'Aveugle', cost: 0, desc: 'Trop facile.', modifiers: { speed: 1.0 } },
+        { id: 'shot_put', name: 'Poids', cost: 0, desc: 'Lancer lourd.', modifiers: { speed: 0.6 } },
+        { id: 'dab', name: 'Le Dab', cost: 0, desc: 'Style swag.', modifiers: { speed: 1.0 } },
+        { id: 'helicopter', name: 'Hélico', cost: 0, desc: 'Rotation rapide.', modifiers: { speed: 1.2 } },
+        { id: 'prayer', name: 'Prière', cost: 0, desc: 'Espoir divin.', modifiers: { speed: 0.8, jumpVelocity: 5.0 } },
+        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -1322,6 +1367,31 @@
             ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0 },
             set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0 },
             release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0 }
+        },
+        shot_put: {
+            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -2.5, w: 0 }, // Ball at neck
+            set: { la: -1.0, ra: -1.0, lfa: -1.0, rfa: -2.8, w: 0 }, // Crouch
+            release: { la: -2.0, ra: -1.5, lfa: -2.0, rfa: -0.5, w: 0 } // Push out
+        },
+        dab: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0 },
+            set: { la: -2.0, ra: -2.0, lfa: -1.0, rfa: -1.0, w: 0 },
+            release: { la: -0.5, ra: -2.5, lfa: 2.5, rfa: -0.5, w: 0 } // Dab pose
+        },
+        helicopter: {
+            ready: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0 }, // Arms up
+            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 }, // Down
+            release: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0 } // Up again
+        },
+        prayer: {
+            ready: { la: -1.5, ra: -1.6, lfa: -1.0, rfa: -2.1, w: 0 }, // Hands clasped
+            set: { la: -1.8, ra: -1.9, lfa: -1.0, rfa: -2.1, w: 0 }, // Look up
+            release: { la: -2.0, ra: -2.1, lfa: -0.5, rfa: -2.6, w: 0 } // Reach up
+        },
+        spirit_bomb: {
+            ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0 }, // Hands high V shape
+            set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0 }, // Charge
+            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0 } // Throw down
         }
     };
 
