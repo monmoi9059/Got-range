@@ -471,7 +471,6 @@
         .hs-input { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 200px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 30px 0; outline: none; }
         .hs-input:focus { border-color: var(--broadcast-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
     </style>
-    <script src="cordova.js"></script>
 </head>
 <body>
 
@@ -8735,6 +8734,20 @@ let lastDisplayedContestTime = -1;
         if (state === 'JUMPING') releaseShot();
     });
 
+    // Handle Page Visibility (Mute audio on background)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (AudioSystem.ctx && AudioSystem.ctx.state === 'running') {
+                AudioSystem.ctx.suspend();
+            }
+        } else {
+            // Only resume if user hasn't explicitly muted it
+            if (AudioSystem.ctx && !AudioSystem.isMuted && AudioSystem.ctx.state === 'suspended') {
+                AudioSystem.ctx.resume();
+            }
+        }
+    });
+
     // Initial resize call
     resizeGame();
     checkStartup();
@@ -8743,12 +8756,15 @@ let lastDisplayedContestTime = -1;
 </script>
 
 <script>
-document.addEventListener('deviceready', function() {
-    if (window.playerData && !window.playerData.platformChosen) {
-        console.log("Cordova detected: Auto-selecting mobile.");
-        window.choosePlatform('mobile');
+window.addEventListener('load', function() {
+    // Check if running in Capacitor Native
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        console.log("Capacitor detected: Auto-selecting mobile.");
+        if (window.playerData && !window.playerData.platformChosen) {
+             window.choosePlatform('mobile');
+        }
     }
-}, false);
+});
 </script>
 
 </body>

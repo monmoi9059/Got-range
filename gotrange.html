@@ -8734,6 +8734,20 @@ let lastDisplayedContestTime = -1;
         if (state === 'JUMPING') releaseShot();
     });
 
+    // Handle Page Visibility (Mute audio on background)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (AudioSystem.ctx && AudioSystem.ctx.state === 'running') {
+                AudioSystem.ctx.suspend();
+            }
+        } else {
+            // Only resume if user hasn't explicitly muted it
+            if (AudioSystem.ctx && !AudioSystem.isMuted && AudioSystem.ctx.state === 'suspended') {
+                AudioSystem.ctx.resume();
+            }
+        }
+    });
+
     // Initial resize call
     resizeGame();
     checkStartup();

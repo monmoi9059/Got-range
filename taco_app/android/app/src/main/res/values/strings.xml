@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">taco basketball</string>
+    <string name="title_activity_main">taco basketball</string>
+    <string name="package_name">PLL.gBE.gotrange</string>
+    <string name="custom_url_scheme">PLL.gBE.gotrange</string>
+</resources>
