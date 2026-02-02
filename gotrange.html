@@ -713,8 +713,15 @@
         const width = 1066;
         const height = 600;
 
+        console.log("Initializing 3D...");
+
         // Renderer
         try {
+            if (typeof THREE === 'undefined') {
+                console.error("THREE is not defined!");
+                return;
+            }
+
             const renderer = new THREE.WebGLRenderer({
                 canvas: canvas3d,
                 alpha: true,
@@ -882,30 +889,32 @@
 
         let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0 };
         const currentAnimal = skinObj.animal;
+        let mods = {};
         switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
-            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
-            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
-            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
+            case 'rat': mods = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
+            case 'cat': mods = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
+            case 'rabbit': mods = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
+            case 'dog': mods = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
+            case 'moose': mods = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
+            case 'bear': mods = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3 }; break;
+            case 'human': mods = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
+            case 'fox': mods = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
+            case 'wolf': mods = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
+            case 'lion': mods = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
+            case 'tiger': mods = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
+            case 'pig': mods = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'cow': mods = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
+            case 'monkey': mods = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
+            case 'penguin': mods = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
+            case 'chicken': mods = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
+            case 'frog': mods = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
+            case 'turtle': mods = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'elephant': mods = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
+            case 'dino': mods = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
+            case 'zebra': mods = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
+            case 'giraffe': mods = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
         }
+        Object.assign(sizeMod, mods);
 
         if (skinObj.widthScale) sizeMod.w = skinObj.widthScale;
         if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
@@ -8900,6 +8909,12 @@ let lastDisplayedContestTime = -1;
 
     function render3D() {
         if (!ThreeScene.initialized) return;
+
+        // Debug Log (Once)
+        if (!window.hasRendered3D) {
+            console.log("First render3D call");
+            window.hasRendered3D = true;
+        }
 
         update3DEnvironment(distanceLevel);
 
