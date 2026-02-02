@@ -687,7 +687,7 @@
     <canvas id="gameCanvas"></canvas>
 </div>
 
-<script src="taco_app/www/js/three.min.js"></script>
+<script src="js/three.min.js"></script>
 <script>
     var preJumpTimer = 0;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
@@ -1261,6 +1261,11 @@
             // Game Y 150 -> Three Z -150.
             this.hoopGroup.position.set(200, 0, -150);
 
+            // Rotate Hoop to face Player (Player is at Z ~ -300, Hoop at Z ~ -150)
+            // Player looks Z+. Hoop default faces Z+. So we see back of board.
+            // Rotate 180 deg to face Z- (towards player).
+            this.hoopGroup.rotation.y = Math.PI;
+
             this.scene.add(this.hoopGroup);
         },
 
@@ -1415,11 +1420,18 @@
             const camDist = 600;
             const camHeight = 300;
 
-            this.camera.position.x = pX * 0.8; // Slight parallax
-            this.camera.position.z = pZ + camDist;
+            // Camera Behind Player (Z is negative in our mapping, so "Behind" implies more negative Z?)
+            // Player Z = -GameY (~ -300). Hoop Z = -GameY (~ -150).
+            // Player is at -300. Hoop is at -150.
+            // Vector P->H is +Z direction.
+            // So "Behind Player" is Z < -300.
+            // e.g. -300 - 600 = -900.
+
+            this.camera.position.x = pX * 0.8;
+            this.camera.position.z = pZ - camDist;
             this.camera.position.y = Math.max(100, pY + camHeight);
 
-            this.camera.lookAt(200, 100, -150); // Look at Hoop
+            this.camera.lookAt(200, 150, -150); // Look at Hoop Center
         },
 
         updateBalls: function(gameBalls) {
