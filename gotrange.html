@@ -6074,13 +6074,6 @@ let lastDisplayedContestTime = -1;
             ctx.restore();
         };
 
-        // Arms First (Layer 1) - Arms behind legs
-        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-
-        // 0b. Detached Ball Rendering
-        drawDetachedBall(p, s, torsoY, bodyH, headY);
-
         if (playerData.currentStyle === 'airbud' && state === 'SHOOTING') {
              const t = airbudJumpTime;
              const maxT = 30;
@@ -6096,6 +6089,9 @@ let lastDisplayedContestTime = -1;
                  leftShoulderX = p.x - 12*s; rightShoulderX = p.x + 12*s;
              }
         }
+
+        // 0b. Detached Ball Rendering
+        drawDetachedBall(p, s, torsoY, bodyH, headY);
 
         // 0c. HELD BALL RENDERING (Layer 0)
         const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
@@ -6122,6 +6118,10 @@ let lastDisplayedContestTime = -1;
 
              drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
         }
+
+        // Arms First (Layer 1) - Arms behind legs
+        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // 2. Legs (Base implementation)
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
