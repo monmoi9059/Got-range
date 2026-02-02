@@ -38,6 +38,22 @@ try {
 
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
+
+    // Ensure three.min.js is copied
+    const threeSrc = path.join(__dirname, 'js', 'three.min.js');
+    const threeDest = path.join(__dirname, 'taco_app', 'www', 'js', 'three.min.js');
+
+    if (fs.existsSync(threeSrc)) {
+        const threeDir = path.dirname(threeDest);
+        if (!fs.existsSync(threeDir)){
+            fs.mkdirSync(threeDir, { recursive: true });
+        }
+        fs.copyFileSync(threeSrc, threeDest);
+        console.log(`Successfully copied three.min.js to ${threeDest}`);
+    } else {
+        console.warn(`Warning: Local three.min.js not found at ${threeSrc}. APK might fail to load 3D.`);
+    }
+
 } catch (err) {
     console.error('Error updating APK source:', err);
     process.exit(1);
