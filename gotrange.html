@@ -8629,6 +8629,7 @@ let lastDisplayedContestTime = -1;
         saveData();
 
         use3D = (playerData.graphics === '3D');
+        if (use3D) init3D();
         const c3d = document.getElementById('canvas3d');
         if (c3d) c3d.style.display = use3D ? 'block' : 'none';
 
