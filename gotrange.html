@@ -46,12 +46,26 @@
         }
 
         canvas {
-            border: 4px solid #1a1a1a;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             display: block;
             box-sizing: border-box;
+        }
+
+        #gameCanvas {
+            z-index: 10;
+            background: transparent;
+            pointer-events: none; /* Let clicks pass through UI canvas if needed, though controls handles clicks */
+            border: 4px solid #1a1a1a;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        #canvas3d {
+            z-index: 0;
+            background: #000;
         }
 
         /* SCOREBUG (Top HUD) */
@@ -669,9 +683,11 @@
         </div>
     </div>
 
+    <canvas id="canvas3d"></canvas>
     <canvas id="gameCanvas"></canvas>
 </div>
 
+<script src="taco_app/www/js/three.min.js"></script>
 <script>
     var preJumpTimer = 0;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
@@ -1111,6 +1127,368 @@
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
+
+    // --- THREE.JS SCENE MANAGER ---
+    var ThreeScene = {
+        initialized: false,
+        scene: null,
+        camera: null,
+        renderer: null,
+        playerGroup: null,
+        hoopGroup: null,
+        floorMesh: null,
+        ballMeshes: [], // Pool of balls
+        cloudMeshes: [],
+
+        init: function() {
+            if (this.initialized) return;
+            if (typeof THREE === 'undefined') { console.error("Three.js not loaded"); return; }
+
+            const canvas = document.getElementById('canvas3d');
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x87CEEB);
+            // Fog for depth
+            this.scene.fog = new THREE.Fog(0x87CEEB, 2000, 15000);
+
+            // Camera setup
+            this.camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 1, 100000);
+            this.camera.position.set(0, 500, 1000);
+            this.camera.lookAt(0, 0, 0);
+
+            // Renderer setup
+            this.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+            this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lighting
+            const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444, 0.6 );
+            hemiLight.position.set( 0, 5000, 0 );
+            this.scene.add( hemiLight );
+
+            const dirLight = new THREE.DirectionalLight( 0xffffff, 1.0 );
+            dirLight.position.set( 1000, 3000, 1000 );
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.top = 4000;
+            dirLight.shadow.camera.bottom = -4000;
+            dirLight.shadow.camera.left = -4000;
+            dirLight.shadow.camera.right = 4000;
+            dirLight.shadow.camera.near = 0.1;
+            dirLight.shadow.camera.far = 10000;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.bias = -0.0005;
+            this.scene.add( dirLight );
+
+            this.createWorld();
+
+            this.initialized = true;
+            console.log("ThreeScene initialized");
+        },
+
+        createWorld: function() {
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(100000, 100000);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x228B22, roughness: 0.8 });
+            this.floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            this.floorMesh.rotation.x = -Math.PI / 2;
+            this.floorMesh.receiveShadow = true;
+            this.scene.add(this.floorMesh);
+
+            // Hoop Container
+            this.hoopGroup = new THREE.Group();
+            // Pole (Black)
+            const poleGeo = new THREE.CylinderGeometry(10, 10, 300, 16);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.y = 150; // Half height
+            pole.castShadow = true;
+            this.hoopGroup.add(pole);
+
+            // Backboard (White/Glass)
+            const boardGeo = new THREE.BoxGeometry(110, 80, 5);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0xEEEEEE, roughness: 0.2 });
+            const board = new THREE.Mesh(boardGeo, boardMat);
+            board.position.set(0, 290, 20); // Top of pole roughly
+            board.castShadow = true;
+            this.hoopGroup.add(board);
+
+            // Red Square on Backboard
+            const squareGeo = new THREE.PlaneGeometry(40, 30);
+            const squareMat = new THREE.MeshBasicMaterial({ color: 0xCE1126, side: THREE.DoubleSide });
+            const square = new THREE.Mesh(squareGeo, squareMat);
+            square.position.set(0, 290, 23); // Slightly in front
+            this.hoopGroup.add(square);
+
+            // Rim (Orange)
+            const rimGeo = new THREE.TorusGeometry(22, 2, 16, 32);
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0xFF8C00 });
+            const rim = new THREE.Mesh(rimGeo, rimMat);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.set(0, 275, 45); // Extends out
+            rim.castShadow = true;
+            this.hoopGroup.add(rim);
+
+            // Net (White Cone approximation)
+            const netGeo = new THREE.CylinderGeometry(22, 15, 30, 16, 1, true);
+            const netMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true, transparent: true, opacity: 0.5 });
+            const net = new THREE.Mesh(netGeo, netMat);
+            net.position.set(0, 260, 45);
+            this.hoopGroup.add(net);
+
+            // Position Hoop in World (Mapping: Game X -> Three X, Game Y -> Three -Z)
+            // HOOP_POS = { x: 733, y: 150, z: 130 } -> But hoop base is at ground Y=150 in game logic?
+            // In game logic: HOOP_POS.y is the "forward" distance.
+            // But pole stands on ground.
+            // Game X=733. Game Y=150.
+            // We need to shift X so 533 is 0.
+            // X = 733 - 533 = 200.
+            // Z = -150.
+            // Y = 0 (Ground).
+            // Actually, HOOP_POS.z in game logic is rim height (130).
+            // The pole height logic above puts rim at ~275 Three units.
+            // The game units (130) vs Three units need scaling?
+            // The game uses PIXELS_PER_FOOT = 4.2426. 10ft = 42 pixels? No, 10ft hoop is standard.
+            // Let's assume Game Unit = Three Unit for simplicity first.
+            // If Rim is at 130 in game, my 3D rim is at 275.
+            // 275 is likely too high if 130 is the target.
+            // Let's adjust hoop scale to match game units roughly.
+            // If Rim Z (Height) is 130.
+
+            this.hoopGroup.scale.set(0.5, 0.5, 0.5); // Initial guess scale
+            // Adjust position
+            // Game X 733 -> Three X (733 - 533) = 200.
+            // Game Y 150 -> Three Z -150.
+            this.hoopGroup.position.set(200, 0, -150);
+
+            this.scene.add(this.hoopGroup);
+        },
+
+        updateFloor: function(distLevel) {
+            if (!this.floorMesh) return;
+            const currentDist = 10 + (distLevel * 5);
+
+            // Find current zone
+            let zone = COURT_ZONES[0];
+            for (let i = 0; i < COURT_ZONES.length; i++) {
+                if (currentDist <= COURT_ZONES[i].limit) {
+                    zone = COURT_ZONES[i];
+                    break;
+                }
+            }
+            if (currentDist > COURT_ZONES[COURT_ZONES.length-1].limit) zone = COURT_ZONES[COURT_ZONES.length-1];
+
+            // Simple color update
+            this.floorMesh.material.color.set(zone.ground1);
+            this.scene.background.set(zone.sky1);
+            this.scene.fog.color.set(zone.sky1);
+        },
+
+        build3DPlayer: function(skinId) {
+            if (this.currentSkinId === skinId && this.playerGroup) return;
+            this.currentSkinId = skinId;
+
+            if (this.playerGroup) this.scene.remove(this.playerGroup);
+
+            const skin = SKINS_DB.find(s => s.id === skinId) || SKINS_DB[0];
+            const isHuman = skin.animal === 'human';
+
+            this.playerGroup = new THREE.Group();
+
+            // Materials
+            const skinMat = new THREE.MeshStandardMaterial({ color: skin.skinTone || skin.furColor || '#8B4513' });
+            const jerseyMat = new THREE.MeshStandardMaterial({ color: skin.jerseyColor || '#FFF' });
+            const shortsMat = new THREE.MeshStandardMaterial({ color: skin.shortsColor || '#FFF' });
+
+            // Dimensions
+            const height = 80 * (skin.heightScale || 1.0);
+            const width = 20 * (skin.widthScale || 1.0);
+
+            // Legs
+            const legGeo = new THREE.CylinderGeometry(5, 5, 40, 16);
+            const legMat = (skin.legType === 'pants' || skin.legType === 'tights') ? shortsMat : skinMat;
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-8 * (skin.widthScale || 1), 20, 0);
+            this.playerGroup.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.position.set(8 * (skin.widthScale || 1), 20, 0);
+            this.playerGroup.add(rightLeg);
+
+            // Shorts
+            if (!['pants', 'tights'].includes(skin.legType)) {
+                const shortsGeo = new THREE.CylinderGeometry(width + 4, width + 4, 25, 16);
+                const shorts = new THREE.Mesh(shortsGeo, shortsMat);
+                shorts.position.set(0, 45, 0);
+                this.playerGroup.add(shorts);
+            }
+
+            // Torso
+            let torsoGeo;
+            if (skin.bodyShape === 'round' || skin.bodyShape === 'oval') {
+                torsoGeo = new THREE.SphereGeometry(width * 1.2, 16, 16);
+            } else {
+                torsoGeo = new THREE.CylinderGeometry(width, width * 0.8, 50, 16);
+            }
+            const torsoMat = (skin.jerseyType === 'none') ? skinMat : jerseyMat;
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.set(0, 70, 0);
+            torso.castShadow = true;
+            this.playerGroup.add(torso);
+
+            // Arms
+            const armGeo = new THREE.CylinderGeometry(4, 4, 35, 16);
+            const armMat = (skin.sleeveColor) ? new THREE.MeshStandardMaterial({color: skin.sleeveColor}) : skinMat;
+
+            const leftArm = new THREE.Mesh(armGeo, armMat);
+            leftArm.rotation.z = Math.PI / 8;
+            leftArm.position.set(-width - 8, 80, 0);
+            this.playerGroup.add(leftArm);
+
+            const rightArm = new THREE.Mesh(armGeo, armMat);
+            rightArm.rotation.z = -Math.PI / 8;
+            rightArm.position.set(width + 8, 80, 0);
+            this.playerGroup.add(rightArm);
+
+            // Head
+            const headSize = 15 * (skin.headScale || 1.0);
+            const headGeo = new THREE.SphereGeometry(headSize, 16, 16);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.set(0, 70 + 25 + headSize * 0.5, 0);
+            this.playerGroup.add(head);
+
+            // Accessories
+            if (skin.headAccessory === 'halo') {
+                const haloGeo = new THREE.TorusGeometry(10, 1, 8, 16);
+                const haloMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
+                const halo = new THREE.Mesh(haloGeo, haloMat);
+                halo.rotation.x = Math.PI / 2;
+                halo.position.set(0, headSize + 8, 0);
+                head.add(halo);
+            }
+            if (skin.headAccessory === 'hat' || skin.headAccessory === 'cap' || skin.headAccessory === 'beanie') {
+                 const hatGeo = new THREE.CylinderGeometry(12, 12, 6, 16);
+                 const hatMat = new THREE.MeshStandardMaterial({ color: skin.hatColor || '#333' });
+                 const hat = new THREE.Mesh(hatGeo, hatMat);
+                 hat.position.set(0, headSize * 0.8, 0);
+                 head.add(hat);
+            }
+            if (skin.ears === 'elf') {
+                const earGeo = new THREE.ConeGeometry(3, 10, 8);
+                const lEar = new THREE.Mesh(earGeo, skinMat);
+                lEar.rotation.z = Math.PI/4; lEar.position.set(-headSize, 0, 0);
+                head.add(lEar);
+                const rEar = new THREE.Mesh(earGeo, skinMat);
+                rEar.rotation.z = -Math.PI/4; rEar.position.set(headSize, 0, 0);
+                head.add(rEar);
+            }
+
+            this.scene.add(this.playerGroup);
+        },
+
+        updatePlayerPose: function(gamePlayer) {
+            if (!this.playerGroup) return;
+
+            // Mapping
+            // Game Center X = 533
+            const pX = gamePlayer.x - 533;
+            // Game Y grows forward from player to hoop(150). Player is usually > 150.
+            // If player Y = 500, Hoop Y = 150. Distance = 350.
+            // In Three.js, Hoop is at Z = -150.
+            // So Three Z = -Game Y.
+            const pZ = -gamePlayer.y;
+            // Game Z is height
+            const pY = gamePlayer.z;
+
+            this.playerGroup.position.set(pX, pY, pZ);
+
+            // Face the hoop (approx)
+            this.playerGroup.lookAt(200, pY, -150);
+
+            // Camera Logic
+            // Behind player (Game Y + offset -> Three Z + offset)
+            // Player Three Z is -500. Camera should be at -500 + 600? No, +600 is "back" in Z.
+            // Wait, standard Camera: Look -Z.
+            // So if Player is at Z=-500, Camera at Z=100 looks at player.
+            // Correct.
+
+            const camDist = 600;
+            const camHeight = 300;
+
+            this.camera.position.x = pX * 0.8; // Slight parallax
+            this.camera.position.z = pZ + camDist;
+            this.camera.position.y = Math.max(100, pY + camHeight);
+
+            this.camera.lookAt(200, 100, -150); // Look at Hoop
+        },
+
+        updateBalls: function(gameBalls) {
+            // Ensure pool size
+            while (this.ballMeshes.length < gameBalls.length) {
+                const geo = new THREE.SphereGeometry(25, 32, 32);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xFF6600, roughness: 0.4 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.castShadow = true;
+                this.scene.add(mesh);
+                this.ballMeshes.push({ mesh: mesh, active: false, currentType: '' });
+            }
+
+            // Update
+            for (let i = 0; i < this.ballMeshes.length; i++) {
+                const wrapper = this.ballMeshes[i];
+                if (i < gameBalls.length) {
+                    const b = gameBalls[i];
+                    // Logic to find specific ball type if multiple exist would go here.
+                    // For now, use global equipped ball.
+                    const ballData = BALLS_DB.find(x => x.id === playerData.currentBall) || BALLS_DB[0];
+
+                    wrapper.mesh.visible = true;
+                    wrapper.active = true;
+
+                    // Update Material if changed
+                    if (wrapper.currentType !== ballData.id) {
+                        wrapper.mesh.material.color.set(ballData.color1);
+                        // Simple texture differentiation
+                        if (ballData.type === 'soccer') {
+                             wrapper.mesh.material.color.set(0xFFFFFF);
+                             // If I had a soccer texture...
+                        }
+                        wrapper.currentType = ballData.id;
+                    }
+
+                    // Position: Game X(533 center) -> Three X, Game Y -> Three -Z, Game Z -> Three Y
+                    wrapper.mesh.position.set(b.x - 533, b.z, -b.y);
+
+                    // Rotate
+                    if (b.rotationX) wrapper.mesh.rotation.x = b.rotationX;
+
+                } else {
+                    wrapper.mesh.visible = false;
+                    wrapper.active = false;
+                }
+            }
+        },
+
+        render: function() {
+            if (!this.initialized) return;
+            this.renderer.render(this.scene, this.camera);
+        },
+
+        resize: function() {
+            if (!this.initialized) return;
+            const canvas = this.renderer.domElement;
+            const container = document.getElementById('game-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Only update if size changed significantly
+            if (Math.abs(canvas.width - width) > 1 || Math.abs(canvas.height - height) > 1) {
+                this.renderer.setSize(width, height, false); // false to not set style, rely on CSS 100%
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+            }
+        }
+    };
 
     // --- BALL GEOMETRY & RENDERER ---
     var Geometry = {
@@ -2426,7 +2804,7 @@ let lastDisplayedContestTime = -1;
         mobileControls: false, platformChosen: false,
         meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
         releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
-        graphics: 'HIGH', // 'HIGH' or 'LOW'
+        graphics: '3D', // '3D' or '2D'
         currentTrackIndex: 0,
         leaderboards: { classic: [], contest: [], time_attack: [] }
     };
@@ -2823,6 +3201,8 @@ let lastDisplayedContestTime = -1;
         const scale = Math.min(winW / 1066, winH / 600);
         container.style.transform = `translate(-50%, -50%) scale(${scale})`;
         invalidateBackgroundCache();
+
+        if (typeof ThreeScene !== 'undefined') ThreeScene.resize();
     }
     window.addEventListener('resize', resizeGame);
 
@@ -8014,7 +8394,7 @@ let lastDisplayedContestTime = -1;
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
         const btnGraph = document.getElementById('btnToggleGraphics');
-        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === '3D') ? "MODE: 3D" : "MODE: 2D";
         const btnMeter = document.getElementById('btnToggleMeter');
         if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
         const btnShape = document.getElementById('btnCycleMeterShape');
@@ -8219,10 +8599,16 @@ let lastDisplayedContestTime = -1;
         if(btn) btn.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
     }
     window.toggleGraphics = function() {
-        playerData.graphics = (playerData.graphics === 'HIGH') ? 'LOW' : 'HIGH';
+        playerData.graphics = (playerData.graphics === '3D') ? '2D' : '3D';
+        if (playerData.graphics === '3D') {
+            if (typeof ThreeScene !== 'undefined') ThreeScene.init();
+            document.getElementById('canvas3d').style.display = 'block';
+        } else {
+            document.getElementById('canvas3d').style.display = 'none';
+        }
         saveData();
         const btn = document.getElementById('btnToggleGraphics');
-        if(btn) btn.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        if(btn) btn.innerText = (playerData.graphics === '3D') ? "MODE: 3D" : "MODE: 2D";
         invalidateBackgroundCache(); // Redraw background next frame
     }
     window.updateMobileControlsUI = function() {
@@ -8312,6 +8698,11 @@ let lastDisplayedContestTime = -1;
         document.getElementById('startup-ui').style.display = 'none';
         document.getElementById('scorebug-container').style.display = 'flex';
         document.getElementById('controls').style.display = 'flex';
+
+        if (playerData.graphics === '3D') {
+            if (typeof ThreeScene !== 'undefined') ThreeScene.init();
+        }
+
         updateUI();
         updateMobileControlsUI();
     }
@@ -8479,8 +8870,34 @@ let lastDisplayedContestTime = -1;
         if (state === 'STARTUP') {
             drawStartupScene();
         } else {
-            drawBackground();
-            drawBroadcastLowerThird();
+            if (playerData.graphics === '3D' && typeof ThreeScene !== 'undefined' && ThreeScene.initialized) {
+                // Clear UI canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Update 3D State
+                ThreeScene.updateFloor(distanceLevel);
+                ThreeScene.build3DPlayer(playerData.currentSkin);
+                ThreeScene.updatePlayerPose(player3D);
+                ThreeScene.updateBalls(activeBalls);
+
+                ThreeScene.render();
+
+                // Draw UI on top
+                drawBroadcastLowerThird();
+
+                // Feedback text (Ported from drawBackground)
+                if (feedbackTimer > 0) {
+                    ctx.save(); ctx.font = "900 60px 'Arial Black'";
+                    ctx.fillStyle = feedback === "MUY BIEN!" || feedback === "CHANCEUX!" || feedback === "Swish" || feedback.includes('MONEY') || feedback === "SUR LA LIGNE!" || feedback === "OUF!" || feedback.includes('SÉRIE') ? "#00FF00" : "#FF0000";
+                    if (feedback === "DERNIÈRE CHANCE !") ctx.fillStyle = "#FFA500";
+                    ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center";
+                    ctx.fillText(feedback, canvas.width/2, 200); ctx.strokeText(feedback, canvas.width/2, 200);
+                    ctx.restore();
+                }
+            } else {
+                drawBackground();
+                drawBroadcastLowerThird();
+            }
         }
     }
 
