@@ -1769,6 +1769,11 @@
         }
     };
 
+    // Global Animation State
+    var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_breathingPhase = 0;
+
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),
     // but we might want to center the "court path" a bit more.
@@ -4913,34 +4918,12 @@ let lastDisplayedContestTime = -1;
         }
 
         // 0. Calculate Arm Configuration EARLY (needed for Ball Placement)
-        const currentStyle = playerData.currentStyle || 'classic';
-        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
-        const idle = DEFAULT_IDLE;
-        
-        let r_la, r_ra, r_lfa, r_rfa, r_w;
-        if (state === 'SHOOTING') {
-            r_la = anim.release.la; r_ra = anim.release.ra;
-            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
-            r_w = anim.release.w;
-        } else if (state === 'JUMPING') {
-            let lift = Math.max(0, (9 - getCurrentVz()) / 9);
-            lift = Math.min(1.0, lift);
-            const startPose = anim.ready || idle;
-            const lerpAngle = (a, b, t) => {
-                if (Math.abs(b - a) > Math.PI) { if (b > a) a += 2 * Math.PI; else b += 2 * Math.PI; }
-                return a + (b - a) * t;
-            };
-            const lerp = (a, b, t) => a + (b - a) * t;
-            r_la = lerpAngle(startPose.la, anim.set.la, lift);
-            r_ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            r_lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            r_rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            r_w = lerp(startPose.w, anim.set.w, lift);
-        } else {
-            r_la = idle.la; r_ra = idle.ra;
-            r_lfa = idle.lfa; r_rfa = idle.rfa;
-            r_w = idle.w;
-        }
+        // Uses global smooth animation state
+        const r_la = g_animState.la;
+        const r_ra = g_animState.ra;
+        const r_lfa = g_animState.lfa;
+        const r_rfa = g_animState.rfa;
+        const r_w = g_animState.w;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
         if (playerData.isLefty) {
@@ -5899,39 +5882,12 @@ let lastDisplayedContestTime = -1;
         }
 
         // 0. Calculate Arm Config EARLY
-        const currentStyle = playerData.currentStyle || 'classic';
-        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
-        const idle = DEFAULT_IDLE;
-        const lerp = (a, b, t) => a + (b - a) * t;
-
-        // Calculate generic (Right-Handed) angles first
-        let r_la, r_ra, r_lfa, r_rfa, r_w;
-
-        if (state === 'SHOOTING') {
-            r_la = anim.release.la; r_ra = anim.release.ra;
-            r_lfa = anim.release.lfa; r_rfa = anim.release.rfa;
-            r_w = anim.release.w;
-        } else if (state === 'JUMPING') {
-            let lift = Math.max(0, (9 - getCurrentVz()) / 9);
-            lift = Math.min(1.0, lift); // Clamp
-            const startPose = anim.ready || idle;
-            const lerpAngle = (a, b, t) => {
-                if (Math.abs(b - a) > Math.PI) {
-                    if (b > a) a += 2 * Math.PI;
-                    else b += 2 * Math.PI;
-                }
-                return a + (b - a) * t;
-            };
-            r_la = lerpAngle(startPose.la, anim.set.la, lift);
-            r_ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            r_lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            r_rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            r_w = lerp(startPose.w, anim.set.w, lift);
-        } else {
-            r_la = idle.la; r_ra = idle.ra;
-            r_lfa = idle.lfa; r_rfa = idle.rfa;
-            r_w = idle.w;
-        }
+        // Uses global smooth animation state
+        const r_la = g_animState.la;
+        const r_ra = g_animState.ra;
+        const r_lfa = g_animState.lfa;
+        const r_rfa = g_animState.rfa;
+        const r_w = g_animState.w;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
         const isLefty = playerData.isLefty;
@@ -7738,6 +7694,66 @@ let lastDisplayedContestTime = -1;
         }
     }
 
+    function updatePlayerAnimation(dt) {
+        // Update Breathing
+        g_breathingPhase += dt * 0.05; // Slow breathing
+        const breathArm = Math.sin(g_breathingPhase) * 0.05;
+
+        // Determine Target Pose based on State
+        const currentStyle = playerData.currentStyle || 'classic';
+        const anim = ANIM_DATA[currentStyle] || ANIM_DATA['classic'];
+        const idle = DEFAULT_IDLE;
+        const lerpAngle = (a, b, t) => {
+            if (Math.abs(b - a) > Math.PI) { if (b > a) a += 2 * Math.PI; else b += 2 * Math.PI; }
+            return a + (b - a) * t;
+        };
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        if (state === 'SHOOTING') {
+            // Target is Release
+            g_animTarget.la = anim.release.la;
+            g_animTarget.ra = anim.release.ra;
+            g_animTarget.lfa = anim.release.lfa;
+            g_animTarget.rfa = anim.release.rfa;
+            g_animTarget.w = anim.release.w;
+        } else if (state === 'JUMPING') {
+            let lift = Math.max(0, (9 - getCurrentVz()) / 9);
+            lift = Math.min(1.0, lift);
+
+            const startPose = anim.ready || idle;
+            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, lift);
+            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, lift);
+            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
+            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
+            g_animTarget.w = lerp(startPose.w, anim.set.w, lift);
+        } else if (state === 'PRE_JUMP') {
+             // Gather Pose (Ready + Crouch emphasis)
+             const ready = anim.ready || idle;
+             g_animTarget.la = ready.la;
+             g_animTarget.ra = ready.ra;
+             g_animTarget.lfa = ready.lfa;
+             g_animTarget.rfa = ready.rfa;
+             g_animTarget.w = ready.w;
+        } else {
+             // IDLE (With Breathing)
+             g_animTarget.la = idle.la + breathArm;
+             g_animTarget.ra = idle.ra - breathArm; // Opposing sway
+             g_animTarget.lfa = idle.lfa + breathArm * 0.5;
+             g_animTarget.rfa = idle.rfa - breathArm * 0.5;
+             g_animTarget.w = idle.w;
+        }
+
+        // SMOOTHING (Interpolate State -> Target)
+        // Using a fast lerp factor for responsiveness but smooth enough to kill snap
+        const smoothFactor = Math.min(1.0, 0.25 * dt);
+
+        g_animState.la = lerpAngle(g_animState.la, g_animTarget.la, smoothFactor);
+        g_animState.ra = lerpAngle(g_animState.ra, g_animTarget.ra, smoothFactor);
+        g_animState.lfa = lerpAngle(g_animState.lfa, g_animTarget.lfa, smoothFactor);
+        g_animState.rfa = lerpAngle(g_animState.rfa, g_animTarget.rfa, smoothFactor);
+        g_animState.w = lerp(g_animState.w, g_animTarget.w, smoothFactor);
+    }
+
     function updateParticles(dt) {
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
@@ -7773,6 +7789,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function update(dt) {
+        updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
         weather.update(dt);
