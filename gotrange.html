@@ -5728,9 +5728,9 @@ let lastDisplayedContestTime = -1;
         }
 
         // Shot Meter
-        if (state === 'JUMPING') {
+        if (state === 'JUMPING' || state === 'PRE_JUMP') {
             const style = getCurrentStyle();
-            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.5) maxVz = 9;
 
             const curVz = getCurrentVz();
@@ -5911,7 +5911,7 @@ let lastDisplayedContestTime = -1;
 
         // Pose Logic
         const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
-        const isCrouching = (state === 'PRE_JUMP' && currentAnimal === 'human');
+        const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
 
         let torsoY;
         if (isSitting) {
@@ -6974,9 +6974,9 @@ let lastDisplayedContestTime = -1;
         }
 
         // 10. Shot Meter (Layer 6)
-        if (state === 'JUMPING') {
+        if (state === 'JUMPING' || state === 'PRE_JUMP') {
             const style = getCurrentStyle();
-            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 9;
+            let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.5) maxVz = 9;
 
             const curVz = getCurrentVz();
@@ -7512,19 +7512,9 @@ let lastDisplayedContestTime = -1;
         if (state !== 'IDLE') return;
         AudioSystem.init();
 
-        // Human Pre-Jump (Crouch)
-        const currentSkin = SKINS_DB.find(x => x.id === playerData.currentSkin);
-        const isHuman = (currentSkin && currentSkin.animal === 'human');
-
-        if (isHuman) {
-            state = 'PRE_JUMP';
-            preJumpTimer = 0.20; // ~12 frames
-            feedback = "";
-            return;
-        }
-
-        // Animal Sit -> Stand
-        state = 'JUMPING';
+        // Pre-Jump (Gather/Crouch) for all characters
+        state = 'PRE_JUMP';
+        preJumpTimer = 0.10; // ~6 frames
         feedback = "";
 
         const style = getCurrentStyle();
