@@ -2864,7 +2864,12 @@ let lastDisplayedContestTime = -1;
             cosRot = Math.cos(rotation);
         }
 
-        const dx = x - player3D.x; const dy = y - player3D.y;
+        let camX = player3D.x;
+        let camY = player3D.y;
+        if (cache && cache.x !== undefined) { camX = cache.x; camY = cache.y; }
+        else if (g_camCache && g_camCache.x !== undefined) { camX = g_camCache.x; camY = g_camCache.y; }
+
+        const dx = x - camX; const dy = y - camY;
         const rx = dx * cosRot - dy * sinRot;
         const ry = dx * sinRot + dy * cosRot;
         const cameraOffset = 400; const depth = cameraOffset - ry;
@@ -7053,8 +7058,34 @@ let lastDisplayedContestTime = -1;
 
     function drawBackground() {
         // Optimization: Per-frame camera calculation
-        const dxToHoop = HOOP_POS.x - player3D.x;
-        const dyToHoop = HOOP_POS.y - player3D.y;
+        // Camera Follow Logic
+        if (!window.g_camSmooth) window.g_camSmooth = { x: player3D.x, y: player3D.y };
+
+        let targetX = player3D.x;
+        let targetY = player3D.y;
+
+        if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
+            const b = activeBalls[activeBalls.length - 1];
+            if (b.active) {
+                targetX = b.x;
+                targetY = b.y;
+            }
+        }
+
+        // Smooth Interpolation
+        const lerp = 0.1;
+        window.g_camSmooth.x += (targetX - window.g_camSmooth.x) * lerp;
+        window.g_camSmooth.y += (targetY - window.g_camSmooth.y) * lerp;
+
+        // Snap if close to avoid micro-jitter
+        if (Math.abs(targetX - window.g_camSmooth.x) < 1) window.g_camSmooth.x = targetX;
+        if (Math.abs(targetY - window.g_camSmooth.y) < 1) window.g_camSmooth.y = targetY;
+
+        const camX = window.g_camSmooth.x;
+        const camY = window.g_camSmooth.y;
+
+        const dxToHoop = HOOP_POS.x - camX;
+        const dyToHoop = HOOP_POS.y - camY;
         const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
         const camRotation = -angleToHoop - Math.PI / 2;
         const camSin = Math.sin(camRotation);
@@ -7068,6 +7099,9 @@ let lastDisplayedContestTime = -1;
         g_camCache.cosRot = camCos;
         g_camCache.cameraZoom = camZoom;
         g_camCache.cameraHeight = camHeight;
+        g_camCache.x = camX;
+        g_camCache.y = camY;
+
         // Ensure globals are updated
         cameraZoom = camZoom;
         cameraHeight = camHeight;
