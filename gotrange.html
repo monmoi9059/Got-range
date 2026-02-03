@@ -622,6 +622,10 @@
 
     <div id="shopUI" class="modal">
         <div class="modal-header">TACO MERCADO</div>
+        <div id="shopPlayerToggle" style="display:none; margin-bottom:10px;">
+             <button id="btnShopP1" class="btn" style="background:#0047AB; border:2px solid #FFF;" onclick="switchShopPlayer(1)">PLAYER 1</button>
+             <button id="btnShopP2" class="btn" style="background:#333; border:1px solid #555;" onclick="switchShopPlayer(2)">PLAYER 2</button>
+        </div>
         <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
         <div class="difficulty-row">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
@@ -8621,12 +8625,48 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- UI FUNCTIONS ---
+    var g_shopTargetPlayer = 1; // 1 or 2
+
+    function getShopContext() {
+        if (!isSplitscreen) return game1;
+        return (g_shopTargetPlayer === 2) ? game2 : game1;
+    }
+
+    window.switchShopPlayer = function(p) {
+        // Save current context state before switching
+        saveContext(getShopContext());
+
+        g_shopTargetPlayer = p;
+        const btn1 = document.getElementById('btnShopP1');
+        const btn2 = document.getElementById('btnShopP2');
+        if (p === 1) {
+            btn1.style.background = "#0047AB"; btn1.style.border = "2px solid #FFF";
+            btn2.style.background = "#333"; btn2.style.border = "1px solid #555";
+        } else {
+            btn1.style.background = "#333"; btn1.style.border = "1px solid #555";
+            btn2.style.background = "#0047AB"; btn2.style.border = "2px solid #FFF";
+        }
+
+        loadContext(getShopContext());
+        updateShopUI();
+        // We don't save here, updateShopUI just refreshes view.
+        // But loadContext sets global variables, so we are now editing the new player.
+    }
+
     window.openShop = function() {
-        loadContext(game1); // Force P1 context
+        g_shopTargetPlayer = 1; // Default to P1
+        loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
 
         state = 'SHOP';
-        if(isSplitscreen) { loadContext(game2); state = 'SHOP'; saveContext(game2); loadContext(game1); }
+        if(isSplitscreen) {
+            loadContext(game2); state = 'SHOP'; saveContext(game2);
+            loadContext(game1); // Restore P1 for initial view
+            document.getElementById('shopPlayerToggle').style.display = 'block';
+            window.switchShopPlayer(1); // Set UI to P1
+        } else {
+            document.getElementById('shopPlayerToggle').style.display = 'none';
+        }
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
@@ -8794,6 +8834,7 @@ let lastDisplayedContestTime = -1;
         return 999;
     }
     window.buyUpgrade = function(stat) {
+        loadContext(getShopContext());
         if (stat === 'luck' && playerData.purchasedStats.luck >= 10) return;
         const cost = getUpgradeCost(stat);
         if (playerData.tacos >= cost) {
@@ -8804,10 +8845,11 @@ let lastDisplayedContestTime = -1;
             updateShopUI();
             updateUI();
             checkAchievements('shop');
-            saveContext(game1);
+            saveContext(getShopContext());
         }
     }
     window.changeStatLevel = function(stat, delta) {
+        loadContext(getShopContext());
         const current = playerData.stats[stat];
         const max = playerData.purchasedStats[stat];
         const min = 0;
@@ -8821,26 +8863,29 @@ let lastDisplayedContestTime = -1;
             saveData();
             updateShopUI();
             updateUI();
-            saveContext(game1);
+            saveContext(getShopContext());
         }
     }
     window.changeAnimal = function(dir) {
+        loadContext(getShopContext());
         viewingAnimalIndex += dir;
         if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
         if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
         viewingSkinIndex = 0; updateShopUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.changeSkin = function(dir) {
+        loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         viewingSkinIndex += dir;
         if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
         if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
         updateShopUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipSkin = function() {
+        loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         const skin = animalSkins[viewingSkinIndex];
@@ -8851,16 +8896,18 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.changeBall = function(dir) {
+        loadContext(getShopContext());
         viewingBallIndex += dir;
         if(viewingBallIndex < 0) viewingBallIndex = BALLS_DB.length - 1;
         if(viewingBallIndex >= BALLS_DB.length) viewingBallIndex = 0;
         updateShopUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipBall = function() {
+        loadContext(getShopContext());
         const ball = BALLS_DB[viewingBallIndex];
         if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
 
@@ -8875,16 +8922,18 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.changeShootingStyle = function(dir) {
+        loadContext(getShopContext());
         viewingStyleIndex += dir;
         if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
         if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
         updateShopUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipShootingStyle = function() {
+        loadContext(getShopContext());
         const style = SHOOTING_STYLES[viewingStyleIndex];
         if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic']; // Safety
         const isUnlocked = playerData.unlockedStyles.includes(style.id);
@@ -8897,12 +8946,13 @@ let lastDisplayedContestTime = -1;
             playerData.currentStyle = style.id;
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.toggleHandedness = function() {
+        loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
         saveData(); updateShopUI();
-        saveContext(game1);
+        saveContext(getShopContext());
     }
     window.toggleMobileControls = function() {
         playerData.mobileControls = !playerData.mobileControls;
