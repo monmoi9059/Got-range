@@ -2871,7 +2871,15 @@ let lastDisplayedContestTime = -1;
 
     var g_projectResult = { x: 0, y: 0, scale: 0, depth: 0 };
 
+    // Safe version (Allocates new object) - Used for complex geometry like DrawHoop
     function project(x, y, z, cache) {
+        const p = projectGlobal(x, y, z, cache);
+        if (!p) return null;
+        return { x: p.x, y: p.y, scale: p.scale, depth: p.depth };
+    }
+
+    // Fast version (Returns shared global object) - Used for Particles/Balls/Single checks
+    function projectGlobal(x, y, z, cache) {
         let rotation, sinRot, cosRot;
 
         if (cache) {
@@ -7692,7 +7700,7 @@ let lastDisplayedContestTime = -1;
             g_renderList.push(obj);
         }
 
-        const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
+        const hoopProj = projectGlobal(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
         if (hoopProj) {
             const obj = getRenderItem();
             obj.type = 'hoop';
@@ -7701,7 +7709,7 @@ let lastDisplayedContestTime = -1;
             g_renderList.push(obj);
         }
 
-        const playerProj = project(player3D.x, player3D.y, player3D.z);
+        const playerProj = projectGlobal(player3D.x, player3D.y, player3D.z);
         if (playerProj) {
             const obj = getRenderItem();
             obj.type = 'player';
@@ -7710,7 +7718,7 @@ let lastDisplayedContestTime = -1;
             g_renderList.push(obj);
         }
 
-        const shadowProj = project(player3D.x, player3D.y, 0);
+        const shadowProj = projectGlobal(player3D.x, player3D.y, 0);
         if (shadowProj) {
             const obj = getRenderItem();
             obj.type = 'shadow';
@@ -7721,7 +7729,7 @@ let lastDisplayedContestTime = -1;
 
         activeBalls.forEach(b => {
             if (b.active) {
-                const ballProj = project(b.x, b.y, b.z);
+                const ballProj = projectGlobal(b.x, b.y, b.z);
                 if (ballProj) {
                     const obj = getRenderItem();
                     obj.type = 'ball';
@@ -7734,7 +7742,7 @@ let lastDisplayedContestTime = -1;
         });
 
         particles.forEach(p => {
-             const proj = project(p.x, p.y, p.z);
+             const proj = projectGlobal(p.x, p.y, p.z);
              if(proj) {
                  const obj = getRenderItem();
                  obj.type = 'smoke';
