@@ -3011,13 +3011,13 @@ let lastDisplayedContestTime = -1;
         const dx = x - camX; const dy = y - camY;
         const rx = dx * cosRot - dy * sinRot;
         const ry = dx * sinRot + dy * cosRot;
-        const cameraOffset = 400; const depth = cameraOffset - ry;
+        const cameraOffset = 480; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
         const screenX = vpW / 2 + (rx * scale);
-        const horizonY = (vpH - 120) * 0.5;
+        const horizonY = (vpH - 120) * 0.45;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -7417,7 +7417,7 @@ let lastDisplayedContestTime = -1;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
         const camZoom = isSplitscreen ? 450 : 698;
-        const camHeight = 84000 / camZoom;
+        const camHeight = 100000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
         g_camCache.rotation = camRotation;
@@ -7432,7 +7432,7 @@ let lastDisplayedContestTime = -1;
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonY = (vpH - 120) * 0.5;
+        const horizonY = (vpH - 120) * 0.45;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
@@ -7474,11 +7474,13 @@ let lastDisplayedContestTime = -1;
                      for(let i=0; i<fCv.width; i+=plankW) {
                          fCtx.fillRect(i, 0, 2, fCv.height);
                      }
-                     // Random grain
+                    // Random grain - Removed for High Setting cleanliness
+                    /*
                      fCtx.fillStyle = 'rgba(100, 50, 0, 0.05)';
                      for(let i=0; i<fCv.width*fCv.height*0.1; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 1);
                      }
+                    */
                  }
                  else if (court.type === 'carnival') {
                      // Carnival Checkerboard
@@ -7506,14 +7508,17 @@ let lastDisplayedContestTime = -1;
                          fCtx.lineTo(x, y - len);
                          fCtx.stroke();
                      }
-                     // Noise
+                    // Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(0,0,0,0.05)';
                      for(let i=0; i<blades/2; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
                      }
+                    */
                  }
                  else if (court.type === 'castle') {
-                     // Asphalt / Pavement Noise
+                    // Asphalt / Pavement Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(255,255,255,0.05)';
                      const noise = fCv.width * fCv.height * 0.1;
                      for(let i=0; i<noise; i++) {
@@ -7523,6 +7528,7 @@ let lastDisplayedContestTime = -1;
                      for(let i=0; i<noise; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
                      }
+                    */
                      // Cracks
                      fCtx.strokeStyle = 'rgba(0,0,0,0.4)';
                      fCtx.lineWidth = 2;
@@ -7583,10 +7589,13 @@ let lastDisplayedContestTime = -1;
                          fCtx.arc(cx, cy, r, 0, Math.PI*2);
                          fCtx.fill();
                      }
+                    // Dust Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(255,255,255,0.05)';
                      for(let i=0; i<500; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
                      }
+                    */
                  }
 
                  bgCache.floorImage = fCv;
@@ -7783,8 +7792,8 @@ let lastDisplayedContestTime = -1;
             const dy = d.y - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
-            // cameraOffset is 400 in project()
-            const depth = 400 - ry;
+            // cameraOffset is 480 in project()
+            const depth = 480 - ry;
             if (depth <= 0) continue;
 
             // Inline projection
@@ -7851,9 +7860,9 @@ let lastDisplayedContestTime = -1;
              if(proj) {
                  const obj = getRenderItem();
                  obj.type = 'smoke';
-                 // Force streak fire particles behind the player (depth > 400)
+                 // Force streak fire particles behind the player (depth > 480)
                  if (p.isFireParticle && p.customHue !== undefined) {
-                     obj.depth = Math.max(proj.depth, 420);
+                     obj.depth = Math.max(proj.depth, 500);
                  } else {
                      obj.depth = proj.depth;
                  }
