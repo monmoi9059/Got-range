@@ -8343,7 +8343,21 @@ let lastDisplayedContestTime = -1;
                 if (nextAction) {
                     const action = nextAction;
                     nextAction = null;
+
+                    // Context Safety: Save current context identity
+                    // Because action() might trigger openShop() which calls loadContext(game1)
+                    // If we don't restore, the rest of this update() loop and the final saveContext()
+                    // will operate on the WRONG context (game1 instead of game2), corrupting state.
+                    let currentCtx = null;
+                    if (playerData === game1.playerData) currentCtx = game1;
+                    else if (game2 && playerData === game2.playerData) currentCtx = game2;
+
                     action();
+
+                    // Restore context if it was swapped
+                    if (currentCtx && playerData !== currentCtx.playerData) {
+                        loadContext(currentCtx);
+                    }
                 }
             }
         }
@@ -8672,7 +8686,9 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            state = 'IDLE'; updateUI();
+            state = 'IDLE';
+            feedback = ""; feedbackTimer = 0; // Clear Marché feedback
+            updateUI();
             invalidateBackgroundCache();
         }
     }
