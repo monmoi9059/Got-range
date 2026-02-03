@@ -8676,6 +8676,7 @@ let lastDisplayedContestTime = -1;
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
         saveData(); openStats(); // Refresh UI
+        saveContext(g_currentMenuGame || game1);
     }
     window.cycleMeterShape = function() {
         const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
@@ -8684,12 +8685,14 @@ let lastDisplayedContestTime = -1;
         idx = (idx + 1) % shapes.length;
         playerData.meterShape = shapes[idx];
         saveData(); openStats(); // Refresh UI
+        saveContext(g_currentMenuGame || game1);
     }
     window.updateMeterScale = function() {
         const val = parseFloat(document.getElementById('meterSizeSlider').value);
         playerData.meterScale = val;
         document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
         saveData();
+        saveContext(g_currentMenuGame || game1);
     }
     window.updateReleaseTiming = function() {
         const val = parseInt(document.getElementById('releaseTimingSlider').value);
@@ -8697,6 +8700,7 @@ let lastDisplayedContestTime = -1;
         const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
         document.getElementById('releaseTimingLabel').innerText = labels[val];
         saveData();
+        saveContext(g_currentMenuGame || game1);
     }
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
@@ -8747,6 +8751,7 @@ let lastDisplayedContestTime = -1;
         else if (val < 2.5) { label.innerText = `DIFFICILE (x${val.toFixed(1)})`; label.style.color = "#FFFF00"; }
         else { label.innerText = `LÉVIS LEGEND (x${val.toFixed(1)})`; label.style.color = "#FF0000"; }
         saveData();
+        saveContext(g_currentMenuGame || game1);
     }
     window.getUpgradeCost = function(statName) {
         const lvl = playerData.purchasedStats[statName];
@@ -8768,6 +8773,7 @@ let lastDisplayedContestTime = -1;
             updateShopUI();
             updateUI();
             checkAchievements('shop');
+            saveContext(g_currentMenuGame || game1);
         }
     }
     window.changeStatLevel = function(stat, delta) {
@@ -8784,6 +8790,7 @@ let lastDisplayedContestTime = -1;
             saveData();
             updateShopUI();
             updateUI();
+            saveContext(g_currentMenuGame || game1);
         }
     }
     window.changeAnimal = function(dir) {
@@ -8791,6 +8798,7 @@ let lastDisplayedContestTime = -1;
         if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
         if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
         viewingSkinIndex = 0; updateShopUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.changeSkin = function(dir) {
         const currentAnimal = ANIMALS[viewingAnimalIndex];
@@ -8799,6 +8807,7 @@ let lastDisplayedContestTime = -1;
         if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
         if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
         updateShopUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.buyOrEquipSkin = function() {
         const currentAnimal = ANIMALS[viewingAnimalIndex];
@@ -8811,12 +8820,14 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.changeBall = function(dir) {
         viewingBallIndex += dir;
         if(viewingBallIndex < 0) viewingBallIndex = BALLS_DB.length - 1;
         if(viewingBallIndex >= BALLS_DB.length) viewingBallIndex = 0;
         updateShopUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.buyOrEquipBall = function() {
         const ball = BALLS_DB[viewingBallIndex];
@@ -8833,12 +8844,14 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.changeShootingStyle = function(dir) {
         viewingStyleIndex += dir;
         if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
         if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
         updateShopUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.buyOrEquipShootingStyle = function() {
         const style = SHOOTING_STYLES[viewingStyleIndex];
@@ -8853,16 +8866,19 @@ let lastDisplayedContestTime = -1;
             playerData.currentStyle = style.id;
         }
         saveData(); updateShopUI(); updateUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.toggleHandedness = function() {
         playerData.isLefty = !playerData.isLefty;
         saveData(); updateShopUI();
+        saveContext(g_currentMenuGame || game1);
     }
     window.toggleMobileControls = function() {
         playerData.mobileControls = !playerData.mobileControls;
         saveData(); updateShopUI(); updateMobileControlsUI();
         const btn = document.getElementById('btnToggleMobile');
         if(btn) btn.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        saveContext(g_currentMenuGame || game1);
     }
     window.toggleGraphics = function() {
         playerData.graphics = (playerData.graphics === 'HIGH') ? 'LOW' : 'HIGH';
@@ -8870,6 +8886,7 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('btnToggleGraphics');
         if(btn) btn.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
         invalidateBackgroundCache(); // Redraw background next frame
+        saveContext(g_currentMenuGame || game1);
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
@@ -9476,25 +9493,17 @@ let lastDisplayedContestTime = -1;
     mobBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         if (isSplitscreen) {
-            loadContext(game2);
-            handleActionPress();
-            saveContext(game2);
+            doGameAction(game2, 'press');
         } else {
-            loadContext(game1);
-            handleActionPress();
-            saveContext(game1);
+            doGameAction(game1, 'press');
         }
     }, {passive: false});
     mobBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         if (isSplitscreen) {
-            loadContext(game2);
-            if (state === 'JUMPING') releaseShot();
-            saveContext(game2);
+            doGameAction(game2, 'release');
         } else {
-            loadContext(game1);
-            if (state === 'JUMPING') releaseShot();
-            saveContext(game1);
+            doGameAction(game1, 'release');
         }
     }, {passive: false});
 
@@ -9502,15 +9511,11 @@ let lastDisplayedContestTime = -1;
     if (mobBtn2) {
         mobBtn2.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            loadContext(game1);
-            handleActionPress();
-            saveContext(game1);
+            doGameAction(game1, 'press');
         }, {passive: false});
         mobBtn2.addEventListener('touchend', (e) => {
             e.preventDefault();
-            loadContext(game1);
-            if (state === 'JUMPING') releaseShot();
-            saveContext(game1);
+            doGameAction(game1, 'release');
         }, {passive: false});
     }
 
@@ -9578,18 +9583,36 @@ let lastDisplayedContestTime = -1;
     window.addEventListener('mousedown', (e) => {
         if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
 
-        // P1 Mouse Control
-        // Check mobile flag inside context?
-        loadContext(game1);
-        if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
-        handleActionPress();
-        saveContext(game1);
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scaleX;
+
+        // P1 Mouse Control (Default) or P2 if on right side in splitscreen
+        if (isSplitscreen && x > canvas.width / 2) {
+             doGameAction(game2, 'press');
+        } else {
+             // Check mobile flag inside context?
+             loadContext(game1);
+             if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
+             saveContext(game1);
+
+             doGameAction(game1, 'press');
+        }
     });
-    window.addEventListener('mouseup', () => {
-        loadContext(game1);
-        if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
-        if (state === 'JUMPING') releaseShot();
-        saveContext(game1);
+    window.addEventListener('mouseup', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scaleX;
+
+        if (isSplitscreen && x > canvas.width / 2) {
+             doGameAction(game2, 'release');
+        } else {
+            loadContext(game1);
+            if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
+            saveContext(game1);
+
+            doGameAction(game1, 'release');
+        }
     });
 
     // Handle Page Visibility (Mute audio on background)
@@ -9641,7 +9664,8 @@ let lastDisplayedContestTime = -1;
             bgCache: null, // Per-player background cache
             resetTimer: 0,
             nextAction: null,
-            inputState: { shootPressed: false } // Abstracted input
+            inputState: { shootPressed: false }, // Abstracted input
+            viewingIndices: { animal: 0, skin: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -9682,8 +9706,13 @@ let lastDisplayedContestTime = -1;
         ctxObj.bgCache = bgCache;
         ctxObj.resetTimer = resetTimer;
         ctxObj.nextAction = nextAction;
-        // Input state is handled by event listeners updating the context directly,
-        // but we can sync back if we used globals.
+        // UI State
+        ctxObj.viewingIndices = {
+            animal: viewingAnimalIndex,
+            skin: viewingSkinIndex,
+            ball: viewingBallIndex,
+            style: viewingStyleIndex
+        };
     }
 
     function loadContext(ctxObj) {
@@ -9709,10 +9738,23 @@ let lastDisplayedContestTime = -1;
         groundShotTimer = ctxObj.groundShotTimer;
         crowdCheerTimer = ctxObj.crowdCheerTimer;
         ball = ctxObj.ball;
-        playerData = ctxObj.playerData;
+        // CRITICAL: Only switch playerData if the context has one.
+        // This prevents overwriting the global reference with null/undefined
+        // which could cause accidental sharing if a fallback is triggered later.
+        if (ctxObj.playerData) {
+            playerData = ctxObj.playerData;
+        }
         bgCache = ctxObj.bgCache;
         resetTimer = ctxObj.resetTimer;
         nextAction = ctxObj.nextAction;
+
+        // UI State
+        if (ctxObj.viewingIndices) {
+            viewingAnimalIndex = ctxObj.viewingIndices.animal;
+            viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingBallIndex = ctxObj.viewingIndices.ball;
+            viewingStyleIndex = ctxObj.viewingIndices.style;
+        }
 
         // Ensure globals that might be undefined are safe
         if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
@@ -9738,9 +9780,14 @@ let lastDisplayedContestTime = -1;
         const btnText = document.getElementById('btnSplitText');
 
         if(isSplitscreen) {
-            // Reset P2
+            // Reset P2 with a deep copy of P1's data (which is currently loaded in global playerData)
+            // Important: We must use game1.playerData if playerData reference is ambiguous,
+            // but relying on 'playerData' global which should be game1's at this point (via loop/events).
             game2 = createGameContext();
-            game2.playerData = JSON.parse(JSON.stringify(playerData)); // Clone P1 profile
+            // Fallback to game1.playerData if global is somehow unlinked, but usually they match.
+            // Using JSON parse/stringify ensures DEEP COPY and NEW REFERENCE.
+            const sourceData = (game1 && game1.playerData) ? game1.playerData : playerData;
+            game2.playerData = JSON.parse(JSON.stringify(sourceData));
             game2.playerData.tacos = 0; // Fresh score
 
             if(sb) sb.style.display = 'none';
