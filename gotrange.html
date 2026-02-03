@@ -2408,7 +2408,7 @@
 
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
 
     // Optimization: Pre-calculated Sun Gradient
     const sunGradient = ctx.createRadialGradient(700, 80, 0, 700, 80, 80);
@@ -4445,63 +4445,102 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function drawShadow(p) {
-        if(!p) return;
+    var ShadowSystem = {
+        canvas: null,
+        ctx: null,
+        init: function() {
+            if (this.canvas) return;
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = 512;
+            this.canvas.height = 512;
+            this.ctx = this.canvas.getContext('2d');
+        },
+        render: function(drawFn, x, y) {
+            this.init();
 
-        // Low Quality / Fallback
+            // Clear
+            this.ctx.clearRect(0, 0, 512, 512);
+
+            // Swap global ctx
+            var originalCtx = ctx;
+            ctx = this.ctx;
+
+            ctx.save();
+            // Center drawing at 256, 400
+            // The drawFn expects to draw at coordinates (x, y).
+            // We translate so that (x, y) maps to (256, 400)
+            ctx.translate(256 - x, 400 - y);
+
+            try {
+                drawFn();
+            } catch(e) {
+                console.error(e);
+            }
+
+            ctx.restore();
+
+            // Restore global ctx
+            ctx = originalCtx;
+
+            // Convert to Silhouette
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.fillStyle = '#000000';
+            this.ctx.fillRect(0, 0, 512, 512);
+            this.ctx.globalCompositeOperation = 'source-over';
+
+            return this.canvas;
+        }
+    };
+
+    function drawRealisticShadow(obj, type) {
+        if (!obj) return;
+
+        // Quality check
         if (playerData.graphics === 'LOW') {
-            ctx.fillStyle='rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2);
-            ctx.fill();
-            return;
+             // Fallback to simple blob if needed
+             ctx.fillStyle = 'rgba(0,0,0,0.3)';
+             ctx.beginPath();
+             ctx.ellipse(obj.x, obj.y, 25 * obj.scale, 8 * obj.scale, 0, 0, Math.PI * 2);
+             ctx.fill();
+             return;
         }
 
-        const s = p.scale;
-        const z = player3D.z;
+        var z = 0;
+        if (type === 'player') z = player3D.z;
+        if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
 
-        // Fade out shadow as player jumps high
-        const alpha = Math.max(0.1, 0.4 - (z / 600));
-        // Blur increases with height
-        const blur = Math.min(20, 5 + (z / 15));
+        // Calculate opacity and blur based on Z
+        var alpha = Math.max(0.05, 0.4 - (z / 800));
+        var blur = Math.min(10, 2 + (z / 50));
+
+        // Render Silhouette
+        var sCanvas = ShadowSystem.render(function() {
+            if (type === 'player') {
+                drawPlayer(obj);
+            } else if (type === 'ball') {
+                drawBall(obj, obj.ballRef);
+            }
+        }, obj.x, obj.y);
 
         ctx.save();
-        ctx.translate(p.x, p.y);
+        ctx.translate(obj.x, obj.y);
 
-        // Directional offset (Sun is roughly top-right 700,80)
-        // Cast shadow to bottom-left relative to light
-        // Simple rotation/skew
-        ctx.rotate(0.15);
+        // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
+        // Shear X by -0.6, Scale Y by 0.3 (Flatten)
+        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
 
-        // Main Soft Shadow
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = blur;
-        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.globalAlpha = alpha;
 
-        ctx.beginPath();
-        // Slightly larger and wider ellipse
-        ctx.ellipse(-5*s, 0, 30*s, 12*s, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        // Contact Shadows (Feet) - Only when close to ground
-        if (z < 40) {
-            ctx.shadowBlur = 2; // Sharp contact
-            const contactAlpha = (1 - (z/40)) * 0.6;
-            ctx.fillStyle = `rgba(0,0,0,${contactAlpha})`;
-
-            // Left Foot Area
-            ctx.beginPath();
-            ctx.ellipse(-10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
-            ctx.fill();
-
-            // Right Foot Area
-            ctx.beginPath();
-            ctx.ellipse(10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
-            ctx.fill();
+        // Blur
+        if (ctx.filter) {
+            ctx.filter = 'blur(' + blur + 'px)';
         }
+
+        ctx.drawImage(sCanvas, -256, -400);
 
         ctx.restore();
     }
+
 
     function drawHoop(p) {
         if (!p) return;
@@ -7851,14 +7890,24 @@ let lastDisplayedContestTime = -1;
         const shadowProj = project(player3D.x, player3D.y, 0);
         if (shadowProj) {
             const obj = getRenderItem();
-            obj.type = 'shadow';
-            obj.depth = shadowProj.depth;
+            obj.type = 'player_shadow';
+            obj.depth = shadowProj.depth + 0.1;
             obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
             g_renderList.push(obj);
         }
 
         activeBalls.forEach(b => {
             if (b.active) {
+                const ballShadowProj = project(b.x, b.y, 0);
+                if (ballShadowProj) {
+                    const obj = getRenderItem();
+                    obj.type = 'ball_shadow';
+                    obj.depth = ballShadowProj.depth + 0.1;
+                    obj.x = ballShadowProj.x; obj.y = ballShadowProj.y; obj.scale = ballShadowProj.scale;
+                    obj.ballRef = b;
+                    g_renderList.push(obj);
+                }
+
                 const ballProj = project(b.x, b.y, b.z);
                 if (ballProj) {
                     const obj = getRenderItem();
@@ -7893,7 +7942,8 @@ let lastDisplayedContestTime = -1;
         g_renderList.forEach(obj => {
             if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
             if (obj.type === 'hoop') drawHoop(obj);
-            if (obj.type === 'shadow') drawShadow(obj);
+            if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
+            if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
             if (obj.type === 'player') drawPlayer(obj);
             if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
