@@ -800,6 +800,25 @@
         { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
     ];
 
+    var COURT_THEMES = {
+        arena: {
+            name: "NBA ARENA",
+            type: 'arena',
+            ground1: '#E0C39C', // Wood Light
+            ground2: '#C4A484', // Wood Dark
+            sky1: '#050510',
+            sky2: '#101020'
+        },
+        carnival: {
+            name: "CARNIVAL",
+            type: 'carnival',
+            ground1: '#FF4500', // Red
+            ground2: '#FFD700', // Yellow
+            sky1: '#000080',
+            sky2: '#4B0082'
+        }
+    };
+
     var COURT_ZONES = [
         { limit: 50, name: "COUR ARRIÈRE", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
         { limit: 100, name: "PARC DE LA PAIX", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
@@ -4261,6 +4280,36 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.moveTo(p.x - w/2 - 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/8, p.y - h - 50*s); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x + w/4 - 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/8, p.y - h - 50*s); ctx.fill();
              }
+             else if (type === 'carnival_tent') {
+                 const s = p.scale;
+                 const w = 250 * s; const h = 180 * s;
+                 // Base
+                 ctx.fillStyle = '#FFF';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x - w/2, p.y); ctx.fill();
+                 // Stripes
+                 ctx.fillStyle = '#FF0000';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + 20*s, p.y); ctx.lineTo(p.x - 20*s, p.y); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x + w/2 - 40*s, p.y); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x - w/2, p.y); ctx.lineTo(p.x - w/2 + 40*s, p.y); ctx.fill();
+             }
+             else if (type === 'arena_bleachers') {
+                 const s = p.scale;
+                 const w = 400 * s; const h = 250 * s;
+                 // Structure
+                 ctx.fillStyle = '#1a1a1a';
+                 ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                 // Rows
+                 ctx.fillStyle = '#2a2a2a';
+                 for(let i=0; i<6; i++) {
+                     ctx.fillRect(p.x - w/2, p.y - h + i*40*s, w, 20*s);
+                 }
+                 // Crowd Noise (Visual)
+                 ctx.fillStyle = '#555';
+                 for(let i=0; i<100; i++) {
+                     if(Math.random() > 0.5) ctx.fillStyle = '#EEE'; else ctx.fillStyle = '#333';
+                     ctx.fillRect(p.x - w/2 + Math.random()*w, p.y - h + Math.random()*h, 4*s, 6*s);
+                 }
+             }
         }
     }
 
@@ -4324,167 +4373,163 @@ let lastDisplayedContestTime = -1;
 
     function drawHoop(p) {
         if (!p) return;
-        const s = p.scale;
 
-        // Calculate viewing angle relative to hoop's front (facing -Y)
-        // Camera is at g_camCache.x, g_camCache.y
-        // Vector from Hoop to Camera
-        const cx = (g_camCache && g_camCache.x) ? g_camCache.x : player3D.x;
-        const cy = (g_camCache && g_camCache.y) ? g_camCache.y : player3D.y;
+        // --- 3D Hoop Constants ---
+        const rimZ = HOOP_POS.z;
+        const rimY = HOOP_POS.y;
+        const rimX = HOOP_POS.x;
 
-        const dx = cx - HOOP_POS.x;
-        const dy = cy - HOOP_POS.y;
+        // Orientation: Forward Vector towards Classic Start (433, 300) from Hoop (733, 150)
+        // Dynamic Orientation based on player position
+        let dx = player3D.x - HOOP_POS.x;
+        let dy = player3D.y - HOOP_POS.y;
+        let len = Math.sqrt(dx*dx + dy*dy);
+        if (len < 1) { dx = -300; dy = 150; len = Math.sqrt(dx*dx + dy*dy); } // Fallback
 
-        // Hoop faces "down" (positive Y in court coords? No, player is at Y~300-500, hoop at Y=150)
-        // Wait, player shoots UP towards hoop (Y decreases?)
-        // Let's check: player3D.y = 500 (contest), hoop.y = 150. So Player > Hoop.
-        // So hoop faces +Y (towards player).
-        // Vector pointing out of backboard = (0, 1)
+        const fX = dx / len;
+        const fY = dy / len;
+        // Right Vector: (fY, -fX)
+        const rX = fY;
+        const rY = -fX;
 
-        // Angle of camera relative to hoop normal
-        // Player is at roughly (433, 300), Hoop is at (733, 150)
-        // We want angle to be 0 when we are directly "in front" of the hoop.
-        // dx = player.x - hoop.x
-        // dy = player.y - hoop.y
-        // The hoop normal vector points towards the court center (roughly +Y and -X direction)
-        // Let's align 0 degrees to the initial player-hoop vector.
+        // Geometry Dimensions
+        const bbDist = 40; // Backboard behind rim
+        const bbCX = rimX - fX * bbDist;
+        const bbCY = rimY - fY * bbDist;
+        const bbCZ = rimZ + 30;
+        const bbW = 60; // Half Width
+        const bbH = 45; // Half Height
 
-        // At start: dx ~ -300, dy ~ +150. atan2(dx, dy) is roughly -63 degrees.
-        // We want this to be 0. So we add the offset.
-        // Or simpler: We calculate the angle relative to the hoop's "forward" vector (0, 1) or similar.
+        const rimRadius = 25; // Matching ball radius approx
 
-        // Let's assume the backboard plane is perpendicular to the Y-axis (facing +Y).
-        // Then viewing angle is based on dx (offset from center).
-        // angle = atan2(dx, dy). If dx=0 (aligned), angle=0. cos(0)=1.
+        // --- Generate Vertices ---
 
-        // The issue is likely that atan2(dx, dy) yields 0 when dx=0, dy>0.
-        // If the board is sideways, maybe we used sin/cos swapped or the reference vector is wrong.
-        // Try adding PI/2 if it looks 90 deg off.
-        // User says "starting angle is sideways".
+        // Backboard Corners
+        const bbVerts = [
+            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ + bbH }, // TL
+            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ + bbH }, // TR
+            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ - bbH }, // BR
+            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ - bbH }  // BL
+        ];
 
-        // Let's force alignment: When dx=0 (directly in front/behind along Y axis), we want full width.
-        // atan2(0, dy) = 0. cos(0) = 1. This implies full width.
-        // If it looks sideways, maybe dx is NOT 0 at start?
-        // Player x=433, Hoop x=733. dx = -300.
-        // So we are NOT directly in front. We are to the side.
-        // The hoop is rotated to face the player? No, standard hoop is fixed.
+        // Inner Square (Target) - On Surface
+        const isW = 20; const isH = 15; const isYOffset = -15;
+        const isVerts = [
+            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset + isH },
+            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset + isH },
+            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset - isH },
+            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset - isH }
+        ];
 
-        // IF the hoop is fixed at the "end" of the court, and we approach from an angle, we SHOULD see it angled.
-        // BUT if the user wants it to "face the character", that means the hoop rotates to always face us?
-        // User said: "make it so the backboard always faces the character not the ball"
-        // Wait, "always faces the character" means BILLBOARDING (always full width).
-        // BUT user adds: "so when i miss a shot i see it more and more from the side"
-        // This implies the hoop is FIXED, and the CAMERA moves, revealing the side.
+        // Rim Circle
+        const rimPoints = [];
+        const segs = 24;
+        for(let i=0; i<segs; i++) {
+            const a = (i/segs) * Math.PI * 2;
+            const rx = Math.cos(a) * rimRadius;
+            const ry = Math.sin(a) * rimRadius;
+            rimPoints.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
+        }
 
-        // The previous logic used `cx` (camera) to calculate angle.
-        // If camera follows ball, `cx` changes, so angle changes. This causes the view to rotate.
-        // Correct behavior: Hoop is fixed in world space. Camera moves.
-        // We need the angle between the Camera-Hoop vector and the Hoop's Normal vector.
-
-        // Hoop Normal: Points towards (433, 500) roughly? Or just straight down Y?
-        // Let's assume Hoop Normal is (0, 1) (Facing +Y).
-        // Camera Vector is (dx, dy).
-        // Angle = atan2(dx, dy).
-        // If player is at x=433, hoop=733, dx=-300. We are viewing from side.
-        // The user says "starting angle ... is sideways".
-        // This implies they expect to see the board FLAT ON at the start, even if they are physically at an angle.
-        // OR the hoop is actually placed at 0 rotation, but our math interprets it as 90.
-
-        // Let's try to align the hoop to the court axis.
-        // If the court is vertical (Y-axis), hoop is at top/bottom.
-        // If hoop is at Y=150 and player at Y=300+, hoop faces +Y.
-        // To see it flat, we need dx=0.
-        // But dx is -300.
-        // Maybe the backboard is angled to face the center of the court?
-        // If so, we need to subtract the hoop's rotation from the camera angle.
-
-        // Let's try just swapping sin/cos or adding 90 deg to see if it fixes "sideways".
-        // If it looks "sideways" (thin), then cos(angle) ~ 0. Angle ~ 90.
-        // If we want it flat (wide), we need cos(angle) ~ 1. Angle ~ 0.
-        // Current: atan2(-300, 150) ~= -1.1 rad (~ -63 deg). cos(-63) = 0.45.
-        // It's foreshortened by half.
-
-        // If the user thinks "sideways" means "I see the edge", then 0.45 is too narrow.
-        // They probably want the hoop rotated towards the player start position.
-
-        // Let's define the Hoop's Normal Vector as pointing towards the player's start position (433, 300).
-        // Hoop Pos: (733, 150).
-        // Normal Vector: (-300, 150). Normalized: (-0.89, 0.44).
-        // Rotation of Hoop = atan2(-300, 150) = -63 deg.
-
-        // Camera Angle = atan2(dx, dy).
-        // Relative Angle = Camera Angle - Hoop Rotation.
-        // At start, Camera = Player. Relative Angle = 0. cos(0) = 1. Full width.
-
-        const hoopNormalAngle = Math.atan2(433 - HOOP_POS.x, 300 - HOOP_POS.y);
-        const cameraAngle = Math.atan2(dx, dy);
-        const relAngle = cameraAngle - hoopNormalAngle;
-
-        const foreshorten = Math.cos(relAngle);
-        const sideVisible = Math.sin(relAngle);
+        // Net Bottom Ring
+        const netPointsBot = [];
+        const netLen = 35;
+        const netBotRad = 12;
+        const netSegs = 12;
+        for(let i=0; i<netSegs; i++) {
+             const a = (i/netSegs) * Math.PI * 2;
+             netPointsBot.push({
+                 x: rimX + Math.cos(a)*netBotRad,
+                 y: rimY + Math.sin(a)*netBotRad,
+                 z: rimZ - netLen
+             });
+        }
 
         // Pole
-        const baseP = project(HOOP_POS.x, HOOP_POS.y, 0);
-        if(baseP) { ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s, p.y, 4*s, baseP.y - p.y); }
+        const poleX = bbCX - fX * 20;
+        const poleY = bbCY - fY * 20;
 
-        const bbW = 60 * s * Math.abs(foreshorten);
-        const bbH = 40 * s;
-        const bbX = p.x - bbW/2;
-        const bbY = p.y - bbH - 10*s;
+        // --- Project & Cull ---
+        // Using global project() which uses g_camCache
 
-        // Draw Backboard
-        // Main Board
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.fillRect(bbX, bbY, bbW, bbH);
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s;
-        ctx.strokeRect(bbX, bbY, bbW, bbH);
+        const projBB = bbVerts.map(v => project(v.x, v.y, v.z));
+        const projIS = isVerts.map(v => project(v.x, v.y, v.z));
+        const projRim = rimPoints.map(v => project(v.x, v.y, v.z));
+        const projNetBot = netPointsBot.map(v => project(v.x, v.y, v.z));
+        const projPoleTop = project(poleX, poleY, bbCZ);
+        const projPoleBot = project(poleX, poleY, 0);
 
-        // Side of backboard (if viewed from angle)
-        const depth = 5 * s;
-        if (Math.abs(sideVisible) > 0.1) {
-            ctx.fillStyle = '#CCC';
-            ctx.beginPath();
-            if (sideVisible > 0) { // Right side visible
-                ctx.moveTo(bbX, bbY); ctx.lineTo(bbX + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX, bbY + bbH);
-            } else { // Left side visible
-                ctx.moveTo(bbX + bbW, bbY); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX + bbW, bbY + bbH);
+        if (projBB.some(v => !v) || projRim.some(v => !v)) return; // Occluded behind camera
+
+        // --- Sorting ---
+        const camX = g_camCache.x; const camY = g_camCache.y;
+        const distBB = Math.sqrt((bbCX-camX)**2 + (bbCY-camY)**2);
+        const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
+
+        // --- Draw Functions ---
+        const drawPole = () => {
+            if(projPoleTop && projPoleBot) {
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
+                ctx.beginPath(); ctx.moveTo(projPoleBot.x, projPoleBot.y); ctx.lineTo(projPoleTop.x, projPoleTop.y); ctx.stroke();
             }
-            ctx.fill();
+        };
+
+        const drawBackboard = () => {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * projBB[0].scale;
+            ctx.beginPath();
+            ctx.moveTo(projBB[0].x, projBB[0].y);
+            for(let i=1; i<4; i++) ctx.lineTo(projBB[i].x, projBB[i].y);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            // Inner Square
+            ctx.strokeStyle = '#CE1126'; ctx.lineWidth = 2 * projBB[0].scale;
+            ctx.beginPath();
+            ctx.moveTo(projIS[0].x, projIS[0].y);
+            for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
+            ctx.closePath();
+            ctx.stroke();
+        };
+
+        const drawRimAndNet = () => {
+            const s = projRim[0].scale;
+            // Net (White Lines)
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1 * s;
+
+            // Vertical(ish) Lines
+            for(let i=0; i<segs; i+=2) {
+                const rimP = projRim[i];
+                const botIdx = Math.floor((i / segs) * netSegs);
+                const netP = projNetBot[botIdx];
+                if(rimP && netP) {
+                    ctx.beginPath(); ctx.moveTo(rimP.x, rimP.y); ctx.lineTo(netP.x, netP.y); ctx.stroke();
+                }
+            }
+            // Bottom Ring
+            ctx.beginPath();
+            let first=true;
+            projNetBot.forEach(pt => { if(!pt) return; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            ctx.closePath(); ctx.stroke();
+
+            // Rim (Orange Thick Loop)
+            ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 4 * s;
+            ctx.beginPath();
+            first = true;
+            projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            ctx.closePath(); ctx.stroke();
+        };
+
+        // Render Order (Painter's Algorithm)
+        drawPole();
+        if (distBB > distRim) {
+            drawBackboard();
+            drawRimAndNet();
+        } else {
+            drawRimAndNet();
+            drawBackboard();
         }
-
-        // Inner Square
-        if (Math.abs(foreshorten) > 0.2) {
-            ctx.fillStyle = '#CE1126';
-            const sqW = bbW * 0.3;
-            const sqH = bbH * 0.3;
-            ctx.fillRect(p.x - sqW/2, bbY + bbH*0.6, sqW, sqH);
-        }
-
-        // Rim
-        ctx.beginPath();
-        // Rim becomes more circular as we look from above/below, but narrower as we look from side
-        // Rim is a circle in X-Y plane (floor).
-        // Projected, it's an ellipse.
-        // Width depends on foreshortening. Height depends on camera pitch (camHeight).
-        // Standard ellipse logic in drawHoop was (18*s, 5*s).
-        // 18*s is X-radius. 5*s is Z-radius (perspective).
-        // X-radius should scale with foreshorten.
-        ctx.ellipse(p.x, p.y, Math.abs(18 * s * foreshorten), 5 * s, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
-
-        // Net
-        ctx.beginPath();
-        const netTopW = 15 * s * foreshorten;
-        const netBotW = 10 * s * foreshorten;
-
-        ctx.moveTo(p.x - netTopW, p.y);
-        ctx.lineTo(p.x - netBotW, p.y + 20*s);
-        ctx.lineTo(p.x + netBotW, p.y + 20*s);
-        ctx.lineTo(p.x + netTopW, p.y);
-
-        ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
     }
-
     function drawMuscleLimb(x1, y1, x2, y2, width, color, type, s, hasTattoos) {
         // type: 'thigh' or 'calf' or 'standard'
         const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -7256,10 +7301,18 @@ let lastDisplayedContestTime = -1;
 
         const horizonY = (canvas.height - 120) * 0.5;
 
-        if (!bgCache || bgCache.distanceLevel !== distanceLevel) {
-            bgCache = { distanceLevel: distanceLevel, pastFloors: [] };
-            const currentDist = 10 + (distanceLevel * 5);
-            const court = getCourtDetails(currentDist);
+        if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
+            bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+
+            let court;
+            if (currentGameMode === 'CONTEST') {
+                court = COURT_THEMES.arena;
+            } else if (currentGameMode === 'TIME_ATTACK') {
+                court = COURT_THEMES.carnival;
+            } else {
+                const currentDist = 10 + (distanceLevel * 5);
+                court = getCourtDetails(currentDist);
+            }
 
             // Sky
             const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
@@ -7281,7 +7334,32 @@ let lastDisplayedContestTime = -1;
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
                  // Procedural Textures based on Type
-                 if (court.type === 'grass' || court.type === 'tree') {
+                 if (court.type === 'arena') {
+                     // Wood Planks
+                     fCtx.fillStyle = court.ground2;
+                     const plankW = 40;
+                     for(let i=0; i<fCv.width; i+=plankW) {
+                         fCtx.fillRect(i, 0, 2, fCv.height);
+                     }
+                     // Random grain
+                     fCtx.fillStyle = 'rgba(100, 50, 0, 0.05)';
+                     for(let i=0; i<fCv.width*fCv.height*0.1; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 1);
+                     }
+                 }
+                 else if (court.type === 'carnival') {
+                     // Carnival Checkerboard
+                     const size = 50;
+                     fCtx.fillStyle = court.ground2;
+                     for(let y=0; y<fCv.height; y+=size) {
+                         for(let x=0; x<fCv.width; x+=size) {
+                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
+                                 fCtx.fillRect(x, y, size, size);
+                             }
+                         }
+                     }
+                 }
+                 else if (court.type === 'grass' || court.type === 'tree') {
                      // Grass Blades
                      fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
                      fCtx.lineWidth = 1;
@@ -7385,18 +7463,21 @@ let lastDisplayedContestTime = -1;
                  bgCache.currentFloor = currentZoneGrad;
             }
 
-            // Past Floors
-            for (let i = 0; i < COURT_ZONES.length; i++) {
-                const z = COURT_ZONES[i];
-                let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-                let zEnd = z.limit;
-                if (zStart >= currentDist) break;
-                let drawEnd = Math.min(zEnd, currentDist);
-                const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
-                if ((yBottom - yTop) > 0.5) {
-                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                    bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
+            // Past Floors (Only for CLASSIC)
+            if (currentGameMode === 'CLASSIC') {
+                const currentDist = 10 + (distanceLevel * 5);
+                for (let i = 0; i < COURT_ZONES.length; i++) {
+                    const z = COURT_ZONES[i];
+                    let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+                    let zEnd = z.limit;
+                    if (zStart >= currentDist) break;
+                    let drawEnd = Math.min(zEnd, currentDist);
+                    const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
+                    if ((yBottom - yTop) > 0.5) {
+                        const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                        grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                        bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
+                    }
                 }
             }
         }
@@ -7404,65 +7485,67 @@ let lastDisplayedContestTime = -1;
         // DRAW FROM CACHE
         ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // SUN / MOON / STARS
-        if (distanceLevel > 8) {
-             // Simple stars
-             ctx.fillStyle = 'rgba(255,255,255,0.8)';
-             // Seeded random stars (reusing clouds speed for variation or just simple hash)
-             for(let i=0; i<30; i++) {
-                 let sx = (i * 137) % canvas.width;
-                 let sy = (i * 59) % (horizonY * 0.8);
-                 ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
+        // SUN / MOON / STARS / MOUNTAINS (CLASSIC ONLY)
+        if (currentGameMode === 'CLASSIC') {
+            if (distanceLevel > 8) {
+                 // Simple stars
+                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                 for(let i=0; i<30; i++) {
+                     let sx = (i * 137) % canvas.width;
+                     let sy = (i * 59) % (horizonY * 0.8);
+                     ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
+                }
+            } else {
+                 // Sun
+                 if (playerData.graphics === 'HIGH') {
+                     const sunX = 700, sunY = 80;
+                     const glow = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 120);
+                     glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+                     glow.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
+                     glow.addColorStop(1, 'rgba(255, 69, 0, 0)');
+                     ctx.fillStyle = glow;
+                     ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
+                     ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
+                 } else {
+                     ctx.fillStyle = sunGradient;
+                     ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
+                 }
             }
-        } else {
-             // Sun
-             if (playerData.graphics === 'HIGH') {
-                 // Better Sun with glow
-                 const sunX = 700, sunY = 80;
-                 const glow = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 120);
-                 glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-                 glow.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
-                 glow.addColorStop(1, 'rgba(255, 69, 0, 0)');
-                 ctx.fillStyle = glow;
-                 ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
-             } else {
-                 ctx.fillStyle = sunGradient;
-                 ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
-             }
+
+            // BACKGROUND MOUNTAINS
+            const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
+
+            mountainLayers.forEach(layer => {
+                 const shift = (camX + camY) * layer.speed;
+                 const loopWidth = 2000 * mountainScale;
+                 const offset = shift % loopWidth;
+                 let startX = -offset;
+                 if (startX > 0) startX -= loopWidth;
+
+                 let currentX = startX;
+                 while(currentX < canvas.width) {
+                     drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                     currentX += loopWidth;
+                 }
+            });
         }
 
-        // BACKGROUND MOUNTAINS
-        const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
-
-        mountainLayers.forEach(layer => {
-             const shift = (camX + camY) * layer.speed;
-             const loopWidth = 2000 * mountainScale;
-             const offset = shift % loopWidth;
-             let startX = -offset;
-             if (startX > 0) startX -= loopWidth;
-
-             let currentX = startX;
-             while(currentX < canvas.width) {
-                 drawMountainLayer(layer, horizonY, currentX, mountainScale);
-                 currentX += loopWidth;
-             }
-        });
-
         // CLOUDS
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        clouds.forEach(c => {
-             c.x += c.speed;
-             if(c.x > canvas.width + 200) c.x = -200;
-             let xPos = c.x;
-             let yPos = c.y;
-             ctx.beginPath();
-             c.puffs.forEach(p => {
-                 ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
-                 ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
-             });
-             ctx.fill();
-        });
+        if (currentGameMode === 'CLASSIC') {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            clouds.forEach(c => {
+                 c.x += c.speed;
+                 if(c.x > canvas.width + 200) c.x = -200;
+                 let xPos = c.x;
+                 let yPos = c.y;
+                 ctx.beginPath();
+                 c.puffs.forEach(p => {
+                     ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
+                     ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
+                 });
+                 ctx.fill();
+            });
+        }
 
         if (bgCache.floorImage) {
              ctx.drawImage(bgCache.floorImage, 0, horizonY);
@@ -7470,38 +7553,35 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
         }
 
-        const currentDist = 10 + (distanceLevel * 5);
-        for (let i = 0; i < COURT_ZONES.length; i++) {
-            const z = COURT_ZONES[i];
-            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-            if (zStart >= currentDist) break;
-            let drawEnd = Math.min(z.limit, currentDist);
+        if (currentGameMode === 'CLASSIC') {
+            const currentDist = 10 + (distanceLevel * 5);
+            for (let i = 0; i < COURT_ZONES.length; i++) {
+                const z = COURT_ZONES[i];
+                let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+                if (zStart >= currentDist) break;
+                let drawEnd = Math.min(z.limit, currentDist);
 
-            // Re-project zone boundaries based on current camera
-            const ratioStart = zStart / currentDist;
-            const ratioEnd = drawEnd / currentDist;
+                // Re-project zone boundaries based on current camera
+                const ratioStart = zStart / currentDist;
+                const ratioEnd = drawEnd / currentDist;
 
-            const wxStart = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioStart;
-            const wyStart = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioStart;
-            const pStart = project(wxStart, wyStart, 0, g_camCache); // Force use of current camera cache
+                const wxStart = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioStart;
+                const wyStart = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioStart;
+                const pStart = project(wxStart, wyStart, 0, g_camCache); // Force use of current camera cache
 
-            const wxEnd = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioEnd;
-            const wyEnd = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioEnd;
-            const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
+                const wxEnd = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioEnd;
+                const wyEnd = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioEnd;
+                const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
 
-            const yTop = pStart ? pStart.y : horizonY;
-            const yBottom = pEnd ? pEnd.y : canvas.height;
+                const yTop = pStart ? pStart.y : horizonY;
+                const yBottom = pEnd ? pEnd.y : canvas.height;
 
-            if ((yBottom - yTop) > 0.5) {
-                // Reuse gradient from cache if available (find by index or properties)
-                // Since we are iterating same zones, we can just grab from bgCache.pastFloors if index matches?
-                // But bgCache.pastFloors might have different length if zones changed.
-                // Simple approach: Recreate gradient or store it better.
-                // For now, let's just use the zone colors directly or a simple vertical gradient.
-                const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+                if ((yBottom - yTop) > 0.5) {
+                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+                }
             }
         }
 
@@ -7522,17 +7602,49 @@ let lastDisplayedContestTime = -1;
         // OPTIMIZATION: Start iteration from visible range
         // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
         // We assume a max visible depth of ~15000 pixels.
-        const startDist = Math.max(0, playerDistFromHoop - 15000);
-        let startIndex = 0;
-        if (startDist > 1000) {
-             startIndex = binarySearchLowerBound(decors, startDist);
+
+        let renderDecors = [];
+        if (currentGameMode === 'CLASSIC') {
+            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            let startIndex = 0;
+            if (startDist > 1000) {
+                 startIndex = binarySearchLowerBound(decors, startDist);
+            }
+            for (let i = startIndex; i < decors.length; i++) {
+                const d = decors[i];
+                if (d.dist > cullDist) break;
+                renderDecors.push(d);
+            }
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            // Carnival: Circle of tents around hoop
+            const r = 800;
+            for(let i=0; i<8; i++) {
+                const angle = (i/8) * Math.PI * 2;
+                renderDecors.push({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'carnival_tent',
+                    variant: {},
+                    seed: i
+                });
+            }
+        } else if (currentGameMode === 'CONTEST') {
+            // Arena: Bleachers
+            const r = 900;
+            for(let i=0; i<12; i++) {
+                const angle = (i/12) * Math.PI * 2;
+                renderDecors.push({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'arena_bleachers',
+                    variant: {},
+                    seed: i
+                });
+            }
         }
 
-        for (let i = startIndex; i < decors.length; i++) {
-            const d = decors[i];
-
-            // Optimization: Stop processing if objects are too far behind the player (out of view)
-            if (d.dist > cullDist) break;
+        for (let i = 0; i < renderDecors.length; i++) {
+            const d = renderDecors[i];
 
             // Fast Z-Check
             const dx = d.x - camX;
@@ -8296,12 +8408,13 @@ let lastDisplayedContestTime = -1;
     }
 
     function setPlayerPositionForRack(rackNum) {
-        // Shift contest positions too (+133)
-        if(rackNum === 1) { player3D.x = 333; player3D.y = 500; }
-        else if(rackNum === 2) { player3D.x = 383; player3D.y = 400; }
-        else if(rackNum === 3) { player3D.x = 433; player3D.y = 300; }
-        else if(rackNum === 4) { player3D.x = 483; player3D.y = 200; }
-        else if(rackNum === 5) { player3D.x = 533; player3D.y = 100; }
+        // NBA Style Semi-Circle Positions (Center @ 733, 150, Radius ~350)
+        // Angles calculated relative to hoop normal vector (~153 deg)
+        if(rackNum === 1) { player3D.x = 889; player3D.y = 463; } // Right Corner (Bottom-Right)
+        else if(rackNum === 2) { player3D.x = 622; player3D.y = 482; } // Right Wing
+        else if(rackNum === 3) { player3D.x = 420; player3D.y = 306; } // Top (Center)
+        else if(rackNum === 4) { player3D.x = 401; player3D.y = 39; } // Left Wing
+        else if(rackNum === 5) { player3D.x = 576; player3D.y = -163; } // Left Corner (Top-Left)
         player3D.z = 0; player3D.vz = 0;
         invalidateBackgroundCache();
     }
@@ -8327,6 +8440,7 @@ let lastDisplayedContestTime = -1;
 
     function resetGame() {
         activeBalls = []; // Clear all balls on reset
+        particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
         else {
