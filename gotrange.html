@@ -8442,7 +8442,14 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; resetTimer = 90; nextAction = openShop; }
+                if (player3D.z <= 0) {
+                    player3D.z = 0; player3D.vz = 0;
+                    state = 'GAMEOVER';
+                    feedback = "MARCHÉ!";
+                    feedbackTimer = 60;
+                    resetTimer = 90;
+                    nextAction = () => openShop(true);
+                }
             }
         }
         if (state === 'SHOOTING') {
@@ -8702,8 +8709,12 @@ let lastDisplayedContestTime = -1;
     }
 
     window.switchShopPlayer = function(p) {
-        // Save current context state before switching
-        saveContext(getShopContext());
+        // Do NOT save current context state blindly here.
+        // If called while the game loop is processing the OTHER player,
+        // global variables might contain the other player's data.
+        // Saving them into getShopContext() (which is the PREVIOUS tab)
+        // would overwrite the previous player's data with the current loop's data.
+        // Since we are just switching UI views, we load the new target.
 
         g_shopTargetPlayer = p;
         const btn1 = document.getElementById('btnShopP1');
@@ -8722,10 +8733,12 @@ let lastDisplayedContestTime = -1;
         // But loadContext sets global variables, so we are now editing the new player.
     }
 
-    window.openShop = function() {
+    window.openShop = function(force) {
         g_shopTargetPlayer = 1; // Default to P1
         loadContext(game1);
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+
+        // If force is true (e.g. from Game Over logic), ignore state check
+        if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
 
         state = 'SHOP';
         if(isSplitscreen) {
