@@ -369,6 +369,12 @@
         }
         .mb-curve.right { transform: scaleX(-1); }
 
+        .mobile-shoot-btn.left-btn {
+            left: 30px;
+            right: auto;
+            background: radial-gradient(circle at 70% 30%, #FFA500, #FF4500);
+        }
+
         #startup-ui {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -467,9 +473,14 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
-        .hs-input { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 200px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 30px 0; outline: none; }
-        .hs-input:focus { border-color: var(--broadcast-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+        .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
+        .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
+        .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
+        .key.action { background: #444; grid-column: span 2; }
+        .key.action.confirm { background: #006400; grid-column: span 3; }
+        .key.action.back { background: #8B0000; grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -518,6 +529,7 @@
 
     <div id="controls">
         <div class="broadcast-btn" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
+        <div class="broadcast-btn" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
         <div class="broadcast-btn" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
         <div class="broadcast-btn" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
         <div class="broadcast-btn" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
@@ -534,6 +546,11 @@
     </div>
 
     <div id="mobileShootBtn" class="mobile-shoot-btn">
+        <div class="mb-curve"></div>
+        <div class="mb-curve right"></div>
+    </div>
+
+    <div id="mobileShootBtn2" class="mobile-shoot-btn left-btn" style="display:none;">
         <div class="mb-curve"></div>
         <div class="mb-curve right"></div>
     </div>
@@ -660,12 +677,17 @@
         </div>
     </div>
 
-    <div id="highScoreUI" class="modal" style="height: auto; top: 40%;">
+    <div id="highScoreUI" class="modal" style="height: auto; top: 50%; max-width: 700px;">
         <div class="modal-header">NOUVEAU RECORD !</div>
         <div class="hs-input-container">
-            <div style="color: #AAA; font-size: 1.2em;">ENTREZ VOS INITIALES</div>
-            <input type="text" id="hsNameInput" class="hs-input" maxlength="3" oninput="this.value = this.value.toUpperCase()">
-            <button class="btn" style="font-size: 1.5em; padding: 15px 40px; background: var(--broadcast-accent); color: #000;" onclick="submitHighScoreInput()">CONFIRMER</button>
+            <div style="color: #AAA; font-size: 1.2em; margin-bottom: 5px;">ENTREZ VOS INITIALES</div>
+            <div id="hsNameDisplay" class="hs-input-display">_ _ _</div>
+            <div id="keyboard" class="keyboard-grid">
+                <!-- Injected via JS -->
+            </div>
+            <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                UTILISEZ <span style="color: var(--broadcast-accent)">ARROWS</span> POUR NAVIGUER, <span style="color: var(--broadcast-accent)">ENTER/A</span> POUR CHOISIR
+            </div>
         </div>
     </div>
 
@@ -673,7 +695,10 @@
 </div>
 
 <script>
+    var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
     var preJumpTimer = 0;
+    var resetTimer = 0;
+    var nextAction = null;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 100 },
@@ -2545,6 +2570,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'LEADERBOARD';
         document.getElementById('leaderboardUI').style.display = 'block';
@@ -2552,6 +2578,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        saveContext(game1);
     }
 
     function closeLeaderboard() {
@@ -2559,6 +2586,7 @@ let lastDisplayedContestTime = -1;
         state = 'IDLE';
         // If coming from Game Over flow?
         if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
+        saveContext(game1);
     }
 
     function switchLeaderboardTab(mode) {
@@ -2597,7 +2625,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function submitHighScoreInput() {
-        const name = document.getElementById('hsNameInput').value;
+        const name = highScoreName.join('');
         if (!name) return;
 
         addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
@@ -2611,11 +2639,103 @@ let lastDisplayedContestTime = -1;
         switchLeaderboardTab(pendingHighScore.mode);
     }
 
+    // --- HIGH SCORE LOGIC ---
+    var highScoreCursor = 0;
+    var highScoreName = ["A", "A", "A"];
+    const KEYBOARD_LAYOUT = [
+        "A", "B", "C", "D", "E", "F", "G",
+        "H", "I", "J", "K", "L", "M", "N",
+        "O", "P", "Q", "R", "S", "T", "U",
+        "V", "W", "X", "Y", "Z", "OK", "DEL"
+    ];
+    var keyboardCursor = 0;
+
+    function initHighScoreUI() {
+        highScoreName = ["A", "A", "A"];
+        highScoreCursor = 0;
+        keyboardCursor = 0;
+        renderKeyboard();
+        updateHighScoreDisplay();
+    }
+
+    function renderKeyboard() {
+        const grid = document.getElementById('keyboard');
+        if(!grid) return;
+        grid.innerHTML = '';
+        KEYBOARD_LAYOUT.forEach((key, index) => {
+            const div = document.createElement('div');
+            div.className = 'key';
+            if (index === keyboardCursor) div.classList.add('selected');
+            if (key === 'OK') div.classList.add('action', 'confirm');
+            if (key === 'DEL') div.classList.add('action', 'back');
+            div.innerText = key;
+            div.onclick = () => {
+                keyboardCursor = index;
+                renderKeyboard();
+                handleHighScoreInput('SELECT');
+            };
+            grid.appendChild(div);
+        });
+    }
+
+    function updateHighScoreDisplay() {
+        const display = document.getElementById('hsNameDisplay');
+        if(!display) return;
+        let html = '';
+        for(let i=0; i<3; i++) {
+            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
+            else html += `${highScoreName[i]} `;
+        }
+        display.innerHTML = html.trim();
+    }
+
+    function handleHighScoreInput(action) {
+        if (action === 'UP') {
+            if (keyboardCursor >= 7) keyboardCursor -= 7;
+        } else if (action === 'DOWN') {
+            if (keyboardCursor + 7 < KEYBOARD_LAYOUT.length) keyboardCursor += 7;
+        } else if (action === 'LEFT') {
+            if (keyboardCursor > 0) keyboardCursor--;
+        } else if (action === 'RIGHT') {
+            if (keyboardCursor < KEYBOARD_LAYOUT.length - 1) keyboardCursor++;
+        } else if (action === 'SELECT') {
+            const char = KEYBOARD_LAYOUT[keyboardCursor];
+            if (char === 'DEL') {
+                if (highScoreCursor > 0) {
+                    highScoreCursor--;
+                    highScoreName[highScoreCursor] = 'A';
+                    updateHighScoreDisplay();
+                }
+            } else if (char === 'OK') {
+                submitHighScoreInput();
+            } else {
+                if (highScoreCursor < 3) {
+                    highScoreName[highScoreCursor] = char;
+                    highScoreCursor++;
+                    if (highScoreCursor >= 3) {
+                        keyboardCursor = KEYBOARD_LAYOUT.indexOf('OK');
+                        renderKeyboard();
+                    }
+                    updateHighScoreDisplay();
+                }
+            }
+        } else if (action === 'BACK') {
+             if (highScoreCursor > 0) {
+                highScoreCursor--;
+                updateHighScoreDisplay();
+            }
+        }
+        renderKeyboard();
+    }
+
     function checkGameOverSequence(mode, score) {
+        if(isSplitscreen) return;
         // Update Game Over State Logic
         if (isHighScore(mode, score)) {
             pendingHighScore = { mode: mode, score: score };
-            handleHighScoreInput();
+            highScoreUI.style.display = 'block';
+            state = 'HIGHSCORE_INPUT';
+            initHighScoreUI();
         } else {
             openShop();
         }
@@ -2894,8 +3014,10 @@ let lastDisplayedContestTime = -1;
         const cameraOffset = 400; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
-        const screenX = canvas.width / 2 + (rx * scale);
-        const horizonY = (canvas.height - 120) * 0.5;
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
+        const screenX = vpW / 2 + (rx * scale);
+        const horizonY = (vpH - 120) * 0.5;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -7257,7 +7379,10 @@ let lastDisplayedContestTime = -1;
         ctx.fill();
     }
 
-    function drawBackground() {
+    function drawBackground(vpX, vpY, vpW, vpH) {
+        if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
+        g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
+
         // Optimization: Per-frame camera calculation
         // Camera Follow Logic
         if (!window.g_camSmooth) window.g_camSmooth = { x: player3D.x, y: player3D.y };
@@ -7291,7 +7416,7 @@ let lastDisplayedContestTime = -1;
         const camRotation = -angleToHoop - Math.PI / 2;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
-        const camZoom = 698;
+        const camZoom = isSplitscreen ? 450 : 698;
         const camHeight = 84000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
@@ -7307,7 +7432,7 @@ let lastDisplayedContestTime = -1;
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonY = (canvas.height - 120) * 0.5;
+        const horizonY = (vpH - 120) * 0.5;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
@@ -7323,7 +7448,7 @@ let lastDisplayedContestTime = -1;
             }
 
             // Sky
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, vpH * 0.6);
             skyGrad.addColorStop(0, court.sky1); skyGrad.addColorStop(1, court.sky2);
             bgCache.sky = skyGrad;
 
@@ -7331,8 +7456,8 @@ let lastDisplayedContestTime = -1;
             if (playerData.graphics === 'HIGH') {
                  // Bake texture for high graphics
                  const fCv = document.createElement('canvas');
-                 fCv.width = canvas.width;
-                 fCv.height = Math.ceil(canvas.height - horizonY);
+                 fCv.width = vpW;
+                 fCv.height = Math.ceil(vpH - horizonY);
                  const fCtx = fCv.getContext('2d');
 
                  // Base Gradient
@@ -7491,7 +7616,7 @@ let lastDisplayedContestTime = -1;
         }
 
         // DRAW FROM CACHE
-        ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, vpW, vpH);
 
         // SUN / MOON / STARS / MOUNTAINS (CLASSIC ONLY)
         if (currentGameMode === 'CLASSIC') {
@@ -7499,7 +7624,7 @@ let lastDisplayedContestTime = -1;
                  // Simple stars
                  ctx.fillStyle = 'rgba(255,255,255,0.8)';
                  for(let i=0; i<30; i++) {
-                     let sx = (i * 137) % canvas.width;
+                     let sx = (i * 137) % vpW;
                      let sy = (i * 59) % (horizonY * 0.8);
                      ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
                 }
@@ -7531,7 +7656,7 @@ let lastDisplayedContestTime = -1;
                  if (startX > 0) startX -= loopWidth;
 
                  let currentX = startX;
-                 while(currentX < canvas.width) {
+                 while(currentX < vpW) {
                      drawMountainLayer(layer, horizonY, currentX, mountainScale);
                      currentX += loopWidth;
                  }
@@ -7542,8 +7667,7 @@ let lastDisplayedContestTime = -1;
         if (currentGameMode === 'CLASSIC') {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             clouds.forEach(c => {
-                 c.x += c.speed;
-                 if(c.x > canvas.width + 200) c.x = -200;
+                 // c.x updated in updateEnvironment
                  let xPos = c.x;
                  let yPos = c.y;
                  ctx.beginPath();
@@ -7558,7 +7682,7 @@ let lastDisplayedContestTime = -1;
         if (bgCache.floorImage) {
              ctx.drawImage(bgCache.floorImage, 0, horizonY);
         } else {
-             ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+             ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, vpW, vpH - horizonY);
         }
 
         if (currentGameMode === 'CLASSIC') {
@@ -7588,12 +7712,12 @@ let lastDisplayedContestTime = -1;
                     const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
                     grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
                     ctx.fillStyle = grad;
-                    ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+                    ctx.fillRect(0, yTop, vpW, yBottom - yTop);
                 }
             }
         }
 
-        ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(canvas.width, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(vpW, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
         // 3D OBJECTS
         g_poolIndex = 0;
@@ -7666,7 +7790,7 @@ let lastDisplayedContestTime = -1;
             // Inline projection
             const rx = dx * camCos - dy * camSin;
             const scale = camZoom / depth;
-            const screenX = canvas.width / 2 + (rx * scale);
+            const screenX = vpW / 2 + (rx * scale);
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
             const obj = getRenderItem();
@@ -7758,7 +7882,7 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = feedback === "MUY BIEN!" || feedback === "CHANCEUX!" || feedback === "Swish" || feedback.includes('MONEY') || feedback === "SUR LA LIGNE!" || feedback === "OUF!" || feedback.includes('SÉRIE') ? "#00FF00" : "#FF0000";
             if (feedback === "DERNIÈRE CHANCE !") ctx.fillStyle = "#FFA500";
             ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center";
-            ctx.fillText(feedback, canvas.width/2, 200); ctx.strokeText(feedback, canvas.width/2, 200);
+            ctx.fillText(feedback, vpW/2, 200); ctx.strokeText(feedback, vpW/2, 200);
             ctx.restore();
         }
     }
@@ -8006,7 +8130,7 @@ let lastDisplayedContestTime = -1;
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500);
+            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
@@ -8014,7 +8138,7 @@ let lastDisplayedContestTime = -1;
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000);
+            feedbackTimer = 60; state = 'RESETTING'; resetTimer = 60; nextAction = nextLevel;
         }
     }
 
@@ -8025,16 +8149,16 @@ let lastDisplayedContestTime = -1;
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
-            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
+            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
-                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(() => checkGameOverSequence('classic', 10 + (distanceLevel * 5)), 1500);
+                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
             } else {
-                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
+                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
             }
         }
     }
@@ -8137,6 +8261,18 @@ let lastDisplayedContestTime = -1;
     }
 
     function update(dt) {
+        if (resetTimer > 0) {
+            resetTimer -= dt;
+            if (resetTimer <= 0) {
+                resetTimer = 0;
+                if (nextAction) {
+                    const action = nextAction;
+                    nextAction = null;
+                    action();
+                }
+            }
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
@@ -8217,7 +8353,7 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; setTimeout(openShop, 1500); }
+                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; resetTimer = 90; nextAction = openShop; }
             }
         }
         if (state === 'SHOOTING') {
@@ -8351,7 +8487,7 @@ let lastDisplayedContestTime = -1;
         checkDailyProgress('contest_score', contestData.score);
         checkDailyProgress('play_contest', 1);
 
-        checkAchievements('contest'); saveData(); setTimeout(() => checkGameOverSequence('contest', contestData.score), 2000);
+        checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
     }
 
     function startTimeAttack() {
@@ -8398,7 +8534,7 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = 180;
 
         saveData();
-        setTimeout(() => checkGameOverSequence('time_attack', timeAttackData.score), 3000);
+        resetTimer = 180; nextAction = () => checkGameOverSequence('time_attack', timeAttackData.score);
     }
 
     function updateUI() {
@@ -8423,6 +8559,12 @@ let lastDisplayedContestTime = -1;
         else if(rackNum === 3) { player3D.x = 420; player3D.y = 306; } // Top (Center)
         else if(rackNum === 4) { player3D.x = 401; player3D.y = 39; } // Left Wing
         else if(rackNum === 5) { player3D.x = 576; player3D.y = -163; } // Left Corner (Top-Left)
+
+        // Correction for P2 in splitscreen if they share same coordinate space but need visual distinction?
+        // Actually, they use the same world space. If P2 sees "Zone 3", it means their camera is looking at Zone 3 or they are standing there.
+        // Wait, the issue description says "right player" (P2).
+        // If the game logic is shared, setPlayerPositionForRack updates `player3D` of the CURRENT context.
+
         player3D.z = 0; player3D.vz = 0;
         invalidateBackgroundCache();
     }
@@ -8462,16 +8604,19 @@ let lastDisplayedContestTime = -1;
 
     // --- UI FUNCTIONS ---
     window.openShop = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
     }
     window.openAchievements = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
     }
     window.openStats = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
         state = 'STATS';
         shopUI.style.display = 'none';
@@ -8559,6 +8704,7 @@ let lastDisplayedContestTime = -1;
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
         updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
+        saveContext(game1);
     }
     window.unlockAllSkins = function() {
         if(resetStage === 0) {
@@ -8584,12 +8730,13 @@ let lastDisplayedContestTime = -1;
             showNotification("TRICHEUR !", 0);
         }
     }
-    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
-    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
+    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
+    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
     window.closeStats = function() {
         state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
         const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
         if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
+        saveContext(game1);
     }
     window.updateDifficulty = function() {
         const val = parseFloat(document.getElementById('diffSlider').value);
@@ -8726,8 +8873,24 @@ let lastDisplayedContestTime = -1;
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
-        if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
-        else btn.style.display = 'none';
+        const btn2 = document.getElementById('mobileShootBtn2');
+
+        if(playerData.mobileControls && state !== 'STARTUP') {
+            btn.style.display = 'block';
+            if (isSplitscreen && btn2) btn2.style.display = 'block';
+            else if (btn2) btn2.style.display = 'none';
+        } else {
+            btn.style.display = 'none';
+            if (btn2) btn2.style.display = 'none';
+        }
+
+        const splitText = document.getElementById('btnSplitText');
+        if (splitText) {
+             const splitBtn = splitText.parentElement;
+             if (splitBtn && splitBtn.classList.contains('broadcast-btn')) {
+                 splitBtn.style.display = 'block';
+             }
+        }
     }
 
     function checkOrientation() {
@@ -8795,6 +8958,7 @@ let lastDisplayedContestTime = -1;
 
         saveData();
         startGame();
+        saveContext(game1);
     }
     function checkStartup() {
         if(!playerData.platformChosen) {
@@ -8902,6 +9066,22 @@ let lastDisplayedContestTime = -1;
         const btnHand = document.getElementById('btnToggleHand');
         btnHand.innerText = playerData.isLefty ? "MAIN: GAUCHER" : "MAIN: DROITIER";
     }
+    function runForAllPlayers(callback) {
+        // Run for P1
+        loadContext(game1);
+        callback();
+        saveContext(game1);
+
+        if (isSplitscreen) {
+            // Run for P2
+            loadContext(game2);
+            callback();
+            saveContext(game2);
+        }
+        // Restore P1 for UI
+        loadContext(game1);
+    }
+
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         if(currentGameMode === 'CLASSIC') {
@@ -8914,7 +9094,7 @@ let lastDisplayedContestTime = -1;
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";
         }
-        resetGame();
+        runForAllPlayers(resetGame);
     }
     window.toggleMuteUI = function() {
         if (!AudioSystem.ctx) AudioSystem.init();
@@ -8977,8 +9157,56 @@ let lastDisplayedContestTime = -1;
     function draw() {
         if (state === 'STARTUP') {
             drawStartupScene();
+            return;
+        }
+
+        if (isSplitscreen) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const halfW = w / 2;
+
+            // Clear full canvas first? drawBackground fills rect so maybe not needed, but safe.
+            // Actually drawBackground fills rect defined by args.
+
+            // Draw P1 (Left)
+            loadContext(game1);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, halfW, h);
+            ctx.clip();
+            // No translation needed for left side
+            drawBackground(0, 0, halfW, h);
+            ctx.restore();
+
+            // Draw P2 (Right)
+            loadContext(game2);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(halfW, 0, halfW, h);
+            ctx.clip();
+            ctx.translate(halfW, 0); // Move origin to middle
+            drawBackground(0, 0, halfW, h); // Draw as if at 0,0 with half width
+            ctx.restore();
+
+            // Divider Line
+            ctx.beginPath();
+            ctx.moveTo(halfW, 0);
+            ctx.lineTo(halfW, h);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFD700';
+            ctx.stroke();
+
+            // HUD
+            if (typeof drawSplitscreenHUD === 'function') {
+                drawSplitscreenHUD();
+            }
+
         } else {
-            drawBackground();
+            loadContext(game1);
+            drawBackground(0, 0, canvas.width, canvas.height);
             drawBroadcastLowerThird();
         }
     }
@@ -8986,6 +9214,13 @@ let lastDisplayedContestTime = -1;
     let lastTime = 0;
     let accumulator = 0;
     const FIXED_STEP = 1000 / 60; // 60 FPS physics (16.666ms)
+
+    function updateEnvironment(dt) {
+        clouds.forEach(c => {
+             c.x += c.speed * dt;
+             if(c.x > canvas.width + 200) c.x = -200;
+        });
+    }
 
     function loop(timestamp) {
         requestAnimationFrame(loop);
@@ -9005,7 +9240,21 @@ let lastDisplayedContestTime = -1;
         while (accumulator >= FIXED_STEP) {
             // update() expects dt in "frames" (1.0 = 16.66ms)
             // Since our logic was built around 1.0 being ~60fps, we pass 1.0.
+
+            updateEnvironment(1.0);
+
+            // Update P1
+            loadContext(game1);
             update(1.0);
+            saveContext(game1);
+
+            if (isSplitscreen) {
+                // Update P2
+                loadContext(game2);
+                update(1.0);
+                saveContext(game2);
+            }
+
             accumulator -= FIXED_STEP;
         }
 
@@ -9079,7 +9328,14 @@ let lastDisplayedContestTime = -1;
             if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
 
             if (dx !== 0 || dy !== 0) {
-                this.moveFocus(dx, dy);
+                if (state === 'HIGHSCORE_INPUT') {
+                    if(dy < 0) handleHighScoreInput('UP');
+                    if(dy > 0) handleHighScoreInput('DOWN');
+                    if(dx < 0) handleHighScoreInput('LEFT');
+                    if(dx > 0) handleHighScoreInput('RIGHT');
+                } else {
+                    this.moveFocus(dx, dy);
+                }
                 this.navDelay = 12; // ~200ms debounce
             }
         },
@@ -9178,7 +9434,9 @@ let lastDisplayedContestTime = -1;
         handleActions: function(gp) {
             // A Button: Select/Click
             if (this.isPressed(gp, this.BTN_A)) {
-                if (this.focusedElement) {
+                if (state === 'HIGHSCORE_INPUT') {
+                    handleHighScoreInput('SELECT');
+                } else if (this.focusedElement) {
                     this.focusedElement.click();
                     this.refreshFocusList();
                 }
@@ -9186,7 +9444,8 @@ let lastDisplayedContestTime = -1;
 
             // B Button: Back
             if (this.isPressed(gp, this.BTN_B)) {
-                if (state === 'SHOP') closeShop();
+                if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
+                else if (state === 'SHOP') closeShop();
                 else if (state === 'STATS') closeStats();
                 else if (state === 'ACHIEVEMENTS') closeAchievements();
                 else if (state === 'LEADERBOARD') closeLeaderboard();
@@ -9203,34 +9462,134 @@ let lastDisplayedContestTime = -1;
         }
     };
 
+    function handleActionPress() {
+        if (state === 'GAMEOVER') {
+            if (isSplitscreen) resetGame();
+            else openShop();
+        } else if (state === 'IDLE') {
+            startJump();
+        }
+    }
+
     // Start buttons
     const mobBtn = document.getElementById('mobileShootBtn');
     mobBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
+        if (isSplitscreen) {
+            loadContext(game2);
+            handleActionPress();
+            saveContext(game2);
+        } else {
+            loadContext(game1);
+            handleActionPress();
+            saveContext(game1);
+        }
     }, {passive: false});
     mobBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
-        if (state === 'JUMPING') releaseShot();
+        if (isSplitscreen) {
+            loadContext(game2);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game2);
+        } else {
+            loadContext(game1);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game1);
+        }
     }, {passive: false});
 
+    const mobBtn2 = document.getElementById('mobileShootBtn2');
+    if (mobBtn2) {
+        mobBtn2.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            loadContext(game1);
+            handleActionPress();
+            saveContext(game1);
+        }, {passive: false});
+        mobBtn2.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            loadContext(game1);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game1);
+        }, {passive: false});
+    }
+
+    function doGameAction(game, type) {
+        loadContext(game);
+        if (type === 'press') {
+            handleActionPress();
+        } else if (type === 'release') {
+            if (state === 'JUMPING') releaseShot();
+        }
+        saveContext(game);
+    }
+
+    var enterPressed = false;
+
     window.addEventListener('keydown', (e) => {
-        if(state === 'SHOP') { if(e.code === 'Escape') closeShop(); return; }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') closeAchievements(); return; }
-        if(state === 'STATS') { if(e.code === 'Escape') closeStats(); return; }
-        if(state === 'LEADERBOARD') { if(e.code === 'Escape') closeLeaderboard(); return; }
-        if(e.code === 'KeyP') openShop(); if(e.code === 'KeyO') openAchievements(); if(e.code === 'KeyS') openStats(); if(e.code === 'KeyL') openLeaderboard();
-        if (e.code === 'Space' && !spacePressed) { spacePressed = true; if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump(); }
+        // High Score / UI Handling
+        if (state === 'HIGHSCORE_INPUT') {
+            loadContext(game1);
+            if (e.code === 'ArrowUp') handleHighScoreInput('UP');
+            if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
+            if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
+            if (e.code === 'ArrowRight') handleHighScoreInput('RIGHT');
+            if (e.code === 'Enter') handleHighScoreInput('SELECT');
+            if (e.code === 'Backspace') handleHighScoreInput('BACK');
+            saveContext(game1);
+            return;
+        }
+
+        // Global UI Toggles (P1 only for simplicity)
+        if(state === 'SHOP') { if(e.code === 'Escape') { loadContext(game1); closeShop(); return; } }
+        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
+        if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
+        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
+
+        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
+        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
+        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
+
+        // P1 Action
+        if (e.code === 'Space' && !spacePressed) {
+            spacePressed = true;
+            doGameAction(game1, 'press');
+        }
+
+        // P2 Action
+        if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
+            enterPressed = true;
+            doGameAction(game2, 'press');
+        }
     });
-    window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; if (state === 'JUMPING') releaseShot(); } });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            spacePressed = false;
+            doGameAction(game1, 'release');
+        }
+        if (isSplitscreen && e.code === 'Enter') {
+            enterPressed = false;
+            doGameAction(game2, 'release');
+        }
+    });
+
     window.addEventListener('mousedown', (e) => {
         if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
-        if (state === 'IDLE' && playerData.mobileControls) return;
-        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
+
+        // P1 Mouse Control
+        // Check mobile flag inside context?
+        loadContext(game1);
+        if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
+        handleActionPress();
+        saveContext(game1);
     });
     window.addEventListener('mouseup', () => {
-        if (state === 'JUMPING' && playerData.mobileControls) return;
+        loadContext(game1);
+        if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
         if (state === 'JUMPING') releaseShot();
+        saveContext(game1);
     });
 
     // Handle Page Visibility (Mute audio on background)
@@ -9250,6 +9609,229 @@ let lastDisplayedContestTime = -1;
     // Initial resize call
     resizeGame();
     checkStartup();
+    // --- SPLITSCREEN & STATE MANAGEMENT ---
+    var isSplitscreen = false;
+
+    // Define the default/initial state factory
+    function createGameContext() {
+        return {
+            state: 'IDLE',
+            preJumpTimer: 0,
+            feedback: "",
+            feedbackTimer: 0,
+            player3D: { x: 433, y: 300, z: 0, vz: 0 },
+            activeBalls: [],
+            particles: [],
+            currentStreak: 0,
+            consecutiveMisses: 0,
+            distanceLevel: 1,
+            contestData: { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false },
+            timeAttackData: { timer: 60, score: 0, active: false },
+            animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0 },
+            animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0 },
+            breathingPhase: 0,
+            camSmooth: { x: 433, y: 300 },
+            camCache: {},
+            airbudJumpTime: 0,
+            isGroundedShot: false,
+            groundShotTimer: 0,
+            crowdCheerTimer: 0,
+            ball: {}, // Legacy
+            playerData: null, // Will hold reference to profile
+            bgCache: null, // Per-player background cache
+            resetTimer: 0,
+            nextAction: null,
+            inputState: { shootPressed: false } // Abstracted input
+        };
+    }
+
+    var game1 = createGameContext();
+    var game2 = createGameContext();
+
+    // Initialize P1 with the loaded global data
+    // We will do this via loadContext/saveContext flow in the loop,
+    // but we need to ensure the objects exist.
+
+    function saveContext(ctxObj) {
+        ctxObj.state = state;
+        ctxObj.preJumpTimer = preJumpTimer;
+        ctxObj.feedback = feedback;
+        ctxObj.feedbackTimer = feedbackTimer;
+        // Deep copy player3D to avoid reference issues if replaced?
+        // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
+        // But the global 'player3D' variable holds the reference.
+        ctxObj.player3D = player3D;
+        ctxObj.activeBalls = activeBalls;
+        ctxObj.particles = particles;
+        ctxObj.currentStreak = currentStreak;
+        ctxObj.consecutiveMisses = consecutiveMisses;
+        ctxObj.distanceLevel = distanceLevel;
+        ctxObj.contestData = contestData;
+        ctxObj.timeAttackData = timeAttackData;
+        ctxObj.animState = g_animState;
+        ctxObj.animTarget = g_animTarget;
+        ctxObj.breathingPhase = g_breathingPhase;
+        ctxObj.camSmooth = window.g_camSmooth;
+        ctxObj.camCache = window.g_camCache;
+        ctxObj.airbudJumpTime = airbudJumpTime;
+        ctxObj.isGroundedShot = isGroundedShot;
+        ctxObj.groundShotTimer = groundShotTimer;
+        ctxObj.crowdCheerTimer = crowdCheerTimer;
+        ctxObj.ball = ball;
+        ctxObj.playerData = playerData;
+        ctxObj.bgCache = bgCache;
+        ctxObj.resetTimer = resetTimer;
+        ctxObj.nextAction = nextAction;
+        // Input state is handled by event listeners updating the context directly,
+        // but we can sync back if we used globals.
+    }
+
+    function loadContext(ctxObj) {
+        state = ctxObj.state;
+        preJumpTimer = ctxObj.preJumpTimer;
+        feedback = ctxObj.feedback;
+        feedbackTimer = ctxObj.feedbackTimer;
+        player3D = ctxObj.player3D;
+        activeBalls = ctxObj.activeBalls;
+        particles = ctxObj.particles;
+        currentStreak = ctxObj.currentStreak;
+        consecutiveMisses = ctxObj.consecutiveMisses;
+        distanceLevel = ctxObj.distanceLevel;
+        contestData = ctxObj.contestData;
+        timeAttackData = ctxObj.timeAttackData;
+        g_animState = ctxObj.animState;
+        g_animTarget = ctxObj.animTarget;
+        g_breathingPhase = ctxObj.breathingPhase;
+        window.g_camSmooth = ctxObj.camSmooth;
+        window.g_camCache = ctxObj.camCache;
+        airbudJumpTime = ctxObj.airbudJumpTime;
+        isGroundedShot = ctxObj.isGroundedShot;
+        groundShotTimer = ctxObj.groundShotTimer;
+        crowdCheerTimer = ctxObj.crowdCheerTimer;
+        ball = ctxObj.ball;
+        playerData = ctxObj.playerData;
+        bgCache = ctxObj.bgCache;
+        resetTimer = ctxObj.resetTimer;
+        nextAction = ctxObj.nextAction;
+
+        // Ensure globals that might be undefined are safe
+        if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
+    }
+
+    // Initialize Game 1 with current globals immediately
+    saveContext(game1);
+
+    // P2 Setup (Separate Profile)
+    game2.playerData = JSON.parse(JSON.stringify(defaultData));
+    // Give P2 some generic skins or copy P1? Let's copy P1's unlocked stuff but reset progress
+    // Actually, deep cloning P1's initial state is safer for now.
+    game2.playerData = JSON.parse(JSON.stringify(playerData));
+    // Reset session stats for P2
+    game2.playerData.tacos = 0; // Session score for competition? Or keep tacos?
+    // Let's keep it separate.
+
+    function toggleSplitscreen() {
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        isSplitscreen = !isSplitscreen;
+
+        const sb = document.getElementById('scorebug-container');
+        const btnText = document.getElementById('btnSplitText');
+
+        if(isSplitscreen) {
+            // Reset P2
+            game2 = createGameContext();
+            game2.playerData = JSON.parse(JSON.stringify(playerData)); // Clone P1 profile
+            game2.playerData.tacos = 0; // Fresh score
+
+            if(sb) sb.style.display = 'none';
+            if(btnText) btnText.innerText = "1 PLAYER";
+        } else {
+            if(sb) sb.style.display = 'flex';
+            if(btnText) btnText.innerText = "2 PLAYERS";
+        }
+
+        // Ensure both players are initialized for current mode
+        runForAllPlayers(resetGame);
+
+        updateMobileControlsUI();
+        invalidateBackgroundCache();
+        resizeGame();
+    }
+
+    function drawSplitscreenHUD() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.save();
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 4;
+
+        const drawPlayerHUD = (gCtx, xCenter, label, actionBtn) => {
+            ctx.textAlign = "center";
+
+            // Label
+            ctx.font = "bold 20px 'Roboto Condensed'";
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.fillText(label, xCenter, 30);
+
+            // Stats
+            ctx.font = "900 32px 'Russo One'";
+            ctx.fillStyle = "#FFD700";
+
+            let line1 = "";
+            let line2 = "";
+
+            if (currentGameMode === 'CLASSIC') {
+                const dist = 10 + (gCtx.distanceLevel * 5);
+                const maxMisses = 2 + (gCtx.playerData.stats.extraLives || 0);
+                line1 = `${dist} PI`;
+                line2 = `MISS: ${gCtx.consecutiveMisses}/${maxMisses}`;
+                // Streak?
+                if (gCtx.currentStreak > 1) line2 += ` (${gCtx.currentStreak} 🔥)`;
+            } else if (currentGameMode === 'CONTEST') {
+                line1 = `SCORE: ${gCtx.contestData.score}`;
+                line2 = `TIME: ${Math.ceil(gCtx.contestData.timer)}`;
+            } else if (currentGameMode === 'TIME_ATTACK') {
+                line1 = `SCORE: ${gCtx.timeAttackData.score}`;
+                line2 = `TIME: ${Math.ceil(gCtx.timeAttackData.timer)}`;
+            }
+
+            ctx.fillText(line1, xCenter, 65);
+
+            ctx.font = "bold 24px 'Roboto Condensed'";
+            ctx.fillStyle = "#FFF";
+            ctx.fillText(line2, xCenter, 95);
+
+            // Game Over State
+            if (gCtx.state === 'GAMEOVER') {
+                ctx.fillStyle = "rgba(0,0,0,0.7)";
+                ctx.fillRect(xCenter - 150, h/2 - 60, 300, 120);
+
+                ctx.font = "900 40px 'Russo One'";
+                ctx.fillStyle = "#FF0000";
+                ctx.fillText("TERMINÉ", xCenter, h/2 - 10);
+
+                ctx.font = "bold 20px 'Roboto Condensed'";
+                ctx.fillStyle = "#FFF";
+                ctx.fillText(`PRESS ${actionBtn}`, xCenter, h/2 + 30);
+                ctx.fillText("TO RESTART", xCenter, h/2 + 55);
+            }
+        };
+
+        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
+        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
+
+        // Center Divider Line (Visual)
+        ctx.beginPath();
+        ctx.moveTo(w/2, 0);
+        ctx.lineTo(w/2, h);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
     // Start loop
     requestAnimationFrame(loop);
 </script>
