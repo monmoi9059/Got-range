@@ -7535,19 +7535,21 @@ let lastDisplayedContestTime = -1;
         }
 
         // CLOUDS
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        clouds.forEach(c => {
-             c.x += c.speed;
-             if(c.x > canvas.width + 200) c.x = -200;
-             let xPos = c.x;
-             let yPos = c.y;
-             ctx.beginPath();
-             c.puffs.forEach(p => {
-                 ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
-                 ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
-             });
-             ctx.fill();
-        });
+        if (currentGameMode === 'CLASSIC') {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            clouds.forEach(c => {
+                 c.x += c.speed;
+                 if(c.x > canvas.width + 200) c.x = -200;
+                 let xPos = c.x;
+                 let yPos = c.y;
+                 ctx.beginPath();
+                 c.puffs.forEach(p => {
+                     ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
+                     ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
+                 });
+                 ctx.fill();
+            });
+        }
 
         if (bgCache.floorImage) {
              ctx.drawImage(bgCache.floorImage, 0, horizonY);
@@ -8442,6 +8444,7 @@ let lastDisplayedContestTime = -1;
 
     function resetGame() {
         activeBalls = []; // Clear all balls on reset
+        particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
         else {
