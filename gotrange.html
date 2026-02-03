@@ -800,6 +800,25 @@
         { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
     ];
 
+    var COURT_THEMES = {
+        arena: {
+            name: "NBA ARENA",
+            type: 'arena',
+            ground1: '#E0C39C', // Wood Light
+            ground2: '#C4A484', // Wood Dark
+            sky1: '#050510',
+            sky2: '#101020'
+        },
+        carnival: {
+            name: "CARNIVAL",
+            type: 'carnival',
+            ground1: '#FF4500', // Red
+            ground2: '#FFD700', // Yellow
+            sky1: '#000080',
+            sky2: '#4B0082'
+        }
+    };
+
     var COURT_ZONES = [
         { limit: 50, name: "COUR ARRIÈRE", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
         { limit: 100, name: "PARC DE LA PAIX", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
@@ -4261,6 +4280,36 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.moveTo(p.x - w/2 - 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/8, p.y - h - 50*s); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x + w/4 - 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/8, p.y - h - 50*s); ctx.fill();
              }
+             else if (type === 'carnival_tent') {
+                 const s = p.scale;
+                 const w = 250 * s; const h = 180 * s;
+                 // Base
+                 ctx.fillStyle = '#FFF';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x - w/2, p.y); ctx.fill();
+                 // Stripes
+                 ctx.fillStyle = '#FF0000';
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + 20*s, p.y); ctx.lineTo(p.x - 20*s, p.y); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x + w/2 - 40*s, p.y); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x - w/2, p.y); ctx.lineTo(p.x - w/2 + 40*s, p.y); ctx.fill();
+             }
+             else if (type === 'arena_bleachers') {
+                 const s = p.scale;
+                 const w = 400 * s; const h = 250 * s;
+                 // Structure
+                 ctx.fillStyle = '#1a1a1a';
+                 ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                 // Rows
+                 ctx.fillStyle = '#2a2a2a';
+                 for(let i=0; i<6; i++) {
+                     ctx.fillRect(p.x - w/2, p.y - h + i*40*s, w, 20*s);
+                 }
+                 // Crowd Noise (Visual)
+                 ctx.fillStyle = '#555';
+                 for(let i=0; i<100; i++) {
+                     if(Math.random() > 0.5) ctx.fillStyle = '#EEE'; else ctx.fillStyle = '#333';
+                     ctx.fillRect(p.x - w/2 + Math.random()*w, p.y - h + Math.random()*h, 4*s, 6*s);
+                 }
+             }
         }
     }
 
@@ -7256,10 +7305,18 @@ let lastDisplayedContestTime = -1;
 
         const horizonY = (canvas.height - 120) * 0.5;
 
-        if (!bgCache || bgCache.distanceLevel !== distanceLevel) {
-            bgCache = { distanceLevel: distanceLevel, pastFloors: [] };
-            const currentDist = 10 + (distanceLevel * 5);
-            const court = getCourtDetails(currentDist);
+        if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
+            bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+
+            let court;
+            if (currentGameMode === 'CONTEST') {
+                court = COURT_THEMES.arena;
+            } else if (currentGameMode === 'TIME_ATTACK') {
+                court = COURT_THEMES.carnival;
+            } else {
+                const currentDist = 10 + (distanceLevel * 5);
+                court = getCourtDetails(currentDist);
+            }
 
             // Sky
             const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
@@ -7281,7 +7338,32 @@ let lastDisplayedContestTime = -1;
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
                  // Procedural Textures based on Type
-                 if (court.type === 'grass' || court.type === 'tree') {
+                 if (court.type === 'arena') {
+                     // Wood Planks
+                     fCtx.fillStyle = court.ground2;
+                     const plankW = 40;
+                     for(let i=0; i<fCv.width; i+=plankW) {
+                         fCtx.fillRect(i, 0, 2, fCv.height);
+                     }
+                     // Random grain
+                     fCtx.fillStyle = 'rgba(100, 50, 0, 0.05)';
+                     for(let i=0; i<fCv.width*fCv.height*0.1; i++) {
+                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 1);
+                     }
+                 }
+                 else if (court.type === 'carnival') {
+                     // Carnival Checkerboard
+                     const size = 50;
+                     fCtx.fillStyle = court.ground2;
+                     for(let y=0; y<fCv.height; y+=size) {
+                         for(let x=0; x<fCv.width; x+=size) {
+                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
+                                 fCtx.fillRect(x, y, size, size);
+                             }
+                         }
+                     }
+                 }
+                 else if (court.type === 'grass' || court.type === 'tree') {
                      // Grass Blades
                      fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
                      fCtx.lineWidth = 1;
@@ -7385,18 +7467,21 @@ let lastDisplayedContestTime = -1;
                  bgCache.currentFloor = currentZoneGrad;
             }
 
-            // Past Floors
-            for (let i = 0; i < COURT_ZONES.length; i++) {
-                const z = COURT_ZONES[i];
-                let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-                let zEnd = z.limit;
-                if (zStart >= currentDist) break;
-                let drawEnd = Math.min(zEnd, currentDist);
-                const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
-                if ((yBottom - yTop) > 0.5) {
-                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                    bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
+            // Past Floors (Only for CLASSIC)
+            if (currentGameMode === 'CLASSIC') {
+                const currentDist = 10 + (distanceLevel * 5);
+                for (let i = 0; i < COURT_ZONES.length; i++) {
+                    const z = COURT_ZONES[i];
+                    let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+                    let zEnd = z.limit;
+                    if (zStart >= currentDist) break;
+                    let drawEnd = Math.min(zEnd, currentDist);
+                    const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
+                    if ((yBottom - yTop) > 0.5) {
+                        const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                        grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                        bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
+                    }
                 }
             }
         }
@@ -7404,50 +7489,50 @@ let lastDisplayedContestTime = -1;
         // DRAW FROM CACHE
         ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // SUN / MOON / STARS
-        if (distanceLevel > 8) {
-             // Simple stars
-             ctx.fillStyle = 'rgba(255,255,255,0.8)';
-             // Seeded random stars (reusing clouds speed for variation or just simple hash)
-             for(let i=0; i<30; i++) {
-                 let sx = (i * 137) % canvas.width;
-                 let sy = (i * 59) % (horizonY * 0.8);
-                 ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
+        // SUN / MOON / STARS / MOUNTAINS (CLASSIC ONLY)
+        if (currentGameMode === 'CLASSIC') {
+            if (distanceLevel > 8) {
+                 // Simple stars
+                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                 for(let i=0; i<30; i++) {
+                     let sx = (i * 137) % canvas.width;
+                     let sy = (i * 59) % (horizonY * 0.8);
+                     ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
+                }
+            } else {
+                 // Sun
+                 if (playerData.graphics === 'HIGH') {
+                     const sunX = 700, sunY = 80;
+                     const glow = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 120);
+                     glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+                     glow.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
+                     glow.addColorStop(1, 'rgba(255, 69, 0, 0)');
+                     ctx.fillStyle = glow;
+                     ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
+                     ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
+                 } else {
+                     ctx.fillStyle = sunGradient;
+                     ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
+                 }
             }
-        } else {
-             // Sun
-             if (playerData.graphics === 'HIGH') {
-                 // Better Sun with glow
-                 const sunX = 700, sunY = 80;
-                 const glow = ctx.createRadialGradient(sunX, sunY, 20, sunX, sunY, 120);
-                 glow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-                 glow.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
-                 glow.addColorStop(1, 'rgba(255, 69, 0, 0)');
-                 ctx.fillStyle = glow;
-                 ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
-             } else {
-                 ctx.fillStyle = sunGradient;
-                 ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
-             }
+
+            // BACKGROUND MOUNTAINS
+            const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
+
+            mountainLayers.forEach(layer => {
+                 const shift = (camX + camY) * layer.speed;
+                 const loopWidth = 2000 * mountainScale;
+                 const offset = shift % loopWidth;
+                 let startX = -offset;
+                 if (startX > 0) startX -= loopWidth;
+
+                 let currentX = startX;
+                 while(currentX < canvas.width) {
+                     drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                     currentX += loopWidth;
+                 }
+            });
         }
-
-        // BACKGROUND MOUNTAINS
-        const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
-
-        mountainLayers.forEach(layer => {
-             const shift = (camX + camY) * layer.speed;
-             const loopWidth = 2000 * mountainScale;
-             const offset = shift % loopWidth;
-             let startX = -offset;
-             if (startX > 0) startX -= loopWidth;
-
-             let currentX = startX;
-             while(currentX < canvas.width) {
-                 drawMountainLayer(layer, horizonY, currentX, mountainScale);
-                 currentX += loopWidth;
-             }
-        });
 
         // CLOUDS
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
@@ -7470,38 +7555,35 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
         }
 
-        const currentDist = 10 + (distanceLevel * 5);
-        for (let i = 0; i < COURT_ZONES.length; i++) {
-            const z = COURT_ZONES[i];
-            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-            if (zStart >= currentDist) break;
-            let drawEnd = Math.min(z.limit, currentDist);
+        if (currentGameMode === 'CLASSIC') {
+            const currentDist = 10 + (distanceLevel * 5);
+            for (let i = 0; i < COURT_ZONES.length; i++) {
+                const z = COURT_ZONES[i];
+                let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+                if (zStart >= currentDist) break;
+                let drawEnd = Math.min(z.limit, currentDist);
 
-            // Re-project zone boundaries based on current camera
-            const ratioStart = zStart / currentDist;
-            const ratioEnd = drawEnd / currentDist;
+                // Re-project zone boundaries based on current camera
+                const ratioStart = zStart / currentDist;
+                const ratioEnd = drawEnd / currentDist;
 
-            const wxStart = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioStart;
-            const wyStart = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioStart;
-            const pStart = project(wxStart, wyStart, 0, g_camCache); // Force use of current camera cache
+                const wxStart = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioStart;
+                const wyStart = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioStart;
+                const pStart = project(wxStart, wyStart, 0, g_camCache); // Force use of current camera cache
 
-            const wxEnd = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioEnd;
-            const wyEnd = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioEnd;
-            const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
+                const wxEnd = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioEnd;
+                const wyEnd = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioEnd;
+                const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
 
-            const yTop = pStart ? pStart.y : horizonY;
-            const yBottom = pEnd ? pEnd.y : canvas.height;
+                const yTop = pStart ? pStart.y : horizonY;
+                const yBottom = pEnd ? pEnd.y : canvas.height;
 
-            if ((yBottom - yTop) > 0.5) {
-                // Reuse gradient from cache if available (find by index or properties)
-                // Since we are iterating same zones, we can just grab from bgCache.pastFloors if index matches?
-                // But bgCache.pastFloors might have different length if zones changed.
-                // Simple approach: Recreate gradient or store it better.
-                // For now, let's just use the zone colors directly or a simple vertical gradient.
-                const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+                if ((yBottom - yTop) > 0.5) {
+                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+                }
             }
         }
 
@@ -7522,17 +7604,49 @@ let lastDisplayedContestTime = -1;
         // OPTIMIZATION: Start iteration from visible range
         // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
         // We assume a max visible depth of ~15000 pixels.
-        const startDist = Math.max(0, playerDistFromHoop - 15000);
-        let startIndex = 0;
-        if (startDist > 1000) {
-             startIndex = binarySearchLowerBound(decors, startDist);
+
+        let renderDecors = [];
+        if (currentGameMode === 'CLASSIC') {
+            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            let startIndex = 0;
+            if (startDist > 1000) {
+                 startIndex = binarySearchLowerBound(decors, startDist);
+            }
+            for (let i = startIndex; i < decors.length; i++) {
+                const d = decors[i];
+                if (d.dist > cullDist) break;
+                renderDecors.push(d);
+            }
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            // Carnival: Circle of tents around hoop
+            const r = 800;
+            for(let i=0; i<8; i++) {
+                const angle = (i/8) * Math.PI * 2;
+                renderDecors.push({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'carnival_tent',
+                    variant: {},
+                    seed: i
+                });
+            }
+        } else if (currentGameMode === 'CONTEST') {
+            // Arena: Bleachers
+            const r = 900;
+            for(let i=0; i<12; i++) {
+                const angle = (i/12) * Math.PI * 2;
+                renderDecors.push({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'arena_bleachers',
+                    variant: {},
+                    seed: i
+                });
+            }
         }
 
-        for (let i = startIndex; i < decors.length; i++) {
-            const d = decors[i];
-
-            // Optimization: Stop processing if objects are too far behind the player (out of view)
-            if (d.dist > cullDist) break;
+        for (let i = 0; i < renderDecors.length; i++) {
+            const d = renderDecors[i];
 
             // Fast Z-Check
             const dx = d.x - camX;
@@ -8296,12 +8410,13 @@ let lastDisplayedContestTime = -1;
     }
 
     function setPlayerPositionForRack(rackNum) {
-        // Shift contest positions too (+133)
-        if(rackNum === 1) { player3D.x = 333; player3D.y = 500; }
-        else if(rackNum === 2) { player3D.x = 383; player3D.y = 400; }
-        else if(rackNum === 3) { player3D.x = 433; player3D.y = 300; }
-        else if(rackNum === 4) { player3D.x = 483; player3D.y = 200; }
-        else if(rackNum === 5) { player3D.x = 533; player3D.y = 100; }
+        // NBA Style Semi-Circle Positions (Center @ 733, 150, Radius ~350)
+        // Angles calculated relative to hoop normal vector (~153 deg)
+        if(rackNum === 1) { player3D.x = 889; player3D.y = 463; } // Right Corner (Bottom-Right)
+        else if(rackNum === 2) { player3D.x = 622; player3D.y = 482; } // Right Wing
+        else if(rackNum === 3) { player3D.x = 420; player3D.y = 306; } // Top (Center)
+        else if(rackNum === 4) { player3D.x = 401; player3D.y = 39; } // Left Wing
+        else if(rackNum === 5) { player3D.x = 576; player3D.y = -163; } // Left Corner (Top-Left)
         player3D.z = 0; player3D.vz = 0;
         invalidateBackgroundCache();
     }
