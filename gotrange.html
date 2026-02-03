@@ -8443,12 +8443,11 @@ let lastDisplayedContestTime = -1;
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
                 if (player3D.z <= 0) {
+                    // Prevent Marché violation by forcing a late shot
                     player3D.z = 0; player3D.vz = 0;
-                    state = 'GAMEOVER';
-                    feedback = "MARCHÉ!";
-                    feedbackTimer = 60;
-                    resetTimer = 90;
-                    nextAction = () => openShop(true);
+                    // Calculate a penalty timing error (late release)
+                    // Normal threshold is approx 1.0. We pass 5.0 to ensure a miss.
+                    shoot(5.0);
                 }
             }
         }
