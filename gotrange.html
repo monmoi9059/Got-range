@@ -7296,7 +7296,7 @@ let lastDisplayedContestTime = -1;
         const camRotation = -angleToHoop - Math.PI / 2;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
-        const camZoom = 698;
+        const camZoom = isSplitscreen ? 450 : 698;
         const camHeight = 84000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
