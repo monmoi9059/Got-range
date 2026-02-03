@@ -2599,7 +2599,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function submitHighScoreInput() {
-        const name = document.getElementById('hsNameInput').value;
+        const name = highScoreName.join('');
         if (!name) return;
 
         addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
@@ -2613,11 +2613,102 @@ let lastDisplayedContestTime = -1;
         switchLeaderboardTab(pendingHighScore.mode);
     }
 
+    // --- HIGH SCORE LOGIC ---
+    var highScoreCursor = 0;
+    var highScoreName = ["A", "A", "A"];
+    const KEYBOARD_LAYOUT = [
+        "A", "B", "C", "D", "E", "F", "G",
+        "H", "I", "J", "K", "L", "M", "N",
+        "O", "P", "Q", "R", "S", "T", "U",
+        "V", "W", "X", "Y", "Z", "OK", "DEL"
+    ];
+    var keyboardCursor = 0;
+
+    function initHighScoreUI() {
+        highScoreName = ["A", "A", "A"];
+        highScoreCursor = 0;
+        keyboardCursor = 0;
+        renderKeyboard();
+        updateHighScoreDisplay();
+    }
+
+    function renderKeyboard() {
+        const grid = document.getElementById('keyboard');
+        if(!grid) return;
+        grid.innerHTML = '';
+        KEYBOARD_LAYOUT.forEach((key, index) => {
+            const div = document.createElement('div');
+            div.className = 'key';
+            if (index === keyboardCursor) div.classList.add('selected');
+            if (key === 'OK') div.classList.add('action', 'confirm');
+            if (key === 'DEL') div.classList.add('action', 'back');
+            div.innerText = key;
+            div.onclick = () => {
+                keyboardCursor = index;
+                renderKeyboard();
+                handleHighScoreInput('SELECT');
+            };
+            grid.appendChild(div);
+        });
+    }
+
+    function updateHighScoreDisplay() {
+        const display = document.getElementById('hsNameDisplay');
+        if(!display) return;
+        let html = '';
+        for(let i=0; i<3; i++) {
+            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
+            else html += `${highScoreName[i]} `;
+        }
+        display.innerHTML = html.trim();
+    }
+
+    function handleHighScoreInput(action) {
+        if (action === 'UP') {
+            if (keyboardCursor >= 7) keyboardCursor -= 7;
+        } else if (action === 'DOWN') {
+            if (keyboardCursor + 7 < KEYBOARD_LAYOUT.length) keyboardCursor += 7;
+        } else if (action === 'LEFT') {
+            if (keyboardCursor > 0) keyboardCursor--;
+        } else if (action === 'RIGHT') {
+            if (keyboardCursor < KEYBOARD_LAYOUT.length - 1) keyboardCursor++;
+        } else if (action === 'SELECT') {
+            const char = KEYBOARD_LAYOUT[keyboardCursor];
+            if (char === 'DEL') {
+                if (highScoreCursor > 0) {
+                    highScoreCursor--;
+                    highScoreName[highScoreCursor] = 'A';
+                    updateHighScoreDisplay();
+                }
+            } else if (char === 'OK') {
+                submitHighScoreInput();
+            } else {
+                if (highScoreCursor < 3) {
+                    highScoreName[highScoreCursor] = char;
+                    highScoreCursor++;
+                    if (highScoreCursor >= 3) {
+                        keyboardCursor = KEYBOARD_LAYOUT.indexOf('OK');
+                        renderKeyboard();
+                    }
+                    updateHighScoreDisplay();
+                }
+            }
+        } else if (action === 'BACK') {
+             if (highScoreCursor > 0) {
+                highScoreCursor--;
+                updateHighScoreDisplay();
+            }
+        }
+        renderKeyboard();
+    }
+
     function checkGameOverSequence(mode, score) {
         // Update Game Over State Logic
         if (isHighScore(mode, score)) {
             pendingHighScore = { mode: mode, score: score };
-            handleHighScoreInput();
+            highScoreUI.style.display = 'block';
+            state = 'HIGHSCORE_INPUT';
+            initHighScoreUI();
         } else {
             openShop();
         }
@@ -7547,8 +7638,7 @@ let lastDisplayedContestTime = -1;
         if (currentGameMode === 'CLASSIC') {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             clouds.forEach(c => {
-                 c.x += c.speed;
-                 if(c.x > vpW + 200) c.x = -200;
+                 // c.x updated in updateEnvironment
                  let xPos = c.x;
                  let yPos = c.y;
                  ctx.beginPath();
@@ -9040,6 +9130,13 @@ let lastDisplayedContestTime = -1;
     let accumulator = 0;
     const FIXED_STEP = 1000 / 60; // 60 FPS physics (16.666ms)
 
+    function updateEnvironment(dt) {
+        clouds.forEach(c => {
+             c.x += c.speed * dt;
+             if(c.x > canvas.width + 200) c.x = -200;
+        });
+    }
+
     function loop(timestamp) {
         requestAnimationFrame(loop);
         if (!lastTime) lastTime = timestamp;
@@ -9058,6 +9155,8 @@ let lastDisplayedContestTime = -1;
         while (accumulator >= FIXED_STEP) {
             // update() expects dt in "frames" (1.0 = 16.66ms)
             // Since our logic was built around 1.0 being ~60fps, we pass 1.0.
+
+            updateEnvironment(1.0);
 
             // Update P1
             loadContext(game1);
@@ -9144,7 +9243,14 @@ let lastDisplayedContestTime = -1;
             if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
 
             if (dx !== 0 || dy !== 0) {
-                this.moveFocus(dx, dy);
+                if (state === 'HIGHSCORE_INPUT') {
+                    if(dy < 0) handleHighScoreInput('UP');
+                    if(dy > 0) handleHighScoreInput('DOWN');
+                    if(dx < 0) handleHighScoreInput('LEFT');
+                    if(dx > 0) handleHighScoreInput('RIGHT');
+                } else {
+                    this.moveFocus(dx, dy);
+                }
                 this.navDelay = 12; // ~200ms debounce
             }
         },
@@ -9243,7 +9349,9 @@ let lastDisplayedContestTime = -1;
         handleActions: function(gp) {
             // A Button: Select/Click
             if (this.isPressed(gp, this.BTN_A)) {
-                if (this.focusedElement) {
+                if (state === 'HIGHSCORE_INPUT') {
+                    handleHighScoreInput('SELECT');
+                } else if (this.focusedElement) {
                     this.focusedElement.click();
                     this.refreshFocusList();
                 }
@@ -9251,7 +9359,8 @@ let lastDisplayedContestTime = -1;
 
             // B Button: Back
             if (this.isPressed(gp, this.BTN_B)) {
-                if (state === 'SHOP') closeShop();
+                if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
+                else if (state === 'SHOP') closeShop();
                 else if (state === 'STATS') closeStats();
                 else if (state === 'ACHIEVEMENTS') closeAchievements();
                 else if (state === 'LEADERBOARD') closeLeaderboard();
@@ -9295,6 +9404,17 @@ let lastDisplayedContestTime = -1;
     window.addEventListener('keydown', (e) => {
         // UI & P1 checks - Load P1 context to ensure UI uses correct state
         loadContext(game1);
+
+        if (state === 'HIGHSCORE_INPUT') {
+            if (e.code === 'ArrowUp') handleHighScoreInput('UP');
+            if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
+            if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
+            if (e.code === 'ArrowRight') handleHighScoreInput('RIGHT');
+            if (e.code === 'Enter') handleHighScoreInput('SELECT');
+            if (e.code === 'Backspace') handleHighScoreInput('BACK');
+            saveContext(game1);
+            return;
+        }
 
         if(state === 'SHOP') { if(e.code === 'Escape') { closeShop(); saveContext(game1); return; } }
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { closeAchievements(); saveContext(game1); return; } }
@@ -9399,6 +9519,7 @@ let lastDisplayedContestTime = -1;
             crowdCheerTimer: 0,
             ball: {}, // Legacy
             playerData: null, // Will hold reference to profile
+            bgCache: null, // Per-player background cache
             inputState: { shootPressed: false } // Abstracted input
         };
     }
@@ -9437,6 +9558,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.crowdCheerTimer = crowdCheerTimer;
         ctxObj.ball = ball;
         ctxObj.playerData = playerData;
+        ctxObj.bgCache = bgCache;
         // Input state is handled by event listeners updating the context directly,
         // but we can sync back if we used globals.
     }
@@ -9465,6 +9587,7 @@ let lastDisplayedContestTime = -1;
         crowdCheerTimer = ctxObj.crowdCheerTimer;
         ball = ctxObj.ball;
         playerData = ctxObj.playerData;
+        bgCache = ctxObj.bgCache;
 
         // Ensure globals that might be undefined are safe
         if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
