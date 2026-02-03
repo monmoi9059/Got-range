@@ -8117,7 +8117,7 @@ let lastDisplayedContestTime = -1;
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; setTimeout(nextLevel, 500);
+            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
@@ -8125,7 +8125,7 @@ let lastDisplayedContestTime = -1;
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; setTimeout(nextLevel, 1000);
+            feedbackTimer = 60; state = 'RESETTING'; resetTimer = 60; nextAction = nextLevel;
         }
     }
 
@@ -8136,16 +8136,16 @@ let lastDisplayedContestTime = -1;
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         if(currentGameMode === 'CONTEST') {
-            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; setTimeout(nextLevel, 500);
+            feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
-                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; setTimeout(() => checkGameOverSequence('classic', 10 + (distanceLevel * 5)), 1500);
+                feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
             } else {
-                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; setTimeout(retryShot, 1500);
+                feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
             }
         }
     }
@@ -8340,7 +8340,7 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; setTimeout(openShop, 1500); }
+                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; resetTimer = 90; nextAction = openShop; }
             }
         }
         if (state === 'SHOOTING') {
@@ -8474,7 +8474,7 @@ let lastDisplayedContestTime = -1;
         checkDailyProgress('contest_score', contestData.score);
         checkDailyProgress('play_contest', 1);
 
-        checkAchievements('contest'); saveData(); setTimeout(() => checkGameOverSequence('contest', contestData.score), 2000);
+        checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
     }
 
     function startTimeAttack() {
@@ -8521,7 +8521,7 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = 180;
 
         saveData();
-        setTimeout(() => checkGameOverSequence('time_attack', timeAttackData.score), 3000);
+        resetTimer = 180; nextAction = () => checkGameOverSequence('time_attack', timeAttackData.score);
     }
 
     function updateUI() {
