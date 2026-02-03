@@ -1307,7 +1307,19 @@
             var cosR = Math.cos(rot);
             var sinR = Math.sin(rot);
 
-            var project = function(p) {
+            // Bolt Optimization: Reusable object to prevent GC churn in loops
+            var _pRes = { x: 0, y: 0, z: 0 };
+
+            var projectToRef = function(p) {
+                var ry = p.y * cosR - p.z * sinR;
+                var rz = p.y * sinR + p.z * cosR;
+                _pRes.x = p.x * r;
+                _pRes.y = ry * r;
+                _pRes.z = rz;
+                return _pRes;
+            };
+
+            var projectNew = function(p) {
                 var ry = p.y * cosR - p.z * sinR;
                 var rz = p.y * sinR + p.z * cosR;
                 return { x: p.x * r, y: ry * r, z: rz };
@@ -1322,7 +1334,7 @@
                 var first = true;
                 for(var i=0; i<Geometry.basketball.length; i++) {
                      if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
-                     var proj = project(Geometry.basketball[i]);
+                     var proj = projectToRef(Geometry.basketball[i]);
                      if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
                      else ctx.lineTo(proj.x, proj.y);
                 }
@@ -1335,7 +1347,7 @@
                     var projPoints = [];
                     var avgZ = 0;
                     for(var j=0; j<face.length; j++) {
-                        var p = project(face[j]);
+                        var p = projectNew(face[j]); // Must be new for array storage
                         projPoints.push(p);
                         avgZ += p.z;
                     }
@@ -1356,7 +1368,7 @@
                 ctx.beginPath();
                 var first = true;
                 for(var i=0; i<Geometry.seam.length; i++) {
-                    var proj = project(Geometry.seam[i]);
+                    var proj = projectToRef(Geometry.seam[i]);
                     if (proj.z > -0.5) {
                         if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
                         else ctx.lineTo(proj.x, proj.y);
@@ -1370,14 +1382,14 @@
             else if (type === 'golf') {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 for(var i=0; i<Geometry.dimples.length; i++) {
-                    var proj = project(Geometry.dimples[i]);
+                    var proj = projectToRef(Geometry.dimples[i]);
                     if (proj.z > 0) {
                         ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.06, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
             else if (type === 'bille8') {
-                var proj = project({x:0, y:0, z:1});
+                var proj = projectToRef({x:0, y:0, z:1});
                 if (proj.z > 0) {
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.45, 0, Math.PI*2); ctx.fill();
@@ -1391,14 +1403,14 @@
                  var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
                  ctx.fillStyle = '#111';
                  holes.forEach(function(h) {
-                     var proj = project(h);
+                     var proj = projectToRef(h);
                      if (proj.z > 0) {
                          ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.12, 0, Math.PI*2); ctx.fill();
                      }
                  });
             }
             else if (type === 'eyeball') {
-                var proj = project({x:0, y:0, z:1});
+                var proj = projectToRef({x:0, y:0, z:1});
                 if (proj.z > 0) {
                     ctx.fillStyle = ball.color2;
                     ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2); ctx.fill();
@@ -1418,7 +1430,7 @@
                      ctx.beginPath();
                      var line = Geometry.beach[s];
                      for(var i=0; i<line.length; i++) {
-                         var proj = project(line[i]);
+                         var proj = projectToRef(line[i]);
                          if (proj.z > -0.2) {
                              if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
                              else ctx.lineTo(proj.x, proj.y);
@@ -1430,7 +1442,7 @@
                 ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
             }
             else if (type === 'donut') {
-                 var icingCenter = project({x:0, y:-0.9, z:0});
+                 var icingCenter = projectToRef({x:0, y:-0.9, z:0});
                  if (icingCenter.z > -r) {
                      ctx.fillStyle = ball.color1;
                      ctx.beginPath(); ctx.arc(icingCenter.x, icingCenter.y, r * 0.85, 0, Math.PI*2); ctx.fill();
@@ -1451,7 +1463,7 @@
                      var first = true;
                      var line = Geometry.watermelon[s];
                      for(var i=0; i<line.length; i++) {
-                         var proj = project(line[i]);
+                         var proj = projectToRef(line[i]);
                          if(proj.z > -0.2) {
                              if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
                              else ctx.lineTo(proj.x, proj.y);
@@ -1465,7 +1477,7 @@
                 var patches = [1,2,3,4];
                 patches.forEach(function(i) {
                     var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
-                    var proj = project(p);
+                    var proj = projectToRef(p);
                     if (proj.z > 0) {
                         ctx.beginPath();
                         ctx.arc(proj.x, proj.y, r * 0.4, 0, Math.PI*2);
@@ -1478,7 +1490,7 @@
                  var continents = [0, 2, 4];
                  continents.forEach(function(i) {
                     var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
-                    var proj = project(p);
+                    var proj = projectToRef(p);
                      if (proj.z > 0) {
                         ctx.beginPath();
                         ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2);
@@ -2857,6 +2869,8 @@ let lastDisplayedContestTime = -1;
     }
     window.addEventListener('resize', resizeGame);
 
+    var g_projectResult = { x: 0, y: 0, scale: 0, depth: 0 };
+
     function project(x, y, z, cache) {
         let rotation, sinRot, cosRot;
 
@@ -2897,7 +2911,12 @@ let lastDisplayedContestTime = -1;
         const screenX = canvas.width / 2 + (rx * scale);
         const horizonY = (canvas.height - 120) * 0.5;
         const screenY = horizonY + (cameraHeight - z) * scale;
-        return { x: screenX, y: screenY, scale: scale, depth: depth };
+
+        g_projectResult.x = screenX;
+        g_projectResult.y = screenY;
+        g_projectResult.scale = scale;
+        g_projectResult.depth = depth;
+        return g_projectResult;
     }
 
     // --- 4. DRAWING FUNCTIONS ---
