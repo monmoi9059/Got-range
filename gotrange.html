@@ -686,6 +686,8 @@
 <script>
     var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
     var preJumpTimer = 0;
+    var resetTimer = 0;
+    var nextAction = null;
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 100 },
@@ -2564,6 +2566,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        saveContext(game1);
     }
 
     function closeLeaderboard() {
@@ -2571,6 +2574,7 @@ let lastDisplayedContestTime = -1;
         state = 'IDLE';
         // If coming from Game Over flow?
         if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
+        saveContext(game1);
     }
 
     function switchLeaderboardTab(mode) {
@@ -8244,6 +8248,18 @@ let lastDisplayedContestTime = -1;
     }
 
     function update(dt) {
+        if (resetTimer > 0) {
+            resetTimer -= dt;
+            if (resetTimer <= 0) {
+                resetTimer = 0;
+                if (nextAction) {
+                    const action = nextAction;
+                    nextAction = null;
+                    action();
+                }
+            }
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
@@ -8666,6 +8682,7 @@ let lastDisplayedContestTime = -1;
         playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
         updateUI(); closeStats(); resetGame();
         resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
+        saveContext(game1);
     }
     window.unlockAllSkins = function() {
         if(resetStage === 0) {
@@ -8691,12 +8708,13 @@ let lastDisplayedContestTime = -1;
             showNotification("TRICHEUR !", 0);
         }
     }
-    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
-    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); }
+    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
+    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
     window.closeStats = function() {
         state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
         const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
         if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
+        saveContext(game1);
     }
     window.updateDifficulty = function() {
         const val = parseFloat(document.getElementById('diffSlider').value);
@@ -8911,6 +8929,7 @@ let lastDisplayedContestTime = -1;
 
         saveData();
         startGame();
+        saveContext(game1);
     }
     function checkStartup() {
         if(!playerData.platformChosen) {
@@ -9541,6 +9560,8 @@ let lastDisplayedContestTime = -1;
             ball: {}, // Legacy
             playerData: null, // Will hold reference to profile
             bgCache: null, // Per-player background cache
+            resetTimer: 0,
+            nextAction: null,
             inputState: { shootPressed: false } // Abstracted input
         };
     }
@@ -9580,6 +9601,8 @@ let lastDisplayedContestTime = -1;
         ctxObj.ball = ball;
         ctxObj.playerData = playerData;
         ctxObj.bgCache = bgCache;
+        ctxObj.resetTimer = resetTimer;
+        ctxObj.nextAction = nextAction;
         // Input state is handled by event listeners updating the context directly,
         // but we can sync back if we used globals.
     }
@@ -9609,6 +9632,8 @@ let lastDisplayedContestTime = -1;
         ball = ctxObj.ball;
         playerData = ctxObj.playerData;
         bgCache = ctxObj.bgCache;
+        resetTimer = ctxObj.resetTimer;
+        nextAction = ctxObj.nextAction;
 
         // Ensure globals that might be undefined are safe
         if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
