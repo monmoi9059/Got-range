@@ -4325,15 +4325,90 @@ let lastDisplayedContestTime = -1;
     function drawHoop(p) {
         if (!p) return;
         const s = p.scale;
+
+        // Calculate viewing angle relative to hoop's front (facing -Y)
+        // Camera is at g_camCache.x, g_camCache.y
+        // Vector from Hoop to Camera
+        const cx = (g_camCache && g_camCache.x) ? g_camCache.x : player3D.x;
+        const cy = (g_camCache && g_camCache.y) ? g_camCache.y : player3D.y;
+
+        const dx = cx - HOOP_POS.x;
+        const dy = cy - HOOP_POS.y;
+
+        // Hoop faces "down" (positive Y in court coords? No, player is at Y~300-500, hoop at Y=150)
+        // Wait, player shoots UP towards hoop (Y decreases?)
+        // Let's check: player3D.y = 500 (contest), hoop.y = 150. So Player > Hoop.
+        // So hoop faces +Y (towards player).
+        // Vector pointing out of backboard = (0, 1)
+
+        // Angle of camera relative to hoop normal
+        const angle = Math.atan2(dx, dy); // 0 if camera is directly below hoop (in front)
+
+        // Perspective foreshortening factor (cosine of angle)
+        // If angle is 0, factor is 1 (full width)
+        // If angle is 90 (side view), factor is 0 (thin line)
+        const foreshorten = Math.cos(angle);
+        const sideVisible = Math.sin(angle); // Positive = Camera is to Right of hoop
+
+        // Pole
         const baseP = project(HOOP_POS.x, HOOP_POS.y, 0);
         if(baseP) { ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s, p.y, 4*s, baseP.y - p.y); }
-        const bbW = 60 * s; const bbH = 40 * s; const bbX = p.x - bbW/2; const bbY = p.y - bbH - 10*s;
-        ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(bbX, bbY, bbW, bbH);
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s; ctx.strokeRect(bbX, bbY, bbW, bbH);
-        ctx.fillStyle = '#CE1126'; ctx.fillRect(bbX + bbW*0.35, bbY + bbH*0.6, bbW*0.3, bbH*0.3);
-        ctx.beginPath(); ctx.ellipse(p.x, p.y, 18 * s, 5 * s, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'none'; ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y); ctx.lineTo(p.x - 10*s, p.y + 20*s); ctx.lineTo(p.x + 10*s, p.y + 20*s); ctx.lineTo(p.x + 15*s, p.y);
+
+        const bbW = 60 * s * Math.abs(foreshorten);
+        const bbH = 40 * s;
+        const bbX = p.x - bbW/2;
+        const bbY = p.y - bbH - 10*s;
+
+        // Draw Backboard
+        // Main Board
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(bbX, bbY, bbW, bbH);
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s;
+        ctx.strokeRect(bbX, bbY, bbW, bbH);
+
+        // Side of backboard (if viewed from angle)
+        const depth = 5 * s;
+        if (Math.abs(sideVisible) > 0.1) {
+            ctx.fillStyle = '#CCC';
+            ctx.beginPath();
+            if (sideVisible > 0) { // Right side visible
+                ctx.moveTo(bbX, bbY); ctx.lineTo(bbX + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX, bbY + bbH);
+            } else { // Left side visible
+                ctx.moveTo(bbX + bbW, bbY); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX + bbW, bbY + bbH);
+            }
+            ctx.fill();
+        }
+
+        // Inner Square
+        if (Math.abs(foreshorten) > 0.2) {
+            ctx.fillStyle = '#CE1126';
+            const sqW = bbW * 0.3;
+            const sqH = bbH * 0.3;
+            ctx.fillRect(p.x - sqW/2, bbY + bbH*0.6, sqW, sqH);
+        }
+
+        // Rim
+        ctx.beginPath();
+        // Rim becomes more circular as we look from above/below, but narrower as we look from side
+        // Rim is a circle in X-Y plane (floor).
+        // Projected, it's an ellipse.
+        // Width depends on foreshortening. Height depends on camera pitch (camHeight).
+        // Standard ellipse logic in drawHoop was (18*s, 5*s).
+        // 18*s is X-radius. 5*s is Z-radius (perspective).
+        // X-radius should scale with foreshorten.
+        ctx.ellipse(p.x, p.y, Math.abs(18 * s * foreshorten), 5 * s, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
+
+        // Net
+        ctx.beginPath();
+        const netTopW = 15 * s * foreshorten;
+        const netBotW = 10 * s * foreshorten;
+
+        ctx.moveTo(p.x - netTopW, p.y);
+        ctx.lineTo(p.x - netBotW, p.y + 20*s);
+        ctx.lineTo(p.x + netBotW, p.y + 20*s);
+        ctx.lineTo(p.x + netTopW, p.y);
+
         ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
     }
 
