@@ -369,6 +369,12 @@
         }
         .mb-curve.right { transform: scaleX(-1); }
 
+        .mobile-shoot-btn.left-btn {
+            left: 30px;
+            right: auto;
+            background: radial-gradient(circle at 70% 30%, #FFA500, #FF4500);
+        }
+
         #startup-ui {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -540,6 +546,11 @@
     </div>
 
     <div id="mobileShootBtn" class="mobile-shoot-btn">
+        <div class="mb-curve"></div>
+        <div class="mb-curve right"></div>
+    </div>
+
+    <div id="mobileShootBtn2" class="mobile-shoot-btn left-btn" style="display:none;">
         <div class="mb-curve"></div>
         <div class="mb-curve right"></div>
     </div>
@@ -2559,6 +2570,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'LEADERBOARD';
         document.getElementById('leaderboardUI').style.display = 'block';
@@ -2717,6 +2729,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function checkGameOverSequence(mode, score) {
+        if(isSplitscreen) return;
         // Update Game Over State Logic
         if (isHighScore(mode, score)) {
             pendingHighScore = { mode: mode, score: score };
@@ -8546,6 +8559,12 @@ let lastDisplayedContestTime = -1;
         else if(rackNum === 3) { player3D.x = 420; player3D.y = 306; } // Top (Center)
         else if(rackNum === 4) { player3D.x = 401; player3D.y = 39; } // Left Wing
         else if(rackNum === 5) { player3D.x = 576; player3D.y = -163; } // Left Corner (Top-Left)
+
+        // Correction for P2 in splitscreen if they share same coordinate space but need visual distinction?
+        // Actually, they use the same world space. If P2 sees "Zone 3", it means their camera is looking at Zone 3 or they are standing there.
+        // Wait, the issue description says "right player" (P2).
+        // If the game logic is shared, setPlayerPositionForRack updates `player3D` of the CURRENT context.
+
         player3D.z = 0; player3D.vz = 0;
         invalidateBackgroundCache();
     }
@@ -8585,16 +8604,19 @@ let lastDisplayedContestTime = -1;
 
     // --- UI FUNCTIONS ---
     window.openShop = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
     }
     window.openAchievements = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
     }
     window.openStats = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
         state = 'STATS';
         shopUI.style.display = 'none';
@@ -8851,15 +8873,22 @@ let lastDisplayedContestTime = -1;
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
-        if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
-        else btn.style.display = 'none';
+        const btn2 = document.getElementById('mobileShootBtn2');
+
+        if(playerData.mobileControls && state !== 'STARTUP') {
+            btn.style.display = 'block';
+            if (isSplitscreen && btn2) btn2.style.display = 'block';
+            else if (btn2) btn2.style.display = 'none';
+        } else {
+            btn.style.display = 'none';
+            if (btn2) btn2.style.display = 'none';
+        }
 
         const splitText = document.getElementById('btnSplitText');
         if (splitText) {
              const splitBtn = splitText.parentElement;
              if (splitBtn && splitBtn.classList.contains('broadcast-btn')) {
-                 if (playerData.mobileControls) splitBtn.style.display = 'none';
-                 else splitBtn.style.display = 'block';
+                 splitBtn.style.display = 'block';
              }
         }
     }
@@ -9037,6 +9066,22 @@ let lastDisplayedContestTime = -1;
         const btnHand = document.getElementById('btnToggleHand');
         btnHand.innerText = playerData.isLefty ? "MAIN: GAUCHER" : "MAIN: DROITIER";
     }
+    function runForAllPlayers(callback) {
+        // Run for P1
+        loadContext(game1);
+        callback();
+        saveContext(game1);
+
+        if (isSplitscreen) {
+            // Run for P2
+            loadContext(game2);
+            callback();
+            saveContext(game2);
+        }
+        // Restore P1 for UI
+        loadContext(game1);
+    }
+
     window.toggleMode = function() {
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         if(currentGameMode === 'CLASSIC') {
@@ -9049,7 +9094,7 @@ let lastDisplayedContestTime = -1;
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";
         }
-        resetGame();
+        runForAllPlayers(resetGame);
     }
     window.toggleMuteUI = function() {
         if (!AudioSystem.ctx) AudioSystem.init();
@@ -9417,22 +9462,62 @@ let lastDisplayedContestTime = -1;
         }
     };
 
+    function handleActionPress() {
+        if (state === 'GAMEOVER') {
+            if (isSplitscreen) resetGame();
+            else openShop();
+        } else if (state === 'IDLE') {
+            startJump();
+        }
+    }
+
     // Start buttons
     const mobBtn = document.getElementById('mobileShootBtn');
     mobBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (state === 'GAMEOVER') openShop(); else if (state === 'IDLE') startJump();
+        if (isSplitscreen) {
+            loadContext(game2);
+            handleActionPress();
+            saveContext(game2);
+        } else {
+            loadContext(game1);
+            handleActionPress();
+            saveContext(game1);
+        }
     }, {passive: false});
     mobBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
-        if (state === 'JUMPING') releaseShot();
+        if (isSplitscreen) {
+            loadContext(game2);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game2);
+        } else {
+            loadContext(game1);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game1);
+        }
     }, {passive: false});
+
+    const mobBtn2 = document.getElementById('mobileShootBtn2');
+    if (mobBtn2) {
+        mobBtn2.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            loadContext(game1);
+            handleActionPress();
+            saveContext(game1);
+        }, {passive: false});
+        mobBtn2.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            loadContext(game1);
+            if (state === 'JUMPING') releaseShot();
+            saveContext(game1);
+        }, {passive: false});
+    }
 
     function doGameAction(game, type) {
         loadContext(game);
         if (type === 'press') {
-            if (state === 'GAMEOVER') openShop();
-            else if (state === 'IDLE') startJump();
+            handleActionPress();
         } else if (type === 'release') {
             if (state === 'JUMPING') releaseShot();
         }
@@ -9442,10 +9527,9 @@ let lastDisplayedContestTime = -1;
     var enterPressed = false;
 
     window.addEventListener('keydown', (e) => {
-        // UI & P1 checks - Load P1 context to ensure UI uses correct state
-        loadContext(game1);
-
+        // High Score / UI Handling
         if (state === 'HIGHSCORE_INPUT') {
+            loadContext(game1);
             if (e.code === 'ArrowUp') handleHighScoreInput('UP');
             if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
             if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
@@ -9456,30 +9540,26 @@ let lastDisplayedContestTime = -1;
             return;
         }
 
-        if(state === 'SHOP') { if(e.code === 'Escape') { closeShop(); saveContext(game1); return; } }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { closeAchievements(); saveContext(game1); return; } }
-        if(state === 'STATS') { if(e.code === 'Escape') { closeStats(); saveContext(game1); return; } }
-        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { closeLeaderboard(); saveContext(game1); return; } }
+        // Global UI Toggles (P1 only for simplicity)
+        if(state === 'SHOP') { if(e.code === 'Escape') { loadContext(game1); closeShop(); return; } }
+        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
+        if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
+        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
 
-        if(e.code === 'KeyP') { openShop(); saveContext(game1); return; }
-        if(e.code === 'KeyO') { openAchievements(); saveContext(game1); return; }
-        if(e.code === 'KeyS') { openStats(); saveContext(game1); return; }
-        if(e.code === 'KeyL') { openLeaderboard(); saveContext(game1); return; }
+        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
+        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
+        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
 
         // P1 Action
         if (e.code === 'Space' && !spacePressed) {
             spacePressed = true;
-            if (state === 'GAMEOVER') openShop();
-            else if (state === 'IDLE') startJump();
-            saveContext(game1);
+            doGameAction(game1, 'press');
         }
 
         // P2 Action
         if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
             enterPressed = true;
-            // Restore P1 context before handling P2? No, doGameAction handles it.
-            // But we currently have game1 loaded from above.
-            // doGameAction will load game2.
             doGameAction(game2, 'press');
         }
     });
@@ -9502,8 +9582,7 @@ let lastDisplayedContestTime = -1;
         // Check mobile flag inside context?
         loadContext(game1);
         if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
-        if (state === 'GAMEOVER') openShop();
-        else if (state === 'IDLE') startJump();
+        handleActionPress();
         saveContext(game1);
     });
     window.addEventListener('mouseup', () => {
@@ -9664,40 +9743,91 @@ let lastDisplayedContestTime = -1;
             game2.playerData = JSON.parse(JSON.stringify(playerData)); // Clone P1 profile
             game2.playerData.tacos = 0; // Fresh score
 
-            // Offset P2 slightly so they don't look identical
-            game2.player3D.x = 600;
-
             if(sb) sb.style.display = 'none';
             if(btnText) btnText.innerText = "1 PLAYER";
         } else {
             if(sb) sb.style.display = 'flex';
             if(btnText) btnText.innerText = "2 PLAYERS";
         }
+
+        // Ensure both players are initialized for current mode
+        runForAllPlayers(resetGame);
+
+        updateMobileControlsUI();
         invalidateBackgroundCache();
         resizeGame();
     }
 
     function drawSplitscreenHUD() {
         const w = canvas.width;
+        const h = canvas.height;
 
         ctx.save();
-        ctx.font = "900 30px 'Russo One'";
-        ctx.textAlign = "center";
         ctx.shadowColor = "black";
-        ctx.shadowBlur = 5;
+        ctx.shadowBlur = 4;
 
-        // P1 Score (Left)
-        ctx.fillStyle = "#FFD700";
-        ctx.fillText("P1 STREAK: " + game1.currentStreak, w * 0.25, 60);
+        const drawPlayerHUD = (gCtx, xCenter, label, actionBtn) => {
+            ctx.textAlign = "center";
 
-        // P2 Score (Right)
-        ctx.fillStyle = "#FFD700";
-        ctx.fillText("P2 STREAK: " + game2.currentStreak, w * 0.75, 60);
+            // Label
+            ctx.font = "bold 20px 'Roboto Condensed'";
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.fillText(label, xCenter, 30);
 
-        // Exit Hint
-        ctx.font = "bold 16px 'Roboto Condensed'";
-        ctx.fillStyle = "rgba(255,255,255,0.5)";
-        ctx.fillText("P1: SPACE | P2: ENTER", w * 0.5, 30);
+            // Stats
+            ctx.font = "900 32px 'Russo One'";
+            ctx.fillStyle = "#FFD700";
+
+            let line1 = "";
+            let line2 = "";
+
+            if (currentGameMode === 'CLASSIC') {
+                const dist = 10 + (gCtx.distanceLevel * 5);
+                const maxMisses = 2 + (gCtx.playerData.stats.extraLives || 0);
+                line1 = `${dist} PI`;
+                line2 = `MISS: ${gCtx.consecutiveMisses}/${maxMisses}`;
+                // Streak?
+                if (gCtx.currentStreak > 1) line2 += ` (${gCtx.currentStreak} 🔥)`;
+            } else if (currentGameMode === 'CONTEST') {
+                line1 = `SCORE: ${gCtx.contestData.score}`;
+                line2 = `TIME: ${Math.ceil(gCtx.contestData.timer)}`;
+            } else if (currentGameMode === 'TIME_ATTACK') {
+                line1 = `SCORE: ${gCtx.timeAttackData.score}`;
+                line2 = `TIME: ${Math.ceil(gCtx.timeAttackData.timer)}`;
+            }
+
+            ctx.fillText(line1, xCenter, 65);
+
+            ctx.font = "bold 24px 'Roboto Condensed'";
+            ctx.fillStyle = "#FFF";
+            ctx.fillText(line2, xCenter, 95);
+
+            // Game Over State
+            if (gCtx.state === 'GAMEOVER') {
+                ctx.fillStyle = "rgba(0,0,0,0.7)";
+                ctx.fillRect(xCenter - 150, h/2 - 60, 300, 120);
+
+                ctx.font = "900 40px 'Russo One'";
+                ctx.fillStyle = "#FF0000";
+                ctx.fillText("TERMINÉ", xCenter, h/2 - 10);
+
+                ctx.font = "bold 20px 'Roboto Condensed'";
+                ctx.fillStyle = "#FFF";
+                ctx.fillText(`PRESS ${actionBtn}`, xCenter, h/2 + 30);
+                ctx.fillText("TO RESTART", xCenter, h/2 + 55);
+            }
+        };
+
+        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
+        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
+
+        // Center Divider Line (Visual)
+        ctx.beginPath();
+        ctx.moveTo(w/2, 0);
+        ctx.lineTo(w/2, h);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         ctx.restore();
     }
