@@ -7387,8 +7387,8 @@ let lastDisplayedContestTime = -1;
             if (d.dist > cullDist) break;
 
             // Fast Z-Check
-            const dx = d.x - player3D.x;
-            const dy = d.y - player3D.y;
+            const dx = d.x - camX;
+            const dy = d.y - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 400 in project()
