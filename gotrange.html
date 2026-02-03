@@ -9686,7 +9686,7 @@ let lastDisplayedContestTime = -1;
         if (type === 'press') {
             handleActionPress();
         } else if (type === 'release') {
-            if (state === 'JUMPING') releaseShot();
+            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
         }
         saveContext(game);
     }
