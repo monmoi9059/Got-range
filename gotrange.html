@@ -7288,7 +7288,7 @@ let lastDisplayedContestTime = -1;
         const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
 
         mountainLayers.forEach(layer => {
-             const shift = (player3D.x + player3D.y) * layer.speed;
+             const shift = (camX + camY) * layer.speed;
              const loopWidth = 2000 * mountainScale;
              const offset = shift % loopWidth;
              let startX = -offset;
@@ -7322,9 +7322,40 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
         }
 
-        bgCache.pastFloors.forEach(f => {
-            ctx.fillStyle = f.grad; ctx.fillRect(0, f.y, canvas.width, f.h);
-        });
+        const currentDist = 10 + (distanceLevel * 5);
+        for (let i = 0; i < COURT_ZONES.length; i++) {
+            const z = COURT_ZONES[i];
+            let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+            if (zStart >= currentDist) break;
+            let drawEnd = Math.min(z.limit, currentDist);
+
+            // Re-project zone boundaries based on current camera
+            const ratioStart = zStart / currentDist;
+            const ratioEnd = drawEnd / currentDist;
+
+            const wxStart = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioStart;
+            const wyStart = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioStart;
+            const pStart = project(wxStart, wyStart, 0, g_camCache); // Force use of current camera cache
+
+            const wxEnd = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratioEnd;
+            const wyEnd = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratioEnd;
+            const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
+
+            const yTop = pStart ? pStart.y : horizonY;
+            const yBottom = pEnd ? pEnd.y : canvas.height;
+
+            if ((yBottom - yTop) > 0.5) {
+                // Reuse gradient from cache if available (find by index or properties)
+                // Since we are iterating same zones, we can just grab from bgCache.pastFloors if index matches?
+                // But bgCache.pastFloors might have different length if zones changed.
+                // Simple approach: Recreate gradient or store it better.
+                // For now, let's just use the zone colors directly or a simple vertical gradient.
+                const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
+                grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, yTop, canvas.width, yBottom - yTop);
+            }
+        }
 
         ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(canvas.width, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
