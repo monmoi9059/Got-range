@@ -2996,7 +2996,7 @@ let lastDisplayedContestTime = -1;
             const dxToHoop = HOOP_POS.x - player3D.x;
             const dyToHoop = HOOP_POS.y - player3D.y;
             cameraZoom = 698;
-            cameraHeight = 84000 / cameraZoom;
+            cameraHeight = 100000 / cameraZoom;
             const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
             rotation = -angleToHoop - Math.PI/2;
             sinRot = Math.sin(rotation);
@@ -7529,7 +7529,8 @@ let lastDisplayedContestTime = -1;
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
                      }
                     */
-                     // Cracks
+                    // Cracks - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(0,0,0,0.4)';
                      fCtx.lineWidth = 2;
                      for(let i=0; i<5; i++) {
@@ -7544,10 +7545,12 @@ let lastDisplayedContestTime = -1;
                          }
                          fCtx.stroke();
                      }
+                    */
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
-                     // Scratches (Skate marks)
+                    // Scratches (Skate marks) - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(255,255,255,0.3)';
                      fCtx.lineWidth = 1;
                      for(let i=0; i<200; i++) {
@@ -7558,6 +7561,7 @@ let lastDisplayedContestTime = -1;
                          fCtx.quadraticCurveTo(sx + (Math.random()-0.5)*100, sy + (Math.random()-0.5)*50, sx + (Math.random()-0.5)*200, sy + (Math.random()-0.5)*100);
                          fCtx.stroke();
                      }
+                    */
                      // Reflections (Fake)
                      const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
                      gradRef.addColorStop(0, 'rgba(255,255,255,0)');
@@ -7567,7 +7571,8 @@ let lastDisplayedContestTime = -1;
                      fCtx.fillRect(0, 0, fCv.width, fCv.height);
                  }
                  else if (court.type === 'water') {
-                     // Ripples
+                    // Ripples - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(255,255,255,0.1)';
                      fCtx.lineWidth = 2;
                      for(let i=0; i<fCv.height; i+=5) {
@@ -7577,6 +7582,7 @@ let lastDisplayedContestTime = -1;
                          fCtx.lineTo(fCv.width, i + offset);
                          fCtx.stroke();
                      }
+                    */
                  }
                  else if (court.type === 'space') {
                      // Craters / Dust
