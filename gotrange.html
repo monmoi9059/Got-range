@@ -2996,7 +2996,7 @@ let lastDisplayedContestTime = -1;
             const dxToHoop = HOOP_POS.x - player3D.x;
             const dyToHoop = HOOP_POS.y - player3D.y;
             cameraZoom = 698;
-            cameraHeight = 100000 / cameraZoom;
+            cameraHeight = 130000 / cameraZoom;
             const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
             rotation = -angleToHoop - Math.PI/2;
             sinRot = Math.sin(rotation);
@@ -3011,13 +3011,13 @@ let lastDisplayedContestTime = -1;
         const dx = x - camX; const dy = y - camY;
         const rx = dx * cosRot - dy * sinRot;
         const ry = dx * sinRot + dy * cosRot;
-        const cameraOffset = 480; const depth = cameraOffset - ry;
+        const cameraOffset = 550; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
         const screenX = vpW / 2 + (rx * scale);
-        const horizonY = (vpH - 120) * 0.45;
+        const horizonY = (vpH - 120) * 0.38;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -7417,7 +7417,7 @@ let lastDisplayedContestTime = -1;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
         const camZoom = isSplitscreen ? 450 : 698;
-        const camHeight = 100000 / camZoom;
+        const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
         g_camCache.rotation = camRotation;
@@ -7432,7 +7432,7 @@ let lastDisplayedContestTime = -1;
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonY = (vpH - 120) * 0.45;
+        const horizonY = (vpH - 120) * 0.38;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
@@ -7798,8 +7798,8 @@ let lastDisplayedContestTime = -1;
             const dy = d.y - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
-            // cameraOffset is 480 in project()
-            const depth = 480 - ry;
+            // cameraOffset is 550 in project()
+            const depth = 550 - ry;
             if (depth <= 0) continue;
 
             // Inline projection
@@ -7866,9 +7866,9 @@ let lastDisplayedContestTime = -1;
              if(proj) {
                  const obj = getRenderItem();
                  obj.type = 'smoke';
-                 // Force streak fire particles behind the player (depth > 480)
+                 // Force streak fire particles behind the player (depth > 550)
                  if (p.isFireParticle && p.customHue !== undefined) {
-                     obj.depth = Math.max(proj.depth, 500);
+                     obj.depth = Math.max(proj.depth, 580);
                  } else {
                      obj.depth = proj.depth;
                  }
