@@ -569,7 +569,6 @@
     <!-- MODALS -->
     <div id="statsUI" class="modal">
         <div class="modal-header">STATISTIQUES À VIE</div>
-        <div id="statsPlayerToggle" style="margin: 10px 0; display:none;"></div>
 
         <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
              <div style="transform: skewX(5deg);">
@@ -623,7 +622,6 @@
 
     <div id="shopUI" class="modal">
         <div class="modal-header">TACO MERCADO</div>
-        <div id="shopPlayerToggle" style="margin: 10px 0; display:none;"></div>
         <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
         <div class="difficulty-row">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
@@ -2572,29 +2570,23 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if (isSplitscreen) { g_isPaused = true; g_currentMenuGame = game1; loadContext(game1); }
-        else { g_currentMenuGame = game1; }
-
         state = 'LEADERBOARD';
         document.getElementById('leaderboardUI').style.display = 'block';
         document.getElementById('shopUI').style.display = 'none';
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
 
     function closeLeaderboard() {
         document.getElementById('leaderboardUI').style.display = 'none';
         state = 'IDLE';
         // If coming from Game Over flow?
-        if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) {
-             openShop();
-             return;
-        }
-        saveContext(g_currentMenuGame || game1);
-        g_isPaused = false; g_currentMenuGame = null;
+        if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
+        saveContext(game1);
     }
 
     function switchLeaderboardTab(mode) {
@@ -8612,37 +8604,24 @@ let lastDisplayedContestTime = -1;
 
     // --- UI FUNCTIONS ---
     window.openShop = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if (isSplitscreen) { g_isPaused = true; g_currentMenuGame = game1; loadContext(game1); }
-        else { g_currentMenuGame = game1; }
-
         state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
-        if(isSplitscreen && window.updateMenuPlayerToggle) window.updateMenuPlayerToggle();
     }
     window.openAchievements = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if (isSplitscreen) { g_isPaused = true; g_currentMenuGame = game1; loadContext(game1); }
-        else { g_currentMenuGame = game1; }
-
         state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
     }
     window.openStats = function() {
+        if(isSplitscreen) return;
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
-
-        if (isSplitscreen) {
-            g_isPaused = true;
-            if(!g_currentMenuGame) { g_currentMenuGame = game1; loadContext(game1); }
-            else { loadContext(g_currentMenuGame); }
-        }
-        else { g_currentMenuGame = game1; }
-
         state = 'STATS';
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
-        if(isSplitscreen && window.updateMenuPlayerToggle) window.updateMenuPlayerToggle();
         const ls = playerData.lifetimeStats;
         document.getElementById('statShots').innerText = ls.shots;
         document.getElementById('statMakes').innerText = ls.makes;
@@ -8751,24 +8730,13 @@ let lastDisplayedContestTime = -1;
             showNotification("TRICHEUR !", 0);
         }
     }
-    window.closeShop = function() {
-        state = 'IDLE'; shopUI.style.display = 'none';
-        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
-        saveContext(g_currentMenuGame || game1);
-        g_isPaused = false; g_currentMenuGame = null;
-    }
-    window.closeAchievements = function() {
-        state = 'IDLE'; achUI.style.display = 'none';
-        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
-        saveContext(g_currentMenuGame || game1);
-        g_isPaused = false; g_currentMenuGame = null;
-    }
+    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
+    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
     window.closeStats = function() {
         state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
         const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
         if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
-        saveContext(g_currentMenuGame || game1);
-        g_isPaused = false; g_currentMenuGame = null;
+        saveContext(game1);
     }
     window.updateDifficulty = function() {
         const val = parseFloat(document.getElementById('diffSlider').value);
@@ -9098,44 +9066,6 @@ let lastDisplayedContestTime = -1;
         const btnHand = document.getElementById('btnToggleHand');
         btnHand.innerText = playerData.isLefty ? "MAIN: GAUCHER" : "MAIN: DROITIER";
     }
-
-    window.toggleMenuPlayer = function() {
-        if (!isSplitscreen || !g_currentMenuGame) return;
-
-        // Save current changes
-        saveContext(g_currentMenuGame);
-
-        // Switch
-        if (g_currentMenuGame === game1) g_currentMenuGame = game2;
-        else g_currentMenuGame = game1;
-
-        loadContext(g_currentMenuGame);
-
-        // Update UI
-        updateMenuPlayerToggle();
-        if (state === 'SHOP') {
-            document.getElementById('diffSlider').value = playerData.difficulty;
-            updateDifficulty();
-            updateShopUI();
-        } else if (state === 'STATS') {
-            openStats();
-        }
-    }
-
-    window.updateMenuPlayerToggle = function() {
-        const containers = ['shopPlayerToggle', 'statsPlayerToggle'];
-        containers.forEach(id => {
-            const el = document.getElementById(id);
-            if(!el) return;
-            if(!isSplitscreen) { el.style.display = 'none'; return; }
-
-            el.style.display = 'block';
-            const pName = (g_currentMenuGame === game1) ? "JOUEUR 1" : "JOUEUR 2";
-            const pColor = (g_currentMenuGame === game1) ? "#00FF00" : "#FF00FF";
-
-            el.innerHTML = `<button class="btn" style="background:${pColor}; color:#000; font-weight:900; width:100%; border:2px solid #FFF;" onclick="toggleMenuPlayer()">MODIFIER: ${pName} (CLIQUER POUR CHANGER)</button>`;
-        });
-    }
     function runForAllPlayers(callback) {
         // Run for P1
         loadContext(game1);
@@ -9311,31 +9241,24 @@ let lastDisplayedContestTime = -1;
             // update() expects dt in "frames" (1.0 = 16.66ms)
             // Since our logic was built around 1.0 being ~60fps, we pass 1.0.
 
-            if (!g_isPaused) {
-                updateEnvironment(1.0);
+            updateEnvironment(1.0);
 
-                // Update P1
-                loadContext(game1);
+            // Update P1
+            loadContext(game1);
+            update(1.0);
+            saveContext(game1);
+
+            if (isSplitscreen) {
+                // Update P2
+                loadContext(game2);
                 update(1.0);
-                saveContext(game1);
-
-                if (isSplitscreen) {
-                    // Update P2
-                    loadContext(game2);
-                    update(1.0);
-                    saveContext(game2);
-                }
+                saveContext(game2);
             }
 
             accumulator -= FIXED_STEP;
         }
 
         draw();
-
-        // Restore menu context for UI interactions
-        if (g_isPaused && g_currentMenuGame) {
-            loadContext(g_currentMenuGame);
-        }
     }
 
     // --- GAMEPAD CONTROLLER ---
@@ -9623,19 +9546,19 @@ let lastDisplayedContestTime = -1;
         if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
         if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
 
-        if(e.code === 'KeyP') { openShop(); return; }
-        if(e.code === 'KeyO') { openAchievements(); return; }
-        if(e.code === 'KeyS') { openStats(); return; }
-        if(e.code === 'KeyL') { openLeaderboard(); return; }
+        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
+        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
+        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
 
         // P1 Action
-        if (e.code === 'Space' && !e.repeat) {
-            spacePressed = true; // Kept for consistency if used elsewhere, but logic uses e.repeat
+        if (e.code === 'Space' && !spacePressed) {
+            spacePressed = true;
             doGameAction(game1, 'press');
         }
 
         // P2 Action
-        if (isSplitscreen && e.code === 'Enter' && !e.repeat) {
+        if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
             enterPressed = true;
             doGameAction(game2, 'press');
         }
@@ -9650,11 +9573,6 @@ let lastDisplayedContestTime = -1;
             enterPressed = false;
             doGameAction(game2, 'release');
         }
-    });
-
-    window.addEventListener('blur', () => {
-        spacePressed = false;
-        enterPressed = false;
     });
 
     window.addEventListener('mousedown', (e) => {
@@ -9693,8 +9611,6 @@ let lastDisplayedContestTime = -1;
     checkStartup();
     // --- SPLITSCREEN & STATE MANAGEMENT ---
     var isSplitscreen = false;
-    var g_isPaused = false;
-    var g_currentMenuGame = null;
 
     // Define the default/initial state factory
     function createGameContext() {
