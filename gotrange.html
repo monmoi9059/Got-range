@@ -4373,167 +4373,156 @@ let lastDisplayedContestTime = -1;
 
     function drawHoop(p) {
         if (!p) return;
-        const s = p.scale;
 
-        // Calculate viewing angle relative to hoop's front (facing -Y)
-        // Camera is at g_camCache.x, g_camCache.y
-        // Vector from Hoop to Camera
-        const cx = (g_camCache && g_camCache.x) ? g_camCache.x : player3D.x;
-        const cy = (g_camCache && g_camCache.y) ? g_camCache.y : player3D.y;
+        // --- 3D Hoop Constants ---
+        const rimZ = HOOP_POS.z;
+        const rimY = HOOP_POS.y;
+        const rimX = HOOP_POS.x;
 
-        const dx = cx - HOOP_POS.x;
-        const dy = cy - HOOP_POS.y;
+        // Orientation: Forward Vector towards Classic Start (433, 300) from Hoop (733, 150)
+        // V = (-300, 150). Normalized:
+        const fX = -0.8944; const fY = 0.4472;
+        // Right Vector: (0.4472, 0.8944)
+        const rX = 0.4472; const rY = 0.8944;
 
-        // Hoop faces "down" (positive Y in court coords? No, player is at Y~300-500, hoop at Y=150)
-        // Wait, player shoots UP towards hoop (Y decreases?)
-        // Let's check: player3D.y = 500 (contest), hoop.y = 150. So Player > Hoop.
-        // So hoop faces +Y (towards player).
-        // Vector pointing out of backboard = (0, 1)
+        // Geometry Dimensions
+        const bbDist = 40; // Backboard behind rim
+        const bbCX = rimX - fX * bbDist;
+        const bbCY = rimY - fY * bbDist;
+        const bbCZ = rimZ + 30;
+        const bbW = 60; // Half Width
+        const bbH = 45; // Half Height
 
-        // Angle of camera relative to hoop normal
-        // Player is at roughly (433, 300), Hoop is at (733, 150)
-        // We want angle to be 0 when we are directly "in front" of the hoop.
-        // dx = player.x - hoop.x
-        // dy = player.y - hoop.y
-        // The hoop normal vector points towards the court center (roughly +Y and -X direction)
-        // Let's align 0 degrees to the initial player-hoop vector.
+        const rimRadius = 25; // Matching ball radius approx
 
-        // At start: dx ~ -300, dy ~ +150. atan2(dx, dy) is roughly -63 degrees.
-        // We want this to be 0. So we add the offset.
-        // Or simpler: We calculate the angle relative to the hoop's "forward" vector (0, 1) or similar.
+        // --- Generate Vertices ---
 
-        // Let's assume the backboard plane is perpendicular to the Y-axis (facing +Y).
-        // Then viewing angle is based on dx (offset from center).
-        // angle = atan2(dx, dy). If dx=0 (aligned), angle=0. cos(0)=1.
+        // Backboard Corners
+        const bbVerts = [
+            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ + bbH }, // TL
+            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ + bbH }, // TR
+            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ - bbH }, // BR
+            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ - bbH }  // BL
+        ];
 
-        // The issue is likely that atan2(dx, dy) yields 0 when dx=0, dy>0.
-        // If the board is sideways, maybe we used sin/cos swapped or the reference vector is wrong.
-        // Try adding PI/2 if it looks 90 deg off.
-        // User says "starting angle is sideways".
+        // Inner Square (Target) - On Surface
+        const isW = 20; const isH = 15; const isYOffset = -15;
+        const isVerts = [
+            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset + isH },
+            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset + isH },
+            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset - isH },
+            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset - isH }
+        ];
 
-        // Let's force alignment: When dx=0 (directly in front/behind along Y axis), we want full width.
-        // atan2(0, dy) = 0. cos(0) = 1. This implies full width.
-        // If it looks sideways, maybe dx is NOT 0 at start?
-        // Player x=433, Hoop x=733. dx = -300.
-        // So we are NOT directly in front. We are to the side.
-        // The hoop is rotated to face the player? No, standard hoop is fixed.
+        // Rim Circle
+        const rimPoints = [];
+        const segs = 24;
+        for(let i=0; i<segs; i++) {
+            const a = (i/segs) * Math.PI * 2;
+            const rx = Math.cos(a) * rimRadius;
+            const ry = Math.sin(a) * rimRadius;
+            rimPoints.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
+        }
 
-        // IF the hoop is fixed at the "end" of the court, and we approach from an angle, we SHOULD see it angled.
-        // BUT if the user wants it to "face the character", that means the hoop rotates to always face us?
-        // User said: "make it so the backboard always faces the character not the ball"
-        // Wait, "always faces the character" means BILLBOARDING (always full width).
-        // BUT user adds: "so when i miss a shot i see it more and more from the side"
-        // This implies the hoop is FIXED, and the CAMERA moves, revealing the side.
-
-        // The previous logic used `cx` (camera) to calculate angle.
-        // If camera follows ball, `cx` changes, so angle changes. This causes the view to rotate.
-        // Correct behavior: Hoop is fixed in world space. Camera moves.
-        // We need the angle between the Camera-Hoop vector and the Hoop's Normal vector.
-
-        // Hoop Normal: Points towards (433, 500) roughly? Or just straight down Y?
-        // Let's assume Hoop Normal is (0, 1) (Facing +Y).
-        // Camera Vector is (dx, dy).
-        // Angle = atan2(dx, dy).
-        // If player is at x=433, hoop=733, dx=-300. We are viewing from side.
-        // The user says "starting angle ... is sideways".
-        // This implies they expect to see the board FLAT ON at the start, even if they are physically at an angle.
-        // OR the hoop is actually placed at 0 rotation, but our math interprets it as 90.
-
-        // Let's try to align the hoop to the court axis.
-        // If the court is vertical (Y-axis), hoop is at top/bottom.
-        // If hoop is at Y=150 and player at Y=300+, hoop faces +Y.
-        // To see it flat, we need dx=0.
-        // But dx is -300.
-        // Maybe the backboard is angled to face the center of the court?
-        // If so, we need to subtract the hoop's rotation from the camera angle.
-
-        // Let's try just swapping sin/cos or adding 90 deg to see if it fixes "sideways".
-        // If it looks "sideways" (thin), then cos(angle) ~ 0. Angle ~ 90.
-        // If we want it flat (wide), we need cos(angle) ~ 1. Angle ~ 0.
-        // Current: atan2(-300, 150) ~= -1.1 rad (~ -63 deg). cos(-63) = 0.45.
-        // It's foreshortened by half.
-
-        // If the user thinks "sideways" means "I see the edge", then 0.45 is too narrow.
-        // They probably want the hoop rotated towards the player start position.
-
-        // Let's define the Hoop's Normal Vector as pointing towards the player's start position (433, 300).
-        // Hoop Pos: (733, 150).
-        // Normal Vector: (-300, 150). Normalized: (-0.89, 0.44).
-        // Rotation of Hoop = atan2(-300, 150) = -63 deg.
-
-        // Camera Angle = atan2(dx, dy).
-        // Relative Angle = Camera Angle - Hoop Rotation.
-        // At start, Camera = Player. Relative Angle = 0. cos(0) = 1. Full width.
-
-        const hoopNormalAngle = Math.atan2(433 - HOOP_POS.x, 300 - HOOP_POS.y);
-        const cameraAngle = Math.atan2(dx, dy);
-        const relAngle = cameraAngle - hoopNormalAngle;
-
-        const foreshorten = Math.cos(relAngle);
-        const sideVisible = Math.sin(relAngle);
+        // Net Bottom Ring
+        const netPointsBot = [];
+        const netLen = 35;
+        const netBotRad = 12;
+        const netSegs = 12;
+        for(let i=0; i<netSegs; i++) {
+             const a = (i/netSegs) * Math.PI * 2;
+             netPointsBot.push({
+                 x: rimX + Math.cos(a)*netBotRad,
+                 y: rimY + Math.sin(a)*netBotRad,
+                 z: rimZ - netLen
+             });
+        }
 
         // Pole
-        const baseP = project(HOOP_POS.x, HOOP_POS.y, 0);
-        if(baseP) { ctx.fillStyle = '#444'; ctx.fillRect(p.x - 2*s, p.y, 4*s, baseP.y - p.y); }
+        const poleX = bbCX - fX * 20;
+        const poleY = bbCY - fY * 20;
 
-        const bbW = 60 * s * Math.abs(foreshorten);
-        const bbH = 40 * s;
-        const bbX = p.x - bbW/2;
-        const bbY = p.y - bbH - 10*s;
+        // --- Project & Cull ---
+        // Using global project() which uses g_camCache
 
-        // Draw Backboard
-        // Main Board
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.fillRect(bbX, bbY, bbW, bbH);
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s;
-        ctx.strokeRect(bbX, bbY, bbW, bbH);
+        const projBB = bbVerts.map(v => project(v.x, v.y, v.z));
+        const projIS = isVerts.map(v => project(v.x, v.y, v.z));
+        const projRim = rimPoints.map(v => project(v.x, v.y, v.z));
+        const projNetBot = netPointsBot.map(v => project(v.x, v.y, v.z));
+        const projPoleTop = project(poleX, poleY, bbCZ);
+        const projPoleBot = project(poleX, poleY, 0);
 
-        // Side of backboard (if viewed from angle)
-        const depth = 5 * s;
-        if (Math.abs(sideVisible) > 0.1) {
-            ctx.fillStyle = '#CCC';
-            ctx.beginPath();
-            if (sideVisible > 0) { // Right side visible
-                ctx.moveTo(bbX, bbY); ctx.lineTo(bbX + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX, bbY + bbH);
-            } else { // Left side visible
-                ctx.moveTo(bbX + bbW, bbY); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + depth); ctx.lineTo(bbX + bbW + depth*sideVisible, bbY + bbH + depth); ctx.lineTo(bbX + bbW, bbY + bbH);
+        if (projBB.some(v => !v) || projRim.some(v => !v)) return; // Occluded behind camera
+
+        // --- Sorting ---
+        const camX = g_camCache.x; const camY = g_camCache.y;
+        const distBB = Math.sqrt((bbCX-camX)**2 + (bbCY-camY)**2);
+        const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
+
+        // --- Draw Functions ---
+        const drawPole = () => {
+            if(projPoleTop && projPoleBot) {
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
+                ctx.beginPath(); ctx.moveTo(projPoleBot.x, projPoleBot.y); ctx.lineTo(projPoleTop.x, projPoleTop.y); ctx.stroke();
             }
-            ctx.fill();
+        };
+
+        const drawBackboard = () => {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * projBB[0].scale;
+            ctx.beginPath();
+            ctx.moveTo(projBB[0].x, projBB[0].y);
+            for(let i=1; i<4; i++) ctx.lineTo(projBB[i].x, projBB[i].y);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            // Inner Square
+            ctx.strokeStyle = '#CE1126'; ctx.lineWidth = 2 * projBB[0].scale;
+            ctx.beginPath();
+            ctx.moveTo(projIS[0].x, projIS[0].y);
+            for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
+            ctx.closePath();
+            ctx.stroke();
+        };
+
+        const drawRimAndNet = () => {
+            const s = projRim[0].scale;
+            // Net (White Lines)
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1 * s;
+
+            // Vertical(ish) Lines
+            for(let i=0; i<segs; i+=2) {
+                const rimP = projRim[i];
+                const botIdx = Math.floor((i / segs) * netSegs);
+                const netP = projNetBot[botIdx];
+                if(rimP && netP) {
+                    ctx.beginPath(); ctx.moveTo(rimP.x, rimP.y); ctx.lineTo(netP.x, netP.y); ctx.stroke();
+                }
+            }
+            // Bottom Ring
+            ctx.beginPath();
+            let first=true;
+            projNetBot.forEach(pt => { if(!pt) return; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            ctx.closePath(); ctx.stroke();
+
+            // Rim (Orange Thick Loop)
+            ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 4 * s;
+            ctx.beginPath();
+            first = true;
+            projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            ctx.closePath(); ctx.stroke();
+        };
+
+        // Render Order (Painter's Algorithm)
+        drawPole();
+        if (distBB > distRim) {
+            drawBackboard();
+            drawRimAndNet();
+        } else {
+            drawRimAndNet();
+            drawBackboard();
         }
-
-        // Inner Square
-        if (Math.abs(foreshorten) > 0.2) {
-            ctx.fillStyle = '#CE1126';
-            const sqW = bbW * 0.3;
-            const sqH = bbH * 0.3;
-            ctx.fillRect(p.x - sqW/2, bbY + bbH*0.6, sqW, sqH);
-        }
-
-        // Rim
-        ctx.beginPath();
-        // Rim becomes more circular as we look from above/below, but narrower as we look from side
-        // Rim is a circle in X-Y plane (floor).
-        // Projected, it's an ellipse.
-        // Width depends on foreshortening. Height depends on camera pitch (camHeight).
-        // Standard ellipse logic in drawHoop was (18*s, 5*s).
-        // 18*s is X-radius. 5*s is Z-radius (perspective).
-        // X-radius should scale with foreshorten.
-        ctx.ellipse(p.x, p.y, Math.abs(18 * s * foreshorten), 5 * s, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = 'orange'; ctx.lineWidth = 4 * s; ctx.stroke();
-
-        // Net
-        ctx.beginPath();
-        const netTopW = 15 * s * foreshorten;
-        const netBotW = 10 * s * foreshorten;
-
-        ctx.moveTo(p.x - netTopW, p.y);
-        ctx.lineTo(p.x - netBotW, p.y + 20*s);
-        ctx.lineTo(p.x + netBotW, p.y + 20*s);
-        ctx.lineTo(p.x + netTopW, p.y);
-
-        ctx.strokeStyle = 'white'; ctx.lineWidth = 1*s; ctx.stroke();
     }
-
     function drawMuscleLimb(x1, y1, x2, y2, width, color, type, s, hasTattoos) {
         // type: 'thigh' or 'calf' or 'standard'
         const angle = Math.atan2(y2 - y1, x2 - x1);
