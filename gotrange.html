@@ -4383,6 +4383,14 @@ let lastDisplayedContestTime = -1;
         // Dynamic Orientation based on player position
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
+
+        if (currentGameMode === 'CONTEST') {
+            // Fix angle to face "Top" (Rack 3) position
+            // Rack 3 is at (420, 306). HOOP at (733, 150).
+            dx = 420 - 733;
+            dy = 306 - 150;
+        }
+
         let len = Math.sqrt(dx*dx + dy*dy);
         if (len < 1) { dx = -300; dy = 150; len = Math.sqrt(dx*dx + dy*dy); } // Fallback
 
