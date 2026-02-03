@@ -467,9 +467,14 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
-        .hs-input { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 200px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 30px 0; outline: none; }
-        .hs-input:focus { border-color: var(--broadcast-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+        .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
+        .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
+        .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
+        .key.action { background: #444; grid-column: span 2; }
+        .key.action.confirm { background: #006400; grid-column: span 3; }
+        .key.action.back { background: #8B0000; grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -661,12 +666,17 @@
         </div>
     </div>
 
-    <div id="highScoreUI" class="modal" style="height: auto; top: 40%;">
+    <div id="highScoreUI" class="modal" style="height: auto; top: 50%; max-width: 700px;">
         <div class="modal-header">NOUVEAU RECORD !</div>
         <div class="hs-input-container">
-            <div style="color: #AAA; font-size: 1.2em;">ENTREZ VOS INITIALES</div>
-            <input type="text" id="hsNameInput" class="hs-input" maxlength="3" oninput="this.value = this.value.toUpperCase()">
-            <button class="btn" style="font-size: 1.5em; padding: 15px 40px; background: var(--broadcast-accent); color: #000;" onclick="submitHighScoreInput()">CONFIRMER</button>
+            <div style="color: #AAA; font-size: 1.2em; margin-bottom: 5px;">ENTREZ VOS INITIALES</div>
+            <div id="hsNameDisplay" class="hs-input-display">_ _ _</div>
+            <div id="keyboard" class="keyboard-grid">
+                <!-- Injected via JS -->
+            </div>
+            <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                UTILISEZ <span style="color: var(--broadcast-accent)">ARROWS</span> POUR NAVIGUER, <span style="color: var(--broadcast-accent)">ENTER/A</span> POUR CHOISIR
+            </div>
         </div>
     </div>
 
@@ -2987,8 +2997,10 @@ let lastDisplayedContestTime = -1;
         const cameraOffset = 400; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
-        const screenX = canvas.width / 2 + (rx * scale);
-        const horizonY = (canvas.height - 120) * 0.5;
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
+        const screenX = vpW / 2 + (rx * scale);
+        const horizonY = (vpH - 120) * 0.5;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -8823,6 +8835,15 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('mobileShootBtn');
         if(playerData.mobileControls && state !== 'STARTUP') btn.style.display = 'block';
         else btn.style.display = 'none';
+
+        const splitText = document.getElementById('btnSplitText');
+        if (splitText) {
+             const splitBtn = splitText.parentElement;
+             if (splitBtn && splitBtn.classList.contains('broadcast-btn')) {
+                 if (playerData.mobileControls) splitBtn.style.display = 'none';
+                 else splitBtn.style.display = 'block';
+             }
+        }
     }
 
     function checkOrientation() {
@@ -9627,6 +9648,7 @@ let lastDisplayedContestTime = -1;
             if(sb) sb.style.display = 'flex';
             if(btnText) btnText.innerText = "2 PLAYERS";
         }
+        invalidateBackgroundCache();
         resizeGame();
     }
 
