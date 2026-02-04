@@ -27,7 +27,7 @@ def run():
         page.wait_for_timeout(2000)
 
         # Take Screenshot
-        screenshot_path = f"{os.getcwd()}/verification/back_view.png"
+        screenshot_path = f"{os.getcwd()}/verification/back_view_3.png"
         os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
         page.screenshot(path=screenshot_path)
         print(f"Screenshot saved to {screenshot_path}")
