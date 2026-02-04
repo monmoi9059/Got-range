@@ -4414,29 +4414,8 @@ let lastDisplayedContestTime = -1;
                      ctx.lineTo(spineX + sW * 0.25, topY + h * 0.15);
                      ctx.stroke();
 
-                     // 3. Massive Rear Deltoids (Shoulder Boulders)
-                     // Positioned explicitly at the corners of sW
-                     const deltRadius = w * 0.55; // Huge
-                     const deltY = topY + h * 0.15;
-                     const deltOffset = sW * 0.45; // Push them out
-
-                     // Left Delt
-                     const dGradL = ctx.createRadialGradient(spineX - deltOffset, deltY - deltRadius*0.3, deltRadius*0.2, spineX - deltOffset, deltY, deltRadius);
-                     dGradL.addColorStop(0, 'rgba(255,255,255,0.2)');
-                     dGradL.addColorStop(1, 'rgba(0,0,0,0.25)');
-                     ctx.fillStyle = dGradL;
-                     ctx.beginPath();
-                     ctx.arc(spineX - deltOffset, deltY, deltRadius, 0, Math.PI*2);
-                     ctx.fill();
-
-                     // Right Delt
-                     const dGradR = ctx.createRadialGradient(spineX + deltOffset, deltY - deltRadius*0.3, deltRadius*0.2, spineX + deltOffset, deltY, deltRadius);
-                     dGradR.addColorStop(0, 'rgba(255,255,255,0.2)');
-                     dGradR.addColorStop(1, 'rgba(0,0,0,0.25)');
-                     ctx.fillStyle = dGradR;
-                     ctx.beginPath();
-                     ctx.arc(spineX + deltOffset, deltY, deltRadius, 0, Math.PI*2);
-                     ctx.fill();
+                     // 3. Massive Rear Deltoids (Shoulder Boulders) - Removed per request
+                     // Instead, integrated into the wide lat spread above.
 
                      // 4. Deep Spine Definition
                      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
