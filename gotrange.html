@@ -4027,7 +4027,7 @@ let lastDisplayedContestTime = -1;
         // Cartoon Muscle Modification: Force massive shoulders if unclothed
         const isMuscularBack = (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry && (options.animal === 'human' || options.animal === 'monkey'));
         if (isMuscularBack) {
-            sW = w * 2.4; // EXTREME V-Taper (Widest point)
+            sW = w * 2.2; // Massive wide shoulders
         }
 
         let points = [];
@@ -4346,95 +4346,97 @@ let lastDisplayedContestTime = -1;
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // ULTIMATE CARTOON BACK (The "Dorito" Shape)
+                     // ANATOMICALLY CORRECT COMPLEX BACK
+                     // Focus on connection points: Neck, Arms, Pants.
                      const spineX = cx;
+                     const neckW = w * 0.4;
 
-                     // 1. Base Layer: The V-Taper (Lat Spread)
-                     // Draw a wide triangle connecting shoulders to waist
-                     const latSpreadY = topY + h * 0.3;
-                     const latWidth = sW * 0.85; // Slightly less than shoulder tips
+                     // A. ERECTOR SPINAE (Lower Back Columns) - Connection to Pants
+                     // Two pillars rising from the hip/glute area up to mid back.
+                     const erectorW = w * 0.25;
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
 
-                     // Left Lat
-                     const latGrad = ctx.createLinearGradient(spineX - latWidth/2, topY, spineX, topY);
-                     latGrad.addColorStop(0, 'rgba(0,0,0,0.25)'); // Dark outer edge
-                     latGrad.addColorStop(1, 'rgba(0,0,0,0.05)'); // Light inner
+                     // Left Erector
+                     ctx.beginPath();
+                     ctx.moveTo(spineX - erectorW, hipY); // Base at hips (inside pants)
+                     ctx.quadraticCurveTo(spineX - erectorW * 1.5, hipY - h*0.2, spineX - erectorW * 0.5, topY + h*0.5); // Taper up
+                     ctx.lineTo(spineX, topY + h*0.5);
+                     ctx.lineTo(spineX, hipY);
+                     ctx.fill();
+
+                     // Right Erector
+                     ctx.beginPath();
+                     ctx.moveTo(spineX + erectorW, hipY);
+                     ctx.quadraticCurveTo(spineX + erectorW * 1.5, hipY - h*0.2, spineX + erectorW * 0.5, topY + h*0.5);
+                     ctx.lineTo(spineX, topY + h*0.5);
+                     ctx.lineTo(spineX, hipY);
+                     ctx.fill();
+
+                     // B. LATISSIMUS DORSI (Lats) - The Wrap Around
+                     // Originates from spine/hips, inserts into armpit.
+                     const latGrad = ctx.createLinearGradient(spineX - sW/2, topY, spineX + sW/2, topY);
+                     latGrad.addColorStop(0, 'rgba(0,0,0,0.2)');
+                     latGrad.addColorStop(0.5, 'rgba(0,0,0,0)'); // Highlight center
+                     latGrad.addColorStop(1, 'rgba(0,0,0,0.2)');
                      ctx.fillStyle = latGrad;
 
                      ctx.beginPath();
-                     // Start at armpit
-                     ctx.moveTo(spineX - latWidth/2, topY + h * 0.25);
-                     // Curve OUT then IN to waist
-                     ctx.bezierCurveTo(
-                         spineX - latWidth * 0.6, topY + h * 0.5, // Control point out
-                         spineX - wW/2 * 1.2, topY + h * 0.6,     // Control point in
-                         spineX - wW/2, waistY                    // Waist
-                     );
-                     ctx.lineTo(spineX, waistY);
-                     ctx.lineTo(spineX, topY + h * 0.2);
+                     // Left Lat
+                     ctx.moveTo(spineX, hipY - h*0.2); // Origin low spine
+                     ctx.quadraticCurveTo(spineX - wW, waistY, spineX - sW * 0.45, topY + h * 0.3); // Out to armpit
+                     ctx.lineTo(spineX - w * 0.3, topY + h * 0.3); // In towards scapula
+                     ctx.quadraticCurveTo(spineX - w * 0.1, topY + h * 0.5, spineX, topY + h * 0.6); // Back to spine
                      ctx.fill();
-
-                     // Right Lat (Mirrored)
-                     const latGradR = ctx.createLinearGradient(spineX + latWidth/2, topY, spineX, topY);
-                     latGradR.addColorStop(0, 'rgba(0,0,0,0.25)');
-                     latGradR.addColorStop(1, 'rgba(0,0,0,0.05)');
-                     ctx.fillStyle = latGradR;
 
                      ctx.beginPath();
-                     ctx.moveTo(spineX + latWidth/2, topY + h * 0.25);
-                     ctx.bezierCurveTo(
-                         spineX + latWidth * 0.6, topY + h * 0.5,
-                         spineX + wW/2 * 1.2, topY + h * 0.6,
-                         spineX + wW/2, waistY
-                     );
-                     ctx.lineTo(spineX, waistY);
-                     ctx.lineTo(spineX, topY + h * 0.2);
+                     // Right Lat
+                     ctx.moveTo(spineX, hipY - h*0.2);
+                     ctx.quadraticCurveTo(spineX + wW, waistY, spineX + sW * 0.45, topY + h * 0.3);
+                     ctx.lineTo(spineX + w * 0.3, topY + h * 0.3);
+                     ctx.quadraticCurveTo(spineX + w * 0.1, topY + h * 0.5, spineX, topY + h * 0.6);
                      ctx.fill();
 
-                     // 2. Trapezius (The Diamond)
-                     // A solid, distinct shape sitting on top
+                     // C. TRAPEZIUS (Upper Back) - Diamond
+                     // Neck to Acromion (Shoulder tip) to Mid-Spine
                      ctx.fillStyle = 'rgba(0,0,0,0.15)';
                      ctx.beginPath();
-                     // Top point (Neck)
-                     ctx.moveTo(spineX, topY);
-                     // Left slope
-                     ctx.lineTo(spineX - sW * 0.25, topY + h * 0.15);
-                     // Bottom point (Mid-back)
-                     ctx.lineTo(spineX, topY + h * 0.45);
-                     // Right slope
-                     ctx.lineTo(spineX + sW * 0.25, topY + h * 0.15);
+                     ctx.moveTo(spineX, topY); // Neck base center
+                     ctx.lineTo(spineX - sW * 0.35, topY + h * 0.1); // To Shoulder blade top
+                     ctx.lineTo(spineX, topY + h * 0.45); // Down to T12 spine
+                     ctx.lineTo(spineX + sW * 0.35, topY + h * 0.1); // To Right Shoulder
                      ctx.closePath();
                      ctx.fill();
 
-                     // Trap Highlight (Top Ridge)
-                     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                     ctx.lineWidth = w * 0.04;
+                     // D. REAR DELTOIDS / TERES MAJOR - Connection to Arms
+                     // This visually bridges the gap between the Trap/Lat edge and the Arm cylinder.
+                     // It wraps around the shoulder joint.
+                     const shoulderTipY = topY + h * 0.12;
+                     const shoulderTipX = sW * 0.5; // Half total width
+
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
+
+                     // Left Shoulder Complex
                      ctx.beginPath();
-                     ctx.moveTo(spineX - sW * 0.25, topY + h * 0.15);
-                     ctx.lineTo(spineX, topY + h * 0.05);
-                     ctx.lineTo(spineX + sW * 0.25, topY + h * 0.15);
-                     ctx.stroke();
+                     ctx.moveTo(spineX - sW * 0.25, topY + h * 0.1); // Trap edge
+                     ctx.quadraticCurveTo(spineX - shoulderTipX, topY, spineX - shoulderTipX - w*0.1, shoulderTipY); // Over shoulder
+                     ctx.quadraticCurveTo(spineX - shoulderTipX, topY + h * 0.3, spineX - sW * 0.4, topY + h * 0.3); // Under armpit/Teres
+                     ctx.fill();
 
-                     // 3. Massive Rear Deltoids (Shoulder Boulders) - Removed per request
-                     // Instead, integrated into the wide lat spread above.
+                     // Right Shoulder Complex
+                     ctx.beginPath();
+                     ctx.moveTo(spineX + sW * 0.25, topY + h * 0.1);
+                     ctx.quadraticCurveTo(spineX + shoulderTipX, topY, spineX + shoulderTipX + w*0.1, shoulderTipY);
+                     ctx.quadraticCurveTo(spineX + shoulderTipX, topY + h * 0.3, spineX + sW * 0.4, topY + h * 0.3);
+                     ctx.fill();
 
-                     // 4. Deep Spine Definition
-                     ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-                     ctx.lineWidth = w * 0.06;
+                     // E. SPINE DEFINITION
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                     ctx.lineWidth = w * 0.04;
                      ctx.lineCap = 'round';
                      ctx.beginPath();
                      ctx.moveTo(spineX, topY + h * 0.1);
-                     ctx.lineTo(spineX, topY + h * 0.9);
+                     ctx.lineTo(spineX, hipY - h * 0.1);
                      ctx.stroke();
-
-                     // 5. Infraspinatus (Scapula Muscle pads)
-                     // Pads underneath the delts
-                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                     ctx.beginPath();
-                     ctx.ellipse(spineX - w*0.5, topY + h*0.35, w*0.2, h*0.1, -0.3, 0, Math.PI*2);
-                     ctx.fill();
-                     ctx.beginPath();
-                     ctx.ellipse(spineX + w*0.5, topY + h*0.35, w*0.2, h*0.1, 0.3, 0, Math.PI*2);
-                     ctx.fill();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
