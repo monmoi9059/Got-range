@@ -1495,6 +1495,68 @@
                     {x:0, y:-1, z:0}, {x:0, y:0, z:-1}, {x:0, y:0.5, z:0.8}, {x:0, y:1, z:0}, {x:-1, y:0, z:0}, {x:1, y:0, z:0}
                 ]
             };
+
+            // Hemisphere (Dome Z+, Base at Z=0)
+            var hemiVerts = [];
+            var hemiFaces = [];
+            var hemiNormals = [];
+            var hSegs = 12; // Lat
+            var vSegs = 6;  // Long (Quarter circle)
+
+            // Top Vertex
+            hemiVerts.push({x:0, y:0, z:1});
+
+            for(var i=1; i<=vSegs; i++) {
+                var lat = (Math.PI/2) * (1 - i/vSegs); // From pi/2 down to 0
+                var z = Math.sin(lat);
+                var r = Math.cos(lat);
+                for(var j=0; j<hSegs; j++) {
+                    var lon = (j/hSegs) * Math.PI * 2;
+                    hemiVerts.push({x: Math.cos(lon)*r, y: Math.sin(lon)*r, z: z});
+                }
+            }
+
+            // Cap (Top Triangle Fan)
+            for(var j=0; j<hSegs; j++) {
+                var next = (j+1)%hSegs;
+                hemiFaces.push([0, 1+j, 1+next]);
+                // Approx Normal
+                hemiNormals.push({x:0, y:0, z:1});
+            }
+
+            // Side Quads
+            for(var i=0; i<vSegs-1; i++) {
+                for(var j=0; j<hSegs; j++) {
+                    var nextJ = (j+1)%hSegs;
+                    var currRingStart = 1 + i*hSegs;
+                    var nextRingStart = 1 + (i+1)*hSegs;
+
+                    hemiFaces.push([
+                        currRingStart + j,
+                        nextRingStart + j,
+                        nextRingStart + nextJ,
+                        currRingStart + nextJ
+                    ]);
+                    // Normal approx
+                    var ang = (j/hSegs)*Math.PI*2;
+                    hemiNormals.push({x:Math.cos(ang), y:Math.sin(ang), z:0});
+                }
+            }
+            // Bottom Cap (optional, usually hidden if used as attachment)
+            // Let's add it for completeness but usually cull it?
+            // We'll leave it open for "shell" usage or close it?
+            // Closing it:
+            var baseCenter = {x:0, y:0, z:0};
+            var baseIdx = hemiVerts.length;
+            hemiVerts.push(baseCenter);
+            var lastRingStart = 1 + (vSegs-1)*hSegs;
+            for(var j=0; j<hSegs; j++) {
+                var nextJ = (j+1)%hSegs;
+                hemiFaces.push([baseIdx, lastRingStart + nextJ, lastRingStart + j]);
+                hemiNormals.push({x:0, y:0, z:-1});
+            }
+
+            this.hemisphere = { vertices: hemiVerts, faces: hemiFaces, normals: hemiNormals };
         }
     };
     Geometry.init();
@@ -6804,356 +6866,250 @@ let lastDisplayedContestTime = -1;
     }
 
     function rotatePoint3D(x, y, z, rx, ry, rz) {
-        // X Roll
         var cx = Math.cos(rx), sx = Math.sin(rx);
         var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
-        // Y Pitch
         var cy = Math.cos(ry), sy = Math.sin(ry);
         var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
-        // Z Yaw
         var cz = Math.cos(rz), sz = Math.sin(rz);
         tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
         return {x:x, y:y, z:z};
     }
 
+    // Helper to batch faces from multiple meshes
     function drawPlayer3D(renderItem) {
         if (!playerData.currentSkin) return;
         var skinId = playerData.currentSkin;
         var skinObj = SKINS_DB.find(function(x){ return x.id === skinId; }) || SKINS_DB[0];
 
-        // --- 1. CONFIGURATION ---
-        var scale = 1.0;
-
-        // Dimensions (Base Minecraft-ish Proportions)
         var headSize = 25;
         var bodyW = 20; var bodyH = 30; var bodyD = 12;
         var limbW = 8; var limbD = 8; var limbLen = 25;
 
-        // Modifiers from skin
         if (skinObj.heightScale) { bodyH *= skinObj.heightScale; limbLen *= skinObj.heightScale; }
         if (skinObj.widthScale) { bodyW *= skinObj.widthScale; headSize *= skinObj.widthScale; bodyD *= skinObj.widthScale; }
+        if (skinObj.limbLen) limbLen *= skinObj.limbLen;
 
-        // Colors
         var headColor = skinObj.furColor || skinObj.skinTone || '#D2B48C';
         var torsoColor = skinObj.jerseyColor || skinObj.furColor || '#FFF';
-        var pantsColor = skinObj.shortsColor || skinObj.furColor || '#00008B';
-        var limbColor = skinObj.furColor || skinObj.skinTone || '#D2B48C';
-        var shoeColor = skinObj.shoesColor || '#111';
+        var legColor = (skinObj.legType === 'pants') ? (skinObj.shortsColor || '#000') : (skinObj.furColor || skinObj.skinTone || '#D2B48C');
+        var shortsColor = skinObj.shortsColor || '#000';
+        var armColor = (skinObj.sleeveColor) ? skinObj.sleeveColor : (skinObj.furColor || skinObj.skinTone || '#D2B48C');
+        var handColor = skinObj.furColor || skinObj.skinTone || '#D2B48C';
+        var shoeColor = skinObj.shoesColor || '#FFF';
 
-        // Animation State
-        var anim = g_animState;
+        var facingAngle = g_animState.w;
         var px = renderItem.wx; var py = renderItem.wy; var pz = renderItem.wz;
 
-        // Facing (Yaw) - Face towards Hoop (+X)
-        var facingAngle = Math.atan2(HOOP_POS.y - py, HOOP_POS.x - px);
+        // Collect all faces from all parts
+        var allFaces = [];
 
-        var parts = [];
-
-        // Helper to add Mesh
-        function addMesh(geo, x, y, z, sx, sy, sz, rx, ry, rz, color) {
-            parts.push({geo:geo, x:x, y:y, z:z, sx:sx, sy:sy, sz:sz, rx:rx, ry:ry, rz:rz, color:color});
-        }
-
-        // Re-usable Vectors
-        var legHeight = limbLen;
-        var torsoHeight = bodyH;
-        var torsoWidth = bodyW * 1.5; // Wider with trapezoid
-        var torsoDepth = bodyD;
-
-        // Torso (Center)
-        // Trapezoid mesh is roughly unit sized. Scale to match dims.
-        var torsoZ = pz + legHeight + torsoHeight/2;
-        addMesh(Geometry.torso, px, py, torsoZ, torsoWidth, torsoDepth, torsoHeight, 0, 0, facingAngle, torsoColor);
-
-        // Head
-        var headZ = torsoZ + torsoHeight/2 + headSize/2;
-        addMesh(Geometry.head, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
-
-        // Legs (Hex Prisms)
-        // Hex Prism is Z from 0 to -1.
-        // Pivot is Top (Hip).
-        // Hip Position:
-        var hipZ = pz + legHeight;
-        var hipOffset = bodyW/2.5;
-
-        var ox = Math.sin(facingAngle) * hipOffset;
-        var oy = -Math.cos(facingAngle) * hipOffset;
-
-        // Left Leg
-        addMesh(Geometry.hexPrism, px - ox, py - oy, hipZ, limbW, limbD, legHeight, 0, 0, facingAngle, pantsColor);
-        // Left Foot
-        // Position: Bottom of leg. Leg goes 0 to -legHeight.
-        var footZ = hipZ - legHeight; // Ground level roughly
-        // Foot needs to face same as body (facingAngle).
-        // Geometry.foot points +Y. facingAngle 0 = +Y.
-        addMesh(Geometry.foot, px - ox, py - oy, footZ + 3, limbW*1.2, limbD*1.5, 6, 0, 0, facingAngle, shoeColor);
-
-        // Right Leg
-        addMesh(Geometry.hexPrism, px + ox, py + oy, hipZ, limbW, limbD, legHeight, 0, 0, facingAngle, pantsColor);
-        // Right Foot
-        addMesh(Geometry.foot, px + ox, py + oy, footZ + 3, limbW*1.2, limbD*1.5, 6, 0, 0, facingAngle, shoeColor);
-
-        // Arms
-        var shoulderZ = torsoZ + bodyH/2 - 5;
-        var armOffset = torsoWidth/2 + 2; // Outside shoulder
-        var ax = Math.sin(facingAngle) * armOffset;
-        var ay = -Math.cos(facingAngle) * armOffset;
-
-        var laPitch = Math.PI/2 - anim.la;
-        // Pitch rotates around Y. Hex prism hangs down Z.
-        // Rotation order: Roll -> Pitch -> Yaw.
-
-        addMesh(Geometry.hexPrism, px - ax, py - ay, shoulderZ, limbW, limbD, limbLen, 0, laPitch, facingAngle, limbColor);
-
-        // Hand position:
-        // Local: (0, 0, -limbLen).
-        // Rotate by Pitch (laPitch) around Y.
-        // x = -length * sin(pitch)
-        // z = -length * cos(pitch)
-        var handLen = limbLen;
-        var hx = -handLen * Math.sin(laPitch);
-        var hz = -handLen * Math.cos(laPitch);
-        // Rotate by Yaw (facingAngle)
-        var whx = hx * Math.cos(facingAngle);
-        var why = hx * Math.sin(facingAngle);
-        // Translate to Shoulder
-        var handPx = (px - ax) + whx;
-        var handPy = (py - ay) + why;
-        var handPz = shoulderZ + hz;
-
-        addMesh(Geometry.cube, handPx, handPy, handPz, limbW*1.2, limbD*1.2, limbW*1.2, 0, laPitch, facingAngle, skinObj.furColor || skinObj.skinTone || '#000');
-
-        var raPitch = Math.PI/2 - anim.ra;
-        addMesh(Geometry.hexPrism, px + ax, py + ay, shoulderZ, limbW, limbD, limbLen, 0, raPitch, facingAngle, limbColor);
-
-        // Right Hand
-        hx = -handLen * Math.sin(raPitch);
-        hz = -handLen * Math.cos(raPitch);
-        whx = hx * Math.cos(facingAngle);
-        why = hx * Math.sin(facingAngle);
-        handPx = (px + ax) + whx;
-        handPy = (py + ay) + why;
-        handPz = shoulderZ + hz;
-        addMesh(Geometry.cube, handPx, handPy, handPz, limbW*1.2, limbD*1.2, limbW*1.2, 0, raPitch, facingAngle, skinObj.furColor || skinObj.skinTone || '#000');
-
-        // Accessories (Refined)
-        var accZ = headZ + headSize/2;
-
-        if (skinObj.headAccessory === 'top_hat') {
-            // Brim
-            addMesh(Geometry.cylinder, px, py, accZ + 2, headSize*1.6, headSize*1.6, 2, 0, 0, facingAngle, '#111');
-            // Top
-            addMesh(Geometry.cylinder, px, py, accZ + 12, headSize*1.0, headSize*1.0, 20, 0, 0, facingAngle, '#111');
-            // Band
-            addMesh(Geometry.cylinder, px, py, accZ + 5, headSize*1.05, headSize*1.05, 4, 0, 0, facingAngle, '#333');
-        }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            // Brim
-            addMesh(Geometry.cylinder, px, py, accZ + 2, headSize*1.8, headSize*1.8, 2, 0, 0, facingAngle, skinObj.hatColor || '#000080');
-            // Cone
-            addMesh(Geometry.cone, px, py, accZ + 20, headSize*1.2, headSize*1.2, 35, 0, 0, facingAngle, skinObj.hatColor || '#000080');
-        }
-        else if (skinObj.headAccessory === 'crown') {
-            // Gold Cylinder
-            addMesh(Geometry.cylinder, px, py, accZ + 6, headSize*1.2, headSize*1.2, 10, 0, 0, facingAngle, '#FFD700');
-        }
-        else if (skinObj.headAccessory === 'halo') {
-            // Ring (Simulated by flat cylinder with hole? Or just flat cylinder for now)
-            addMesh(Geometry.cylinder, px, py, accZ + 15, headSize*1.2, headSize*1.2, 2, 0, 0, facingAngle, '#FFD700');
-        }
-        else if (skinObj.headAccessory === 'fez') {
-            addMesh(Geometry.cylinder, px, py, accZ + 6, headSize*0.8, headSize*0.8, 12, 0, 0, facingAngle, '#8B0000');
-        }
-        else if (skinObj.headAccessory === 'helmet') {
-            // Half sphere? Use Head mesh scaled up
-            addMesh(Geometry.head, px, py, headZ, headSize*1.1, headSize*1.1, headSize*1.1, 0, 0, facingAngle, skinObj.hatColor || '#87CEEB');
-        }
-        else if (skinObj.headAccessory === 'cap' || skinObj.headAccessory === 'hat') {
-             // Main cap
-             addMesh(Geometry.sphere, px, py, headZ + 5, headSize*1.05, headSize*1.05, headSize*0.6, 0, 0, facingAngle, skinObj.hatColor || '#333');
-             // Peak
-             var peakLen = 15;
-             var pX = Math.cos(facingAngle)*(headSize/2 + peakLen/2);
-             var pY = Math.sin(facingAngle)*(headSize/2 + peakLen/2);
-             addMesh(Geometry.cube, px + pX, py + pY, headZ + 5, peakLen, headSize, 2, 0, 0, facingAngle, skinObj.hatColor || '#333');
-        }
-        else if (skinObj.headDetail === 'mohawk') {
-             // Spikes along center
-             for(var i=-2; i<=2; i++) {
-                 var mz = headZ + headSize/2 + 5;
-                 var myOff = i * 5;
-                 var mx = Math.cos(facingAngle)*myOff;
-                 var my = Math.sin(facingAngle)*myOff;
-                 // Actually mohawk runs front-to-back relative to head.
-                 // Head facingAngle is yaw. Front is +X (relative).
-                 // Mohawk runs along X axis of head.
-                 var mX = Math.cos(facingAngle) * i * 6;
-                 var mY = Math.sin(facingAngle) * i * 6;
-
-                 addMesh(Geometry.cone, px + mX, py + mY, headZ + headSize/2 + 6, 4, 4, 12, 0, 0, facingAngle, skinObj.hairColor || '#000');
-             }
-        }
-
-        // Back Accessories
-        var backOff = -bodyD/2 - 2;
-        var backX = Math.cos(facingAngle) * backOff;
-        var backY = Math.sin(facingAngle) * backOff;
-
-        if (skinObj.backAccessory === 'backpack') {
-             // Hex Prism Backpack (rotated for roundness)
-             addMesh(Geometry.hexPrism, px + backX*1.5, py + backY*1.5, torsoZ + bodyH*0.3, 15, bodyW*0.9, bodyH*0.6, 0, 0, facingAngle - Math.PI/6, skinObj.backColor || '#555');
-             // Small pocket
-             addMesh(Geometry.cube, px + backX*2.5, py + backY*2.5, torsoZ - 5, 5, bodyW*0.6, bodyH*0.25, 0, 0, facingAngle, '#333');
-        }
-        else if (skinObj.backAccessory === 'cape') {
-             // Cape (Thin Box)
-             addMesh(Geometry.cube, px + backX*1.5, py + backY*1.5, torsoZ - bodyH*0.2, 2, bodyW*1.4, bodyH*1.2, 0.2, 0, facingAngle, skinObj.backColor || '#000');
-        }
-        else if (skinObj.backAccessory === 'wings') {
-             // Wings (Two flattened cones or cubes)
-             var wingColor = skinObj.backColor || '#FFF';
-             var wingOff = bodyW/2 + 5;
-             var wxL = Math.cos(facingAngle + Math.PI/2) * wingOff;
-             var wyL = Math.sin(facingAngle + Math.PI/2) * wingOff;
-             var wxR = Math.cos(facingAngle - Math.PI/2) * wingOff;
-             var wyR = Math.sin(facingAngle - Math.PI/2) * wingOff;
-
-             addMesh(Geometry.cube, px + backX + wxL, py + backY + wyL, torsoZ + 5, 2, 20, 30, 0, -0.5, facingAngle + 0.5, wingColor);
-             addMesh(Geometry.cube, px + backX + wxR, py + backY + wyR, torsoZ + 5, 2, 20, 30, 0, 0.5, facingAngle - 0.5, wingColor);
-        }
-
-        // Back Props
-        if (skinObj.backProp) {
-             var bp = skinObj.backProp;
-             var propX = px + backX * 1.5;
-             var propY = py + backY * 1.5;
-             var propZ = torsoZ;
-
-             if (bp === 'axe') {
-                 // Handle
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 3, 3, 40, 0.7, 0.7, facingAngle, '#8B4513');
-                 // Head
-                 addMesh(Geometry.foot, propX, propY, propZ + 15, 10, 20, 5, 0.7, 0.7, facingAngle, '#AAA');
-             }
-             else if (bp === 'guitar') {
-                 // Body
-                 addMesh(Geometry.hexPrism, propX, propY, propZ - 5, 8, 15, 20, 0, 0, facingAngle, '#8B4513');
-                 // Neck
-                 addMesh(Geometry.cube, propX, propY, propZ + 15, 2, 3, 20, 0, 0, facingAngle, '#5D4037');
-             }
-             else if (bp === 'sword' || bp === 'staff') {
-                 var color = (bp==='staff') ? '#8B4513' : '#AAA';
-                 var len = (bp==='staff') ? 50 : 35;
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 3, 3, len, 0.7, -0.7, facingAngle, color);
-                 if(bp === 'staff') {
-                     addMesh(Geometry.sphere, propX, propY, propZ + 25, 6, 6, 6, 0, 0, 0, '#00FFFF');
-                 }
-             }
-             else if (bp === 'oxygen_tank') {
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 10, 10, 30, 0, 0, facingAngle, '#FFF');
-             }
-             else if (bp === 'windup_key') {
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 10, 0, Math.PI/2, facingAngle, '#C0C0C0');
-                 addMesh(Geometry.cylinder, propX + Math.cos(facingAngle)*10, propY + Math.sin(facingAngle)*10, propZ, 8, 8, 2, 0, 0, facingAngle, '#C0C0C0');
-             }
-             else if (bp === 'katanas' || bp === 'hockey_sticks') {
-                 var kc = (bp==='katanas') ? '#111' : '#D2B48C';
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, 0.5, 0.5, facingAngle, kc);
-                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, -0.5, -0.5, facingAngle, kc);
-             }
-        }
-
-        // Tails
-        var animal = skinObj.animal;
-        var tailColor = skinObj.furColor || skinObj.skinTone || '#555';
-        var tailX = px + backX;
-        var tailY = py + backY;
-        var tailZ = hipZ - 2;
-
-        if (animal === 'rat' || animal === 'mouse') {
-             // Long thin pink tail
-             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 2, 2, 30, -1.0, 0, facingAngle, '#FFC0CB');
-        }
-        else if (animal === 'cat' || animal === 'monkey' || animal === 'tiger' || animal === 'lion') {
-             // Long furry tail
-             if(animal==='lion') {
-                 addMesh(Geometry.cylinder, tailX, tailY, tailZ, 3, 3, 25, -0.8, 0, facingAngle, tailColor);
-                 addMesh(Geometry.sphere, tailX - Math.cos(facingAngle)*20, tailY - Math.sin(facingAngle)*20, tailZ - 15, 5, 5, 5, 0, 0, 0, '#8B4513'); // Tuft
-             } else {
-                 addMesh(Geometry.cylinder, tailX, tailY, tailZ, 3, 3, 30, -0.5, 0.5, facingAngle, tailColor);
-             }
-        }
-        else if (animal === 'dog' || animal === 'wolf' || animal === 'fox') {
-             // Bushy tail
-             addMesh(Geometry.cone, tailX - Math.cos(facingAngle)*10, tailY - Math.sin(facingAngle)*10, tailZ, 6, 6, 20, -1.2, 0, facingAngle, tailColor);
-        }
-        else if (animal === 'rabbit') {
-             // Ball tail
-             addMesh(Geometry.sphere, tailX, tailY, tailZ, 4, 4, 4, 0, 0, 0, '#FFF');
-        }
-        else if (skinObj.tailType === 'devil') {
-             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 2, 2, 30, -1.0, 0, facingAngle, '#FF0000');
-             addMesh(Geometry.cone, tailX - Math.cos(facingAngle)*25, tailY - Math.sin(facingAngle)*25, tailZ - 20, 4, 4, 6, -0.5, 0, facingAngle, '#FF0000');
-        }
-
-        // --- 3. RENDER LOOP ---
-        var facesToDraw = [];
-
-        parts.forEach(function(p) {
-            var geo = p.geo || Geometry.cube;
-
-            // Transform Vertices
+        function addMesh(geo, x, y, z, sx, sy, sz, rx, ry, rz, color, shadeAmt) {
+            if (!geo) return;
             var verts = geo.vertices.map(function(v) {
-                // Scale
-                var vx = v.x * p.sx; var vy = v.y * p.sy; var vz = v.z * p.sz;
-                // Rotate
-                var r = rotatePoint3D(vx, vy, vz, p.rx, p.ry, p.rz);
-                // Translate
-                return { x: r.x + p.x, y: r.y + p.y, z: r.z + p.z };
+                var vx = v.x * sx; var vy = v.y * sy; var vz = v.z * sz;
+                var r = rotatePoint3D(vx, vy, vz, rx, ry, rz);
+                return { x: r.x + x, y: r.y + y, z: r.z + z };
             });
+            var pVerts = verts.map(function(v) { return project(v.x, v.y, v.z, g_camCache); });
 
-            // Project
-            var pVerts = verts.map(function(v) {
-                return project(v.x, v.y, v.z, g_camCache);
-            });
-
-            // Faces
             geo.faces.forEach(function(f, i) {
-                // Determine poly size (tri or quad)
                 var isQuad = (f.length >= 4);
-
                 var v0 = pVerts[f[0]]; var v1 = pVerts[f[1]]; var v2 = pVerts[f[2]];
                 if (!v0 || !v1 || !v2) return;
                 var v3 = isQuad ? pVerts[f[3]] : null;
                 if (isQuad && !v3) return;
 
-                // Backface Culling (Cross product of screen edges v0->v1 and v0->v2)
-                // Use winding order.
                 var cp = (v1.x - v0.x)*(v2.y - v0.y) - (v1.y - v0.y)*(v2.x - v0.x);
                 if (cp > 0) return;
 
-                // Lighting (Transform Normal)
                 var norm = (geo.normals && geo.normals[i]) ? geo.normals[i] : {x:0,y:0,z:1};
-                var rNorm = rotatePoint3D(norm.x, norm.y, norm.z, p.rx, p.ry, p.rz);
+                var rNorm = rotatePoint3D(norm.x, norm.y, norm.z, rx, ry, rz);
                 var light = 0.5 + Math.max(0, rNorm.x * 0.4 + rNorm.y * -0.4 + rNorm.z * 0.8) * 0.6;
-
-                var col = p.color;
-                if (col && col.startsWith('#')) col = shadeColor(col, (light - 1.0)*0.5);
+                var finalColor = color;
+                if (finalColor && finalColor.startsWith('#')) finalColor = shadeColor(finalColor, (light - 1.0) * (shadeAmt !== undefined ? shadeAmt : 0.5));
 
                 var z = (v0.depth + v1.depth + v2.depth + (v3?v3.depth:v0.depth)) / (isQuad?4:3);
-                facesToDraw.push({ v: isQuad ? [v0, v1, v2, v3] : [v0, v1, v2], c: col, z: z });
+                allFaces.push({ v: isQuad ? [v0, v1, v2, v3] : [v0, v1, v2], c: finalColor, z: z });
             });
-        });
+        }
 
-        facesToDraw.sort(function(a,b){ return b.z - a.z; });
+        // --- BODY PARTS ---
+        var hipZ = pz + limbLen;
+        var torsoZ = hipZ + bodyH/2;
+        var shoulderZ = hipZ + bodyH;
+        var headZ = shoulderZ + headSize/2;
 
-        facesToDraw.forEach(function(f) {
+        // 1. LEGS (One Piece for now, knees maybe later if requested, user focused on arms)
+        var legSep = bodyW * 0.3;
+        var kneeAngle = (state === 'PRE_JUMP') ? -0.5 : 0;
+
+        // Left Leg
+        addMesh(Geometry.hexPrism, px + Math.sin(facingAngle+Math.PI/2)*legSep, py - Math.cos(facingAngle+Math.PI/2)*legSep, hipZ, limbW, limbD, limbLen, 0, kneeAngle, facingAngle, legColor);
+        // Right Leg
+        addMesh(Geometry.hexPrism, px + Math.sin(facingAngle-Math.PI/2)*legSep, py - Math.cos(facingAngle-Math.PI/2)*legSep, hipZ, limbW, limbD, limbLen, 0, kneeAngle, facingAngle, legColor);
+
+        // Shoes
+        addMesh(Geometry.foot, px + Math.sin(facingAngle+Math.PI/2)*legSep, py - Math.cos(facingAngle+Math.PI/2)*legSep, pz+2, limbW*1.2, limbD*2, 4, 0, 0, facingAngle, shoeColor);
+        addMesh(Geometry.foot, px + Math.sin(facingAngle-Math.PI/2)*legSep, py - Math.cos(facingAngle-Math.PI/2)*legSep, pz+2, limbW*1.2, limbD*2, 4, 0, 0, facingAngle, shoeColor);
+
+        // 2. TORSO
+        addMesh(Geometry.torso, px, py, torsoZ, bodyW, bodyD, bodyH, 0, 0, facingAngle, torsoColor);
+        if(skinObj.shortsColor && skinObj.shortsColor !== torsoColor) {
+            // Shorts (Lower Torso Overlay)
+            addMesh(Geometry.torso, px, py, hipZ + bodyH*0.2, bodyW*1.05, bodyD*1.05, bodyH*0.4, 0, 0, facingAngle, shortsColor);
+        }
+
+        // 3. ARMS (Articulated)
+        function drawLimb(ox, oy, oz, angleUpper, angleLower, width, depth, totalLen, color) {
+            // Upper Arm
+            var upperLen = totalLen * 0.5;
+            var foreLen = totalLen * 0.5;
+
+            // Draw Upper (Hex Prism goes 0 to -1Z)
+            addMesh(Geometry.hexPrism, ox, oy, oz, width, depth, upperLen, 0, angleUpper, facingAngle, color);
+
+            // Calculate Elbow Pos
+            // Rotation Matrix for Y-axis rotation (pitch) then Z-axis rotation (facing)
+            // Local vector is (0, 0, -upperLen)
+            // Rotated locally by angleUpper (Y): x' = -upperLen * sin(ang), z' = -upperLen * cos(ang)
+            var lx = -upperLen * Math.sin(angleUpper);
+            var lz = -upperLen * Math.cos(angleUpper);
+            var ly = 0;
+
+            // Rotate by facingAngle (Z)
+            var ex = ox + lx * Math.cos(facingAngle) - ly * Math.sin(facingAngle);
+            var ey = oy + lx * Math.sin(facingAngle) + ly * Math.cos(facingAngle);
+            var ez = oz + lz;
+
+            // Elbow Joint
+            addMesh(Geometry.sphere, ex, ey, ez, width*0.7, width*0.7, width*0.7, 0,0,0, color);
+
+            // Forearm
+            // Angle is relative to shoulder? Or absolute?
+            // g_animState.lfa is usually absolute in 2D rigs. Let's assume absolute.
+            addMesh(Geometry.hexPrism, ex, ey, ez, width*0.85, depth*0.85, foreLen, 0, angleLower, facingAngle, color); // Tapered forearm
+
+            // Wrist Pos
+            var flx = -foreLen * Math.sin(angleLower);
+            var flz = -foreLen * Math.cos(angleLower);
+            var fly = 0;
+
+            var wx = ex + flx * Math.cos(facingAngle) - fly * Math.sin(facingAngle);
+            var wy = ey + flx * Math.sin(facingAngle) + fly * Math.cos(facingAngle);
+            var wz = ez + flz;
+
+            // Hand
+            addMesh(Geometry.sphere, wx, wy, wz, width*0.9, width*0.9, width*0.9, 0, angleLower, facingAngle, handColor);
+        }
+
+        var armAngleL = g_animState.la; var armAngleR = g_animState.ra;
+        var forearmAngleL = g_animState.lfa; var forearmAngleR = g_animState.rfa;
+
+        var armX_L = px + Math.sin(facingAngle+Math.PI/2)*(bodyW*0.6);
+        var armY_L = py - Math.cos(facingAngle+Math.PI/2)*(bodyW*0.6);
+        var armX_R = px + Math.sin(facingAngle-Math.PI/2)*(bodyW*0.6);
+        var armY_R = py - Math.cos(facingAngle-Math.PI/2)*(bodyW*0.6);
+
+        drawLimb(armX_L, armY_L, shoulderZ-2, armAngleL, forearmAngleL, limbW, limbD, limbLen, armColor);
+        drawLimb(armX_R, armY_R, shoulderZ-2, armAngleR, forearmAngleR, limbW, limbD, limbLen, armColor);
+
+        // 4. HEAD
+        var snoutColor = skinObj.snoutColor || shadeColor(headColor, 0.2);
+
+        var headMesh = Geometry.head;
+        if (['pig', 'bear', 'cow'].includes(animal)) headMesh = Geometry.cube;
+
+        addMesh(headMesh, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
+
+        // Facial Features (Attached to head)
+        var fwdX = Math.sin(facingAngle); var fwdY = -Math.cos(facingAngle);
+        var rightX = Math.sin(facingAngle - Math.PI/2); var rightY = -Math.cos(facingAngle - Math.PI/2);
+
+        // Snout
+        var snoutZ = headZ - headSize*0.1;
+        var snoutOff = headSize*0.4;
+        var sx = px + fwdX*snoutOff; var sy = py + fwdY*snoutOff;
+
+        if (['rat', 'fox', 'wolf'].includes(animal)) {
+            // Pointy Cone
+            addMesh(Geometry.cone, sx, sy, snoutZ, headSize*0.3, headSize*0.3, headSize*0.4, Math.PI/2, 0, facingAngle, snoutColor);
+        } else if (animal === 'pig') {
+            // Flat Cylinder
+            addMesh(Geometry.cylinder, sx, sy, snoutZ, headSize*0.25, headSize*0.25, headSize*0.2, Math.PI/2, 0, facingAngle, '#FFC0CB');
+        } else if (['bear', 'dog', 'cow'].includes(animal)) {
+            // Box/Hex Muzzle
+            addMesh(Geometry.hexPrism, sx, sy, snoutZ, headSize*0.3, headSize*0.2, headSize*0.3, Math.PI/2, 0, facingAngle, snoutColor);
+        } else if (animal === 'rabbit' || animal === 'cat') {
+            // Small button nose
+            addMesh(Geometry.hemisphere, sx, sy, snoutZ, headSize*0.1, headSize*0.1, headSize*0.1, Math.PI/2, 0, facingAngle, '#FFC0CB');
+        }
+
+        // Ears
+        var earZ = headZ + headSize*0.4;
+        var earOff = headSize*0.35;
+        var exL = px + rightX*(-earOff); var eyL = py + rightY*(-earOff);
+        var exR = px + rightX*(earOff); var eyR = py + rightY*(earOff);
+
+        if (['rat', 'mouse', 'monkey', 'bear', 'panda', 'koala', 'lion'].includes(animal)) {
+            addMesh(Geometry.hemisphere, exL, eyL, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, -Math.PI/4, facingAngle, headColor);
+            addMesh(Geometry.hemisphere, exR, eyR, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, Math.PI/4, facingAngle, headColor);
+        } else if (['cat', 'fox', 'wolf', 'pig'].includes(animal)) {
+            addMesh(Geometry.cone, exL, eyL, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, facingAngle, headColor);
+            addMesh(Geometry.cone, exR, eyR, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, facingAngle, headColor);
+        } else if (animal === 'rabbit') {
+            addMesh(Geometry.cylinder, exL, eyL, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, facingAngle, headColor);
+            addMesh(Geometry.cylinder, exR, eyR, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, facingAngle, headColor);
+        }
+
+        // Eyes (Small Hemispheres)
+        var eyeZ = headZ + headSize*0.1;
+        var eyeOffSide = headSize*0.2;
+        var eyeOffFwd = headSize*0.38;
+
+        var eyeXL = px + fwdX*eyeOffFwd + rightX*(-eyeOffSide);
+        var eyeYL = py + fwdY*eyeOffFwd + rightY*(-eyeOffSide);
+        var eyeXR = px + fwdX*eyeOffFwd + rightX*(eyeOffSide);
+        var eyeYR = py + fwdY*eyeOffFwd + rightY*(eyeOffSide);
+
+        addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, facingAngle, '#FFF');
+        addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, facingAngle, '#FFF');
+        addMesh(Geometry.sphere, eyeXL + fwdX*2, eyeYL + fwdY*2, eyeZ, headSize*0.05, headSize*0.05, headSize*0.05, 0,0,0, '#000');
+        addMesh(Geometry.sphere, eyeXR + fwdX*2, eyeYR + fwdY*2, eyeZ, headSize*0.05, headSize*0.05, headSize*0.05, 0,0,0, '#000');
+
+        if (skinObj.id === 'bear_panda') {
+             addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, facingAngle, '#000');
+             addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, facingAngle, '#000');
+        }
+
+        // Accessories
+        if (skinObj.headAccessory === 'hat' || skinObj.headAccessory === 'top_hat') {
+             var hatH = (skinObj.headAccessory === 'top_hat') ? 20 : 10;
+             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4, headSize*0.6, headSize*0.6, 2, 0, 0, facingAngle, '#333');
+             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4 + hatH/2, headSize*0.35, headSize*0.35, hatH, 0, 0, facingAngle, '#333');
+        }
+        if (skinObj.headAccessory === 'halo') {
+             addMesh(Geometry.basketball, px, py, headZ + headSize*0.8, 15, 15, 2, Math.PI/2, 0, 0, '#FFD700');
+        }
+
+        // Tails
+        var tailX = px - fwdX*bodyD*0.6;
+        var tailY = py - fwdY*bodyD*0.6;
+        var tailZ = hipZ;
+        if (['rat', 'mouse'].includes(animal)) {
+             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 2, 2, 30, -1.2, 0, facingAngle, '#FFC0CB');
+        } else if (['cat', 'tiger', 'lion', 'monkey'].includes(animal)) {
+             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 3, 3, 30, -0.8, 0, facingAngle, headColor);
+        } else if (animal === 'rabbit') {
+             addMesh(Geometry.sphere, tailX, tailY, tailZ, 4, 4, 4, 0, 0, 0, '#FFF');
+        }
+
+        // Render Faces
+        allFaces.sort(function(a,b){ return b.z - a.z; });
+        allFaces.forEach(function(f) {
             ctx.fillStyle = f.c;
             ctx.beginPath();
             ctx.moveTo(f.v[0].x, f.v[0].y);
-            for(var k=1; k<f.v.length; k++) {
-                ctx.lineTo(f.v[k].x, f.v[k].y);
-            }
+            for(var k=1; k<f.v.length; k++) { ctx.lineTo(f.v[k].x, f.v[k].y); }
             ctx.closePath();
             ctx.fill();
         });
@@ -7162,7 +7118,7 @@ let lastDisplayedContestTime = -1;
         if (state === 'JUMPING' || state === 'PRE_JUMP') {
              if (playerData.meterEnabled) {
                  var style = getCurrentStyle();
-                 var baseMaxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
+                 var baseMaxVz = (style.modifiers && style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
                  if (baseMaxVz <= 0.5) baseMaxVz = 9;
                  var boost = 0.5 * 0.10 * 60;
                  var adjustedMaxVz = baseMaxVz + boost;
