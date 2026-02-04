@@ -1319,6 +1319,16 @@
     Geometry.init();
 
     var BallRenderer = {
+    _projResult: {x:0, y:0, z:0},
+
+    projectIso: function(p, r, cosR, sinR) {
+        var ry = p.y * cosR - p.z * sinR;
+        var rz = p.y * sinR + p.z * cosR;
+        this._projResult.x = p.x * r;
+        this._projResult.y = ry * r;
+        this._projResult.z = rz;
+    },
+
         draw: function(ctx, x, y, scale, rotation, ball, phys) {
             // phys: {x, y, z, rotationX, rotationY, rotationZ}
             if (phys && playerData.graphics === 'HIGH') {
@@ -1755,12 +1765,7 @@
             var type = ball.type || 'basketball';
             var cosR = Math.cos(rot);
             var sinR = Math.sin(rot);
-
-            var project = function(p) {
-                var ry = p.y * cosR - p.z * sinR;
-                var rz = p.y * sinR + p.z * cosR;
-                return { x: p.x * r, y: ry * r, z: rz };
-            };
+            var self = this;
 
             if (type === 'basketball') {
                 ctx.strokeStyle = 'rgba(0,0,0,0.5)';
@@ -1771,9 +1776,9 @@
                 var first = true;
                 for(var i=0; i<Geometry.basketball.length; i++) {
                      if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
-                     var proj = project(Geometry.basketball[i]);
-                     if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
-                     else ctx.lineTo(proj.x, proj.y);
+                     this.projectIso(Geometry.basketball[i], r, cosR, sinR);
+                     if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
+                     else ctx.lineTo(this._projResult.x, this._projResult.y);
                 }
                 ctx.stroke();
             }
@@ -1781,17 +1786,21 @@
                 ctx.fillStyle = ball.color2;
                 for(var i=0; i<Geometry.soccer.length; i++) {
                     var face = Geometry.soccer[i];
-                    var projPoints = [];
                     var avgZ = 0;
+                    // First pass: Z check
                     for(var j=0; j<face.length; j++) {
-                        var p = project(face[j]);
-                        projPoints.push(p);
-                        avgZ += p.z;
+                        this.projectIso(face[j], r, cosR, sinR);
+                        avgZ += this._projResult.z;
                     }
+
                     if (avgZ > 0) {
                         ctx.beginPath();
-                        ctx.moveTo(projPoints[0].x, projPoints[0].y);
-                        for(var k=1; k<5; k++) ctx.lineTo(projPoints[k].x, projPoints[k].y);
+                        // Second pass: Draw
+                        for(var k=0; k<face.length; k++) {
+                            this.projectIso(face[k], r, cosR, sinR);
+                            if (k === 0) ctx.moveTo(this._projResult.x, this._projResult.y);
+                            else ctx.lineTo(this._projResult.x, this._projResult.y);
+                        }
                         ctx.closePath();
                         ctx.fill();
                     }
@@ -1805,10 +1814,10 @@
                 ctx.beginPath();
                 var first = true;
                 for(var i=0; i<Geometry.seam.length; i++) {
-                    var proj = project(Geometry.seam[i]);
-                    if (proj.z > -0.5) {
-                        if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
-                        else ctx.lineTo(proj.x, proj.y);
+                    this.projectIso(Geometry.seam[i], r, cosR, sinR);
+                    if (this._projResult.z > -0.5) {
+                        if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
+                        else ctx.lineTo(this._projResult.x, this._projResult.y);
                     } else {
                         first = true;
                     }
@@ -1819,42 +1828,42 @@
             else if (type === 'golf') {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 for(var i=0; i<Geometry.dimples.length; i++) {
-                    var proj = project(Geometry.dimples[i]);
-                    if (proj.z > 0) {
-                        ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.06, 0, Math.PI*2); ctx.fill();
+                    this.projectIso(Geometry.dimples[i], r, cosR, sinR);
+                    if (this._projResult.z > 0) {
+                        ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
             else if (type === 'bille8') {
-                var proj = project({x:0, y:0, z:1});
-                if (proj.z > 0) {
+                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
+                if (this._projResult.z > 0) {
                     ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.45, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold ' + (r*0.6) + 'px Arial';
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText('8', proj.x, proj.y);
+                    ctx.fillText('8', this._projResult.x, this._projResult.y);
                 }
             }
             else if (type === 'bowling') {
                  var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
                  ctx.fillStyle = '#111';
                  holes.forEach(function(h) {
-                     var proj = project(h);
-                     if (proj.z > 0) {
-                         ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.12, 0, Math.PI*2); ctx.fill();
+                     self.projectIso(h, r, cosR, sinR);
+                     if (self._projResult.z > 0) {
+                         ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.12, 0, Math.PI*2); ctx.fill();
                      }
                  });
             }
             else if (type === 'eyeball') {
-                var proj = project({x:0, y:0, z:1});
-                if (proj.z > 0) {
+                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
+                if (this._projResult.z > 0) {
                     ctx.fillStyle = ball.color2;
-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, r * 0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.beginPath(); ctx.arc(proj.x - r*0.15, proj.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(this._projResult.x - r*0.15, this._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
                 }
             }
             else if (type === 'beach') {
@@ -1867,10 +1876,10 @@
                      ctx.beginPath();
                      var line = Geometry.beach[s];
                      for(var i=0; i<line.length; i++) {
-                         var proj = project(line[i]);
-                         if (proj.z > -0.2) {
-                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
-                             else ctx.lineTo(proj.x, proj.y);
+                         this.projectIso(line[i], r, cosR, sinR);
+                         if (this._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
+                             else ctx.lineTo(this._projResult.x, this._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -1879,15 +1888,16 @@
                 ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
             }
             else if (type === 'donut') {
-                 var icingCenter = project({x:0, y:-0.9, z:0});
-                 if (icingCenter.z > -r) {
+                 this.projectIso({x:0, y:-0.9, z:0}, r, cosR, sinR);
+                 var cx = this._projResult.x; var cy = this._projResult.y; var cz = this._projResult.z;
+                 if (cz > -r) {
                      ctx.fillStyle = ball.color1;
-                     ctx.beginPath(); ctx.arc(icingCenter.x, icingCenter.y, r * 0.85, 0, Math.PI*2); ctx.fill();
+                     ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI*2); ctx.fill();
                      // Sprinkles
                      var sprinkleColors = ['#FFF', '#FF0', '#0FF'];
                      for(var i=0; i<8; i++) {
                          ctx.fillStyle = sprinkleColors[i%3];
-                         ctx.fillRect(icingCenter.x + Math.cos(i)*r*0.5, icingCenter.y + Math.sin(i)*r*0.5, 4, 2);
+                         ctx.fillRect(cx + Math.cos(i)*r*0.5, cy + Math.sin(i)*r*0.5, 4, 2);
                      }
                  }
                  ctx.fillStyle = '#222';
@@ -1900,10 +1910,10 @@
                      var first = true;
                      var line = Geometry.watermelon[s];
                      for(var i=0; i<line.length; i++) {
-                         var proj = project(line[i]);
-                         if(proj.z > -0.2) {
-                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
-                             else ctx.lineTo(proj.x, proj.y);
+                         this.projectIso(line[i], r, cosR, sinR);
+                         if(this._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
+                             else ctx.lineTo(this._projResult.x, this._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -1914,10 +1924,10 @@
                 var patches = [1,2,3,4];
                 patches.forEach(function(i) {
                     var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
-                    var proj = project(p);
-                    if (proj.z > 0) {
+                    self.projectIso(p, r, cosR, sinR);
+                    if (self._projResult.z > 0) {
                         ctx.beginPath();
-                        ctx.arc(proj.x, proj.y, r * 0.4, 0, Math.PI*2);
+                        ctx.arc(self._projResult.x, self._projResult.y, r * 0.4, 0, Math.PI*2);
                         ctx.fill();
                     }
                 });
@@ -1927,10 +1937,10 @@
                  var continents = [0, 2, 4];
                  continents.forEach(function(i) {
                     var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
-                    var proj = project(p);
-                     if (proj.z > 0) {
+                    self.projectIso(p, r, cosR, sinR);
+                     if (self._projResult.z > 0) {
                         ctx.beginPath();
-                        ctx.arc(proj.x, proj.y, r * 0.5, 0, Math.PI*2);
+                        ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2);
                         ctx.fill();
                     }
                  });
