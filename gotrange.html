@@ -2641,8 +2641,16 @@ let lastDisplayedContestTime = -1;
         addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
         document.getElementById('highScoreUI').style.display = 'none';
 
-        // Reset state so leaderboard can open
+        // Ensure changes persist in game1 context (Single Player)
+        loadContext(game1);
+
         state = 'IDLE';
+        // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
+        // and that the Shop opens after the leaderboard closes.
+        feedback = "TERMINÉ !";
+
+        saveContext(game1);
+
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
