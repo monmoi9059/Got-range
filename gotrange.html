@@ -6905,8 +6905,7 @@ let lastDisplayedContestTime = -1;
         var dy = HOOP_POS.y - py;
         var angleToHoop = Math.atan2(dy, dx);
         // Base model faces -Y (North), so add PI/2 to align with angleToHoop (which is from +X)
-        // FLIPPED 180 degrees (+ Math.PI) so we see the back of the character
-        var facingAngle = angleToHoop + Math.PI/2 + Math.PI + g_animState.w;
+        var facingAngle = angleToHoop + Math.PI/2 + g_animState.w;
 
         // Collect all faces from all parts
         var allFaces = [];
@@ -7027,9 +7026,11 @@ let lastDisplayedContestTime = -1;
         var headMesh = Geometry.head;
         if (['pig', 'bear', 'cow'].includes(animal)) headMesh = Geometry.cube;
 
-        addMesh(headMesh, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
+        // Head Rotated 180 degrees (+ Math.PI) relative to body because Head Geometry seems flipped (+Y Front)
+        addMesh(headMesh, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle + Math.PI, headColor);
 
         // Facial Features (Attached to head)
+        // Features use standard facingAngle (Points to Hoop)
         var fwdX = Math.sin(facingAngle); var fwdY = -Math.cos(facingAngle);
         var rightX = Math.sin(facingAngle - Math.PI/2); var rightY = -Math.cos(facingAngle - Math.PI/2);
 
