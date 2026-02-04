@@ -3425,6 +3425,11 @@ let lastDisplayedContestTime = -1;
     }
     window.addEventListener('resize', resizeGame);
 
+    var g_projPool = [];
+    var g_projPoolIdx = 0;
+    // Ring buffer size 2048 to safely handle all transient projections per frame
+    for(var i=0; i<2048; i++) g_projPool.push({ x: 0, y: 0, scale: 0, depth: 0 });
+
     function project(x, y, z, cache) {
         let rotation, sinRot, cosRot;
 
@@ -3467,7 +3472,11 @@ let lastDisplayedContestTime = -1;
         const screenX = vpW / 2 + (rx * scale);
         const horizonY = (vpH - 120) * 0.38;
         const screenY = horizonY + (cameraHeight - z) * scale;
-        return { x: screenX, y: screenY, scale: scale, depth: depth };
+
+        var ret = g_projPool[g_projPoolIdx];
+        g_projPoolIdx = (g_projPoolIdx + 1) & 2047;
+        ret.x = screenX; ret.y = screenY; ret.scale = scale; ret.depth = depth;
+        return ret;
     }
 
     // --- 4. DRAWING FUNCTIONS ---
