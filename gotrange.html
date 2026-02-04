@@ -622,6 +622,10 @@
 
     <div id="shopUI" class="modal">
         <div class="modal-header">TACO MERCADO</div>
+        <div id="shopPlayerToggle" style="display:none; margin-bottom:10px;">
+             <button id="btnShopP1" class="btn" style="background:#0047AB; border:2px solid #FFF;" onclick="switchShopPlayer(1)">PLAYER 1</button>
+             <button id="btnShopP2" class="btn" style="background:#333; border:1px solid #555;" onclick="switchShopPlayer(2)">PLAYER 2</button>
+        </div>
         <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
         <div class="difficulty-row">
             <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
@@ -2570,9 +2574,12 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
-        if(isSplitscreen) return;
+        loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+
         state = 'LEADERBOARD';
+        if(isSplitscreen) { loadContext(game2); state = 'LEADERBOARD'; saveContext(game2); loadContext(game1); }
+
         document.getElementById('leaderboardUI').style.display = 'block';
         document.getElementById('shopUI').style.display = 'none';
         document.getElementById('statsUI').style.display = 'none';
@@ -2582,11 +2589,14 @@ let lastDisplayedContestTime = -1;
     }
 
     function closeLeaderboard() {
-        document.getElementById('leaderboardUI').style.display = 'none';
-        state = 'IDLE';
         // If coming from Game Over flow?
-        if (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || feedback.includes("RECORD")) openShop();
-        saveContext(game1);
+        // Note: feedback is context-specific. closeAllMenus resets it.
+        // We capture it before closing.
+        const shouldOpenShop = (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || (feedback && feedback.includes("RECORD")));
+
+        window.closeAllMenus(() => {
+            if (shouldOpenShop) window.openShop();
+        });
     }
 
     function switchLeaderboardTab(mode) {
@@ -2633,14 +2643,14 @@ let lastDisplayedContestTime = -1;
 
         // Ensure changes persist in game1 context (Single Player)
         loadContext(game1);
-
+        
         state = 'IDLE';
         // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
         // and that the Shop opens after the leaderboard closes.
         feedback = "TERMINÉ !";
-
-        saveContext(game1);
-
+        
+        saveContext(game1); 
+        
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
@@ -3004,7 +3014,7 @@ let lastDisplayedContestTime = -1;
             const dxToHoop = HOOP_POS.x - player3D.x;
             const dyToHoop = HOOP_POS.y - player3D.y;
             cameraZoom = 698;
-            cameraHeight = 84000 / cameraZoom;
+            cameraHeight = 130000 / cameraZoom;
             const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
             rotation = -angleToHoop - Math.PI/2;
             sinRot = Math.sin(rotation);
@@ -3019,13 +3029,13 @@ let lastDisplayedContestTime = -1;
         const dx = x - camX; const dy = y - camY;
         const rx = dx * cosRot - dy * sinRot;
         const ry = dx * sinRot + dy * cosRot;
-        const cameraOffset = 400; const depth = cameraOffset - ry;
+        const cameraOffset = 550; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
         const screenX = vpW / 2 + (rx * scale);
-        const horizonY = (vpH - 120) * 0.5;
+        const horizonY = (vpH - 120) * 0.38;
         const screenY = horizonY + (cameraHeight - z) * scale;
         return { x: screenX, y: screenY, scale: scale, depth: depth };
     }
@@ -4455,44 +4465,44 @@ let lastDisplayedContestTime = -1;
         },
         render: function(drawFn, x, y) {
             this.init();
-
+            
             // Clear
             this.ctx.clearRect(0, 0, 512, 512);
-
+            
             // Swap global ctx
             var originalCtx = ctx;
             ctx = this.ctx;
-
+            
             ctx.save();
             // Center drawing at 256, 400
             // The drawFn expects to draw at coordinates (x, y).
             // We translate so that (x, y) maps to (256, 400)
             ctx.translate(256 - x, 400 - y);
-
+            
             try {
                 drawFn();
             } catch(e) {
                 console.error(e);
             }
-
+            
             ctx.restore();
-
+            
             // Restore global ctx
             ctx = originalCtx;
-
+            
             // Convert to Silhouette
             this.ctx.globalCompositeOperation = 'source-in';
             this.ctx.fillStyle = '#000000';
             this.ctx.fillRect(0, 0, 512, 512);
             this.ctx.globalCompositeOperation = 'source-over';
-
+            
             return this.canvas;
         }
     };
 
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
-
+        
         // Quality check
         if (playerData.graphics === 'LOW') {
              // Fallback to simple blob if needed
@@ -4506,11 +4516,11 @@ let lastDisplayedContestTime = -1;
         var z = 0;
         if (type === 'player') z = player3D.z;
         if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
-
+        
         // Calculate opacity and blur based on Z
         var alpha = Math.max(0.05, 0.4 - (z / 800));
         var blur = Math.min(10, 2 + (z / 50));
-
+        
         // Render Silhouette
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
@@ -4519,23 +4529,23 @@ let lastDisplayedContestTime = -1;
                 drawBall(obj, obj.ballRef);
             }
         }, obj.x, obj.y);
-
+        
         ctx.save();
         ctx.translate(obj.x, obj.y);
-
+        
         // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
         // Shear X by -0.6, Scale Y by 0.3 (Flatten)
-        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
-
+        ctx.transform(1, 0, -0.6, 0.3, 0, 0); 
+        
         ctx.globalAlpha = alpha;
-
+        
         // Blur
         if (ctx.filter) {
             ctx.filter = 'blur(' + blur + 'px)';
         }
-
+        
         ctx.drawImage(sCanvas, -256, -400);
-
+        
         ctx.restore();
     }
 
@@ -7464,7 +7474,7 @@ let lastDisplayedContestTime = -1;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
         const camZoom = isSplitscreen ? 450 : 698;
-        const camHeight = 84000 / camZoom;
+        const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
         g_camCache.rotation = camRotation;
@@ -7479,7 +7489,7 @@ let lastDisplayedContestTime = -1;
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonY = (vpH - 120) * 0.5;
+        const horizonY = (vpH - 120) * 0.38;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
@@ -7521,11 +7531,13 @@ let lastDisplayedContestTime = -1;
                      for(let i=0; i<fCv.width; i+=plankW) {
                          fCtx.fillRect(i, 0, 2, fCv.height);
                      }
-                     // Random grain
+                    // Random grain - Removed for High Setting cleanliness
+                    /*
                      fCtx.fillStyle = 'rgba(100, 50, 0, 0.05)';
                      for(let i=0; i<fCv.width*fCv.height*0.1; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 1);
                      }
+                    */
                  }
                  else if (court.type === 'carnival') {
                      // Carnival Checkerboard
@@ -7553,14 +7565,17 @@ let lastDisplayedContestTime = -1;
                          fCtx.lineTo(x, y - len);
                          fCtx.stroke();
                      }
-                     // Noise
+                    // Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(0,0,0,0.05)';
                      for(let i=0; i<blades/2; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
                      }
+                    */
                  }
                  else if (court.type === 'castle') {
-                     // Asphalt / Pavement Noise
+                    // Asphalt / Pavement Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(255,255,255,0.05)';
                      const noise = fCv.width * fCv.height * 0.1;
                      for(let i=0; i<noise; i++) {
@@ -7570,7 +7585,9 @@ let lastDisplayedContestTime = -1;
                      for(let i=0; i<noise; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
                      }
-                     // Cracks
+                    */
+                    // Cracks - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(0,0,0,0.4)';
                      fCtx.lineWidth = 2;
                      for(let i=0; i<5; i++) {
@@ -7585,10 +7602,12 @@ let lastDisplayedContestTime = -1;
                          }
                          fCtx.stroke();
                      }
+                    */
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
-                     // Scratches (Skate marks)
+                    // Scratches (Skate marks) - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(255,255,255,0.3)';
                      fCtx.lineWidth = 1;
                      for(let i=0; i<200; i++) {
@@ -7599,6 +7618,7 @@ let lastDisplayedContestTime = -1;
                          fCtx.quadraticCurveTo(sx + (Math.random()-0.5)*100, sy + (Math.random()-0.5)*50, sx + (Math.random()-0.5)*200, sy + (Math.random()-0.5)*100);
                          fCtx.stroke();
                      }
+                    */
                      // Reflections (Fake)
                      const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
                      gradRef.addColorStop(0, 'rgba(255,255,255,0)');
@@ -7608,7 +7628,8 @@ let lastDisplayedContestTime = -1;
                      fCtx.fillRect(0, 0, fCv.width, fCv.height);
                  }
                  else if (court.type === 'water') {
-                     // Ripples
+                    // Ripples - Removed
+                    /*
                      fCtx.strokeStyle = 'rgba(255,255,255,0.1)';
                      fCtx.lineWidth = 2;
                      for(let i=0; i<fCv.height; i+=5) {
@@ -7618,6 +7639,7 @@ let lastDisplayedContestTime = -1;
                          fCtx.lineTo(fCv.width, i + offset);
                          fCtx.stroke();
                      }
+                    */
                  }
                  else if (court.type === 'space') {
                      // Craters / Dust
@@ -7630,10 +7652,13 @@ let lastDisplayedContestTime = -1;
                          fCtx.arc(cx, cy, r, 0, Math.PI*2);
                          fCtx.fill();
                      }
+                    // Dust Noise - Removed
+                    /*
                      fCtx.fillStyle = 'rgba(255,255,255,0.05)';
                      for(let i=0; i<500; i++) {
                          fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
                      }
+                    */
                  }
 
                  bgCache.floorImage = fCv;
@@ -7830,8 +7855,8 @@ let lastDisplayedContestTime = -1;
             const dy = d.y - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
-            // cameraOffset is 400 in project()
-            const depth = 400 - ry;
+            // cameraOffset is 550 in project()
+            const depth = 550 - ry;
             if (depth <= 0) continue;
 
             // Inline projection
@@ -7908,9 +7933,9 @@ let lastDisplayedContestTime = -1;
              if(proj) {
                  const obj = getRenderItem();
                  obj.type = 'smoke';
-                 // Force streak fire particles behind the player (depth > 400)
+                 // Force streak fire particles behind the player (depth > 550)
                  if (p.isFireParticle && p.customHue !== undefined) {
-                     obj.depth = Math.max(proj.depth, 420);
+                     obj.depth = Math.max(proj.depth, 580);
                  } else {
                      obj.depth = proj.depth;
                  }
@@ -8326,7 +8351,7 @@ let lastDisplayedContestTime = -1;
                 if (nextAction) {
                     const action = nextAction;
                     nextAction = null;
-
+                    
                     // Context Safety: Save current context identity
                     // Because action() might trigger openShop() which calls loadContext(game1)
                     // If we don't restore, the rest of this update() loop and the final saveContext()
@@ -8425,12 +8450,12 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) {
+                if (player3D.z <= 0) { 
                     // Prevent Marché violation by forcing a late shot
-                    player3D.z = 0; player3D.vz = 0;
+                    player3D.z = 0; player3D.vz = 0; 
                     // Calculate a penalty timing error (late release)
                     // Normal threshold is approx 1.0. We pass 5.0 to ensure a miss.
-                    shoot(5.0);
+                    shoot(5.0); 
                 }
             }
         }
@@ -8675,7 +8700,7 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            state = 'IDLE';
+            state = 'IDLE'; 
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
@@ -8718,7 +8743,7 @@ let lastDisplayedContestTime = -1;
     window.openShop = function(force) {
         g_shopTargetPlayer = 1; // Default to P1
         loadContext(game1);
-
+        
         // If force is true (e.g. from Game Over logic), ignore state check
         if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
 
@@ -8735,16 +8760,25 @@ let lastDisplayedContestTime = -1;
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
+        saveContext(game1);
     }
     window.openAchievements = function() {
-        if(isSplitscreen) return;
+        loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'ACHIEVEMENTS'; achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+
+        state = 'ACHIEVEMENTS';
+        if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
+
+        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+        saveContext(game1);
     }
     window.openStats = function() {
-        if(isSplitscreen) return;
+        loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
+
         state = 'STATS';
+        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
+
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
@@ -8802,7 +8836,7 @@ let lastDisplayedContestTime = -1;
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
         saveData(); openStats(); // Refresh UI
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.cycleMeterShape = function() {
         const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
@@ -8811,14 +8845,14 @@ let lastDisplayedContestTime = -1;
         idx = (idx + 1) % shapes.length;
         playerData.meterShape = shapes[idx];
         saveData(); openStats(); // Refresh UI
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.updateMeterScale = function() {
         const val = parseFloat(document.getElementById('meterSizeSlider').value);
         playerData.meterScale = val;
         document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
         saveData();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.updateReleaseTiming = function() {
         const val = parseInt(document.getElementById('releaseTimingSlider').value);
@@ -8826,7 +8860,7 @@ let lastDisplayedContestTime = -1;
         const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
         document.getElementById('releaseTimingLabel').innerText = labels[val];
         saveData();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
@@ -8891,7 +8925,13 @@ let lastDisplayedContestTime = -1;
         loadContext(game1);
         if(callback) callback();
     }
+
+    window.closeShop = function() { window.closeAllMenus(); }
+    window.closeAchievements = function() { window.closeAllMenus(); }
+    window.closeStats = function() { window.closeAllMenus(); }
+
     window.updateDifficulty = function() {
+        loadContext(getShopContext());
         const val = parseFloat(document.getElementById('diffSlider').value);
         playerData.difficulty = val;
         const label = document.getElementById('diffLabel');
@@ -8900,7 +8940,7 @@ let lastDisplayedContestTime = -1;
         else if (val < 2.5) { label.innerText = `DIFFICILE (x${val.toFixed(1)})`; label.style.color = "#FFFF00"; }
         else { label.innerText = `LÉVIS LEGEND (x${val.toFixed(1)})`; label.style.color = "#FF0000"; }
         saveData();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.getUpgradeCost = function(statName) {
         const lvl = playerData.purchasedStats[statName];
@@ -8912,6 +8952,7 @@ let lastDisplayedContestTime = -1;
         return 999;
     }
     window.buyUpgrade = function(stat) {
+        loadContext(getShopContext());
         if (stat === 'luck' && playerData.purchasedStats.luck >= 10) return;
         const cost = getUpgradeCost(stat);
         if (playerData.tacos >= cost) {
@@ -8922,10 +8963,11 @@ let lastDisplayedContestTime = -1;
             updateShopUI();
             updateUI();
             checkAchievements('shop');
-            saveContext(g_currentMenuGame || game1);
+            saveContext(getShopContext());
         }
     }
     window.changeStatLevel = function(stat, delta) {
+        loadContext(getShopContext());
         const current = playerData.stats[stat];
         const max = playerData.purchasedStats[stat];
         const min = 0;
@@ -8939,26 +8981,29 @@ let lastDisplayedContestTime = -1;
             saveData();
             updateShopUI();
             updateUI();
-            saveContext(g_currentMenuGame || game1);
+            saveContext(getShopContext());
         }
     }
     window.changeAnimal = function(dir) {
+        loadContext(getShopContext());
         viewingAnimalIndex += dir;
         if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
         if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
         viewingSkinIndex = 0; updateShopUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.changeSkin = function(dir) {
+        loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         viewingSkinIndex += dir;
         if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
         if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
         updateShopUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipSkin = function() {
+        loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
         const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
         const skin = animalSkins[viewingSkinIndex];
@@ -8969,16 +9014,18 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.changeBall = function(dir) {
+        loadContext(getShopContext());
         viewingBallIndex += dir;
         if(viewingBallIndex < 0) viewingBallIndex = BALLS_DB.length - 1;
         if(viewingBallIndex >= BALLS_DB.length) viewingBallIndex = 0;
         updateShopUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipBall = function() {
+        loadContext(getShopContext());
         const ball = BALLS_DB[viewingBallIndex];
         if(!playerData.unlockedBalls) playerData.unlockedBalls = ['ball_classic'];
 
@@ -8993,16 +9040,18 @@ let lastDisplayedContestTime = -1;
             checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.changeShootingStyle = function(dir) {
+        loadContext(getShopContext());
         viewingStyleIndex += dir;
         if(viewingStyleIndex < 0) viewingStyleIndex = SHOOTING_STYLES.length - 1;
         if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
         updateShopUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.buyOrEquipShootingStyle = function() {
+        loadContext(getShopContext());
         const style = SHOOTING_STYLES[viewingStyleIndex];
         if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic']; // Safety
         const isUnlocked = playerData.unlockedStyles.includes(style.id);
@@ -9015,19 +9064,20 @@ let lastDisplayedContestTime = -1;
             playerData.currentStyle = style.id;
         }
         saveData(); updateShopUI(); updateUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.toggleHandedness = function() {
+        loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
         saveData(); updateShopUI();
-        saveContext(g_currentMenuGame || game1);
+        saveContext(getShopContext());
     }
     window.toggleMobileControls = function() {
         playerData.mobileControls = !playerData.mobileControls;
         saveData(); updateShopUI(); updateMobileControlsUI();
         const btn = document.getElementById('btnToggleMobile');
         if(btn) btn.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.toggleGraphics = function() {
         playerData.graphics = (playerData.graphics === 'HIGH') ? 'LOW' : 'HIGH';
@@ -9035,7 +9085,7 @@ let lastDisplayedContestTime = -1;
         const btn = document.getElementById('btnToggleGraphics');
         if(btn) btn.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
         invalidateBackgroundCache(); // Redraw background next frame
-        saveContext(g_currentMenuGame || game1);
+        saveContext(game1);
     }
     window.updateMobileControlsUI = function() {
         const btn = document.getElementById('mobileShootBtn');
