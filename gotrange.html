@@ -8898,7 +8898,8 @@ let lastDisplayedContestTime = -1;
             if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD'].includes(state)) {
                 state = 'IDLE';
                 // Only reset game if we are in a game over state that requires it
-                if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
+                // Includes "RECORD" for Time Attack high scores
+                if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || (feedback && feedback.includes("RECORD"))) resetGame();
             }
             saveContext(ctx);
         };
