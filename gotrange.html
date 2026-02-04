@@ -4340,39 +4340,94 @@ let lastDisplayedContestTime = -1;
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // Human / Monkey (Scapula)
-                     // Spine Indentation
+                     // CRAZY MUSCULAR BACK
+                     const spineX = cx;
+
+                     // 1. Deep Spine Channel (Darker groove)
                      ctx.beginPath();
-                     ctx.moveTo(cx, topY + h * 0.2);
-                     ctx.lineTo(cx, topY + h * 0.8);
-                     ctx.lineWidth = w * 0.05;
-                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     ctx.moveTo(spineX, topY + h * 0.15);
+                     ctx.lineTo(spineX, topY + h * 0.85);
+                     ctx.lineWidth = w * 0.08;
+                     ctx.lineCap = 'round';
+                     ctx.strokeStyle = 'rgba(0,0,0,0.2)'; // Deeper shadow
                      ctx.stroke();
 
-                     // Shoulder Blades (Scapula)
-                     const scapY = topY + h * 0.25;
-
-                     // Left Scapula
+                     // 2. Trapezius (Kite/Diamond shape at top) - Very prominent
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
                      ctx.beginPath();
-                     ctx.moveTo(cx - w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
-                     ctx.lineWidth = w * 0.03;
-                     ctx.stroke();
-
-                     // Right Scapula
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
-                     ctx.stroke();
-
-                     // Trapezius / Upper Back shading
-                     ctx.fillStyle = 'rgba(0,0,0,0.05)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.1);
-                     ctx.lineTo(cx - w*0.3, topY + h*0.2);
-                     ctx.lineTo(cx, topY + h*0.4);
-                     ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                     ctx.moveTo(spineX, topY + h * 0.05); // Top neck base
+                     ctx.lineTo(spineX - w * 0.35, topY + h * 0.15); // Left trap point (Wide)
+                     ctx.lineTo(spineX, topY + h * 0.45); // Bottom tip of trap (Deep between shoulder blades)
+                     ctx.lineTo(spineX + w * 0.35, topY + h * 0.15); // Right trap point (Wide)
+                     ctx.closePath();
                      ctx.fill();
+
+                     // Trap Highlights
+                     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                     ctx.lineWidth = w * 0.02;
+                     ctx.beginPath();
+                     ctx.moveTo(spineX - w * 0.35, topY + h * 0.15); ctx.lineTo(spineX, topY + h * 0.05); ctx.lineTo(spineX + w * 0.35, topY + h * 0.15);
+                     ctx.stroke();
+
+                     // 3. Latissimus Dorsi (The "Wings" - V-Taper)
+                     // Left Lat
+                     const latGradL = ctx.createLinearGradient(spineX - w, topY, spineX, topY);
+                     latGradL.addColorStop(0, 'rgba(0,0,0,0.15)');
+                     latGradL.addColorStop(1, 'rgba(0,0,0,0.02)');
+                     ctx.fillStyle = latGradL;
+                     ctx.beginPath();
+                     ctx.moveTo(spineX - w * 0.1, topY + h * 0.45); // Origin near spine
+                     ctx.quadraticCurveTo(spineX - w * 0.55, topY + h * 0.4, spineX - w * 0.5, topY + h * 0.6); // Wide out (Wings)
+                     ctx.quadraticCurveTo(spineX - w * 0.25, topY + h * 0.75, spineX - w * 0.1, topY + h * 0.85); // Taper in
+                     ctx.fill();
+
+                     // Right Lat
+                     const latGradR = ctx.createLinearGradient(spineX + w, topY, spineX, topY);
+                     latGradR.addColorStop(0, 'rgba(0,0,0,0.15)');
+                     latGradR.addColorStop(1, 'rgba(0,0,0,0.02)');
+                     ctx.fillStyle = latGradR;
+                     ctx.beginPath();
+                     ctx.moveTo(spineX + w * 0.1, topY + h * 0.45);
+                     ctx.quadraticCurveTo(spineX + w * 0.55, topY + h * 0.4, spineX + w * 0.5, topY + h * 0.6);
+                     ctx.quadraticCurveTo(spineX + w * 0.25, topY + h * 0.75, spineX + w * 0.1, topY + h * 0.85);
+                     ctx.fill();
+
+                     // 4. Rear Delts / Teres Major (Bulges behind shoulders)
+                     ctx.fillStyle = 'rgba(0,0,0,0.12)';
+                     // Left
+                     ctx.beginPath();
+                     ctx.ellipse(spineX - w * 0.4, topY + h * 0.25, w * 0.15, w * 0.1, -0.6, 0, Math.PI * 2);
+                     ctx.fill();
+                     // Right
+                     ctx.beginPath();
+                     ctx.ellipse(spineX + w * 0.4, topY + h * 0.25, w * 0.15, w * 0.1, 0.6, 0, Math.PI * 2);
+                     ctx.fill();
+
+                     // 5. Erector Spinae / Christmas Tree (Lower Back)
+                     ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                     ctx.beginPath();
+                     ctx.moveTo(spineX, topY + h * 0.75);
+                     // Left bump
+                     ctx.quadraticCurveTo(spineX - w * 0.15, topY + h * 0.85, spineX - w * 0.05, topY + h * 0.95);
+                     ctx.lineTo(spineX + w * 0.05, topY + h * 0.95);
+                     // Right bump
+                     ctx.quadraticCurveTo(spineX + w * 0.15, topY + h * 0.85, spineX, topY + h * 0.75);
+                     ctx.fill();
+
+                     // 6. Definition Lines (Striations)
+                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                     ctx.lineWidth = w * 0.02;
+
+                     // Outline Lats for pop
+                     ctx.beginPath();
+                     ctx.moveTo(spineX - w * 0.5, topY + h * 0.6);
+                     ctx.quadraticCurveTo(spineX - w * 0.25, topY + h * 0.75, spineX - w * 0.1, topY + h * 0.85);
+                     ctx.stroke();
+
+                     ctx.beginPath();
+                     ctx.moveTo(spineX + w * 0.5, topY + h * 0.6);
+                     ctx.quadraticCurveTo(spineX + w * 0.25, topY + h * 0.75, spineX + w * 0.1, topY + h * 0.85);
+                     ctx.stroke();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
