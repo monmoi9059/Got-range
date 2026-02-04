@@ -1369,11 +1369,12 @@
             var tVerts = [];
 
             // Transform Vertices
+            var radius = 8; // Match legacy visual size (roughly)
             for(var i=0; i<verts.length; i++) {
                 var r = this.rotatePoint(verts[i], phys.rotationX, phys.rotationY, phys.rotationZ);
-                var wx = phys.x + r.x * 25;
-                var wy = phys.y + r.y * 25;
-                var wz = phys.z + r.z * 25;
+                var wx = phys.x + r.x * radius;
+                var wy = phys.y + r.y * radius;
+                var wz = phys.z + r.z * radius;
                 var proj = project(wx, wy, wz, g_camCache);
                 tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: r});
             }
@@ -1471,36 +1472,16 @@
         drawPattern3D: function(ctx, ball, phys) {
             var type = ball.type || 'basketball';
             var self = this;
+            var radius = 8; // Match draw3D radius
 
             var projectPoint = function(p) {
                 var r = self.rotatePoint(p, phys.rotationX, phys.rotationY, phys.rotationZ);
                 // Visibility Check (Front Facing)
                 // Dot product of rotated normal (which is just r for unit sphere) and View Vector.
-                // Simple: r.z > 0 ? (Depends on rotation coords).
-                // Let's use the actual projection depth or similar?
-                // Just use r.y (view Y)? No.
-                // Camera is looking roughly towards +Y in world (or -Y?).
-                // Actually, just check if World Pos is closer than Center.
-                // Or use rotated vector z component relative to camera frame?
-                // The simplest for sphere: if rotated normal has component pointing to camera.
-                // Camera is at [player3D.x, player3D.y, largeZ].
-                // Let's assume view vector is approx (0, -1, 1).
-                // Better: Check if `project(wx,wy,wz).depth < project(cx,cy,cz).depth`? No.
 
-                // Use the fact that we computed mesh faces using cross product.
-                // For a point, just check rotated Z?
-                // Our `rotatePoint` does 3 axis rotation.
-                // Let's trust that points on the "back" should be culled.
-                // A point p on sphere is visible if dot(Rot(p), ViewDir) > 0.
-                // We need ViewDir in the same space as Rot(p).
-                // Let's compute World Pos and see if it maps to screen.
-                // We need to know if it's occluded.
-                // Occlusion on sphere: DistToCamera(Point) < DistToCamera(Center).
-                // Center is phys.x,y,z. Point is World.
-
-                var wx = phys.x + r.x * 25;
-                var wy = phys.y + r.y * 25;
-                var wz = phys.z + r.z * 25;
+                var wx = phys.x + r.x * radius;
+                var wy = phys.y + r.y * radius;
+                var wz = phys.z + r.z * radius;
 
                 // DistSq to Camera
                 // camX/Y from g_camCache. camZ = cameraHeight.
@@ -1526,7 +1507,7 @@
                 // Estimate scale from center
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
                 var s = centerProj ? centerProj.scale : 1;
-                ctx.lineWidth = 2 * (25/25) * s * 1.5;
+                ctx.lineWidth = 2 * s * 1.5; // Adjusted thickness
 
                 ctx.beginPath();
                 var first = true;
