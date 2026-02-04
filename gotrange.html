@@ -700,6 +700,7 @@
 
 <script>
     var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
+    var player3D = { x: 433, y: 300, z: 0, vz: 0 }; // Global reference to current player
     var preJumpTimer = 0;
     var resetTimer = 0;
     var nextAction = null;
@@ -1332,6 +1333,166 @@
                 ],
                 normals: [
                     {x:0, y:0, z:-1}, {x:0, y:0, z:1}, {x:-1, y:0, z:0}, {x:1, y:0, z:0}, {x:0, y:-1, z:0}, {x:0, y:1, z:0}
+                ]
+            };
+
+            // Low Poly Geometries
+
+            // Hex Prism (Vertical, Origin at Top Center for pivot)
+            // Height 1.0 (goes from 0 to -1.0 on Z axis? or Y? Let's use Z up for world, but model space?)
+            // drawPlayer3D uses: Z is up.
+            // Let's define it along Z axis, from 0 down to -1.
+            var hexVerts = [];
+            var hexFaces = [];
+            var hexNormals = [];
+            for(var i=0; i<6; i++) {
+                var angle = (i/6) * Math.PI*2;
+                var nx = Math.cos(angle); var ny = Math.sin(angle);
+                // Top Ring (z=0)
+                hexVerts.push({x:nx*0.5, y:ny*0.5, z:0});
+                // Bottom Ring (z=-1)
+                hexVerts.push({x:nx*0.35, y:ny*0.35, z:-1}); // Tapered
+            }
+            // Faces (Side Quads)
+            for(var i=0; i<6; i++) {
+                var next = (i+1)%6;
+                // v indices: i*2 (top), i*2+1 (bot), next*2 (top), next*2+1 (bot)
+                // Quad: TopI, BotI, BotNext, TopNext
+                hexFaces.push([i*2, i*2+1, next*2+1, next*2]);
+                // Normal
+                var angle = ((i+0.5)/6) * Math.PI*2;
+                hexNormals.push({x:Math.cos(angle), y:Math.sin(angle), z:0});
+            }
+            // Top Cap
+            hexFaces.push([0, 2, 4, 6, 8, 10]); // Simplified fan? No, manual fan for poly.
+            // Actually renderer expects quads or tris in 'faces' array?
+            // Existing logic uses f[0], f[1], f[2], f[3]? cube has 4.
+            // My renderer in drawPlayer3D handles 4 verts.
+            // Hex cap is 6 verts. I should split it.
+            hexFaces.push([0, 2, 4, 0]); // Tris? (4th is duplicate for quad logic)
+            hexNormals.push({x:0, y:0, z:1});
+            hexFaces.push([0, 4, 6, 8]); // Wait indices... 0,2,4,6,8,10 are tops.
+            hexNormals.push({x:0, y:0, z:1});
+            hexFaces.push([0, 8, 10, 0]);
+            hexNormals.push({x:0, y:0, z:1});
+            // Bottom Cap
+            // ... similar ...
+
+            this.hexPrism = { vertices: hexVerts, faces: hexFaces, normals: hexNormals };
+
+            // Cylinder (Vertical Z, Origin Center)
+            var cylVerts = [], cylFaces = [], cylNormals = [];
+            var segs = 12;
+            for(var i=0; i<segs; i++) {
+                var ang = (i/segs)*Math.PI*2;
+                var c = Math.cos(ang), s = Math.sin(ang);
+                cylVerts.push({x:c*0.5, y:s*0.5, z:0.5}); // Top
+                cylVerts.push({x:c*0.5, y:s*0.5, z:-0.5}); // Bottom
+            }
+            // Sides
+            for(var i=0; i<segs; i++) {
+                var next = (i+1)%segs;
+                cylFaces.push([i*2, next*2, next*2+1, i*2+1]);
+                var ang = ((i+0.5)/segs)*Math.PI*2;
+                cylNormals.push({x:Math.cos(ang), y:Math.sin(ang), z:0});
+            }
+            // Caps
+            var topFace = [], botFace = [];
+            for(var i=0; i<segs; i++) { topFace.push(i*2); botFace.push((segs-1-i)*2+1); }
+            cylFaces.push(topFace); cylNormals.push({x:0,y:0,z:1});
+            cylFaces.push(botFace); cylNormals.push({x:0,y:0,z:-1});
+            this.cylinder = { vertices: cylVerts, faces: cylFaces, normals: cylNormals };
+
+            // Cone (Vertical Z, Point up)
+            var coneVerts = [], coneFaces = [], coneNormals = [];
+            coneVerts.push({x:0, y:0, z:0.5}); // Tip (Index 0)
+            for(var i=0; i<segs; i++) {
+                var ang = (i/segs)*Math.PI*2;
+                coneVerts.push({x:Math.cos(ang)*0.5, y:Math.sin(ang)*0.5, z:-0.5}); // Base
+            }
+            // Sides
+            for(var i=0; i<segs; i++) {
+                var next = (i+1)%segs;
+                // Tip, BaseNext, BaseCurrent
+                coneFaces.push([0, 1+next, 1+i]);
+                // Normal
+                var ang = ((i+0.5)/segs)*Math.PI*2;
+                coneNormals.push({x:Math.cos(ang), y:Math.sin(ang), z:0.5}); // Approx
+            }
+            // Base Cap
+            var coneBase = [];
+            for(var i=0; i<segs; i++) coneBase.push(1 + (segs-1-i));
+            coneFaces.push(coneBase); coneNormals.push({x:0,y:0,z:-1});
+            this.cone = { vertices: coneVerts, faces: coneFaces, normals: coneNormals };
+
+            // Trapezoid Torso (Broad shoulders, narrow waist)
+            // Origin Center or Bottom? Center is easier for position.
+            this.torso = {
+                vertices: [
+                    // Top (Shoulders) - Wider X
+                    {x:-0.6, y:-0.3, z:0.5}, {x:0.6, y:-0.3, z:0.5}, {x:0.6, y:0.3, z:0.5}, {x:-0.6, y:0.3, z:0.5},
+                    // Bottom (Waist) - Narrower X
+                    {x:-0.4, y:-0.25, z:-0.5}, {x:0.4, y:-0.25, z:-0.5}, {x:0.4, y:0.25, z:-0.5}, {x:-0.4, y:0.25, z:-0.5}
+                ],
+                faces: [
+                    [0, 1, 2, 3], // Top
+                    [4, 7, 6, 5], // Bottom
+                    [0, 3, 7, 4], // Left
+                    [1, 5, 6, 2], // Right
+                    [0, 4, 5, 1], // Front (Back in my coords? y is depth)
+                    [3, 2, 6, 7]  // Back
+                ],
+                normals: [
+                    {x:0, y:0, z:1}, {x:0, y:0, z:-1}, {x:-1, y:0, z:0}, {x:1, y:0, z:0}, {x:0, y:-1, z:0}, {x:0, y:1, z:0}
+                ]
+            };
+
+            // Head (Chiseled)
+            this.head = {
+                vertices: [
+                    // Top
+                    {x:-0.4, y:-0.4, z:0.5}, {x:0.4, y:-0.4, z:0.5}, {x:0.4, y:0.4, z:0.5}, {x:-0.4, y:0.4, z:0.5},
+                    // Mid (Cheekbones - wider)
+                    {x:-0.5, y:-0.5, z:0.0}, {x:0.5, y:-0.5, z:0.0}, {x:0.5, y:0.5, z:0.0}, {x:-0.5, y:0.5, z:0.0},
+                    // Bottom (Chin/Jaw - narrower)
+                    {x:-0.35, y:-0.35, z:-0.5}, {x:0.35, y:-0.35, z:-0.5}, {x:0.35, y:0.4, z:-0.5}, {x:-0.35, y:0.4, z:-0.5}
+                ],
+                faces: [
+                    // Top
+                    [0, 1, 2, 3],
+                    // Upper Band
+                    [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0],
+                    // Lower Band
+                    [4, 8, 9, 5], [5, 9, 10, 6], [6, 10, 11, 7], [7, 11, 8, 4],
+                    // Bottom
+                    [8, 11, 10, 9]
+                ],
+                normals: [
+                    {x:0, y:0, z:1},
+                    {x:0, y:-1, z:0.5}, {x:1, y:0, z:0.5}, {x:0, y:1, z:0.5}, {x:-1, y:0, z:0.5},
+                    {x:0, y:-1, z:-0.5}, {x:1, y:0, z:-0.5}, {x:0, y:1, z:-0.5}, {x:-1, y:0, z:-0.5},
+                    {x:0, y:0, z:-1}
+                ]
+            };
+
+            // Foot (Wedge Z-up, pointing +Y)
+            this.foot = {
+                vertices: [
+                    {x:-0.5, y:-0.5, z:-0.5}, {x:0.5, y:-0.5, z:-0.5}, // Heel Bottom
+                    {x:0.5, y:-0.5, z:0.2},  {x:-0.5, y:-0.5, z:0.2},  // Heel Top
+                    {x:-0.5, y:0.5, z:-0.5},  {x:0.5, y:0.5, z:-0.5},  // Toe Bottom
+                    {x:-0.5, y:0.5, z:-0.2}, {x:0.5, y:0.5, z:-0.2}    // Toe Top
+                ],
+                faces: [
+                    [0, 1, 2, 3], // Heel (Back)
+                    [0, 4, 5, 1], // Sole (Bottom)
+                    [3, 2, 7, 6], // Top Slope
+                    [4, 6, 7, 5], // Toe (Front)
+                    [0, 3, 6, 4], // Left
+                    [1, 5, 7, 2]  // Right
+                ],
+                normals: [
+                    {x:0, y:-1, z:0}, {x:0, y:0, z:-1}, {x:0, y:0.5, z:0.8}, {x:0, y:1, z:0}, {x:-1, y:0, z:0}, {x:1, y:0, z:0}
                 ]
             };
         }
@@ -6681,127 +6842,306 @@ let lastDisplayedContestTime = -1;
 
         // Animation State
         var anim = g_animState;
-        var px = player3D.x; var py = player3D.y; var pz = player3D.z;
+        var px = renderItem.wx; var py = renderItem.wy; var pz = renderItem.wz;
 
         // Facing (Yaw) - Face towards Hoop (+X)
         var facingAngle = Math.atan2(HOOP_POS.y - py, HOOP_POS.x - px);
 
         var parts = [];
 
-        // Helper to add box
-        // w=x-size, d=y-size, h=z-size
-        function addBox(x, y, z, w, d, h, rx, ry, rz, color) {
-            parts.push({x:x, y:y, z:z, w:w, d:d, h:h, rx:rx, ry:ry, rz:rz, color:color});
+        // Helper to add Mesh
+        function addMesh(geo, x, y, z, sx, sy, sz, rx, ry, rz, color) {
+            parts.push({geo:geo, x:x, y:y, z:z, sx:sx, sy:sy, sz:sz, rx:rx, ry:ry, rz:rz, color:color});
         }
 
-        // Torso (Center)
-        // pz is bottom of feet.
-        // Leg height = limbLen.
+        // Re-usable Vectors
         var legHeight = limbLen;
-        var torsoZ = pz + legHeight + bodyH/2;
-        addBox(px, py, torsoZ, bodyD, bodyW, bodyH, 0, 0, facingAngle, torsoColor);
+        var torsoHeight = bodyH;
+        var torsoWidth = bodyW * 1.5; // Wider with trapezoid
+        var torsoDepth = bodyD;
+
+        // Torso (Center)
+        // Trapezoid mesh is roughly unit sized. Scale to match dims.
+        var torsoZ = pz + legHeight + torsoHeight/2;
+        addMesh(Geometry.torso, px, py, torsoZ, torsoWidth, torsoDepth, torsoHeight, 0, 0, facingAngle, torsoColor);
 
         // Head
-        var headZ = torsoZ + bodyH/2 + headSize/2;
-        addBox(px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
+        var headZ = torsoZ + torsoHeight/2 + headSize/2;
+        addMesh(Geometry.head, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
 
-        // Legs
-        var hipZ = torsoZ - bodyH/2;
-        var legZ = pz + legHeight/2;
-        var hipOffset = bodyW/4;
+        // Legs (Hex Prisms)
+        // Hex Prism is Z from 0 to -1.
+        // Pivot is Top (Hip).
+        // Hip Position:
+        var hipZ = pz + legHeight;
+        var hipOffset = bodyW/2.5;
 
-        // Calculate offset vector based on facing
-        var ox = Math.sin(facingAngle) * hipOffset; // Perpendicular to facing
+        var ox = Math.sin(facingAngle) * hipOffset;
         var oy = -Math.cos(facingAngle) * hipOffset;
 
         // Left Leg
-        addBox(px - ox, py - oy, legZ, limbD, limbW, legHeight, 0, 0, facingAngle, pantsColor);
+        addMesh(Geometry.hexPrism, px - ox, py - oy, hipZ, limbW, limbD, legHeight, 0, 0, facingAngle, pantsColor);
+        // Left Foot
+        // Position: Bottom of leg. Leg goes 0 to -legHeight.
+        var footZ = hipZ - legHeight; // Ground level roughly
+        // Foot needs to face same as body (facingAngle).
+        // Geometry.foot points +Y. facingAngle 0 = +Y.
+        addMesh(Geometry.foot, px - ox, py - oy, footZ + 3, limbW*1.2, limbD*1.5, 6, 0, 0, facingAngle, shoeColor);
+
         // Right Leg
-        addBox(px + ox, py + oy, legZ, limbD, limbW, legHeight, 0, 0, facingAngle, pantsColor);
+        addMesh(Geometry.hexPrism, px + ox, py + oy, hipZ, limbW, limbD, legHeight, 0, 0, facingAngle, pantsColor);
+        // Right Foot
+        addMesh(Geometry.foot, px + ox, py + oy, footZ + 3, limbW*1.2, limbD*1.5, 6, 0, 0, facingAngle, shoeColor);
 
         // Arms
-        var shoulderZ = torsoZ + bodyH/3;
-        var armOffset = bodyW/2 + limbW/2;
+        var shoulderZ = torsoZ + bodyH/2 - 5;
+        var armOffset = torsoWidth/2 + 2; // Outside shoulder
         var ax = Math.sin(facingAngle) * armOffset;
         var ay = -Math.cos(facingAngle) * armOffset;
 
-        // Left Arm (Back)
         var laPitch = Math.PI/2 - anim.la;
+        // Pitch rotates around Y. Hex prism hangs down Z.
+        // Rotation order: Roll -> Pitch -> Yaw.
 
-        // Helper to add Rotated Limb attached to pivot
-        function addLimb(pivotX, pivotY, pivotZ, w, d, h, pitch, yaw, color) {
-            // Local center (assuming pivot is at top of limb)
-            var cz = -h/2;
-            var cx = 0;
+        addMesh(Geometry.hexPrism, px - ax, py - ay, shoulderZ, limbW, limbD, limbLen, 0, laPitch, facingAngle, limbColor);
 
-            // Rotate center by Pitch (around Y axis local)
-            var rcx = cx * Math.cos(pitch) + cz * Math.sin(pitch);
-            var rcz = -cx * Math.sin(pitch) + cz * Math.cos(pitch);
+        // Hand position:
+        // Local: (0, 0, -limbLen).
+        // Rotate by Pitch (laPitch) around Y.
+        // x = -length * sin(pitch)
+        // z = -length * cos(pitch)
+        var handLen = limbLen;
+        var hx = -handLen * Math.sin(laPitch);
+        var hz = -handLen * Math.cos(laPitch);
+        // Rotate by Yaw (facingAngle)
+        var whx = hx * Math.cos(facingAngle);
+        var why = hx * Math.sin(facingAngle);
+        // Translate to Shoulder
+        var handPx = (px - ax) + whx;
+        var handPy = (py - ay) + why;
+        var handPz = shoulderZ + hz;
 
-            // Rotate by Yaw (world)
-            var wcx = rcx * Math.cos(yaw) - 0 * Math.sin(yaw); // 0 is y local
-            var wcy = rcx * Math.sin(yaw) + 0 * Math.cos(yaw);
+        addMesh(Geometry.cube, handPx, handPy, handPz, limbW*1.2, limbD*1.2, limbW*1.2, 0, laPitch, facingAngle, skinObj.furColor || skinObj.skinTone || '#000');
 
-            addBox(pivotX + wcx, pivotY + wcy, pivotZ + rcz, w, d, h, 0, pitch, yaw, color);
-        }
-
-        addLimb(px - ax, py - ay, shoulderZ, limbD, limbW, limbLen, laPitch, facingAngle, limbColor);
-
-        // Right Arm (Front)
         var raPitch = Math.PI/2 - anim.ra;
-        addLimb(px + ax, py + ay, shoulderZ, limbD, limbW, limbLen, raPitch, facingAngle, limbColor);
+        addMesh(Geometry.hexPrism, px + ax, py + ay, shoulderZ, limbW, limbD, limbLen, 0, raPitch, facingAngle, limbColor);
 
-        // Accessories
+        // Right Hand
+        hx = -handLen * Math.sin(raPitch);
+        hz = -handLen * Math.cos(raPitch);
+        whx = hx * Math.cos(facingAngle);
+        why = hx * Math.sin(facingAngle);
+        handPx = (px + ax) + whx;
+        handPy = (py + ay) + why;
+        handPz = shoulderZ + hz;
+        addMesh(Geometry.cube, handPx, handPy, handPz, limbW*1.2, limbD*1.2, limbW*1.2, 0, raPitch, facingAngle, skinObj.furColor || skinObj.skinTone || '#000');
+
+        // Accessories (Refined)
+        var accZ = headZ + headSize/2;
+
         if (skinObj.headAccessory === 'top_hat') {
-            addBox(px, py, headZ + headSize/2 + 2, headSize*1.4, headSize*1.4, 2, 0, 0, facingAngle, '#111'); // Brim
-            addBox(px, py, headZ + headSize/2 + 12, headSize*0.9, headSize*0.9, 20, 0, 0, facingAngle, '#111'); // Top
-        } else if (skinObj.headAccessory === 'halo') {
-            addBox(px, py, headZ + headSize/2 + 15, headSize*1.2, headSize*1.2, 2, 0, 0, facingAngle, '#FFD700');
-        } else if (skinObj.headAccessory === 'cap' || skinObj.headAccessory === 'hat') {
-             addBox(px, py, headZ + headSize/2 + 2, headSize*1.1, headSize*1.1, 4, 0, 0, facingAngle, skinObj.hatColor || '#333');
-             var peakLen = 10;
-             var pX = Math.cos(facingAngle)*peakLen/2 + Math.cos(facingAngle)*headSize/2;
-             var pY = Math.sin(facingAngle)*peakLen/2 + Math.sin(facingAngle)*headSize/2;
-             addBox(px + pX, py + pY, headZ + headSize/2, peakLen, headSize, 2, 0, 0, facingAngle, skinObj.hatColor || '#333');
+            // Brim
+            addMesh(Geometry.cylinder, px, py, accZ + 2, headSize*1.6, headSize*1.6, 2, 0, 0, facingAngle, '#111');
+            // Top
+            addMesh(Geometry.cylinder, px, py, accZ + 12, headSize*1.0, headSize*1.0, 20, 0, 0, facingAngle, '#111');
+            // Band
+            addMesh(Geometry.cylinder, px, py, accZ + 5, headSize*1.05, headSize*1.05, 4, 0, 0, facingAngle, '#333');
         }
+        else if (skinObj.headAccessory === 'wizard_hat') {
+            // Brim
+            addMesh(Geometry.cylinder, px, py, accZ + 2, headSize*1.8, headSize*1.8, 2, 0, 0, facingAngle, skinObj.hatColor || '#000080');
+            // Cone
+            addMesh(Geometry.cone, px, py, accZ + 20, headSize*1.2, headSize*1.2, 35, 0, 0, facingAngle, skinObj.hatColor || '#000080');
+        }
+        else if (skinObj.headAccessory === 'crown') {
+            // Gold Cylinder
+            addMesh(Geometry.cylinder, px, py, accZ + 6, headSize*1.2, headSize*1.2, 10, 0, 0, facingAngle, '#FFD700');
+        }
+        else if (skinObj.headAccessory === 'halo') {
+            // Ring (Simulated by flat cylinder with hole? Or just flat cylinder for now)
+            addMesh(Geometry.cylinder, px, py, accZ + 15, headSize*1.2, headSize*1.2, 2, 0, 0, facingAngle, '#FFD700');
+        }
+        else if (skinObj.headAccessory === 'fez') {
+            addMesh(Geometry.cylinder, px, py, accZ + 6, headSize*0.8, headSize*0.8, 12, 0, 0, facingAngle, '#8B0000');
+        }
+        else if (skinObj.headAccessory === 'helmet') {
+            // Half sphere? Use Head mesh scaled up
+            addMesh(Geometry.head, px, py, headZ, headSize*1.1, headSize*1.1, headSize*1.1, 0, 0, facingAngle, skinObj.hatColor || '#87CEEB');
+        }
+        else if (skinObj.headAccessory === 'cap' || skinObj.headAccessory === 'hat') {
+             // Main cap
+             addMesh(Geometry.sphere, px, py, headZ + 5, headSize*1.05, headSize*1.05, headSize*0.6, 0, 0, facingAngle, skinObj.hatColor || '#333');
+             // Peak
+             var peakLen = 15;
+             var pX = Math.cos(facingAngle)*(headSize/2 + peakLen/2);
+             var pY = Math.sin(facingAngle)*(headSize/2 + peakLen/2);
+             addMesh(Geometry.cube, px + pX, py + pY, headZ + 5, peakLen, headSize, 2, 0, 0, facingAngle, skinObj.hatColor || '#333');
+        }
+        else if (skinObj.headDetail === 'mohawk') {
+             // Spikes along center
+             for(var i=-2; i<=2; i++) {
+                 var mz = headZ + headSize/2 + 5;
+                 var myOff = i * 5;
+                 var mx = Math.cos(facingAngle)*myOff;
+                 var my = Math.sin(facingAngle)*myOff;
+                 // Actually mohawk runs front-to-back relative to head.
+                 // Head facingAngle is yaw. Front is +X (relative).
+                 // Mohawk runs along X axis of head.
+                 var mX = Math.cos(facingAngle) * i * 6;
+                 var mY = Math.sin(facingAngle) * i * 6;
+
+                 addMesh(Geometry.cone, px + mX, py + mY, headZ + headSize/2 + 6, 4, 4, 12, 0, 0, facingAngle, skinObj.hairColor || '#000');
+             }
+        }
+
+        // Back Accessories
+        var backOff = -bodyD/2 - 2;
+        var backX = Math.cos(facingAngle) * backOff;
+        var backY = Math.sin(facingAngle) * backOff;
 
         if (skinObj.backAccessory === 'backpack') {
-             var bpOff = -bodyD/2 - 5;
-             var bpX = Math.cos(facingAngle)*bpOff;
-             var bpY = Math.sin(facingAngle)*bpOff;
-             addBox(px + bpX, py + bpY, torsoZ, 10, bodyW*0.8, bodyH*0.6, 0, 0, facingAngle, skinObj.backColor || '#555');
+             // Hex Prism Backpack (rotated for roundness)
+             addMesh(Geometry.hexPrism, px + backX*1.5, py + backY*1.5, torsoZ + bodyH*0.3, 15, bodyW*0.9, bodyH*0.6, 0, 0, facingAngle - Math.PI/6, skinObj.backColor || '#555');
+             // Small pocket
+             addMesh(Geometry.cube, px + backX*2.5, py + backY*2.5, torsoZ - 5, 5, bodyW*0.6, bodyH*0.25, 0, 0, facingAngle, '#333');
+        }
+        else if (skinObj.backAccessory === 'cape') {
+             // Cape (Thin Box)
+             addMesh(Geometry.cube, px + backX*1.5, py + backY*1.5, torsoZ - bodyH*0.2, 2, bodyW*1.4, bodyH*1.2, 0.2, 0, facingAngle, skinObj.backColor || '#000');
+        }
+        else if (skinObj.backAccessory === 'wings') {
+             // Wings (Two flattened cones or cubes)
+             var wingColor = skinObj.backColor || '#FFF';
+             var wingOff = bodyW/2 + 5;
+             var wxL = Math.cos(facingAngle + Math.PI/2) * wingOff;
+             var wyL = Math.sin(facingAngle + Math.PI/2) * wingOff;
+             var wxR = Math.cos(facingAngle - Math.PI/2) * wingOff;
+             var wyR = Math.sin(facingAngle - Math.PI/2) * wingOff;
+
+             addMesh(Geometry.cube, px + backX + wxL, py + backY + wyL, torsoZ + 5, 2, 20, 30, 0, -0.5, facingAngle + 0.5, wingColor);
+             addMesh(Geometry.cube, px + backX + wxR, py + backY + wyR, torsoZ + 5, 2, 20, 30, 0, 0.5, facingAngle - 0.5, wingColor);
+        }
+
+        // Back Props
+        if (skinObj.backProp) {
+             var bp = skinObj.backProp;
+             var propX = px + backX * 1.5;
+             var propY = py + backY * 1.5;
+             var propZ = torsoZ;
+
+             if (bp === 'axe') {
+                 // Handle
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 3, 3, 40, 0.7, 0.7, facingAngle, '#8B4513');
+                 // Head
+                 addMesh(Geometry.foot, propX, propY, propZ + 15, 10, 20, 5, 0.7, 0.7, facingAngle, '#AAA');
+             }
+             else if (bp === 'guitar') {
+                 // Body
+                 addMesh(Geometry.hexPrism, propX, propY, propZ - 5, 8, 15, 20, 0, 0, facingAngle, '#8B4513');
+                 // Neck
+                 addMesh(Geometry.cube, propX, propY, propZ + 15, 2, 3, 20, 0, 0, facingAngle, '#5D4037');
+             }
+             else if (bp === 'sword' || bp === 'staff') {
+                 var color = (bp==='staff') ? '#8B4513' : '#AAA';
+                 var len = (bp==='staff') ? 50 : 35;
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 3, 3, len, 0.7, -0.7, facingAngle, color);
+                 if(bp === 'staff') {
+                     addMesh(Geometry.sphere, propX, propY, propZ + 25, 6, 6, 6, 0, 0, 0, '#00FFFF');
+                 }
+             }
+             else if (bp === 'oxygen_tank') {
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 10, 10, 30, 0, 0, facingAngle, '#FFF');
+             }
+             else if (bp === 'windup_key') {
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 10, 0, Math.PI/2, facingAngle, '#C0C0C0');
+                 addMesh(Geometry.cylinder, propX + Math.cos(facingAngle)*10, propY + Math.sin(facingAngle)*10, propZ, 8, 8, 2, 0, 0, facingAngle, '#C0C0C0');
+             }
+             else if (bp === 'katanas' || bp === 'hockey_sticks') {
+                 var kc = (bp==='katanas') ? '#111' : '#D2B48C';
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, 0.5, 0.5, facingAngle, kc);
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, -0.5, -0.5, facingAngle, kc);
+             }
+        }
+
+        // Tails
+        var animal = skinObj.animal;
+        var tailColor = skinObj.furColor || skinObj.skinTone || '#555';
+        var tailX = px + backX;
+        var tailY = py + backY;
+        var tailZ = hipZ - 2;
+
+        if (animal === 'rat' || animal === 'mouse') {
+             // Long thin pink tail
+             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 2, 2, 30, -1.0, 0, facingAngle, '#FFC0CB');
+        }
+        else if (animal === 'cat' || animal === 'monkey' || animal === 'tiger' || animal === 'lion') {
+             // Long furry tail
+             if(animal==='lion') {
+                 addMesh(Geometry.cylinder, tailX, tailY, tailZ, 3, 3, 25, -0.8, 0, facingAngle, tailColor);
+                 addMesh(Geometry.sphere, tailX - Math.cos(facingAngle)*20, tailY - Math.sin(facingAngle)*20, tailZ - 15, 5, 5, 5, 0, 0, 0, '#8B4513'); // Tuft
+             } else {
+                 addMesh(Geometry.cylinder, tailX, tailY, tailZ, 3, 3, 30, -0.5, 0.5, facingAngle, tailColor);
+             }
+        }
+        else if (animal === 'dog' || animal === 'wolf' || animal === 'fox') {
+             // Bushy tail
+             addMesh(Geometry.cone, tailX - Math.cos(facingAngle)*10, tailY - Math.sin(facingAngle)*10, tailZ, 6, 6, 20, -1.2, 0, facingAngle, tailColor);
+        }
+        else if (animal === 'rabbit') {
+             // Ball tail
+             addMesh(Geometry.sphere, tailX, tailY, tailZ, 4, 4, 4, 0, 0, 0, '#FFF');
+        }
+        else if (skinObj.tailType === 'devil') {
+             addMesh(Geometry.cylinder, tailX, tailY, tailZ, 2, 2, 30, -1.0, 0, facingAngle, '#FF0000');
+             addMesh(Geometry.cone, tailX - Math.cos(facingAngle)*25, tailY - Math.sin(facingAngle)*25, tailZ - 20, 4, 4, 6, -0.5, 0, facingAngle, '#FF0000');
         }
 
         // --- 3. RENDER LOOP ---
         var facesToDraw = [];
 
         parts.forEach(function(p) {
-            var verts = Geometry.cube.vertices.map(function(v) {
-                var vx = v.x * p.w; var vy = v.y * p.d; var vz = v.z * p.h;
+            var geo = p.geo || Geometry.cube;
+
+            // Transform Vertices
+            var verts = geo.vertices.map(function(v) {
+                // Scale
+                var vx = v.x * p.sx; var vy = v.y * p.sy; var vz = v.z * p.sz;
+                // Rotate
                 var r = rotatePoint3D(vx, vy, vz, p.rx, p.ry, p.rz);
+                // Translate
                 return { x: r.x + p.x, y: r.y + p.y, z: r.z + p.z };
             });
 
+            // Project
             var pVerts = verts.map(function(v) {
                 return project(v.x, v.y, v.z, g_camCache);
             });
 
-            Geometry.cube.faces.forEach(function(f, i) {
-                var v0 = pVerts[f[0]]; var v1 = pVerts[f[1]]; var v2 = pVerts[f[2]]; var v3 = pVerts[f[3]];
-                if (!v0 || !v1 || !v2 || !v3) return;
+            // Faces
+            geo.faces.forEach(function(f, i) {
+                // Determine poly size (tri or quad)
+                var isQuad = (f.length >= 4);
 
+                var v0 = pVerts[f[0]]; var v1 = pVerts[f[1]]; var v2 = pVerts[f[2]];
+                if (!v0 || !v1 || !v2) return;
+                var v3 = isQuad ? pVerts[f[3]] : null;
+                if (isQuad && !v3) return;
+
+                // Backface Culling (Cross product of screen edges v0->v1 and v0->v2)
+                // Use winding order.
                 var cp = (v1.x - v0.x)*(v2.y - v0.y) - (v1.y - v0.y)*(v2.x - v0.x);
                 if (cp > 0) return;
 
-                var norm = Geometry.cube.normals[i];
+                // Lighting (Transform Normal)
+                var norm = (geo.normals && geo.normals[i]) ? geo.normals[i] : {x:0,y:0,z:1};
                 var rNorm = rotatePoint3D(norm.x, norm.y, norm.z, p.rx, p.ry, p.rz);
                 var light = 0.5 + Math.max(0, rNorm.x * 0.4 + rNorm.y * -0.4 + rNorm.z * 0.8) * 0.6;
 
                 var col = p.color;
                 if (col && col.startsWith('#')) col = shadeColor(col, (light - 1.0)*0.5);
 
-                var z = (v0.depth + v1.depth + v2.depth + v3.depth) / 4;
-                facesToDraw.push({ v: [v0, v1, v2, v3], c: col, z: z });
+                var z = (v0.depth + v1.depth + v2.depth + (v3?v3.depth:v0.depth)) / (isQuad?4:3);
+                facesToDraw.push({ v: isQuad ? [v0, v1, v2, v3] : [v0, v1, v2], c: col, z: z });
             });
         });
 
@@ -6811,9 +7151,9 @@ let lastDisplayedContestTime = -1;
             ctx.fillStyle = f.c;
             ctx.beginPath();
             ctx.moveTo(f.v[0].x, f.v[0].y);
-            ctx.lineTo(f.v[1].x, f.v[1].y);
-            ctx.lineTo(f.v[2].x, f.v[2].y);
-            ctx.lineTo(f.v[3].x, f.v[3].y);
+            for(var k=1; k<f.v.length; k++) {
+                ctx.lineTo(f.v[k].x, f.v[k].y);
+            }
             ctx.closePath();
             ctx.fill();
         });
@@ -8589,6 +8929,7 @@ let lastDisplayedContestTime = -1;
             obj.type = 'player';
             obj.depth = playerProj.depth;
             obj.x = playerProj.x; obj.y = playerProj.y; obj.scale = playerProj.scale;
+            obj.wx = player3D.x; obj.wy = player3D.y; obj.wz = player3D.z;
             g_renderList.push(obj);
         }
 
@@ -8598,6 +8939,7 @@ let lastDisplayedContestTime = -1;
             obj.type = 'player_shadow';
             obj.depth = shadowProj.depth + 0.1;
             obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
+            obj.wx = player3D.x; obj.wy = player3D.y; obj.wz = player3D.z;
             g_renderList.push(obj);
         }
 
