@@ -6907,6 +6907,7 @@ let lastDisplayedContestTime = -1;
         // Base model faces -Y (North), so add PI/2 to align with angleToHoop (which is from +X)
         // FLIPPED 180 degrees (+ Math.PI) so we see the back of the character (Body Front +Y -> Hoop)
         var facingAngle = angleToHoop + Math.PI/2 + Math.PI + g_animState.w;
+        var featureAngle = facingAngle + Math.PI;
 
         // Collect all faces from all parts
         var allFaces = [];
@@ -7035,7 +7036,6 @@ let lastDisplayedContestTime = -1;
         // featureAngle (Base+PI) makes -Y point Away From Hoop.
         // We want Features to point To Hoop (-Y -> Hoop).
         // So we rotate Features by 180 (featureAngle + PI = Base).
-        var featureAngle = facingAngle + Math.PI;
         var fwdX = Math.sin(featureAngle); var fwdY = -Math.cos(featureAngle);
         var rightX = Math.sin(featureAngle - Math.PI/2); var rightY = -Math.cos(featureAngle - Math.PI/2);
 
