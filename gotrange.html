@@ -7026,11 +7026,15 @@ let lastDisplayedContestTime = -1;
         var headMesh = Geometry.head;
         if (['pig', 'bear', 'cow'].includes(animal)) headMesh = Geometry.cube;
 
-        addMesh(headMesh, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle, headColor);
+        // Head Rotated 180 degrees (+ Math.PI) to face away from camera (Back of Head visible)
+        // If the body is "okay" (showing back) but head is "backwards" (showing face), we flip the head.
+        addMesh(headMesh, px, py, headZ, headSize, headSize, headSize, 0, 0, facingAngle + Math.PI, headColor);
 
         // Facial Features (Attached to head)
-        var fwdX = Math.sin(facingAngle); var fwdY = -Math.cos(facingAngle);
-        var rightX = Math.sin(facingAngle - Math.PI/2); var rightY = -Math.cos(facingAngle - Math.PI/2);
+        // Must also rotate 180 degrees
+        var headAngle = facingAngle + Math.PI;
+        var fwdX = Math.sin(headAngle); var fwdY = -Math.cos(headAngle);
+        var rightX = Math.sin(headAngle - Math.PI/2); var rightY = -Math.cos(headAngle - Math.PI/2);
 
         // Snout
         var snoutZ = headZ - headSize*0.1;
@@ -7039,16 +7043,16 @@ let lastDisplayedContestTime = -1;
 
         if (['rat', 'fox', 'wolf'].includes(animal)) {
             // Pointy Cone
-            addMesh(Geometry.cone, sx, sy, snoutZ, headSize*0.3, headSize*0.3, headSize*0.4, Math.PI/2, 0, facingAngle, snoutColor);
+            addMesh(Geometry.cone, sx, sy, snoutZ, headSize*0.3, headSize*0.3, headSize*0.4, Math.PI/2, 0, headAngle, snoutColor);
         } else if (animal === 'pig') {
             // Flat Cylinder
-            addMesh(Geometry.cylinder, sx, sy, snoutZ, headSize*0.25, headSize*0.25, headSize*0.2, Math.PI/2, 0, facingAngle, '#FFC0CB');
+            addMesh(Geometry.cylinder, sx, sy, snoutZ, headSize*0.25, headSize*0.25, headSize*0.2, Math.PI/2, 0, headAngle, '#FFC0CB');
         } else if (['bear', 'dog', 'cow'].includes(animal)) {
             // Box/Hex Muzzle
-            addMesh(Geometry.hexPrism, sx, sy, snoutZ, headSize*0.3, headSize*0.2, headSize*0.3, Math.PI/2, 0, facingAngle, snoutColor);
+            addMesh(Geometry.hexPrism, sx, sy, snoutZ, headSize*0.3, headSize*0.2, headSize*0.3, Math.PI/2, 0, headAngle, snoutColor);
         } else if (animal === 'rabbit' || animal === 'cat') {
             // Small button nose
-            addMesh(Geometry.hemisphere, sx, sy, snoutZ, headSize*0.1, headSize*0.1, headSize*0.1, Math.PI/2, 0, facingAngle, '#FFC0CB');
+            addMesh(Geometry.hemisphere, sx, sy, snoutZ, headSize*0.1, headSize*0.1, headSize*0.1, Math.PI/2, 0, headAngle, '#FFC0CB');
         }
 
         // 5. PATTERNS & DETAILS (Geometric Overlays)
@@ -7056,8 +7060,8 @@ let lastDisplayedContestTime = -1;
         if (skinObj.pattern === 'tiger_stripes' || skinObj.pattern === 'stripes') {
             var stripeColor = '#000';
             // Head Stripes
-            addMesh(Geometry.cylinder, px, py, headZ, headSize*1.02, headSize*1.02, 2, 0, 0, facingAngle, stripeColor);
-            addMesh(Geometry.cylinder, px, py, headZ+5, headSize*1.01, headSize*1.01, 2, 0, 0, facingAngle, stripeColor);
+            addMesh(Geometry.cylinder, px, py, headZ, headSize*1.02, headSize*1.02, 2, 0, 0, headAngle, stripeColor);
+            addMesh(Geometry.cylinder, px, py, headZ+5, headSize*1.01, headSize*1.01, 2, 0, 0, headAngle, stripeColor);
             // Body Stripes
             addMesh(Geometry.cylinder, px, py, torsoZ, bodyW*1.02, bodyD*1.02, 2, 0, 0, facingAngle, stripeColor);
             addMesh(Geometry.cylinder, px, py, torsoZ-8, bodyW*1.02, bodyD*1.02, 2, 0, 0, facingAngle, stripeColor);
@@ -7124,14 +7128,14 @@ let lastDisplayedContestTime = -1;
         var exR = px + rightX*(earOff); var eyR = py + rightY*(earOff);
 
         if (['rat', 'mouse', 'monkey', 'bear', 'panda', 'koala', 'lion'].includes(animal)) {
-            addMesh(Geometry.hemisphere, exL, eyL, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, -Math.PI/4, facingAngle, headColor);
-            addMesh(Geometry.hemisphere, exR, eyR, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, Math.PI/4, facingAngle, headColor);
+            addMesh(Geometry.hemisphere, exL, eyL, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, -Math.PI/4, headAngle, headColor);
+            addMesh(Geometry.hemisphere, exR, eyR, earZ, headSize*0.25, headSize*0.25, headSize*0.25, 0, Math.PI/4, headAngle, headColor);
         } else if (['cat', 'fox', 'wolf', 'pig'].includes(animal)) {
-            addMesh(Geometry.cone, exL, eyL, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, facingAngle, headColor);
-            addMesh(Geometry.cone, exR, eyR, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, facingAngle, headColor);
+            addMesh(Geometry.cone, exL, eyL, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, headAngle, headColor);
+            addMesh(Geometry.cone, exR, eyR, earZ, headSize*0.2, headSize*0.1, headSize*0.3, 0, 0, headAngle, headColor);
         } else if (animal === 'rabbit') {
-            addMesh(Geometry.cylinder, exL, eyL, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, facingAngle, headColor);
-            addMesh(Geometry.cylinder, exR, eyR, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, facingAngle, headColor);
+            addMesh(Geometry.cylinder, exL, eyL, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, headAngle, headColor);
+            addMesh(Geometry.cylinder, exR, eyR, earZ+headSize*0.4, headSize*0.1, headSize*0.1, headSize*0.8, 0, 0, headAngle, headColor);
         }
 
         // Eyes (Small Hemispheres)
@@ -7144,21 +7148,21 @@ let lastDisplayedContestTime = -1;
         var eyeXR = px + fwdX*eyeOffFwd + rightX*(eyeOffSide);
         var eyeYR = py + fwdY*eyeOffFwd + rightY*(eyeOffSide);
 
-        addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, facingAngle, '#FFF');
-        addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, facingAngle, '#FFF');
+        addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, headAngle, '#FFF');
+        addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.12, headSize*0.12, headSize*0.05, Math.PI/2, 0, headAngle, '#FFF');
         addMesh(Geometry.sphere, eyeXL + fwdX*2, eyeYL + fwdY*2, eyeZ, headSize*0.05, headSize*0.05, headSize*0.05, 0,0,0, '#000');
         addMesh(Geometry.sphere, eyeXR + fwdX*2, eyeYR + fwdY*2, eyeZ, headSize*0.05, headSize*0.05, headSize*0.05, 0,0,0, '#000');
 
         if (skinObj.id === 'bear_panda') {
-             addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, facingAngle, '#000');
-             addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, facingAngle, '#000');
+             addMesh(Geometry.hemisphere, eyeXL, eyeYL, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, headAngle, '#000');
+             addMesh(Geometry.hemisphere, eyeXR, eyeYR, eyeZ, headSize*0.18, headSize*0.15, headSize*0.02, Math.PI/2, 0, headAngle, '#000');
         }
 
         // Accessories
         if (skinObj.headAccessory === 'hat' || skinObj.headAccessory === 'top_hat') {
              var hatH = (skinObj.headAccessory === 'top_hat') ? 20 : 10;
-             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4, headSize*0.6, headSize*0.6, 2, 0, 0, facingAngle, '#333');
-             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4 + hatH/2, headSize*0.35, headSize*0.35, hatH, 0, 0, facingAngle, '#333');
+             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4, headSize*0.6, headSize*0.6, 2, 0, 0, headAngle, '#333');
+             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.4 + hatH/2, headSize*0.35, headSize*0.35, hatH, 0, 0, headAngle, '#333');
         }
         if (skinObj.headAccessory === 'halo') {
              addMesh(Geometry.basketball, px, py, headZ + headSize*0.8, 15, 15, 2, Math.PI/2, 0, 0, '#FFD700');
@@ -7175,13 +7179,13 @@ let lastDisplayedContestTime = -1;
         }
         else if (skinObj.headAccessory === 'eyepatch') {
              // Strap
-             addMesh(Geometry.cylinder, px, py, headZ+2, headSize*1.02, headSize*1.02, 1, 0.2, 0, facingAngle, '#000');
+             addMesh(Geometry.cylinder, px, py, headZ+2, headSize*1.02, headSize*1.02, 1, 0.2, 0, headAngle, '#000');
              // Patch
-             addMesh(Geometry.cylinder, px + fwdX*headSize*0.45 + rightX*5, py + fwdY*headSize*0.45 + rightY*5, headZ+2, 6, 6, 2, Math.PI/2, 0, facingAngle, '#000');
+             addMesh(Geometry.cylinder, px + fwdX*headSize*0.45 + rightX*5, py + fwdY*headSize*0.45 + rightY*5, headZ+2, 6, 6, 2, Math.PI/2, 0, headAngle, '#000');
         }
         else if (skinObj.headAccessory === 'mask') {
              // Wrap around head
-             addMesh(Geometry.cylinder, px, py, headZ, headSize*1.05, headSize*1.05, 12, 0, 0, facingAngle, hatColor);
+             addMesh(Geometry.cylinder, px, py, headZ, headSize*1.05, headSize*1.05, 12, 0, 0, headAngle, hatColor);
         }
 
         // Back Props
