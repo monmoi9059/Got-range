@@ -6899,8 +6899,13 @@ let lastDisplayedContestTime = -1;
         var handColor = skinObj.furColor || skinObj.skinTone || '#D2B48C';
         var shoeColor = skinObj.shoesColor || '#FFF';
 
-        var facingAngle = g_animState.w;
         var px = renderItem.wx; var py = renderItem.wy; var pz = renderItem.wz;
+
+        var dx = HOOP_POS.x - px;
+        var dy = HOOP_POS.y - py;
+        var angleToHoop = Math.atan2(dy, dx);
+        // Base model faces -Y (North), so add PI/2 to align with angleToHoop (which is from +X)
+        var facingAngle = angleToHoop + Math.PI/2 + g_animState.w;
 
         // Collect all faces from all parts
         var allFaces = [];
