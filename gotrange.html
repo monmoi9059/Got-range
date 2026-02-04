@@ -6905,9 +6905,8 @@ let lastDisplayedContestTime = -1;
         var dy = HOOP_POS.y - py;
         var angleToHoop = Math.atan2(dy, dx);
         // Base model faces -Y (North), so add PI/2 to align with angleToHoop (which is from +X)
-        // FLIPPED 180 degrees (+ Math.PI) so we see the back of the character (Body Front +Y -> Hoop)
-        var facingAngle = angleToHoop + Math.PI/2 + Math.PI + g_animState.w;
-        var featureAngle = facingAngle + Math.PI;
+        var facingAngle = angleToHoop + Math.PI/2 + g_animState.w;
+        var featureAngle = facingAngle;
 
         // Collect all faces from all parts
         var allFaces = [];
@@ -7191,9 +7190,12 @@ let lastDisplayedContestTime = -1;
              addMesh(Geometry.cylinder, px, py, headZ, headSize*1.05, headSize*1.05, 12, 0, 0, featureAngle, hatColor);
         }
 
-        // Back Props
-        var backX = -fwdX * (bodyD/2 + 5);
-        var backY = -fwdY * (bodyD/2 + 5);
+        // Back Props (Placed on Back Side = Opposite to Facing Vector)
+        // If facingAngle points to Hoop (-Y local?), and fwdX/Y matches that.
+        // We want back prop towards Camera (+Y local?).
+        // If "on chest" report implies it's on the wrong side, we flip the sign.
+        var backX = fwdX * (bodyD/2 + 5);
+        var backY = fwdY * (bodyD/2 + 5);
 
         if (skinObj.backAccessory === 'cape') {
              var capeColor = skinObj.backColor || '#000';
