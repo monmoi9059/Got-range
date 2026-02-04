@@ -2404,7 +2404,7 @@
 
     // --- 2. GLOBAL VARIABLES ---
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
 
     // Optimization: Pre-calculated Sun Gradient
     const sunGradient = ctx.createRadialGradient(700, 80, 0, 700, 80, 80);
@@ -2631,8 +2631,16 @@ let lastDisplayedContestTime = -1;
         addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
         document.getElementById('highScoreUI').style.display = 'none';
 
-        // Reset state so leaderboard can open
+        // Ensure changes persist in game1 context (Single Player)
+        loadContext(game1);
+
         state = 'IDLE';
+        // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
+        // and that the Shop opens after the leaderboard closes.
+        feedback = "TERMINÉ !";
+
+        saveContext(game1);
+
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
@@ -4435,63 +4443,102 @@ let lastDisplayedContestTime = -1;
         }
     }
 
-    function drawShadow(p) {
-        if(!p) return;
+    var ShadowSystem = {
+        canvas: null,
+        ctx: null,
+        init: function() {
+            if (this.canvas) return;
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = 512;
+            this.canvas.height = 512;
+            this.ctx = this.canvas.getContext('2d');
+        },
+        render: function(drawFn, x, y) {
+            this.init();
 
-        // Low Quality / Fallback
+            // Clear
+            this.ctx.clearRect(0, 0, 512, 512);
+
+            // Swap global ctx
+            var originalCtx = ctx;
+            ctx = this.ctx;
+
+            ctx.save();
+            // Center drawing at 256, 400
+            // The drawFn expects to draw at coordinates (x, y).
+            // We translate so that (x, y) maps to (256, 400)
+            ctx.translate(256 - x, 400 - y);
+
+            try {
+                drawFn();
+            } catch(e) {
+                console.error(e);
+            }
+
+            ctx.restore();
+
+            // Restore global ctx
+            ctx = originalCtx;
+
+            // Convert to Silhouette
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.fillStyle = '#000000';
+            this.ctx.fillRect(0, 0, 512, 512);
+            this.ctx.globalCompositeOperation = 'source-over';
+
+            return this.canvas;
+        }
+    };
+
+    function drawRealisticShadow(obj, type) {
+        if (!obj) return;
+
+        // Quality check
         if (playerData.graphics === 'LOW') {
-            ctx.fillStyle='rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.ellipse(p.x, p.y, 25*p.scale, 8*p.scale, 0, 0, Math.PI*2);
-            ctx.fill();
-            return;
+             // Fallback to simple blob if needed
+             ctx.fillStyle = 'rgba(0,0,0,0.3)';
+             ctx.beginPath();
+             ctx.ellipse(obj.x, obj.y, 25 * obj.scale, 8 * obj.scale, 0, 0, Math.PI * 2);
+             ctx.fill();
+             return;
         }
 
-        const s = p.scale;
-        const z = player3D.z;
+        var z = 0;
+        if (type === 'player') z = player3D.z;
+        if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
 
-        // Fade out shadow as player jumps high
-        const alpha = Math.max(0.1, 0.4 - (z / 600));
-        // Blur increases with height
-        const blur = Math.min(20, 5 + (z / 15));
+        // Calculate opacity and blur based on Z
+        var alpha = Math.max(0.05, 0.4 - (z / 800));
+        var blur = Math.min(10, 2 + (z / 50));
+
+        // Render Silhouette
+        var sCanvas = ShadowSystem.render(function() {
+            if (type === 'player') {
+                drawPlayer(obj);
+            } else if (type === 'ball') {
+                drawBall(obj, obj.ballRef);
+            }
+        }, obj.x, obj.y);
 
         ctx.save();
-        ctx.translate(p.x, p.y);
+        ctx.translate(obj.x, obj.y);
 
-        // Directional offset (Sun is roughly top-right 700,80)
-        // Cast shadow to bottom-left relative to light
-        // Simple rotation/skew
-        ctx.rotate(0.15);
+        // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
+        // Shear X by -0.6, Scale Y by 0.3 (Flatten)
+        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
 
-        // Main Soft Shadow
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = blur;
-        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.globalAlpha = alpha;
 
-        ctx.beginPath();
-        // Slightly larger and wider ellipse
-        ctx.ellipse(-5*s, 0, 30*s, 12*s, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        // Contact Shadows (Feet) - Only when close to ground
-        if (z < 40) {
-            ctx.shadowBlur = 2; // Sharp contact
-            const contactAlpha = (1 - (z/40)) * 0.6;
-            ctx.fillStyle = `rgba(0,0,0,${contactAlpha})`;
-
-            // Left Foot Area
-            ctx.beginPath();
-            ctx.ellipse(-10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
-            ctx.fill();
-
-            // Right Foot Area
-            ctx.beginPath();
-            ctx.ellipse(10*s, 2*s, 7*s, 4*s, 0, 0, Math.PI*2);
-            ctx.fill();
+        // Blur
+        if (ctx.filter) {
+            ctx.filter = 'blur(' + blur + 'px)';
         }
+
+        ctx.drawImage(sCanvas, -256, -400);
 
         ctx.restore();
     }
+
 
     function drawHoop(p) {
         if (!p) return;
@@ -7826,14 +7873,24 @@ let lastDisplayedContestTime = -1;
         const shadowProj = project(player3D.x, player3D.y, 0);
         if (shadowProj) {
             const obj = getRenderItem();
-            obj.type = 'shadow';
-            obj.depth = shadowProj.depth;
+            obj.type = 'player_shadow';
+            obj.depth = shadowProj.depth + 0.1;
             obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
             g_renderList.push(obj);
         }
 
         activeBalls.forEach(b => {
             if (b.active) {
+                const ballShadowProj = project(b.x, b.y, 0);
+                if (ballShadowProj) {
+                    const obj = getRenderItem();
+                    obj.type = 'ball_shadow';
+                    obj.depth = ballShadowProj.depth + 0.1;
+                    obj.x = ballShadowProj.x; obj.y = ballShadowProj.y; obj.scale = ballShadowProj.scale;
+                    obj.ballRef = b;
+                    g_renderList.push(obj);
+                }
+
                 const ballProj = project(b.x, b.y, b.z);
                 if (ballProj) {
                     const obj = getRenderItem();
@@ -7868,7 +7925,8 @@ let lastDisplayedContestTime = -1;
         g_renderList.forEach(obj => {
             if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
             if (obj.type === 'hoop') drawHoop(obj);
-            if (obj.type === 'shadow') drawShadow(obj);
+            if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
+            if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
             if (obj.type === 'player') drawPlayer(obj);
             if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
@@ -8268,7 +8326,21 @@ let lastDisplayedContestTime = -1;
                 if (nextAction) {
                     const action = nextAction;
                     nextAction = null;
+
+                    // Context Safety: Save current context identity
+                    // Because action() might trigger openShop() which calls loadContext(game1)
+                    // If we don't restore, the rest of this update() loop and the final saveContext()
+                    // will operate on the WRONG context (game1 instead of game2), corrupting state.
+                    let currentCtx = null;
+                    if (playerData === game1.playerData) currentCtx = game1;
+                    else if (game2 && playerData === game2.playerData) currentCtx = game2;
+
                     action();
+
+                    // Restore context if it was swapped
+                    if (currentCtx && playerData !== currentCtx.playerData) {
+                        loadContext(currentCtx);
+                    }
                 }
             }
         }
@@ -8353,7 +8425,13 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) { player3D.z = 0; player3D.vz = 0; state = 'GAMEOVER'; feedback = "MARCHÉ!"; feedbackTimer = 60; resetTimer = 90; nextAction = openShop; }
+                if (player3D.z <= 0) {
+                    // Prevent Marché violation by forcing a late shot
+                    player3D.z = 0; player3D.vz = 0;
+                    // Calculate a penalty timing error (late release)
+                    // Normal threshold is approx 1.0. We pass 5.0 to ensure a miss.
+                    shoot(5.0);
+                }
             }
         }
         if (state === 'SHOOTING') {
@@ -8597,16 +8675,64 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            state = 'IDLE'; updateUI();
+            state = 'IDLE';
+            feedback = ""; feedbackTimer = 0; // Clear Marché feedback
+            updateUI();
             invalidateBackgroundCache();
         }
     }
 
     // --- UI FUNCTIONS ---
-    window.openShop = function() {
-        if(isSplitscreen) return;
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'SHOP'; shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
+    var g_shopTargetPlayer = 1; // 1 or 2
+
+    function getShopContext() {
+        if (!isSplitscreen) return game1;
+        return (g_shopTargetPlayer === 2) ? game2 : game1;
+    }
+
+    window.switchShopPlayer = function(p) {
+        // Do NOT save current context state blindly here.
+        // If called while the game loop is processing the OTHER player,
+        // global variables might contain the other player's data.
+        // Saving them into getShopContext() (which is the PREVIOUS tab)
+        // would overwrite the previous player's data with the current loop's data.
+        // Since we are just switching UI views, we load the new target.
+
+        g_shopTargetPlayer = p;
+        const btn1 = document.getElementById('btnShopP1');
+        const btn2 = document.getElementById('btnShopP2');
+        if (p === 1) {
+            btn1.style.background = "#0047AB"; btn1.style.border = "2px solid #FFF";
+            btn2.style.background = "#333"; btn2.style.border = "1px solid #555";
+        } else {
+            btn1.style.background = "#333"; btn1.style.border = "1px solid #555";
+            btn2.style.background = "#0047AB"; btn2.style.border = "2px solid #FFF";
+        }
+
+        loadContext(getShopContext());
+        updateShopUI();
+        // We don't save here, updateShopUI just refreshes view.
+        // But loadContext sets global variables, so we are now editing the new player.
+    }
+
+    window.openShop = function(force) {
+        g_shopTargetPlayer = 1; // Default to P1
+        loadContext(game1);
+
+        // If force is true (e.g. from Game Over logic), ignore state check
+        if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
+
+        state = 'SHOP';
+        if(isSplitscreen) {
+            loadContext(game2); state = 'SHOP'; saveContext(game2);
+            loadContext(game1); // Restore P1 for initial view
+            document.getElementById('shopPlayerToggle').style.display = 'block';
+            window.switchShopPlayer(1); // Set UI to P1
+        } else {
+            document.getElementById('shopPlayerToggle').style.display = 'none';
+        }
+
+        shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
     }
@@ -8734,13 +8860,36 @@ let lastDisplayedContestTime = -1;
             showNotification("TRICHEUR !", 0);
         }
     }
-    window.closeShop = function() { state = 'IDLE'; shopUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
-    window.closeAchievements = function() { state = 'IDLE'; achUI.style.display = 'none'; if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame(); saveContext(game1); }
-    window.closeStats = function() {
-        state = 'IDLE'; statsUI.style.display = 'none'; resetStage = 0;
-        const btn = document.getElementById('btnReset'); if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
-        if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!") resetGame();
-        saveContext(game1);
+
+    window.closeAllMenus = function(callback) {
+        // Reset Stats UI state
+        resetStage = 0;
+        const btn = document.getElementById('btnReset');
+        if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
+
+        const resetState = (ctx) => {
+            loadContext(ctx);
+            if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD'].includes(state)) {
+                state = 'IDLE';
+                // Only reset game if we are in a game over state that requires it
+                // Includes "RECORD" for Time Attack high scores
+                if(feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || (feedback && feedback.includes("RECORD"))) resetGame();
+            }
+            saveContext(ctx);
+        };
+
+        // Important: Iterate both players to ensure clean state and prevent cross-save pollution
+        resetState(game1);
+        if(isSplitscreen) resetState(game2);
+
+        shopUI.style.display = 'none';
+        achUI.style.display = 'none';
+        statsUI.style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+
+        // Restore P1 context for main loop
+        loadContext(game1);
+        if(callback) callback();
     }
     window.updateDifficulty = function() {
         const val = parseFloat(document.getElementById('diffSlider').value);
@@ -9524,7 +9673,7 @@ let lastDisplayedContestTime = -1;
         if (type === 'press') {
             handleActionPress();
         } else if (type === 'release') {
-            if (state === 'JUMPING') releaseShot();
+            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
         }
         saveContext(game);
     }
