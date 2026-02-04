@@ -7044,6 +7044,72 @@ let lastDisplayedContestTime = -1;
             addMesh(Geometry.hemisphere, sx, sy, snoutZ, headSize*0.1, headSize*0.1, headSize*0.1, Math.PI/2, 0, facingAngle, '#FFC0CB');
         }
 
+        // 5. PATTERNS & DETAILS (Geometric Overlays)
+        // Stripes (Tiger, Garfield)
+        if (skinObj.pattern === 'tiger_stripes' || skinObj.pattern === 'stripes') {
+            var stripeColor = '#000';
+            // Head Stripes
+            addMesh(Geometry.cylinder, px, py, headZ, headSize*1.02, headSize*1.02, 2, 0, 0, facingAngle, stripeColor);
+            addMesh(Geometry.cylinder, px, py, headZ+5, headSize*1.01, headSize*1.01, 2, 0, 0, facingAngle, stripeColor);
+            // Body Stripes
+            addMesh(Geometry.cylinder, px, py, torsoZ, bodyW*1.02, bodyD*1.02, 2, 0, 0, facingAngle, stripeColor);
+            addMesh(Geometry.cylinder, px, py, torsoZ-8, bodyW*1.02, bodyD*1.02, 2, 0, 0, facingAngle, stripeColor);
+        }
+
+        // Spots (Dalmatian, Cow, Frog)
+        if (skinObj.hasSpots || skinObj.pattern === 'spots' || skinObj.pattern === 'cow_spots') {
+            var spotColor = skinObj.spotColor || '#000';
+            // Random-ish placements (fixed for consistency)
+            addMesh(Geometry.sphere, px + fwdX*headSize*0.4, py + fwdY*headSize*0.4, headZ + 5, 4, 4, 1, 0, 0, 0, spotColor);
+            addMesh(Geometry.sphere, px - fwdX*headSize*0.4, py - fwdY*headSize*0.4, headZ - 5, 5, 5, 1, 0, 0, 0, spotColor);
+            addMesh(Geometry.sphere, px + rightX*bodyW*0.4, py + rightY*bodyW*0.4, torsoZ, 5, 5, 1, 0, 0, 0, spotColor);
+        }
+
+        // Plaid (Lumberjack) - Grid of thin boxes
+        if (skinObj.pattern === 'plaid') {
+            // Horizontal
+            addMesh(Geometry.cube, px, py, torsoZ, bodyW*1.05, bodyD*1.05, 2, 0, 0, facingAngle, '#000');
+            addMesh(Geometry.cube, px, py, torsoZ-8, bodyW*1.05, bodyD*1.05, 2, 0, 0, facingAngle, '#000');
+            // Vertical
+            addMesh(Geometry.cube, px + rightX*5, py + rightY*5, torsoZ, 2, bodyD*1.05, bodyH, 0, 0, facingAngle, '#000');
+            addMesh(Geometry.cube, px - rightX*5, py - rightY*5, torsoZ, 2, bodyD*1.05, bodyH, 0, 0, facingAngle, '#000');
+        }
+
+        // Suspenders
+        if (skinObj.clothingDetail === 'suspenders') {
+            addMesh(Geometry.cube, px + rightX*6, py + rightY*6, torsoZ, 3, bodyD*1.1, bodyH, 0, 0, facingAngle, '#333');
+            addMesh(Geometry.cube, px - rightX*6, py - rightY*6, torsoZ, 3, bodyD*1.1, bodyH, 0, 0, facingAngle, '#333');
+        }
+
+        // Overalls
+        if (skinObj.clothingDetail === 'overalls') {
+            var overallColor = skinObj.shortsColor || '#00008B';
+            // Bib
+            addMesh(Geometry.cube, px + fwdX*bodyD*0.55, py + fwdY*bodyD*0.55, torsoZ + 5, bodyW*0.6, 2, bodyH*0.5, 0, 0, facingAngle, overallColor);
+            // Straps
+            addMesh(Geometry.cube, px + rightX*6, py + rightY*6, torsoZ + 10, 3, bodyD*1.1, bodyH*0.4, 0, 0, facingAngle, overallColor);
+            addMesh(Geometry.cube, px - rightX*6, py - rightY*6, torsoZ + 10, 3, bodyD*1.1, bodyH*0.4, 0, 0, facingAngle, overallColor);
+            // Buttons
+            addMesh(Geometry.sphere, px + fwdX*bodyD*0.6 + rightX*5, py + fwdY*bodyD*0.6 + rightY*5, torsoZ + 10, 2, 2, 1, 0, 0, 0, '#FFD700');
+            addMesh(Geometry.sphere, px + fwdX*bodyD*0.6 - rightX*5, py + fwdY*bodyD*0.6 - rightY*5, torsoZ + 10, 2, 2, 1, 0, 0, 0, '#FFD700');
+        }
+
+        // Apron Ties
+        if (skinObj.clothingDetail === 'apron_ties') {
+            // Bow on back
+            addMesh(Geometry.sphere, px - fwdX*bodyD*0.6, py - fwdY*bodyD*0.6, hipZ + bodyH*0.5, 4, 4, 3, 0, 0, 0, '#FFF');
+        }
+
+        // Robot / Cyborg Details
+        if (skinObj.id.includes('robot') || skinObj.id.includes('cyborg')) {
+             // Antenna
+             addMesh(Geometry.cylinder, px, py, headZ + headSize*0.6, 1, 1, 15, 0, 0, facingAngle, '#888');
+             addMesh(Geometry.sphere, px, py, headZ + headSize*0.6 + 15, 3, 3, 3, 0, 0, 0, '#F00');
+             // Chest Panel
+             addMesh(Geometry.cube, px + fwdX*bodyD*0.55, py + fwdY*bodyD*0.55, torsoZ, bodyW*0.6, 1, bodyH*0.5, 0, 0, facingAngle, '#555');
+             addMesh(Geometry.sphere, px + fwdX*bodyD*0.6, py + fwdY*bodyD*0.6, torsoZ, 2, 2, 1, 0, 0, 0, '#0FF');
+        }
+
         // Ears
         var earZ = headZ + headSize*0.4;
         var earOff = headSize*0.35;
@@ -7089,6 +7155,80 @@ let lastDisplayedContestTime = -1;
         }
         if (skinObj.headAccessory === 'halo') {
              addMesh(Geometry.basketball, px, py, headZ + headSize*0.8, 15, 15, 2, Math.PI/2, 0, 0, '#FFD700');
+        }
+
+        // 6. ACCESSORIES (Expanded - continued from pattern block)
+        // Note: Hats etc already handled by simple block, but let's enhance or allow multiple
+
+        // Extended Accessories
+        // ... (Already covered by the block above mostly, but let's check for missing ones)
+        // Red Nose
+        if (skinObj.headAccessory === 'red_nose') {
+             addMesh(Geometry.sphere, px + fwdX*headSize*0.5, py + fwdY*headSize*0.5, headZ, 6, 6, 6, 0, 0, 0, '#F00');
+        }
+        else if (skinObj.headAccessory === 'eyepatch') {
+             // Strap
+             addMesh(Geometry.cylinder, px, py, headZ+2, headSize*1.02, headSize*1.02, 1, 0.2, 0, facingAngle, '#000');
+             // Patch
+             addMesh(Geometry.cylinder, px + fwdX*headSize*0.45 + rightX*5, py + fwdY*headSize*0.45 + rightY*5, headZ+2, 6, 6, 2, Math.PI/2, 0, facingAngle, '#000');
+        }
+        else if (skinObj.headAccessory === 'mask') {
+             // Wrap around head
+             addMesh(Geometry.cylinder, px, py, headZ, headSize*1.05, headSize*1.05, 12, 0, 0, facingAngle, hatColor);
+        }
+
+        // Back Props
+        var backX = -fwdX * (bodyD/2 + 5);
+        var backY = -fwdY * (bodyD/2 + 5);
+
+        if (skinObj.backAccessory === 'cape') {
+             var capeColor = skinObj.backColor || '#000';
+             // Simple plane (thin box)
+             addMesh(Geometry.cube, px + backX*1.5, py + backY*1.5, torsoZ - 5, bodyW*1.2, 2, bodyH*0.9, 0.2, 0, facingAngle, capeColor);
+        }
+        else if (skinObj.backAccessory === 'backpack') {
+             var packColor = skinObj.backColor || '#555';
+             addMesh(Geometry.cube, px + backX, py + backY, torsoZ + 5, bodyW*0.9, bodyD, bodyH*0.6, 0, 0, facingAngle, packColor);
+        }
+
+        if (skinObj.backProp) {
+             var bp = skinObj.backProp;
+             var propZ = torsoZ;
+             var propX = px + backX * 1.5;
+             var propY = py + backY * 1.5;
+
+             if (bp === 'axe') {
+                 // Handle
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, 0.7, 0.7, facingAngle, '#8B4513');
+                 // Blade
+                 addMesh(Geometry.cube, propX, propY, propZ + 15, 10, 20, 5, 0.7, 0.7, facingAngle, '#AAA');
+             }
+             else if (bp === 'guitar') {
+                 // Body
+                 addMesh(Geometry.hexPrism, propX, propY, propZ - 5, 8, 15, 20, 0, 0, facingAngle, '#8B4513');
+                 // Neck
+                 addMesh(Geometry.cube, propX, propY, propZ + 15, 2, 3, 20, 0, 0, facingAngle, '#5D4037');
+             }
+             else if (bp === 'sword' || bp === 'staff') {
+                 var color = (bp==='staff') ? '#8B4513' : '#AAA';
+                 var len = (bp==='staff') ? 50 : 35;
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 3, 3, len, 0.7, -0.7, facingAngle, color);
+                 if(bp === 'staff') {
+                     addMesh(Geometry.sphere, propX, propY, propZ + 25, 6, 6, 6, 0, 0, 0, '#00FFFF');
+                 }
+             }
+             else if (bp === 'oxygen_tank') {
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 10, 10, 30, 0, 0, facingAngle, '#FFF');
+             }
+             else if (bp === 'windup_key') {
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 10, 0, Math.PI/2, facingAngle, '#C0C0C0');
+                 addMesh(Geometry.cylinder, propX + Math.cos(facingAngle)*10, propY + Math.sin(facingAngle)*10, propZ, 8, 8, 2, 0, 0, facingAngle, '#C0C0C0');
+             }
+             else if (bp === 'katanas' || bp === 'hockey_sticks') {
+                 var kc = (bp==='katanas') ? '#111' : '#D2B48C';
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, 0.5, 0.5, facingAngle, kc);
+                 addMesh(Geometry.cylinder, propX, propY, propZ, 2, 2, 40, -0.5, -0.5, facingAngle, kc);
+             }
         }
 
         // Tails
