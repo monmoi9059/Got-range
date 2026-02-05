@@ -5975,6 +5975,13 @@ let lastDisplayedContestTime = -1;
             armWidth: skinObj.armWidthScale || (skinObj.widthScale || 0.9),
             legWidth: skinObj.legWidthScale || (skinObj.widthScale || 0.9)
         };
+
+        // Hulk Override (Must be applied here as drawPlayer sizeMod is not passed)
+        if (skinObj.id === 'human_hulk') {
+            sizeMod.w *= 3.0; // Chest 3x
+            sizeMod.h *= 1.5;
+        }
+
         const skinTone = skinObj.skinTone || '#8d5524';
         
         // Body Dimensions
