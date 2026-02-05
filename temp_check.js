@@ -1,704 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Taco Basket Ball - Québec Édition</title>
-    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlRhY28gQmFza2V0IEJhbGwiLCAic2hvcnRfbmFtZSI6ICJUYWNvQmFsbCIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIiwgInRoZW1lX2NvbG9yIjogIiNGRkQ3MDAiLCAib3JpZW50YXRpb24iOiAibGFuZHNjYXBlIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiYW55IiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9LCB7InNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1EQWdNVEF3SWo0OFkybHlZMnhsSUdONFBTSTFNQ0lnWTNrOUlqUXdJaUJ5UFNJek1DSWdabWxzYkQwaUkwWkdPRU13TUNJdlBqeHdZWFJvSUdROUlrMDFNQ0F4TUNCQklETXdJRE13SURBZ01DQXhJRFV3SURjd0lFMHlNQ0EwTUNCQklETXdJRE13SURBZ01DQXhJRGd3SURRd0lpQnpkSEp2YTJVOUlpTTRRalExTURBaUlITjBjbTlyWlMxM2FXUjBhRDBpTXlJZ1ptbHNiRDBpYm05dVpTSXZQanh3WVhSb0lHUTlJazB4TUNBMU1DQlJJRFV3SURFd01DQTVNQ0ExTUNJZ1ptbHNiRDBpSTBaR1JEY3dNQ0lnYzNSeWIydGxQU0lqUkVGQk5USXdJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlMejQ4Y0dGMGFDQmtQU0pOTVRVZ05UQWdVU0F5TlNBME1DQXpOU0ExTUNCVUlEVTFJRFV3SUZRZ056VWdOVEFnVkNBNE5TQTFNQ0lnYzNSeWIydGxQU0lqTXpKRFJETXlJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlJR1pwYkd3OUltNXZibVVpTHo0OEwzTjJaejQ9IiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIn0sIHsic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifV19">
-    <meta name="theme-color" content="#FFD700">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto+Condensed:wght@700&display=swap');
 
-        :root {
-            --broadcast-bg: #0f0f0f;
-            --broadcast-accent: #FFD700;
-            --broadcast-blue: #0047AB;
-            --broadcast-red: #D32F2F;
-            --broadcast-text: #ffffff;
-            --broadcast-font-title: 'Russo One', 'Impact', sans-serif;
-            --broadcast-font-body: 'Roboto Condensed', 'Arial Narrow', sans-serif;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #1a1a1a;
-            color: white;
-            font-family: var(--broadcast-font-body);
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        #game-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 1066px;
-            height: 600px;
-            background: #000;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        }
-
-        canvas {
-            border: 4px solid #1a1a1a;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
-            width: 100%;
-            height: 100%;
-            display: block;
-            box-sizing: border-box;
-        }
-
-        /* SCOREBUG (Top HUD) */
-        #scorebug-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            height: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            pointer-events: none;
-            z-index: 100;
-        }
-
-        .sb-panel {
-            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
-            border-bottom: 4px solid var(--broadcast-accent);
-            color: white;
-            padding: 0 25px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transform: skewX(-15deg);
-            border-left: 2px solid #444;
-        }
-
-        .sb-content {
-            transform: skewX(15deg);
-            display: flex;
-            gap: 25px;
-            align-items: center;
-        }
-
-        .sb-logo {
-            font-family: var(--broadcast-font-title);
-            font-size: 28px;
-            color: var(--broadcast-accent);
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0 #000;
-            letter-spacing: 1px;
-        }
-
-        .sb-stat-group {
-            display: flex;
-            gap: 15px;
-            border-left: 1px solid #444;
-            padding-left: 15px;
-        }
-
-        .sb-stat {
-            display: flex;
-            flex-direction: column;
-            line-height: 1;
-            text-align: left;
-        }
-
-        .sb-label {
-            font-size: 11px;
-            color: #aaa;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-
-        .sb-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .sb-highlight { color: var(--broadcast-accent); }
-        .sb-danger { color: var(--broadcast-red); }
-
-        /* Controls (Bottom Overlay) */
-        #controls {
-            position: absolute;
-            bottom: 130px; /* Sits above the 120px canvas bar */
-            left: 0;
-            width: 100%;
-            text-align: center;
-            pointer-events: auto;
-            z-index: 20;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .broadcast-btn {
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid #444;
-            border-bottom: 3px solid var(--broadcast-accent);
-            color: #fff;
-            padding: 8px 30px;
-            font-family: var(--broadcast-font-body);
-            font-weight: 700;
-            font-size: 18px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-            transform: skewX(-10deg);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-        }
-
-        .broadcast-btn span {
-            display: inline-block;
-            transform: skewX(10deg);
-        }
-
-        .broadcast-btn:hover {
-            background: #333;
-            border-color: #fff;
-            border-bottom-color: #fff;
-        }
-
-        .broadcast-btn:active {
-            transform: skewX(-10deg) translateY(2px);
-            box-shadow: none;
-        }
-
-        .broadcast-icon-btn {
-            background: rgba(10, 10, 10, 0.9);
-            border: 2px solid #444;
-            color: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            transition: all 0.2s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .broadcast-icon-btn:hover {
-            border-color: var(--broadcast-accent);
-            color: var(--broadcast-accent);
-            background: #222;
-        }
-
-        /* Modals Remaster */
-        .modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px;
-            max-height: 85%;
-            overflow-y: auto;
-            background: #111;
-            border: 2px solid var(--broadcast-accent);
-            padding: 0; /* Removing padding to use header fully */
-            color: white;
-            text-align: center;
-            z-index: 100;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9);
-            border-radius: 0; /* Sharp corners */
-        }
-
-        .modal-content-wrapper {
-            padding: 25px;
-        }
-
-        .modal::-webkit-scrollbar { width: 8px; }
-        .modal::-webkit-scrollbar-track { background: #222; }
-        .modal::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
-
-        .modal-header {
-            background: linear-gradient(90deg, #222, #111);
-            color: var(--broadcast-accent);
-            padding: 15px;
-            font-size: 2.5em;
-            font-family: var(--broadcast-font-title);
-            text-transform: uppercase;
-            border-bottom: 2px solid #333;
-            margin: 0;
-            text-align: center;
-        }
-
-        .upgrade-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a1a;
-            margin: 10px 0;
-            padding: 15px;
-            border: 1px solid #333;
-            border-left: 4px solid #555;
-        }
-        .difficulty-row {
-            background: #1a1a1a;
-            border: 1px solid var(--broadcast-accent);
-            margin: 15px 0;
-            padding: 15px;
-            text-align: left;
-        }
-        input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: var(--broadcast-accent); }
-
-        .ach-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            margin: 8px 0;
-            padding: 12px;
-            opacity: 0.7;
-            transition: 0.3s;
-        }
-        .ach-row.unlocked {
-            border-color: var(--broadcast-accent);
-            background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
-            opacity: 1;
-            border-left: 4px solid var(--broadcast-accent);
-        }
-        .ach-icon { font-size: 28px; margin-right: 15px; }
-        .ach-info h4 { margin: 0; color: #fff; font-family: var(--broadcast-font-body); font-size: 1.2em; text-transform: uppercase; }
-        .ach-row.unlocked .ach-info h4 { color: var(--broadcast-accent); }
-        .ach-info span { font-size: 0.9em; color: #aaa; }
-
-        .btn {
-            background: #222;
-            color: white;
-            border: 1px solid #555;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: var(--broadcast-font-body);
-            font-weight: bold;
-            font-size: 16px;
-            text-transform: uppercase;
-            transition: all 0.2s;
-        }
-        .btn:hover { background: #333; border-color: #fff; }
-        .btn:active { transform: translateY(2px); }
-        .btn:disabled { background: #111; color: #444; border-color: #222; cursor: not-allowed; transform: none; }
-        .btn-close {
-            background: var(--broadcast-red);
-            border: none;
-            width: 100%;
-            padding: 15px;
-            font-size: 1.4em;
-            margin-top: 20px;
-        }
-        .btn-close:hover { background: #b71c1c; }
-
-        .skin-viewer {
-            margin-top: 20px;
-            border-top: 1px solid #333;
-            padding-top: 15px;
-            background: #151515;
-            padding: 15px;
-        }
-        .skin-nav {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin: 10px 0;
-        }
-        .selector-label { width: 180px; font-size: 1.4em; color: var(--broadcast-accent); font-weight: bold; text-transform: uppercase; font-family: var(--broadcast-font-title); }
-
-        #notification {
-            position: absolute;
-            bottom: 280px; /* Adjusted for new HUD */
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.9);
-            border-left: 5px solid var(--broadcast-accent);
-            color: #fff;
-            padding: 15px 40px;
-            font-size: 1.4em;
-            font-weight: bold;
-            display: none;
-            z-index: 200;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            font-family: var(--broadcast-font-title);
-            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes slideUp {
-            from { bottom: 200px; opacity: 0; }
-            to { bottom: 280px; opacity: 1; }
-        }
-
-        /* Mobile Controls */
-        .mobile-shoot-btn {
-            position: fixed;
-            right: 30px;
-            bottom: 40%;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #FFA500, #FF4500);
-            border: 4px solid #331a00;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 9999;
-            touch-action: none;
-            -webkit-tap-highlight-color: transparent;
-            cursor: pointer;
-            user-select: none;
-        }
-        .mobile-shoot-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .mobile-shoot-btn::before { /* Horizontal Line */
-            content: ''; position: absolute; top: 48%; left: 0; width: 100%; height: 4%; background: #331a00; opacity: 0.8;
-        }
-        .mobile-shoot-btn::after { /* Vertical Line */
-            content: ''; position: absolute; left: 48%; top: 0; height: 100%; width: 4%; background: #331a00; opacity: 0.8;
-        }
-        .mb-curve {
-             position: absolute; top: 5%; bottom: 5%; left: 5%; right: 5%;
-             border-radius: 50%; border: 4px solid #331a00; opacity: 0.8;
-             clip-path: polygon(0 0, 25% 0, 25% 100%, 0 100%);
-        }
-        .mb-curve.right { transform: scaleX(-1); }
-
-        .mobile-shoot-btn.left-btn {
-            left: 30px;
-            right: auto;
-            background: radial-gradient(circle at 70% 30%, #FFA500, #FF4500);
-        }
-
-        #startup-ui {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            text-align: center;
-        }
-        .startup-btn {
-            background: linear-gradient(to bottom, #FF8C00, #FF4500);
-            border: 3px solid #FFF;
-            color: white;
-            font-size: 1.5em;
-            padding: 15px 30px;
-            margin: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 900;
-            text-shadow: 2px 2px 0 #000;
-            box-shadow: 0 5px 0 #8B0000;
-            transition: transform 0.1s;
-        }
-        .startup-btn:active { transform: translateY(5px); box-shadow: none; }
-        .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
-
-        #orientation-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-        .rotate-icon {
-            font-size: 5em;
-            margin-bottom: 20px;
-            animation: rotatePhone 2s infinite ease-in-out;
-        }
-        @keyframes rotatePhone {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        #btn-force-fullscreen {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 50px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #FFD700;
-            border-radius: 8px;
-            color: #FFD700;
-            font-size: 30px;
-            display: none;
-            z-index: 99999;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
-            line-height: 50px;
-            text-align: center;
-        }
-
-        .gamepad-focus {
-            outline: 4px solid #FFD700 !important;
-            box-shadow: 0 0 15px #FFD700 !important;
-            transform: scale(1.05);
-            z-index: 9999;
-            position: relative;
-        }
-
-        /* Leaderboard Styles */
-        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; }
-        .lb-tab { background: #333; color: #888; border: 1px solid #444; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-family: var(--broadcast-font-title); }
-        .lb-tab.active { background: var(--broadcast-accent); color: #000; border-color: #FFF; }
-
-        .lb-list { height: 350px; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; }
-        .lb-list::-webkit-scrollbar { width: 8px; }
-        .lb-list::-webkit-scrollbar-track { background: #222; }
-        .lb-list::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
-
-        .lb-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #222; font-family: 'Courier New', monospace; font-size: 1.2em; }
-        .lb-row:nth-child(even) { background: #1a1a1a; }
-        .lb-row.highlight { background: rgba(255, 215, 0, 0.2); border: 1px solid var(--broadcast-accent); }
-        .lb-rank { color: #888; width: 40px; text-align: right; margin-right: 15px; }
-        .lb-name { color: var(--broadcast-accent); flex-grow: 1; text-align: left; letter-spacing: 2px; }
-        .lb-score { color: #FFF; text-align: right; }
-
-        /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
-        .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
-        .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
-        .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
-        .key.action { background: #444; grid-column: span 2; }
-        .key.action.confirm { background: #006400; grid-column: span 3; }
-        .key.action.back { background: #8B0000; grid-column: span 2; }
-    </style>
-</head>
-<body>
-
-<div id="btn-force-fullscreen" onclick="forceFullscreen()">⛶</div>
-
-<div id="orientation-overlay">
-    <div class="rotate-icon">📱</div>
-    <h2>PIVOTEZ VOTRE APPAREIL</h2>
-    <p>ROTATE YOUR DEVICE</p>
-</div>
-
-<div id="game-container">
-    <div id="scorebug-container">
-        <!-- Left Panel: Logo & Main Score -->
-        <div class="sb-panel">
-            <div class="sb-content">
-                <div class="sb-logo">TACO BASKETBALL</div>
-                <div class="sb-stat-group">
-                    <div class="sb-stat">
-                        <span class="sb-label">TACOS</span>
-                        <span class="sb-value sb-highlight" id="scoreVal">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Panel: Stats & Context -->
-        <div class="sb-panel">
-            <div class="sb-content">
-                <div id="classic-stats" style="display:flex; gap:25px;">
-                    <div class="sb-stat">
-                        <span class="sb-label">MISSES</span>
-                        <span class="sb-value sb-danger" id="missVal">0</span>
-                    </div>
-                </div>
-
-                <!-- Court Name (always visible) -->
-                <div class="sb-stat" style="border-left: 1px solid #444; padding-left: 20px;">
-                    <span class="sb-label">LOCATION</span>
-                    <span class="sb-value" id="courtNameDisplay" style="font-size: 18px; white-space: nowrap;">COUR ARRIÈRE</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="controls">
-        <div class="broadcast-btn" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
-        <div class="broadcast-btn" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
-        <div class="broadcast-btn" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
-        <div class="broadcast-btn" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
-        <div class="broadcast-btn" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
-        <div class="broadcast-btn" onclick="openStats()"><span>STATS [S]</span></div>
-    </div>
-    <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
-        <div class="broadcast-icon-btn" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
-        <div id="btn-mute" class="broadcast-icon-btn" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
-        <div class="broadcast-icon-btn" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
-    </div>
-    <div id="notification">
-        <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
-        <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
-    </div>
-
-    <div id="mobileShootBtn" class="mobile-shoot-btn">
-        <div class="mb-curve"></div>
-        <div class="mb-curve right"></div>
-    </div>
-
-    <div id="mobileShootBtn2" class="mobile-shoot-btn left-btn" style="display:none;">
-        <div class="mb-curve"></div>
-        <div class="mb-curve right"></div>
-    </div>
-
-    <div id="startup-ui">
-        <h1 style="font-size: 4em; margin: 0; position: absolute; top: 10%; width: 100%;">TACO BASKET BALL</h1>
-        <div style="position: absolute; bottom: 10%; width: 100%;">
-            <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
-            <div>
-                <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
-                <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODALS -->
-    <div id="statsUI" class="modal">
-        <div class="modal-header">STATISTIQUES À VIE</div>
-
-        <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
-             <div style="transform: skewX(5deg);">
-                 <h3 style="margin:0 0 10px 0; color:#FFD700; text-transform:uppercase; font-family: var(--broadcast-font-title);">📅 DÉFI DU JOUR</h3>
-                 <div id="dailyDesc" style="color:#FFF; font-size:1.1em; margin-bottom:8px; font-weight:bold;">Chargement...</div>
-                 <div style="background:#000; height:12px; width:100%; border:1px solid #555;">
-                     <div id="dailyBar" style="background:#00FF00; height:100%; width:0%; transition: width 0.5s;"></div>
-                 </div>
-                 <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.9em; color:#aaa; font-family: var(--broadcast-font-body);">
-                     <span id="dailyProgressText" style="color:#FFF;">0 / 0</span>
-                     <span id="dailyRewardText" style="color:#FFD700;">+500 Tacos</span>
-                 </div>
-             </div>
-        </div>
-
-        <div style="text-align:left; padding: 10px; font-size: 1.2em;">
-            <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
-            <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
-            <p style="overflow:hidden;">Ratés: <span id="statMisses" style="color:#FF0000; float:right">0</span></p>
-            <p style="overflow:hidden;">Précision: <span id="statAccuracy" style="color:#FFD700; float:right">0%</span></p>
-            <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
-            <hr style="border-color:#555; margin:15px 0;">
-            <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
-            <p style="overflow:hidden;">Record Time Attack: <span id="statTimeAttack" style="color:#FF4500; float:right">0</span></p>
-        </div>
-
-        <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong style="color:#FFD700">TAILLE VISÉE</strong>
-                <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
-            </div>
-            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
-        </div>
-
-        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong style="color:#FFD700">MOMENT DU TIR</strong>
-                <span id="releaseTimingLabel" style="color:#00FFFF; font-weight:bold;">LÂCHER (TARD)</span>
-            </div>
-            <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" oninput="updateReleaseTiming()">
-        </div>
-
-        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
-        <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
-        <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
-        <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
-        <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
-        <button class="btn btn-close" onclick="closeStats()">FERMER</button>
-    </div>
-
-    <div id="shopUI" class="modal">
-        <div class="modal-header">TACO MERCADO</div>
-        <div id="shopPlayerToggle" style="display:none; margin-bottom:10px;">
-             <button id="btnShopP1" class="btn" style="background:#0047AB; border:2px solid #FFF;" onclick="switchShopPlayer(1)">PLAYER 1</button>
-             <button id="btnShopP2" class="btn" style="background:#333; border:1px solid #555;" onclick="switchShopPlayer(2)">PLAYER 2</button>
-        </div>
-        <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
-        <div class="difficulty-row">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
-            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
-            <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
-        </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
-        <div class="skin-viewer">
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
-            <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
-            <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
-            <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
-            <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
-            <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
-            <button id="btnToggleHand" class="btn" style="width:100%; margin-top:10px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
-        </div>
-        <button class="btn btn-close" onclick="closeShop()">FERMER</button>
-    </div>
-
-    <div id="achUI" class="modal">
-        <div class="modal-header">SALLE DES TROPHÉES</div>
-        <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
-    </div>
-
-    <div id="leaderboardUI" class="modal">
-        <div class="modal-header">CLASSEMENT</div>
-        <div class="modal-content-wrapper">
-            <div class="lb-tab-container">
-                <button id="btnTabClassic" class="lb-tab active" onclick="switchLeaderboardTab('classic')">CLASSIQUE</button>
-                <button id="btnTabContest" class="lb-tab" onclick="switchLeaderboardTab('contest')">CONCOURS</button>
-                <button id="btnTabTime" class="lb-tab" onclick="switchLeaderboardTab('time_attack')">TIME ATK</button>
-            </div>
-            <div id="lbList" class="lb-list">
-                <!-- Rows injected via JS -->
-                <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
-            </div>
-            <button class="btn btn-close" onclick="closeLeaderboard()">FERMER</button>
-        </div>
-    </div>
-
-    <div id="highScoreUI" class="modal" style="height: auto; top: 50%; max-width: 700px;">
-        <div class="modal-header">NOUVEAU RECORD !</div>
-        <div class="hs-input-container">
-            <div style="color: #AAA; font-size: 1.2em; margin-bottom: 5px;">ENTREZ VOS INITIALES</div>
-            <div id="hsNameDisplay" class="hs-input-display">_ _ _</div>
-            <div id="keyboard" class="keyboard-grid">
-                <!-- Injected via JS -->
-            </div>
-            <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
-                UTILISEZ <span style="color: var(--broadcast-accent)">ARROWS</span> POUR NAVIGUER, <span style="color: var(--broadcast-accent)">ENTER/A</span> POUR CHOISIR
-            </div>
-        </div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-</div>
-
-<script>
     var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
     var preJumpTimer = 0;
     var resetTimer = 0;
@@ -3075,14 +2375,14 @@ let lastDisplayedContestTime = -1;
 
         // Ensure changes persist in game1 context (Single Player)
         loadContext(game1);
-        
+
         state = 'IDLE';
         // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
         // and that the Shop opens after the leaderboard closes.
         feedback = "TERMINÉ !";
-        
-        saveContext(game1); 
-        
+
+        saveContext(game1);
+
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
@@ -5007,44 +4307,44 @@ let lastDisplayedContestTime = -1;
         },
         render: function(drawFn, x, y) {
             this.init();
-            
+
             // Clear
             this.ctx.clearRect(0, 0, 512, 512);
-            
+
             // Swap global ctx
             var originalCtx = ctx;
             ctx = this.ctx;
-            
+
             ctx.save();
             // Center drawing at 256, 400
             // The drawFn expects to draw at coordinates (x, y).
             // We translate so that (x, y) maps to (256, 400)
             ctx.translate(256 - x, 400 - y);
-            
+
             try {
                 drawFn();
             } catch(e) {
                 console.error(e);
             }
-            
+
             ctx.restore();
-            
+
             // Restore global ctx
             ctx = originalCtx;
-            
+
             // Convert to Silhouette
             this.ctx.globalCompositeOperation = 'source-in';
             this.ctx.fillStyle = '#000000';
             this.ctx.fillRect(0, 0, 512, 512);
             this.ctx.globalCompositeOperation = 'source-over';
-            
+
             return this.canvas;
         }
     };
 
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
-        
+
         // Quality check
         if (playerData.graphics === 'LOW') {
              // Fallback to simple blob if needed
@@ -5058,11 +4358,11 @@ let lastDisplayedContestTime = -1;
         var z = 0;
         if (type === 'player') z = player3D.z;
         if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
-        
+
         // Calculate opacity and blur based on Z
         var alpha = Math.max(0.05, 0.4 - (z / 800));
         var blur = Math.min(10, 2 + (z / 50));
-        
+
         // Render Silhouette
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
@@ -5071,23 +4371,23 @@ let lastDisplayedContestTime = -1;
                 drawBall(obj, obj.ballRef);
             }
         }, obj.x, obj.y);
-        
+
         ctx.save();
         ctx.translate(obj.x, obj.y);
-        
+
         // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
         // Shear X by -0.6, Scale Y by 0.3 (Flatten)
-        ctx.transform(1, 0, -0.6, 0.3, 0, 0); 
-        
+        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
+
         ctx.globalAlpha = alpha;
-        
+
         // Blur
         if (ctx.filter) {
             ctx.filter = 'blur(' + blur + 'px)';
         }
-        
+
         ctx.drawImage(sCanvas, -256, -400);
-        
+
         ctx.restore();
     }
 
@@ -5263,11 +4563,11 @@ let lastDisplayedContestTime = -1;
         // type: 'thigh' or 'calf' or 'standard'
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-        
+
         ctx.save();
         ctx.translate(x1, y1);
         ctx.rotate(angle);
-        
+
         const w = width / 2;
         let startW = w;
         let endW = w;
@@ -5283,7 +4583,7 @@ let lastDisplayedContestTime = -1;
 
         // Start Cap
         ctx.arc(0, 0, startW, Math.PI/2, -Math.PI/2);
-        
+
         if (type === 'thigh') {
             if (playerData.graphics === 'HIGH') {
                  // Enhanced Quadriceps
@@ -5312,7 +4612,7 @@ let lastDisplayedContestTime = -1;
             ctx.lineTo(0, startW);
         }
         ctx.closePath();
-        
+
         // 1. Base Color Fill
         ctx.fillStyle = color;
         ctx.fill();
@@ -5359,25 +4659,25 @@ let lastDisplayedContestTime = -1;
             ctx.quadraticCurveTo(len * 0.5, -w * 0.8, len * 0.8, -w * 0.5);
             ctx.stroke();
         }
-        
+
         ctx.restore();
     }
 
     function drawRealisticShoe(x, y, w, h, color, isRight) {
         // Detailed sneaker
         // Sole
-        ctx.fillStyle = '#DDD'; 
+        ctx.fillStyle = '#DDD';
         ctx.beginPath();
         ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
         ctx.fill();
         ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-        
+
         // Upper
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2); // Main foot
         ctx.fill();
-        
+
         // Detail lines (laces area)
         ctx.strokeStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
@@ -5407,7 +4707,7 @@ let lastDisplayedContestTime = -1;
     function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
         // V-Taper Jersey
         const color = skinObj.jerseyColor || '#FFF';
-        
+
         let slX, srX, sY, blX, brX, bY;
 
         if (anchors && anchors.shoulders) {
@@ -5443,35 +4743,35 @@ let lastDisplayedContestTime = -1;
         const waistW = brX - blX;
         const bottomY = bY;
         const armpitY = sY + h * 0.4;
-        
+
         ctx.beginPath();
         ctx.moveTo(slX, sY);
         // Gentle neck curve (High back collar)
         ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
-        
+
         // Right side
         ctx.lineTo(srX, armpitY);
         // Curve from armpit to bottom right (hip)
         ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
-        
+
         // Bottom curve (Tuck)
         ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
-        
+
         // Left side
         ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
         ctx.lineTo(slX, sY);
-        
+
         ctx.closePath();
-        
+
         // Fill
         const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
-        grad.addColorStop(0, color); 
+        grad.addColorStop(0, color);
         grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, color); 
-        
+        grad.addColorStop(1, color);
+
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.fillStyle = grad; 
+        ctx.fillStyle = grad;
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fill();
 
@@ -5565,7 +4865,7 @@ let lastDisplayedContestTime = -1;
         ctx.lineTo(cx + 1*scale, topY + h*0.7);
         ctx.lineTo(cx - 1*scale, topY + h*0.7);
         ctx.fill();
-        
+
         // Mesh Texture
         ctx.save();
         ctx.clip();
@@ -5604,7 +4904,7 @@ let lastDisplayedContestTime = -1;
                 ctx.stroke();
             });
         }
-        
+
         // Tuck Shadow at bottom
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
@@ -5727,7 +5027,7 @@ let lastDisplayedContestTime = -1;
 
         // Baggy Shorts
         const color = skinObj.shortsColor || '#FFF';
-        const waistW = w * 1.0; 
+        const waistW = w * 1.0;
         const hipW = w * 1.3;
         const legW = w * 0.6; // Width of one leg hole
 
@@ -5788,7 +5088,7 @@ let lastDisplayedContestTime = -1;
 
         ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
         ctx.closePath();
-        
+
         ctx.fillStyle = fillStyle;
         ctx.fill();
 
@@ -5891,7 +5191,7 @@ let lastDisplayedContestTime = -1;
         // --- Details (on top of everything) ---
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(cx - waistW/2, waistY, waistW, 5*scale);
-        
+
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.lineWidth = 1*scale;
         ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
@@ -6009,9 +5309,9 @@ let lastDisplayedContestTime = -1;
         // Hulk Override: Removed hardcoded check, relying on SKINS_DB widthScale
 
         const skinTone = skinObj.skinTone || '#8d5524';
-        
+
         // Body Dimensions
-        const bodyW = 20 * s * sizeMod.w; 
+        const bodyW = 20 * s * sizeMod.w;
         const bodyH = 40 * s * sizeMod.h;
         let legLen = 30 * s * sizeMod.h;
 
@@ -6159,7 +5459,7 @@ let lastDisplayedContestTime = -1;
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
-            
+
             if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
 
             if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
@@ -6184,7 +5484,7 @@ let lastDisplayedContestTime = -1;
                  const midY = (sy + elbow.y) / 2;
                  drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
             }
-            
+
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
             // Forearm (Elbow to Wrist)
             const foreTattoos = skinObj.tattoos && !activeSleeveColor;
@@ -6195,13 +5495,13 @@ let lastDisplayedContestTime = -1;
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            
+
             // Hand (Realistic)
             ctx.fillStyle = skinTone;
             ctx.beginPath();
-            ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s); 
+            ctx.moveTo(-2*s, 0); ctx.lineTo(2*s, 0); ctx.lineTo(2.5*s, 6*s); ctx.lineTo(-2.5*s, 6*s);
             ctx.fill();
-            
+
             if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !isDetachedStyle) {
                 // Ball is drawn in Layer 0 now. Just draw Fingers.
                 // Fingers over ball
@@ -6392,11 +5692,11 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.5, headY-8*s); ctx.lineTo(p.x - headRadius*0.9, headY+5*s); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.5, headY-8*s); ctx.lineTo(p.x + headRadius*0.9, headY+5*s); ctx.fill();
             }
-        
+
         // Skull
-        ctx.beginPath(); 
-        ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2); 
-        
+        ctx.beginPath();
+        ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
+
         if (playerData.graphics === 'HIGH') {
              // 3D Head Shading
              const r = headRadius;
@@ -6427,7 +5727,7 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, 4*s, 0, Math.PI*2); ctx.fill();
         }
-        
+
         // Hair
         const hairColor = skinObj.hairColor || '#000';
         ctx.fillStyle = hairColor;
@@ -6904,10 +6204,10 @@ let lastDisplayedContestTime = -1;
                  ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(centerX - 15*s, centerY - 15*s, 5*s, 0, Math.PI*2); ctx.fill();
              }
              if (bp === 'hockey_sticks') {
-                 ctx.strokeStyle = '#D2B48C'; ctx.lineWidth = 3*s; 
+                 ctx.strokeStyle = '#D2B48C'; ctx.lineWidth = 3*s;
                  ctx.beginPath(); ctx.moveTo(centerX - 10*s, centerY - 20*s); ctx.lineTo(centerX + 10*s, centerY + 20*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(centerX + 10*s, centerY - 20*s); ctx.lineTo(centerX - 10*s, centerY + 20*s); ctx.stroke();
-                 ctx.fillStyle = '#000'; 
+                 ctx.fillStyle = '#000';
                  ctx.fillRect(centerX + 8*s, centerY + 18*s, 8*s, 4*s);
                  ctx.fillRect(centerX - 16*s, centerY + 18*s, 8*s, 4*s);
              }
@@ -7048,7 +6348,7 @@ let lastDisplayedContestTime = -1;
 
         const isMechanical = isMechanicalSkin(skinObj.id);
         const currentAnimal = skinObj.animal;
-        
+
         if (currentAnimal === 'human') {
             drawRealisticHuman(p, s, skinObj);
             return;
@@ -9209,7 +8509,7 @@ let lastDisplayedContestTime = -1;
                 if (nextAction) {
                     const action = nextAction;
                     nextAction = null;
-                    
+
                     // Context Safety: Save current context identity
                     // Because action() might trigger openShop() which calls loadContext(game1)
                     // If we don't restore, the rest of this update() loop and the final saveContext()
@@ -9308,12 +8608,12 @@ let lastDisplayedContestTime = -1;
                 }
             } else {
                 player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt;
-                if (player3D.z <= 0) { 
+                if (player3D.z <= 0) {
                     // Prevent Marché violation by forcing a late shot
-                    player3D.z = 0; player3D.vz = 0; 
+                    player3D.z = 0; player3D.vz = 0;
                     // Calculate a penalty timing error (late release)
                     // Normal threshold is approx 1.0. We pass 5.0 to ensure a miss.
-                    shoot(5.0); 
+                    shoot(5.0);
                 }
             }
         }
@@ -9560,7 +8860,7 @@ let lastDisplayedContestTime = -1;
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             document.getElementById('classic-stats').style.display = 'flex';
-            state = 'IDLE'; 
+            state = 'IDLE';
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
@@ -9603,7 +8903,7 @@ let lastDisplayedContestTime = -1;
     window.openShop = function(force) {
         g_shopTargetPlayer = 1; // Default to P1
         loadContext(game1);
-        
+
         // If force is true (e.g. from Game Over logic), ignore state check
         if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
 
@@ -10840,7 +10140,7 @@ let lastDisplayedContestTime = -1;
     saveContext(game1);
 
     // P2 Setup (Separate Profile)
-    game2.playerData = createDefaultData();
+    game2.playerData = JSON.parse(JSON.stringify(defaultData));
     // Give P2 some generic skins or copy P1? Let's copy P1's unlocked stuff but reset progress
     // Actually, deep cloning P1's initial state is safer for now.
     game2.playerData = JSON.parse(JSON.stringify(playerData));
@@ -10957,6 +10257,3 @@ let lastDisplayedContestTime = -1;
 
     // Start loop
     requestAnimationFrame(loop);
-</script>
-</body>
-</html>
