@@ -3967,22 +3967,26 @@ let lastDisplayedContestTime = -1;
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
-    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true) => {
+    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
-            // Apply simple 3D shading even for smooth circles
-            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-            grad.addColorStop(0, '#FFFFFF'); // Highlight
-            grad.addColorStop(0.2, c);
-            grad.addColorStop(1, '#000000'); // Shadow
-            // Blend with base color to avoid white/black takeover
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+            if (applyShading) {
+                // Apply simple 3D shading even for smooth circles
+                const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+                grad.addColorStop(0, '#FFFFFF'); // Highlight
+                grad.addColorStop(0.2, c);
+                grad.addColorStop(1, '#000000'); // Shadow
+                // Blend with base color to avoid white/black takeover
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
 
-            // Overlay gradient
-            const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-            gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
-            gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-            gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
-            ctx.fillStyle = gradOverlay; ctx.fill();
+                // Overlay gradient
+                const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+                gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
+                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+                ctx.fillStyle = gradOverlay; ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+            }
             return;
         }
 
@@ -3994,23 +3998,25 @@ let lastDisplayedContestTime = -1;
         }
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
-        // Radial Shading Overlay
-        const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-        grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
-        grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+        if (applyShading) {
+            // Radial Shading Overlay
+            const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
+            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
 
-        ctx.save();
-        ctx.beginPath();
-        // Re-trace fuzzy path to clip the shadow
-        ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
-        for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
-        ctx.closePath();
-        ctx.clip();
+            ctx.save();
+            ctx.beginPath();
+            // Re-trace fuzzy path to clip the shadow
+            ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
+            for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
+            ctx.closePath();
+            ctx.clip();
 
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.restore();
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
+        }
     };
 
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
@@ -7864,8 +7870,8 @@ let lastDisplayedContestTime = -1;
             let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
             if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
             if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
-            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry);
-            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry);
+            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry, false);
+            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry, false);
         } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
             const earColor = ctx.fillStyle;
             ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
@@ -7939,7 +7945,7 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = '#8B4513';
              if(skin === 'lion_white') ctx.fillStyle = '#EEE';
              if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry, false);
         }
 
         // Head Circle
@@ -7955,23 +7961,23 @@ let lastDisplayedContestTime = -1;
         if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
              // Wide Head
              if (isFurry) {
-                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true);
-                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true);
+                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true, false);
+                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true, false);
              } else {
                  ctx.fillStyle = headColor;
                  ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
              }
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry, true); // Main head has shading
         }
         else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
              // Boxy / Snouty Head
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry, false);
         }
         else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
              // Diamond / Tapered
-             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry);
+             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry, true);
+             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry, false);
         }
         else if (currentAnimal === 'penguin') {
              // Continuous
@@ -7989,7 +7995,7 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.2, 0, Math.PI*2); ctx.fill();
         }
         else {
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
         }
 
         // FOREHEAD MANE (Lion) - Fix baldness
