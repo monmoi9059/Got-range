@@ -5887,7 +5887,7 @@ let lastDisplayedContestTime = -1;
 
         // Crouch compression (shorten legs visually)
         if (state === 'PRE_JUMP') {
-            legLen *= 0.8;
+            legLen *= 0.7;
         }
 
         let torsoY = p.y - legLen - bodyH;
@@ -6004,13 +6004,7 @@ let lastDisplayedContestTime = -1;
         // Calculate Straight Leg Alignment
         const hipOffset = 7 * s; // From drawJoint below
         const footOffset = 10 * s * stanceModLegs;
-        let kneeOffset = (hipOffset + footOffset) / 2; // Midpoint for straight leg
-
-        // Crouch Bending (Knees go outward)
-        if (state === 'PRE_JUMP') {
-            const bendFactor = 10 * s;
-            kneeOffset += bendFactor;
-        }
+        const kneeOffset = (hipOffset + footOffset) / 2; // Midpoint for straight leg
 
         let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
         let rKneeX = p.x + kneeOffset, rKneeY = baseKneeY;
