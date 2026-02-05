@@ -3600,6 +3600,25 @@ let lastDisplayedContestTime = -1;
         ctx.fillStyle = '#FFD700';
         ctx.fillRect(0, y, canvas.width, 4);
 
+        // NBA Logo (Bottom Left Corner)
+        // Red/Blue/Silhouette
+        const lX = 20; const lY = canvas.height - 40;
+        const lW = 15; const lH = 30;
+
+        ctx.fillStyle = '#C9082A'; // Red
+        ctx.fillRect(lX, lY - lH/2, lW, lH);
+        ctx.fillStyle = '#17408B'; // Blue
+        ctx.fillRect(lX + lW, lY - lH/2, lW, lH);
+        // Silhouette (Simple curve)
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath();
+        ctx.moveTo(lX + lW + 2, lY + lH/2 - 2);
+        ctx.lineTo(lX + lW - 4, lY - lH/2 + 5);
+        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 5, lY - lH/2 + 5);
+        ctx.lineTo(lX + lW + 2, lY + lH/2 - 2);
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(lX + lW + 6, lY - lH/2 + 8, 2, 0, Math.PI*2); ctx.fill(); // Ball
+
         // 2. Content Logic
         const dist = 10 + (distanceLevel * 5);
         const scaleObj = getScaleObject(dist);
@@ -6216,6 +6235,27 @@ let lastDisplayedContestTime = -1;
              drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
         }
 
+        // --- NAME & NUMBER (Layer 4.5 - On Jersey) ---
+        // Name on Back
+        if (skinObj.jerseyName || (skinObj.name && skinObj.animal === 'human')) {
+             const nameText = (skinObj.jerseyName || skinObj.name).toUpperCase();
+             // Skip if name is too generic/long and not explicitly set as jerseyName, unless it fits
+             if (skinObj.jerseyName || nameText.length <= 12) {
+                 ctx.fillStyle = skinObj.numberColor || "#FFF";
+                 ctx.font = `bold ${7 * s}px Arial`;
+                 ctx.textAlign = "center";
+                 ctx.fillText(nameText, p.x, torsoY + bodyH * 0.25);
+             }
+        }
+
+        // Number
+        if (skinObj.number) {
+            ctx.fillStyle = skinObj.numberColor || "#FFF";
+            ctx.font = `bold ${12 * s}px Arial`;
+            ctx.textAlign = "center";
+            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+        }
+
         if (skinObj.clothingDetail === 'overalls') {
              const bibColor = skinObj.shortsColor || '#000080';
              ctx.fillStyle = bibColor;
@@ -6836,44 +6876,36 @@ let lastDisplayedContestTime = -1;
         }
 
         // Name on Back
-        if (skinObj.jerseyName || (skinObj.name && skinObj.animal === 'human')) {
-             const nameText = (skinObj.jerseyName || skinObj.name).toUpperCase();
-             // Skip if name is too generic/long and not explicitly set as jerseyName, unless it fits
-             if (skinObj.jerseyName || nameText.length <= 12) {
-                 ctx.fillStyle = skinObj.numberColor || "#FFF";
-                 ctx.font = `bold ${7 * s}px Arial`;
-                 ctx.textAlign = "center";
-                 ctx.fillText(nameText, p.x, torsoY + bodyH * 0.25);
-             }
-        }
+        // Render name BEFORE number, so it's on the jersey.
+        // Important: Both Name and Number are drawn on Layer 4 (Torso).
+        // Head/Hair is Layer 6. So Hair covers these naturally.
+        // However, if the name is drawn *too high* relative to headY, it might look weird?
+        // But render order is:
+        // 1. Arms
+        // 2. Legs
+        // 3. Neck
+        // 4. Shorts
+        // 5. Torso (Body + Jersey)
+        // -> Name/Number drawn here
+        // 6. Tail
+        // 7. Head (and Hair)
 
-        // NBA Logo (Small Silhouette on Upper Left Shoulder - Right side of screen)
-        if (skinObj.animal === 'human' && skinObj.jerseyType !== 'none') {
-             // Position: p.x + shoulderW/2 - 10*s
-             // Use simple rectangles to mimic the red/blue logo
-             const logoX = p.x + 12 * s;
-             const logoY = torsoY + 5 * s;
-             const logoW = 3.5 * s;
-             const logoH = 7 * s;
+        // Wait! In the code structure I see:
+        // drawLowerLeg calls...
+        // Tail...
+        // Head...
+        // Back Props...
+        // Name on Back...
+        // Number...
 
-             if (playerData.graphics === 'HIGH') {
-                 ctx.fillStyle = '#C9082A'; // Red
-                 ctx.fillRect(logoX, logoY, logoW, logoH/2);
-                 ctx.fillStyle = '#17408B'; // Blue
-                 ctx.fillRect(logoX, logoY + logoH/2, logoW, logoH/2);
-                 ctx.fillStyle = '#FFF'; // Silhouette
-                 // Simple rect for player
-                 ctx.fillRect(logoX + 1*s, logoY + 1*s, 1.5*s, 5*s);
-             }
-        }
+        // Ah! "Name on Back" and "Number" are at the VERY END of drawPlayer/drawRealisticHuman!
+        // This means they are drawn AFTER the Head (Step 6) and Hair!
+        // That is why the name prints ON TOP of the hair.
 
-        // Number
-        if (skinObj.number) {
-            ctx.fillStyle = skinObj.numberColor || "#FFF";
-            ctx.font = `bold ${12 * s}px Arial`;
-            ctx.textAlign = "center";
-            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
-        }
+        // FIX: We must NOT draw them here. We should draw them right after drawing the Jersey (Step 4).
+        // But drawJersey is a function. We can just move this block up to Step 4.
+
+        // ACTUALLY, I will delete this block here and move it to execute immediately after drawJersey.
 
         // Shot Meter
         if (state === 'JUMPING' || state === 'PRE_JUMP') {
