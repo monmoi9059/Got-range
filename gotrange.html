@@ -8051,15 +8051,6 @@ let lastDisplayedContestTime = -1;
              drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry, false);
         }
 
-        // FOREHEAD MANE (Lion) - Fix baldness
-        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
-             ctx.fillStyle = '#8B4513';
-             if(skin === 'lion_white') ctx.fillStyle = '#EEE';
-             if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             // Draw a smaller fuzzy circle slightly higher to cover the "bald" spot
-             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 0.8, ctx.fillStyle, 62, s, isFurry);
-        }
-
         // FACE DETAILS REMOVED - Back View Only
 
         if(skinObj.pattern === 'tiger_stripes') {
