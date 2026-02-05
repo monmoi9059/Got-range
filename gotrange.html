@@ -10745,23 +10745,13 @@ let lastDisplayedContestTime = -1;
             const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
 
             if (gpIndex === p1Map) {
-                if (this.isPressed(gp, this.BTN_X, gpIndex)) {
-                    if (state === 'GAMEOVER') openShop();
-                    else if (state === 'IDLE') doGameAction(game1, 'press');
-                }
-                if (this.isReleased(gp, this.BTN_X, gpIndex)) {
-                    if (state === 'JUMPING' || state === 'PRE_JUMP') doGameAction(game1, 'release');
-                }
+                if (this.isPressed(gp, this.BTN_X, gpIndex)) doGameAction(game1, 'press');
+                if (this.isReleased(gp, this.BTN_X, gpIndex)) doGameAction(game1, 'release');
             }
 
             if (isSplitscreen && gpIndex === p2Map) {
-                if (this.isPressed(gp, this.BTN_X, gpIndex)) {
-                    if (state === 'GAMEOVER') resetGame();
-                    else if (state === 'IDLE') doGameAction(game2, 'press');
-                }
-                if (this.isReleased(gp, this.BTN_X, gpIndex)) {
-                    if (state === 'JUMPING' || state === 'PRE_JUMP') doGameAction(game2, 'release');
-                }
+                if (this.isPressed(gp, this.BTN_X, gpIndex)) doGameAction(game2, 'press');
+                if (this.isReleased(gp, this.BTN_X, gpIndex)) doGameAction(game2, 'release');
             }
         }
     };
