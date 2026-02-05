@@ -4011,7 +4011,7 @@ let lastDisplayedContestTime = -1;
         ctx.restore();
     }
 
-    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
+    function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}) {
         const waistScale = options.waistScale || 0.85;
         const roundness = options.roundness || 0;
 
@@ -4026,56 +4026,7 @@ let lastDisplayedContestTime = -1;
 
         let points = [];
 
-        if (anchors && anchors.shoulders && anchors.hips) {
-            const sl = anchors.shoulders.left;
-            const sr = anchors.shoulders.right;
-            const hl = anchors.hips.left;
-            const hr = anchors.hips.right;
-
-            if (options.bodyShape === 'bear_new') {
-                 const bellyY = topY + h * 0.55;
-                 const hipY_adj = hr.y - h*0.05;
-                 const bellyW = w * 1.45;
-
-                 points = [];
-                 points.push(sl);
-                 points.push(sr);
-                 // Right Curve
-                 points.push({x: sr.x + (bellyW/2 - (sr.x-cx))*0.25, y: sr.y + (bellyY - sr.y)*0.3});
-                 points.push({x: cx + bellyW/2, y: bellyY});
-                 points.push({x: hr.x + (bellyW/2 - (hr.x-cx))*0.2, y: hr.y - (hr.y - bellyY)*0.5});
-                 points.push({x: hr.x, y: hipY_adj});
-                 // Bottom Round
-                 points.push({x: cx + (hr.x-cx)*0.5, y: hr.y});
-                 points.push({x: cx + (hl.x-cx)*0.5, y: hl.y});
-                 points.push({x: hl.x, y: hipY_adj});
-                 // Left Curve
-                 points.push({x: hl.x - (Math.abs(hl.x-cx) - bellyW/2)*0.2, y: hl.y - (hl.y - bellyY)*0.5});
-                 points.push({x: cx - bellyW/2, y: bellyY});
-                 points.push({x: sl.x - (Math.abs(sl.x-cx) - bellyW/2)*0.25, y: sl.y + (bellyY - sl.y)*0.3});
-            } else if (options.bodyShape === 'round') {
-                 const bellyW = w * 1.9;
-                 const bellyY = topY + h * 0.7;
-                 points = [
-                     sl, sr,
-                     {x: cx + w*0.8, y: topY + h*0.3},
-                     {x: cx + bellyW/2, y: bellyY},
-                     hr, hl,
-                     {x: cx - bellyW/2, y: bellyY},
-                     {x: cx - w*0.8, y: topY + h*0.3}
-                 ];
-            } else {
-                 // Default / Athletic / Oval
-                 const midY = (sl.y + hl.y) / 2;
-                 let midWScale = 1.0;
-                 if (options.bodyShape === 'oval') midWScale = 1.2;
-                 else if (options.bodyShape === 'athletic_animal') midWScale = 0.9;
-                 const midR = { x: cx + (w*midWScale)/2, y: midY };
-                 const midL = { x: cx - (w*midWScale)/2, y: midY };
-                 points = [sl, sr, midR, hr, hl, midL];
-            }
-        }
-        else if (options.bodyShape === 'bear_new') {
+        if (options.bodyShape === 'bear_new') {
              // "Big Tall Oval" - Human-like but fat
              const shoulderW = w * 1.1; // Wide square shoulders
              const bellyW = w * 1.45; // Fat belly
@@ -5366,61 +5317,30 @@ let lastDisplayedContestTime = -1;
         return pattern;
     }
 
-    function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
+    function drawJersey(cx, topY, w, h, scale, skinObj) {
         // V-Taper Jersey
         const color = skinObj.jerseyColor || '#FFF';
+        const shoulderW = w * 1.6;
+        const waistW = w * 0.9;
         
-        let slX, srX, sY, blX, brX, bY;
-
-        if (anchors && anchors.shoulders) {
-            slX = anchors.shoulders.left.x;
-            srX = anchors.shoulders.right.x;
-            sY = anchors.shoulders.left.y;
-
-            // For bottom, use hips if available, otherwise calculate from width
-            // Jersey tucks into shorts, so align with hip joints
-            if (anchors.hips) {
-                blX = anchors.hips.left.x;
-                brX = anchors.hips.right.x;
-                bY = anchors.hips.left.y; // Assuming roughly level
-            } else {
-                const waistW = w * 0.9;
-                blX = cx - waistW/2;
-                brX = cx + waistW/2;
-                bY = topY + h;
-            }
-        } else {
-            const shoulderW = w * 1.6;
-            const waistW = w * 0.9;
-            slX = cx - shoulderW/2;
-            srX = cx + shoulderW/2;
-            sY = topY;
-            blX = cx - waistW/2;
-            brX = cx + waistW/2;
-            bY = topY + h;
-        }
-
-        const shoulderW = srX - slX;
-        const waistW = brX - blX;
-        const bottomY = bY;
-        const armpitY = sY + h * 0.4;
+        const shoulderY = topY;
+        const armpitY = topY + h * 0.4;
+        const bottomY = topY + h;
         
         ctx.beginPath();
-        ctx.moveTo(slX, sY);
-        // Gentle neck curve
-        ctx.quadraticCurveTo(cx, sY + (shoulderW * 0.1), srX, sY);
+        ctx.moveTo(cx - shoulderW/2, shoulderY); 
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
         
         // Right side
-        ctx.lineTo(srX, armpitY);
-        // Curve from armpit to bottom right (hip)
-        ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+        ctx.lineTo(cx + shoulderW/2, armpitY);
+        ctx.quadraticCurveTo(cx + waistW*0.6, (armpitY+bottomY)/2, cx + waistW/2, bottomY);
         
         // Bottom curve (Tuck)
-        ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+        ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx - waistW/2, bottomY);
         
         // Left side
-        ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
-        ctx.lineTo(slX, sY);
+        ctx.quadraticCurveTo(cx - waistW*0.6, (armpitY+bottomY)/2, cx - shoulderW/2, armpitY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
         
         ctx.closePath();
         
@@ -5474,7 +5394,7 @@ let lastDisplayedContestTime = -1;
             for(let dx = -shoulderW/2; dx <= shoulderW/2; dx += step) {
                 if(Math.abs(dx) < 2*scale) continue; // Skip spine
                 ctx.beginPath();
-                ctx.moveTo(cx + dx, sY);
+                ctx.moveTo(cx + dx, shoulderY);
                 ctx.lineTo(cx + dx * 0.7, bottomY); // Taper in
                 ctx.stroke();
             }
@@ -5527,16 +5447,16 @@ let lastDisplayedContestTime = -1;
             ctx.lineWidth = 2 * scale;
             // Neck
             ctx.beginPath();
-            ctx.moveTo(cx - shoulderW/2, sY);
-            ctx.lineTo(cx + shoulderW/2, sY);
+            ctx.moveTo(cx - shoulderW/2, shoulderY);
+            ctx.lineTo(cx + shoulderW/2, shoulderY);
             ctx.stroke();
             // Armholes
             ctx.beginPath();
-            ctx.moveTo(cx - shoulderW/2, sY);
+            ctx.moveTo(cx - shoulderW/2, shoulderY);
             ctx.lineTo(cx - shoulderW/2, armpitY);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(cx + shoulderW/2, sY);
+            ctx.moveTo(cx + shoulderW/2, shoulderY);
             ctx.lineTo(cx + shoulderW/2, armpitY);
             ctx.stroke();
         }
@@ -5551,54 +5471,32 @@ let lastDisplayedContestTime = -1;
         ctx.fill();
     }
 
-    function drawLinkTunic(cx, topY, w, h, scale, skinObj, anchors = null) {
+    function drawLinkTunic(cx, topY, w, h, scale, skinObj) {
         const color = skinObj.jerseyColor || '#00A000';
         const beltColor = '#8B4513';
 
         // Extended length for tunic
         const tunicLen = h * 1.2;
-        let slX, srX, sY, wlX, wrX, wY, bY;
+        const shoulderW = w * 1.6;
+        const waistW = w * 1.0;
+        const bottomW = w * 1.3; // Flared bottom
 
-        if (anchors && anchors.shoulders) {
-            slX = anchors.shoulders.left.x;
-            srX = anchors.shoulders.right.x;
-            sY = anchors.shoulders.left.y;
-            wY = sY + h * 0.55;
-            bY = sY + tunicLen;
-
-            // Waist width relative to hips
-            let hipW = w;
-            if (anchors.hips) {
-                hipW = (anchors.hips.right.x - anchors.hips.left.x);
-            }
-            wlX = cx - hipW*0.6;
-            wrX = cx + hipW*0.6;
-        } else {
-            const shoulderW = w * 1.6;
-            const waistW = w * 1.0;
-            slX = cx - shoulderW/2;
-            srX = cx + shoulderW/2;
-            sY = topY;
-            wY = topY + h * 0.55;
-            bY = topY + tunicLen;
-            wlX = cx - waistW/2;
-            wrX = cx + waistW/2;
-        }
-
-        const bottomW = (wrX - wlX) * 1.3; // Flare
+        const shoulderY = topY;
+        const waistY = topY + h * 0.55;
+        const bottomY = topY + tunicLen;
 
         // Main Tunic Shape
         ctx.beginPath();
-        ctx.moveTo(slX, sY);
-        ctx.lineTo(srX, sY);
+        ctx.moveTo(cx - shoulderW/2, shoulderY);
+        ctx.lineTo(cx + shoulderW/2, shoulderY);
 
         // Sides to waist
-        ctx.lineTo(wrX, wY);
+        ctx.lineTo(cx + waistW/2, waistY);
         // Flared bottom (Skirt part of tunic)
-        ctx.lineTo(cx + bottomW/2, bY);
-        ctx.lineTo(cx - bottomW/2, bY);
-        ctx.lineTo(wlX, wY);
-        ctx.lineTo(slX, sY);
+        ctx.lineTo(cx + bottomW/2, bottomY);
+        ctx.lineTo(cx - bottomW/2, bottomY);
+        ctx.lineTo(cx - waistW/2, waistY);
+        ctx.lineTo(cx - shoulderW/2, shoulderY);
         ctx.closePath();
 
         ctx.fillStyle = color;
@@ -5895,7 +5793,7 @@ let lastDisplayedContestTime = -1;
 
         // Draw Neck (Extension)
         if (neckLen > 5*s) {
-            ctx.fillStyle = skinTone;
+            ctx.fillStyle = furColor;
             const neckW = 12 * s * sizeMod.w * 0.7;
             ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
         }
@@ -6044,22 +5942,6 @@ let lastDisplayedContestTime = -1;
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
 
-        // 3. Neck (Layer 1.5 - Before Jersey)
-        const neckW = 10 * s * sizeMod.w;
-        const neckH = 10 * s;
-        ctx.fillStyle = skinTone;
-        ctx.beginPath();
-        // Traps/Neck Base (Extended down to tuck into jersey)
-        ctx.moveTo(p.x - neckW, torsoY + 8*s);
-        ctx.quadraticCurveTo(p.x - neckW*0.6, torsoY - neckH*0.8, p.x - neckW*0.4, torsoY - neckH);
-        ctx.lineTo(p.x + neckW*0.4, torsoY - neckH);
-        ctx.quadraticCurveTo(p.x + neckW*0.6, torsoY - neckH*0.8, p.x + neckW, torsoY + 8*s);
-        ctx.fill();
-
-        // Neck Spine Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
-        ctx.beginPath(); ctx.rect(p.x - 1*s, torsoY - neckH + 2*s, 2*s, neckH); ctx.fill();
-
         // 4. Torso & Shorts Layer
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
@@ -6071,21 +5953,16 @@ let lastDisplayedContestTime = -1;
         drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
 
         // Torso Last (Layer 4) - Covers top of arms (Shoulders) and top of shorts
-        const anchors = {
-            shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - 7*s, y: p.y - legLen}, right: {x: p.x + 7*s, y: p.y - legLen} }
-        };
-
         if (skinObj.jerseyType === 'none') {
              // Bare Torso
-             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null, pattern: skinObj.pattern }, anchors);
+             drawAnatomicBody(p.x, torsoY, reducedBodyW, jerseyH, s, skinTone, false, 0, { chestStripeColor: null, pattern: skinObj.pattern });
              // Muscle Detail (Spine/Pecs)
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.moveTo(p.x, torsoY + 10*s); ctx.lineTo(p.x, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + jerseyH*0.8); ctx.lineTo(p.x + 2*s, torsoY + 10*s); ctx.fill();
         } else if (skinObj.jerseyType === 'link_tunic') {
-             drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
+             drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         } else {
-             drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
+             drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj);
         }
 
         if (skinObj.clothingDetail === 'overalls') {
@@ -6131,6 +6008,22 @@ let lastDisplayedContestTime = -1;
         };
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
         drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true);
+
+        // NECK
+        const neckW = 10 * s * sizeMod.w;
+        const neckH = 10 * s;
+        ctx.fillStyle = skinTone;
+        ctx.beginPath();
+        // Traps/Neck Base
+        ctx.moveTo(p.x - neckW, torsoY + 2*s);
+        ctx.quadraticCurveTo(p.x - neckW*0.6, torsoY - neckH*0.8, p.x - neckW*0.4, torsoY - neckH);
+        ctx.lineTo(p.x + neckW*0.4, torsoY - neckH);
+        ctx.quadraticCurveTo(p.x + neckW*0.6, torsoY - neckH*0.8, p.x + neckW, torsoY + 2*s);
+        ctx.fill();
+        
+        // Neck Spine Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath(); ctx.rect(p.x - 1*s, torsoY - neckH + 2*s, 2*s, neckH); ctx.fill();
 
         // 5. Tail (Hybrids)
         if (skinObj.tailType) {
@@ -6734,9 +6627,6 @@ let lastDisplayedContestTime = -1;
 
     function drawPlayer(p) {
         if (!p) return;
-        // Debug
-        // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
-
         const s = p.scale;
         const skin = playerData.currentSkin;
 
@@ -6793,12 +6683,6 @@ let lastDisplayedContestTime = -1;
         // Fill defaults if missing
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
-
-        // V-Taper / Hulk Body Size Adjustment
-        if (skin.includes('hulk') || (currentAnimal === 'human' && skinObj.jerseyType === 'none')) {
-            sizeMod.w *= 1.5;
-            sizeMod.h *= 1.5;
-        }
 
         // Determine if Furry
         const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
@@ -6889,7 +6773,7 @@ let lastDisplayedContestTime = -1;
         let neckLen = 0;
 
         // Pose Logic
-        const isSitting = (state === 'GAMEOVER' && currentAnimal !== 'human');
+        const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
         const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
 
         let torsoY;
@@ -6924,40 +6808,16 @@ let lastDisplayedContestTime = -1;
              ctx.restore();
         }
 
-        // Draw Neck (Universal - Connect Head to Body)
-        const neckWidth = 10 * s * (sizeMod.w || 1.0) * 0.6;
-        const neckTopY = headY + headRadius * 0.5;
-        const neckBottomY = torsoY + (10*s);
-
-        // Always draw neck if gap exists or explicitly requested (Rat/Giraffe fix)
-        if (neckBottomY > neckTopY || skinObj.neckLength) {
-             const savedFill = ctx.fillStyle;
-             ctx.fillStyle = furColor;
-             // Ensure skin tone for humans
-             if (currentAnimal === 'human') ctx.fillStyle = skinObj.skinTone || furColor;
-
-             ctx.fillRect(p.x - neckWidth/2, neckTopY, neckWidth, neckBottomY - neckTopY);
-             ctx.fillStyle = savedFill;
+        // Draw Neck (Extension)
+        if (neckLen > 5*s) {
+            ctx.fillStyle = furColor;
+            const neckW = 12 * s * sizeMod.w * 0.7;
+            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
         }
-
-        // Lift shoulders for humans to extend jersey higher (Trapezoid shape)
-        let shoulderY = torsoY + (2*s);
-        if (currentAnimal === 'human') shoulderY = torsoY; // Square shoulders at top of bounding box
-
+        let shoulderY = torsoY + (5*s);
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
-
-        // Dynamic Shoulder Width (Scaling with Body Width)
-        const shoulderScale = (sizeMod.w || 1.0);
-        let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
-
-        // Extra Broad for Hulk/Strong types (Shirtless = Broad)
-        if (skinObj.jerseyType === 'none' || skin.includes('hulk')) {
-            shoulderBaseW *= 1.5;
-        }
-
-        let leftShoulderX = p.x - shoulderBaseW;
-        let rightShoulderX = p.x + shoulderBaseW;
+        let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
 
         let armLenMod = sizeMod.limbLen || 1.0;
         if (skinObj.armLen) armLenMod = skinObj.armLen;
@@ -7125,25 +6985,19 @@ let lastDisplayedContestTime = -1;
 
 
         const legFurry = isFurry && (legColor === furColor);
-
-        // Scale Hip Width with Body/Leg Width (Fixes narrow hips on wide chars)
-        const hipScale = (sizeMod.legWidth || sizeMod.w || 1.0);
-        const hipX = 8 * s * stanceMod * hipScale;
-
-        let hipY = p.y - legLen;
-        if (isSitting) hipY = p.y - 10 * s;
+        const hipX = 8 * s * stanceMod;
 
         // Hip Joints
         if(!legFurry) {
-            drawJoint(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-            drawJoint(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
+            drawJoint(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
+            drawJoint(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
         } else {
-            drawFuzzyCircle(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
+            drawFuzzyCircle(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
+            drawFuzzyCircle(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
         }
 
-        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
+        drawFuzzyLimb(p.x - hipX, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
+        drawFuzzyLimb(p.x + hipX, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
@@ -7214,12 +7068,7 @@ let lastDisplayedContestTime = -1;
 
         bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
         bodyOptions.animal = currentAnimal;
-
-        const anchors = {
-            shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - hipX, y: hipY}, right: {x: p.x + hipX, y: hipY} }
-        };
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions, anchors);
+        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
 
         if(currentAnimal === 'penguin' && torsoColor === furColor) {
              ctx.fillStyle = '#FFF';
