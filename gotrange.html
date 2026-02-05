@@ -611,6 +611,24 @@
             <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" oninput="updateReleaseTiming()">
         </div>
 
+        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">CONTRÔLES</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span>JOUEUR 1:</span>
+                <select id="p1InputSelect" onchange="updateInputMapping()" style="background:#222; color:white; border:1px solid #555; padding:5px;">
+                    <option value="-1">CLAVIER / SOURIS</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>JOUEUR 2:</span>
+                <select id="p2InputSelect" onchange="updateInputMapping()" style="background:#222; color:white; border:1px solid #555; padding:5px;">
+                    <option value="-1">CLAVIER (ENTER)</option>
+                </select>
+            </div>
+        </div>
+
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
         <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
@@ -2907,7 +2925,8 @@ let lastDisplayedContestTime = -1;
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
-            leaderboards: { classic: [], contest: [], time_attack: [] }
+            leaderboards: { classic: [], contest: [], time_attack: [] },
+            inputMap: { p1: -1, p2: -1 }
         };
     }
 
@@ -2918,6 +2937,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
     if(!playerData.stats.income) playerData.stats.income = 1;
     if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
+    if(!playerData.inputMap) playerData.inputMap = { p1: -1, p2: -1 };
     if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
     if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
     if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
@@ -9752,6 +9772,7 @@ let lastDisplayedContestTime = -1;
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
+        populateInputSelects();
         const ls = playerData.lifetimeStats;
         document.getElementById('statShots').innerText = ls.shots;
         document.getElementById('statMakes').innerText = ls.makes;
@@ -9821,6 +9842,57 @@ let lastDisplayedContestTime = -1;
         const val = parseFloat(document.getElementById('meterSizeSlider').value);
         playerData.meterScale = val;
         document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.populateInputSelects = function() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p1Sel = document.getElementById('p1InputSelect');
+        const p2Sel = document.getElementById('p2InputSelect');
+
+        if(!p1Sel || !p2Sel) return;
+
+        const fillSelect = (sel, isP2) => {
+            sel.innerHTML = '';
+
+            const defOpt = document.createElement('option');
+            defOpt.value = "-1";
+            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
+            sel.appendChild(defOpt);
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                const opt = document.createElement('option');
+                opt.value = i;
+
+                let label = `MANETTE ${i+1}`;
+                if (gp && gp.connected) {
+                    let id = gp.id;
+                    if(id.length > 15) id = id.substring(0,15) + "...";
+                    label += ` (${id})`;
+                } else {
+                    label += " (Déconnectée)";
+                }
+                opt.textContent = label;
+                sel.appendChild(opt);
+            }
+        };
+
+        fillSelect(p1Sel, false);
+        fillSelect(p2Sel, true);
+
+        p1Sel.value = playerData.inputMap.p1;
+        p2Sel.value = playerData.inputMap.p2;
+    }
+
+    window.updateInputMapping = function() {
+        const p1Val = parseInt(document.getElementById('p1InputSelect').value);
+        const p2Val = parseInt(document.getElementById('p2InputSelect').value);
+
+        playerData.inputMap.p1 = p1Val;
+        playerData.inputMap.p2 = p2Val;
+
         saveData();
         saveContext(game1);
     }
@@ -10136,6 +10208,8 @@ let lastDisplayedContestTime = -1;
     window.addEventListener('orientationchange', checkOrientation);
     document.addEventListener('fullscreenchange', checkFullscreenState);
     document.addEventListener('webkitfullscreenchange', checkFullscreenState);
+    window.addEventListener("gamepadconnected", populateInputSelects);
+    window.addEventListener("gamepaddisconnected", populateInputSelects);
 
     window.choosePlatform = function(mode) {
         AudioSystem.init();
@@ -10470,7 +10544,7 @@ let lastDisplayedContestTime = -1;
         focusedElement: null,
         focusIndex: 0,
         focusableElements: [],
-        lastButtonState: {},
+        lastButtonStates: {},
         lastState: null,
         navDelay: 0,
 
@@ -10480,12 +10554,21 @@ let lastDisplayedContestTime = -1;
 
         update: function() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-            const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3]; // Check all slots
-            if (!gp) return;
+            let anyActive = false;
 
-            // Only activate if a button is pressed or previously active
-            if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
-            if (!this.active) return;
+            if (this.navDelay > 0) this.navDelay--;
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                if(!gp) continue;
+                anyActive = true;
+
+                if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
+
+                // Only activate if a button is pressed or previously active
+                if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
+            }
+            if(!this.active) return;
 
             // Check State Change
             if (this.lastState !== state) {
@@ -10493,31 +10576,36 @@ let lastDisplayedContestTime = -1;
                 this.lastState = state;
             }
 
-            // Navigation
-            this.handleNavigation(gp);
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                if(!gp) continue;
 
-            // Actions
-            this.handleActions(gp);
+                // Navigation (Any controller can navigate UI if configured or default behavior)
+                // For simplicity, we allow any controller to navigate menus to avoid lockout.
+                this.handleNavigation(gp, i);
 
-            // Save state
-            for(let i=0; i<gp.buttons.length; i++) {
-                this.lastButtonState[i] = gp.buttons[i].pressed;
+                // Actions (Strict Mapping)
+                this.handleActions(gp, i);
+
+                // Save state
+                for(let b=0; b<gp.buttons.length; b++) {
+                    this.lastButtonStates[i][b] = gp.buttons[b].pressed;
+                }
             }
         },
 
-        isPressed: function(gp, btnIndex) {
-            return gp.buttons[btnIndex] && gp.buttons[btnIndex].pressed && !this.lastButtonState[btnIndex];
+        isPressed: function(gp, btnIndex, gpIndex) {
+            const lastState = this.lastButtonStates[gpIndex] || [];
+            return gp.buttons[btnIndex] && gp.buttons[btnIndex].pressed && !lastState[btnIndex];
         },
 
-        isReleased: function(gp, btnIndex) {
-            return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && this.lastButtonState[btnIndex];
+        isReleased: function(gp, btnIndex, gpIndex) {
+            const lastState = this.lastButtonStates[gpIndex] || [];
+            return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && lastState[btnIndex];
         },
 
-        handleNavigation: function(gp) {
-            if (this.navDelay > 0) {
-                this.navDelay--;
-                return;
-            }
+        handleNavigation: function(gp, gpIndex) {
+            if (this.navDelay > 0) return;
 
             // Check D-Pad
             let dx = 0; let dy = 0;
@@ -10565,16 +10653,7 @@ let lastDisplayedContestTime = -1;
                 return;
             }
 
-            // Navigation Logic
-            // Simple mapping: Up/Left -> Prev, Down/Right -> Next
-            // This works well for the vertical lists in modals and horizontal list in main menu
-            let direction = (dx + dy);
-            // Bias vertical for Up/Down, horizontal for Left/Right?
-            // Actually, simply summing works for standard lists.
-            // But Left (-1) + Down (+1) = 0.
-            // Let's strictly prioritize:
-            if (dy !== 0) direction = dy;
-            else if (dx !== 0) direction = dx;
+            let direction = dy !== 0 ? dy : dx;
 
             if (direction > 0) this.focusIndex++;
             else if (direction < 0) this.focusIndex--;
@@ -10603,7 +10682,7 @@ let lastDisplayedContestTime = -1;
             const container = document.querySelector(containerSelector);
             if(!container) return;
 
-            const all = Array.from(container.querySelectorAll('button, .ui-btn, input'));
+            const all = Array.from(container.querySelectorAll('button, .ui-btn, input, select'));
             this.focusableElements = all.filter(el => {
                 return el.offsetParent !== null && !el.disabled && el.style.display !== 'none';
             });
@@ -10621,7 +10700,6 @@ let lastDisplayedContestTime = -1;
             this.focusedElement = this.focusableElements[this.focusIndex];
             if (this.focusedElement) {
                 this.focusedElement.classList.add('gamepad-focus');
-                // Scroll if needed (for long lists)
                 if(this.focusedElement.scrollIntoView) {
                     this.focusedElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
                 }
@@ -10634,19 +10712,27 @@ let lastDisplayedContestTime = -1;
             this.focusableElements = [];
         },
 
-        handleActions: function(gp) {
+        handleActions: function(gp, gpIndex) {
             // A Button: Select/Click
-            if (this.isPressed(gp, this.BTN_A)) {
+            if (this.isPressed(gp, this.BTN_A, gpIndex)) {
                 if (state === 'HIGHSCORE_INPUT') {
                     handleHighScoreInput('SELECT');
                 } else if (this.focusedElement) {
-                    this.focusedElement.click();
-                    this.refreshFocusList();
+                    if(this.focusedElement.tagName === 'SELECT') {
+                        const sel = this.focusedElement;
+                        let idx = sel.selectedIndex + 1;
+                        if(idx >= sel.options.length) idx = 0;
+                        sel.selectedIndex = idx;
+                        sel.dispatchEvent(new Event('change'));
+                    } else {
+                        this.focusedElement.click();
+                        this.refreshFocusList();
+                    }
                 }
             }
 
             // B Button: Back
-            if (this.isPressed(gp, this.BTN_B)) {
+            if (this.isPressed(gp, this.BTN_B, gpIndex)) {
                 if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
                 else if (state === 'SHOP') closeShop();
                 else if (state === 'STATS') closeStats();
@@ -10655,12 +10741,27 @@ let lastDisplayedContestTime = -1;
             }
 
             // X Button: Shoot (Game Action)
-            if (this.isPressed(gp, this.BTN_X)) {
-                if (state === 'GAMEOVER') openShop();
-                else if (state === 'IDLE') startJump();
+            const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
+            const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
+
+            if (gpIndex === p1Map) {
+                if (this.isPressed(gp, this.BTN_X, gpIndex)) {
+                    if (state === 'GAMEOVER') openShop();
+                    else if (state === 'IDLE') doGameAction(game1, 'press');
+                }
+                if (this.isReleased(gp, this.BTN_X, gpIndex)) {
+                    if (state === 'JUMPING' || state === 'PRE_JUMP') doGameAction(game1, 'release');
+                }
             }
-            if (this.isReleased(gp, this.BTN_X)) {
-                if (state === 'JUMPING') releaseShot();
+
+            if (isSplitscreen && gpIndex === p2Map) {
+                if (this.isPressed(gp, this.BTN_X, gpIndex)) {
+                    if (state === 'GAMEOVER') resetGame();
+                    else if (state === 'IDLE') doGameAction(game2, 'press');
+                }
+                if (this.isReleased(gp, this.BTN_X, gpIndex)) {
+                    if (state === 'JUMPING' || state === 'PRE_JUMP') doGameAction(game2, 'release');
+                }
             }
         }
     };
