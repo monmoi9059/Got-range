@@ -5986,6 +5986,7 @@ let lastDisplayedContestTime = -1;
         const currentAnimal = skinObj.animal;
         const skin = skinObj.id;
         const isMechanical = isMechanicalSkin(skin);
+        const hasBlackEars = (skin === 'bear_panda');
 
         // 1. Proportions & Setup
         let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0 };
