@@ -60,7 +60,7 @@
             top: 20px;
             left: 20px;
             right: 20px;
-            height: 60px;
+            height: 70px;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -69,39 +69,47 @@
         }
 
         .sb-panel {
-            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            background: linear-gradient(135deg, #1e2530 0%, #0c1017 100%);
             border-bottom: 4px solid var(--broadcast-accent);
+            border-top: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 0 25px;
-            height: 60px;
+            padding: 0 30px;
+            height: 65px;
             display: flex;
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
             transform: skewX(-15deg);
-            border-left: 2px solid #444;
+            border-left: 3px solid #333;
+            border-radius: 4px;
+            backdrop-filter: blur(5px);
         }
 
         .sb-content {
             transform: skewX(15deg);
             display: flex;
-            gap: 25px;
+            gap: 30px;
             align-items: center;
         }
 
         .sb-logo {
             font-family: var(--broadcast-font-title);
-            font-size: 28px;
-            color: var(--broadcast-accent);
+            font-size: 32px;
+            color: #FFF;
             text-transform: uppercase;
-            text-shadow: 2px 2px 0 #000;
-            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 1.5px;
+            background: linear-gradient(to bottom, #FFF 40%, #CCC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(2px 2px 0px #000);
         }
 
         .sb-stat-group {
             display: flex;
-            gap: 15px;
-            border-left: 1px solid #444;
-            padding-left: 15px;
+            gap: 20px;
+            border-left: 1px solid rgba(255,255,255,0.15);
+            padding-left: 20px;
+            box-shadow: -1px 0 0 rgba(0,0,0,0.3);
         }
 
         .sb-stat {
@@ -143,19 +151,21 @@
         }
 
         .broadcast-btn {
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid #444;
+            background: linear-gradient(180deg, #333 0%, #111 100%);
+            border: 1px solid #555;
             border-bottom: 3px solid var(--broadcast-accent);
-            color: #fff;
-            padding: 8px 30px;
-            font-family: var(--broadcast-font-body);
-            font-weight: 700;
+            color: #e0e0e0;
+            padding: 10px 35px;
+            font-family: var(--broadcast-font-title);
+            font-weight: 400;
             font-size: 18px;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease-out;
             transform: skewX(-10deg);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.8);
         }
 
         .broadcast-btn span {
@@ -164,14 +174,19 @@
         }
 
         .broadcast-btn:hover {
-            background: #333;
-            border-color: #fff;
-            border-bottom-color: #fff;
+            background: linear-gradient(180deg, #444 0%, #222 100%);
+            color: #FFF;
+            border-color: #888;
+            border-bottom-color: #FFF;
+            transform: skewX(-10deg) translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
         }
 
         .broadcast-btn:active {
             transform: skewX(-10deg) translateY(2px);
-            box-shadow: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            background: #000;
+            border-color: var(--broadcast-accent);
         }
 
         .broadcast-icon-btn {
@@ -700,6 +715,16 @@
 
 <script>
     var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
+    var g_lightDir = { x: -0.5, y: 0.8, z: 0.5 };
+    var g_shadowShiftX = -0.6;
+    var g_shadowShiftY = 0.3;
+
+    // Helper to darken color
+    function shadeColor(color, percent) {
+        var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+        return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+    }
+
     var preJumpTimer = 0;
     var resetTimer = 0;
     var nextAction = null;
@@ -1434,12 +1459,6 @@
             else if (type === 'earth') baseColor = '#0000FF';
             else if (type === 'watermelon') baseColor = '#155e15'; // Dark stripes base?
             else if (type === 'beach') baseColor = '#FFF'; // Base white?
-
-            // Helper to darken color
-            var shadeColor = function(color, percent) {
-                var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
-                return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
-            };
 
             for(var i=0; i<drawFaces.length; i++) {
                 var df = drawFaces[i];
@@ -4233,10 +4252,10 @@ let lastDisplayedContestTime = -1;
                  }
                  ctx.closePath();
 
-                 const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-                 grad.addColorStop(0, 'rgba(0,0,0,0.4)');
+                 const grad = ctx.createLinearGradient(cx - w, topY, cx + w, topY);
+                 grad.addColorStop(0, shadeColor(color, -30));
                  grad.addColorStop(0.5, color);
-                 grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+                 grad.addColorStop(1, shadeColor(color, -40));
                  ctx.fillStyle = grad;
                  ctx.fill();
             }
@@ -5024,13 +5043,21 @@ let lastDisplayedContestTime = -1;
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
         
+        // Dynamic Skew from Environment Update
+        const kx = window.g_shadowShiftX || -0.6;
+        const ky = window.g_shadowShiftY || 0.3;
+
         // Quality check
         if (playerData.graphics === 'LOW') {
-             // Fallback to simple blob if needed
+             // Fallback to simple blob with dynamic skew
+             ctx.save();
+             ctx.translate(obj.x, obj.y);
+             ctx.transform(1, 0, kx, ky, 0, 0);
              ctx.fillStyle = 'rgba(0,0,0,0.3)';
              ctx.beginPath();
-             ctx.ellipse(obj.x, obj.y, 25 * obj.scale, 8 * obj.scale, 0, 0, Math.PI * 2);
+             ctx.ellipse(0, 0, 25 * obj.scale, 8 * obj.scale, 0, 0, Math.PI * 2);
              ctx.fill();
+             ctx.restore();
              return;
         }
 
@@ -5293,7 +5320,17 @@ let lastDisplayedContestTime = -1;
         ctx.closePath();
         
         // 1. Base Color Fill
-        ctx.fillStyle = color;
+        // Volumetric Shading for High Graphics
+        if (playerData.graphics === 'HIGH') {
+            const grad = ctx.createLinearGradient(0, -startW, 0, startW);
+            grad.addColorStop(0, shadeColor(color, -20)); // Shadow Top
+            grad.addColorStop(0.3, color);              // Highlight
+            grad.addColorStop(0.5, shadeColor(color, -10)); // Mid-tone
+            grad.addColorStop(1, shadeColor(color, -25)); // Deep Shadow Bottom
+            ctx.fillStyle = grad;
+        } else {
+            ctx.fillStyle = color;
+        }
         ctx.fill();
 
         // 2. 3D Volume Gradient (Cylinder Effect)
@@ -5443,35 +5480,36 @@ let lastDisplayedContestTime = -1;
         ctx.closePath();
         
         // Fill
-        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
-        grad.addColorStop(0, color); 
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, color); 
-        
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.fillStyle = grad; 
-        ctx.globalCompositeOperation = 'source-atop';
+        if (playerData.graphics === 'HIGH') {
+             // Volumetric Fabric Shading
+             const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+             grad.addColorStop(0, shadeColor(color, -25));
+             grad.addColorStop(0.2, color);
+             grad.addColorStop(0.5, shadeColor(color, -10)); // Spine recess
+             grad.addColorStop(0.8, color);
+             grad.addColorStop(1, shadeColor(color, -30));
+             ctx.fillStyle = grad;
+        } else {
+             ctx.fillStyle = color;
+        }
         ctx.fill();
 
-        ctx.globalCompositeOperation = 'source-over';
-
-        // High Graphics Folds
+        // High Graphics Folds & Detail
         if (playerData.graphics === 'HIGH') {
              ctx.save();
-             ctx.clip();
+             ctx.clip(); // Clip to jersey shape
 
-             // Spine Indent (Deeper)
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath();
-             ctx.moveTo(cx, topY + 5*scale);
-             ctx.lineTo(cx + 3*scale, bottomY);
-             ctx.lineTo(cx - 3*scale, bottomY);
-             ctx.fill();
+             // Deep Spine Fold
+             const spineGrad = ctx.createLinearGradient(cx - 5*scale, topY, cx + 5*scale, topY);
+             spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
+             spineGrad.addColorStop(0.5, 'rgba(0,0,0,0.3)');
+             spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
+             ctx.fillStyle = spineGrad;
+             ctx.fillRect(cx - 5*scale, topY, 10*scale, h);
 
-             // Tension Lines (Wrinkles)
-             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-             ctx.lineWidth = 1.5 * scale;
+             // Dynamic Wrinkles
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+             ctx.lineWidth = 2 * scale;
              ctx.lineCap = 'round';
 
              // Radiating from armpits
@@ -8218,32 +8256,71 @@ let lastDisplayedContestTime = -1;
                  fCtx.fillStyle = grad;
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
-                 // Procedural Textures based on Type
+                 // Procedural Textures based on Type (High Quality, No Noise)
                  if (court.type === 'arena') {
-                     // Wood Planks
-                     fCtx.fillStyle = court.ground2;
-                     const plankW = 40;
+                     // Polished Wood Floor Pattern
+                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     fCtx.lineWidth = 1;
+
+                     // Perspective Planks (Trapezoidal approximation done in 2D texture,
+                     // but since this is mapped flat, we simulate depth via gradient on lines?)
+                     // Actually, just nice planks.
+                     const plankW = 60;
                      for(let i=0; i<fCv.width; i+=plankW) {
-                         fCtx.fillRect(i, 0, 2, fCv.height);
+                         fCtx.beginPath();
+                         fCtx.moveTo(i, 0);
+                         fCtx.lineTo(i, fCv.height);
+                         fCtx.stroke();
+
+                         // Alternating plank shading
+                         if((i/plankW)%2 === 0) {
+                             fCtx.fillStyle = 'rgba(0,0,0,0.03)';
+                             fCtx.fillRect(i, 0, plankW, fCv.height);
+                         }
                      }
+                     // Reflection/Gloss Hint
+                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
+                     fCtx.fillRect(0, 0, fCv.width, fCv.height * 0.3);
                  }
                  else if (court.type === 'carnival') {
-                     // Carnival Checkerboard
-                     const size = 50;
-                     fCtx.fillStyle = court.ground2;
+                     // Glossy Checkerboard
+                     const size = 60;
                      for(let y=0; y<fCv.height; y+=size) {
                          for(let x=0; x<fCv.width; x+=size) {
                              if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
+                                 fCtx.fillStyle = court.ground2;
+                                 fCtx.fillRect(x, y, size, size);
+
+                                 // Bevel Highlight
+                                 fCtx.fillStyle = 'rgba(255,255,255,0.1)';
+                                 fCtx.fillRect(x, y, size, 2);
+                                 fCtx.fillRect(x, y, 2, size);
+                             } else {
+                                 fCtx.fillStyle = court.ground1; // Base
                                  fCtx.fillRect(x, y, size, size);
                              }
                          }
                      }
                  }
                  else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades removed for clean High graphics
+                     // Mowed Lawn Stripes (Clean)
+                     const stripeH = 40;
+                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
+                     for(let y=0; y<fCv.height; y+=stripeH*2) {
+                         fCtx.fillRect(0, y, fCv.width, stripeH);
+                     }
                  }
                  else if (court.type === 'castle') {
-                    // Clean asphalt
+                    // Cobblestone / Pavement Pattern
+                    fCtx.strokeStyle = 'rgba(0,0,0,0.15)';
+                    fCtx.lineWidth = 2;
+                    const brickW = 80; const brickH = 40;
+                    for(let y=0; y<fCv.height; y+=brickH) {
+                        const offset = (y/brickH % 2) * (brickW/2);
+                        for(let x=-brickW; x<fCv.width; x+=brickW) {
+                            fCtx.strokeRect(x + offset, y, brickW, brickH);
+                        }
+                    }
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
@@ -8301,6 +8378,15 @@ let lastDisplayedContestTime = -1;
         ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, vpW, vpH);
 
         // SUN / MOON / STARS / MOUNTAINS (CLASSIC ONLY)
+        // Set Global Light Direction (Simulated Sun Position: Top-Right-ish)
+        // Light comes from (1, -2, 1) normalized roughly
+        // We set global shadow parameters for drawRealisticShadow to use
+        g_lightDir = { x: -0.5, y: 0.8, z: 0.5 }; // Direction TO light source? Or FROM light?
+        // Let's define it as Direction to Light Source for dot product lighting
+        // For shadows, we want direction of light rays (From Light)
+        g_shadowShiftX = -0.6; // X skew factor
+        g_shadowShiftY = 0.3; // Y skew factor (length)
+
         if (currentGameMode === 'CLASSIC') {
             if (distanceLevel > 8) {
                  // Simple stars
@@ -8310,6 +8396,10 @@ let lastDisplayedContestTime = -1;
                      let sy = (i * 59) % (horizonY * 0.8);
                      ctx.beginPath(); ctx.arc(sx, sy, 1 + (i%2), 0, Math.PI*2); ctx.fill();
                 }
+                 // Moon lighting
+                 g_lightDir = { x: 0.2, y: 0.9, z: 0.2 };
+                 g_shadowShiftX = 0.3;
+                 g_shadowShiftY = 0.4;
             } else {
                  // Sun
                  if (playerData.graphics === 'HIGH') {
@@ -8321,6 +8411,11 @@ let lastDisplayedContestTime = -1;
                      ctx.fillStyle = glow;
                      ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
                      ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(sunX, sunY, 40, 0, Math.PI*2); ctx.fill();
+
+                     // Update light direction based on sun position (approx)
+                     // Center screen is width/2. Sun is at 700.
+                     // Shadows cast away from sun.
+                     g_shadowShiftX = -0.6; // Hardcoded consistent sun angle
                  } else {
                      ctx.fillStyle = sunGradient;
                      ctx.beginPath(); ctx.arc(700, 80, 80, 0, Math.PI*2); ctx.fill();
