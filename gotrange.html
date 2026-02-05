@@ -8226,13 +8226,6 @@ let lastDisplayedContestTime = -1;
                      for(let i=0; i<fCv.width; i+=plankW) {
                          fCtx.fillRect(i, 0, 2, fCv.height);
                      }
-                    // Random grain - Removed for High Setting cleanliness
-                    /*
-                     fCtx.fillStyle = 'rgba(100, 50, 0, 0.05)';
-                     for(let i=0; i<fCv.width*fCv.height*0.1; i++) {
-                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 1);
-                     }
-                    */
                  }
                  else if (court.type === 'carnival') {
                      // Carnival Checkerboard
@@ -8247,73 +8240,13 @@ let lastDisplayedContestTime = -1;
                      }
                  }
                  else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades
-                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     fCtx.lineWidth = 1;
-                     const blades = fCv.width * fCv.height * 0.02;
-                     for(let i=0; i<blades; i++) {
-                         const x = Math.random() * fCv.width;
-                         const y = Math.random() * fCv.height;
-                         const len = 2 + Math.random() * 3;
-                         fCtx.beginPath();
-                         fCtx.moveTo(x, y);
-                         fCtx.lineTo(x, y - len);
-                         fCtx.stroke();
-                     }
-                    // Noise - Removed
-                    /*
-                     fCtx.fillStyle = 'rgba(0,0,0,0.05)';
-                     for(let i=0; i<blades/2; i++) {
-                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
-                     }
-                    */
+                     // Grass Blades removed for clean High graphics
                  }
                  else if (court.type === 'castle') {
-                    // Asphalt / Pavement Noise - Removed
-                    /*
-                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
-                     const noise = fCv.width * fCv.height * 0.1;
-                     for(let i=0; i<noise; i++) {
-                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
-                     }
-                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
-                     for(let i=0; i<noise; i++) {
-                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 1, 1);
-                     }
-                    */
-                    // Cracks - Removed
-                    /*
-                     fCtx.strokeStyle = 'rgba(0,0,0,0.4)';
-                     fCtx.lineWidth = 2;
-                     for(let i=0; i<5; i++) {
-                         let cx = Math.random() * fCv.width;
-                         let cy = Math.random() * fCv.height;
-                         fCtx.beginPath();
-                         fCtx.moveTo(cx, cy);
-                         for(let j=0; j<5; j++) {
-                             cx += (Math.random()-0.5)*50;
-                             cy += (Math.random()-0.5)*50;
-                             fCtx.lineTo(cx, cy);
-                         }
-                         fCtx.stroke();
-                     }
-                    */
+                    // Clean asphalt
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
-                    // Scratches (Skate marks) - Removed
-                    /*
-                     fCtx.strokeStyle = 'rgba(255,255,255,0.3)';
-                     fCtx.lineWidth = 1;
-                     for(let i=0; i<200; i++) {
-                         const sx = Math.random() * fCv.width;
-                         const sy = Math.random() * fCv.height;
-                         fCtx.beginPath();
-                         fCtx.moveTo(sx, sy);
-                         fCtx.quadraticCurveTo(sx + (Math.random()-0.5)*100, sy + (Math.random()-0.5)*50, sx + (Math.random()-0.5)*200, sy + (Math.random()-0.5)*100);
-                         fCtx.stroke();
-                     }
-                    */
                      // Reflections (Fake)
                      const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
                      gradRef.addColorStop(0, 'rgba(255,255,255,0)');
@@ -8323,18 +8256,7 @@ let lastDisplayedContestTime = -1;
                      fCtx.fillRect(0, 0, fCv.width, fCv.height);
                  }
                  else if (court.type === 'water') {
-                    // Ripples - Removed
-                    /*
-                     fCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-                     fCtx.lineWidth = 2;
-                     for(let i=0; i<fCv.height; i+=5) {
-                         const offset = Math.sin(i * 0.1) * 20;
-                         fCtx.beginPath();
-                         fCtx.moveTo(0, i);
-                         fCtx.lineTo(fCv.width, i + offset);
-                         fCtx.stroke();
-                     }
-                    */
+                    // Clean water
                  }
                  else if (court.type === 'space') {
                      // Craters / Dust
@@ -8347,13 +8269,6 @@ let lastDisplayedContestTime = -1;
                          fCtx.arc(cx, cy, r, 0, Math.PI*2);
                          fCtx.fill();
                      }
-                    // Dust Noise - Removed
-                    /*
-                     fCtx.fillStyle = 'rgba(255,255,255,0.05)';
-                     for(let i=0; i<500; i++) {
-                         fCtx.fillRect(Math.random()*fCv.width, Math.random()*fCv.height, 2, 2);
-                     }
-                    */
                  }
 
                  bgCache.floorImage = fCv;
