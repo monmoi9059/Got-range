@@ -3963,21 +3963,27 @@ let lastDisplayedContestTime = -1;
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
     };
 
-    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1) {
+    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
             drawLimb(x1, y1, x2, y2, width, color);
             return;
         }
-        // Construct polygon for limb
+        // Construct polygon for limb (Tapered support)
+        const w1 = width / 2;
+        const w2 = (endWidth !== null) ? endWidth / 2 : w1;
+
         const angle = Math.atan2(y2 - y1, x2 - x1);
-        const dx = Math.sin(angle) * (width / 2);
-        const dy = Math.cos(angle) * (width / 2);
+        const sinA = Math.sin(angle);
+        const cosA = Math.cos(angle);
+
+        const dx1 = sinA * w1; const dy1 = cosA * w1;
+        const dx2 = sinA * w2; const dy2 = cosA * w2;
 
         // Use Pool
-        const p1 = g_limbPoints[0]; p1.x = x1 - dx; p1.y = y1 + dy;
-        const p2 = g_limbPoints[1]; p2.x = x2 - dx; p2.y = y2 + dy;
-        const p3 = g_limbPoints[2]; p3.x = x2 + dx; p3.y = y2 - dy;
-        const p4 = g_limbPoints[3]; p4.x = x1 + dx; p4.y = y1 - dy;
+        const p1 = g_limbPoints[0]; p1.x = x1 - dx1; p1.y = y1 + dy1;
+        const p2 = g_limbPoints[1]; p2.x = x2 - dx2; p2.y = y2 + dy2;
+        const p3 = g_limbPoints[2]; p3.x = x2 + dx2; p3.y = y2 - dy2;
+        const p4 = g_limbPoints[3]; p4.x = x1 + dx1; p4.y = y1 - dy1;
 
         // High Graphics: 3D Cylinder Shading (Perpendicular)
         if (playerData.graphics === 'HIGH') {
@@ -3985,23 +3991,26 @@ let lastDisplayedContestTime = -1;
              ctx.translate(x1, y1);
              ctx.rotate(angle);
              const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-             const w = width / 2;
 
-             const grad3d = ctx.createLinearGradient(0, -w, 0, w);
-             grad3d.addColorStop(0, 'rgba(0,0,0,0.3)');
-             grad3d.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight
-             grad3d.addColorStop(1, 'rgba(0,0,0,0.3)');
+             // Tapered Shading
+             const grad3d = ctx.createLinearGradient(0, -w1, 0, w1); // Approx gradient
+             grad3d.addColorStop(0, 'rgba(0,0,0,0.4)');
+             grad3d.addColorStop(0.4, 'rgba(255,255,255,0.15)'); // Highlight
+             grad3d.addColorStop(1, 'rgba(0,0,0,0.4)');
 
              ctx.fillStyle = grad3d;
              ctx.beginPath();
-             ctx.rect(0, -w, len, width);
+             ctx.moveTo(0, -w1);
+             ctx.lineTo(len, -w2);
+             ctx.lineTo(len, w2);
+             ctx.lineTo(0, w1);
              ctx.fill();
              ctx.restore();
         }
 
         drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
-        // Add shadow gradient overlay for depth
+        // Add shadow gradient overlay for depth (Axial)
         ctx.save();
         ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
         ctx.clip();
@@ -5256,18 +5265,26 @@ let lastDisplayedContestTime = -1;
         
         if (type === 'thigh') {
             if (playerData.graphics === 'HIGH') {
-                 ctx.quadraticCurveTo(len*0.4, -w*1.3, len, -endW);
+                 // Enhanced Quadriceps
+                 ctx.bezierCurveTo(len*0.3, -w*1.5, len*0.7, -w*1.5, len, -endW);
                  ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-                 ctx.quadraticCurveTo(len*0.4, w*1.3, 0, startW);
+                 ctx.bezierCurveTo(len*0.7, w*1.3, len*0.3, w*1.3, 0, startW);
             } else {
                  ctx.lineTo(len, -endW);
                  ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
                  ctx.lineTo(0, startW);
             }
         } else if (type === 'calf') {
-            ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
-            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-            ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
+            if (playerData.graphics === 'HIGH') {
+                 // Defined Calf
+                 ctx.bezierCurveTo(len*0.25, -w*1.6, len*0.6, -w*1.3, len, -endW);
+                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+                 ctx.bezierCurveTo(len*0.5, w*1.2, len*0.2, w*1.2, 0, startW);
+            } else {
+                ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
+                ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+                ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
+            }
         } else {
             ctx.lineTo(len, -endW);
             ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
@@ -5282,12 +5299,12 @@ let lastDisplayedContestTime = -1;
         // 2. 3D Volume Gradient (Cylinder Effect)
         if (playerData.graphics === 'HIGH') {
             const grad = ctx.createLinearGradient(0, -w, 0, w);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)');
-            grad.addColorStop(0.15, 'rgba(0,0,0,0.2)');
-            grad.addColorStop(0.4, 'rgba(255,255,255,0.25)'); // Highlight
-            grad.addColorStop(0.6, 'rgba(255,255,255,0.05)');
-            grad.addColorStop(0.85, 'rgba(0,0,0,0.2)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
+            grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
+            grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.6)');
             ctx.fillStyle = grad;
             ctx.fill();
 
@@ -5442,25 +5459,40 @@ let lastDisplayedContestTime = -1;
         if (playerData.graphics === 'HIGH') {
              ctx.save();
              ctx.clip();
-             ctx.fillStyle = 'rgba(0,0,0,0.15)';
 
-             // Spine Indent
+             // Spine Indent (Deeper)
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
              ctx.beginPath();
-             ctx.moveTo(cx, topY); ctx.lineTo(cx + 2*scale, bottomY); ctx.lineTo(cx - 2*scale, bottomY);
+             ctx.moveTo(cx, topY + 5*scale);
+             ctx.lineTo(cx + 3*scale, bottomY);
+             ctx.lineTo(cx - 3*scale, bottomY);
              ctx.fill();
 
-             // Side Folds (Tension from armpits)
-             ctx.beginPath();
-             ctx.moveTo(cx - shoulderW/2, armpitY);
-             ctx.quadraticCurveTo(cx - waistW*0.5, bottomY*0.8, cx - waistW/2 + 5*scale, bottomY);
-             ctx.lineTo(cx - waistW/2, bottomY);
-             ctx.fill();
+             // Tension Lines (Wrinkles)
+             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+             ctx.lineWidth = 1.5 * scale;
+             ctx.lineCap = 'round';
 
+             // Radiating from armpits
+             for(let i=0; i<3; i++) {
+                 // Left
+                 ctx.beginPath();
+                 ctx.moveTo(cx - shoulderW/2 + 2*scale, armpitY + i*4*scale);
+                 ctx.quadraticCurveTo(cx - waistW*0.3, armpitY + 10*scale + i*5*scale, cx - waistW*0.2, bottomY - 10*scale);
+                 ctx.stroke();
+
+                 // Right
+                 ctx.beginPath();
+                 ctx.moveTo(cx + shoulderW/2 - 2*scale, armpitY + i*4*scale);
+                 ctx.quadraticCurveTo(cx + waistW*0.3, armpitY + 10*scale + i*5*scale, cx + waistW*0.2, bottomY - 10*scale);
+                 ctx.stroke();
+             }
+
+             // Horizontal crunch at waist
              ctx.beginPath();
-             ctx.moveTo(cx + shoulderW/2, armpitY);
-             ctx.quadraticCurveTo(cx + waistW*0.5, bottomY*0.8, cx + waistW/2 - 5*scale, bottomY);
-             ctx.lineTo(cx + waistW/2, bottomY);
-             ctx.fill();
+             ctx.moveTo(cx - waistW*0.3, bottomY - 5*scale);
+             ctx.quadraticCurveTo(cx, bottomY - 8*scale, cx + waistW*0.3, bottomY - 5*scale);
+             ctx.stroke();
 
              ctx.restore();
         }
@@ -5754,27 +5786,31 @@ let lastDisplayedContestTime = -1;
              ctx.clip();
 
              ctx.globalCompositeOperation = 'source-over';
-             ctx.fillStyle = 'rgba(0,0,0,0.15)';
-
-             // Crotch radiated folds
-             for(let i=0; i<3; i++) {
-                 ctx.beginPath();
-                 ctx.ellipse(cx, crotchY + h*0.1, h*0.4, h*0.1, (i-1)*0.5, 0, Math.PI*2);
-                 ctx.fill();
-             }
-
-             // Side vertical folds
-             ctx.beginPath();
-             ctx.moveTo(cx - hipW/2 + 5*scale, waistY + h*0.5);
-             ctx.lineTo(cx - hipW/2 + 10*scale, bottomY);
-             ctx.lineTo(cx - hipW/2 + 2*scale, bottomY);
-             ctx.fill();
+             // Crotch Creases
+             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+             ctx.lineWidth = 1.5 * scale;
+             ctx.lineCap = 'round';
 
              ctx.beginPath();
-             ctx.moveTo(cx + hipW/2 - 5*scale, waistY + h*0.5);
-             ctx.lineTo(cx + hipW/2 - 10*scale, bottomY);
-             ctx.lineTo(cx + hipW/2 - 2*scale, bottomY);
-             ctx.fill();
+             ctx.moveTo(cx, crotchY);
+             ctx.quadraticCurveTo(cx - hipW*0.2, crotchY + h*0.1, cx - hipW*0.3, bottomY - 5*scale);
+             ctx.stroke();
+
+             ctx.beginPath();
+             ctx.moveTo(cx, crotchY);
+             ctx.quadraticCurveTo(cx + hipW*0.2, crotchY + h*0.1, cx + hipW*0.3, bottomY - 5*scale);
+             ctx.stroke();
+
+             // Side Bunching
+             ctx.beginPath();
+             ctx.moveTo(cx - waistW/2, waistY + 10*scale);
+             ctx.lineTo(cx - waistW/2 + 10*scale, waistY + 15*scale);
+             ctx.stroke();
+
+             ctx.beginPath();
+             ctx.moveTo(cx + waistW/2, waistY + 10*scale);
+             ctx.lineTo(cx + waistW/2 - 10*scale, waistY + 15*scale);
+             ctx.stroke();
 
              ctx.restore();
         }
@@ -6181,22 +6217,33 @@ let lastDisplayedContestTime = -1;
         // Skull
         ctx.beginPath(); 
         ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2); 
-        ctx.fill();
         
         if (playerData.graphics === 'HIGH') {
-             // Enhanced Shading (Jawline/Neck)
-             ctx.fillStyle = 'rgba(0,0,0,0.15)';
-             ctx.beginPath();
-             ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2);
+             // 3D Head Shading
+             const r = headRadius;
+
+             // Base Fill (ensure color is set)
+             ctx.fillStyle = skinTone;
              ctx.fill();
 
-             // Gradient for hair shadow
-             const hGrad = ctx.createLinearGradient(0, headY - headRadius, 0, headY);
-             hGrad.addColorStop(0, 'rgba(0,0,0,0.1)');
-             hGrad.addColorStop(1, 'rgba(0,0,0,0)');
-             ctx.fillStyle = hGrad;
+             // Overlay Gradient (Spherical Volume)
+             const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
+             shade.addColorStop(0, 'rgba(255,255,255,0.15)'); // Highlight (Top Left)
+             shade.addColorStop(0.5, 'rgba(0,0,0,0)');
+             shade.addColorStop(1, 'rgba(0,0,0,0.3)'); // Shadow edge
+             ctx.fillStyle = shade;
+             ctx.fill();
+
+             // Neck Shadow (Jawline) - Smoother
+             const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.8, 0, p.x, headY + r*0.8, r*0.6);
+             neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
+             neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
+             ctx.fillStyle = neckShadow;
+             ctx.beginPath();
+             ctx.ellipse(p.x, headY + r*0.6, r*0.6, r*0.4, 0, 0, Math.PI*2);
              ctx.fill();
         } else {
+             ctx.fill();
              // Occipital Shadow (Base of skull)
              ctx.fillStyle = 'rgba(0,0,0,0.1)';
              ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, 4*s, 0, Math.PI*2); ctx.fill();
@@ -6996,20 +7043,20 @@ let lastDisplayedContestTime = -1;
             if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, isMechanical);
             else drawFuzzyCircle(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, seedBase, s, true);
 
-            // Upper Arm
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.armWidth, thisUpperColor, s, armFurry, seedBase);
+            // Upper Arm (Tapered)
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 7*s*sizeMod.armWidth, thisUpperColor, s, armFurry, seedBase, 5*s*sizeMod.armWidth);
 
             // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
             if (activeSleeveColor) {
                 const midX = (sx + elbow.x) / 2;
                 const midY = (sy + elbow.y) / 2;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.armWidth, activeSleeveColor, s, false, seedBase);
+                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.armWidth, activeSleeveColor, s, false, seedBase, 5.2*s*sizeMod.armWidth);
             }
 
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
 
-            // Forearm
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.armWidth, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1);
+            // Forearm (Tapered)
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.armWidth, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, 3.5*s*sizeMod.armWidth);
 
             // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
             let elbowColor = thisUpperColor;
@@ -7026,7 +7073,21 @@ let lastDisplayedContestTime = -1;
             else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+
+            // Paw / Hand
+            if (armFurry && !activeSleeveColor) {
+                 // Fuzzy Paw
+                 const pawColor = thisForeColor;
+                 drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
+                 // Toes
+                 for(let k=-1; k<=1; k++) {
+                     drawFuzzyCircle(k*3*s, 5*s, 2.5*s, pawColor, seedBase+6+k, s, true);
+                 }
+            } else {
+                 // Simple Hand
+                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+            }
+
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
@@ -7142,20 +7203,30 @@ let lastDisplayedContestTime = -1;
             drawFuzzyCircle(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
         }
 
-        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
+        // Tapered Thighs (8 -> 5)
+        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, 8*s*sizeMod.legWidth, thighColor, s, legFurry, 1, 5*s*sizeMod.legWidth);
+        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, 8*s*sizeMod.legWidth, thighColor, s, legFurry, 3, 5*s*sizeMod.legWidth);
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
 
-             // Draw Base Calf
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.legWidth, calfBaseColor, s, legFurry, isRight?4:2);
+             // Draw Base Calf (Tapered 5 -> 3.5)
+             drawFuzzyLimb(xTop, yTop, xBot, yBot, 5*s*sizeMod.legWidth, calfBaseColor, s, legFurry, isRight?4:2, 3.5*s*sizeMod.legWidth);
 
-             // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
-             // Thigh was drawn before this function.
+             // Paw / Foot (If no shoes)
+             if (legFurry && !skinObj.shoesColor) {
+                 const pawColor = calfBaseColor;
+                 drawFuzzyCircle(xBot, yBot, 4.5*s, pawColor, isRight?50:60, s, true);
+                 // Toes
+                 for(let k=-1; k<=1; k++) {
+                     drawFuzzyCircle(xBot + k*3*s, yBot + 4*s, 3*s, pawColor, isRight?51+k:61+k, s, true);
+                 }
+             }
+
+             // Knee Joint (Radius 0.7)
              if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-             else drawFuzzyCircle(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isRight?40:20, s, true);
+             else drawFuzzyCircle(xTop, yTop, 6*s*sizeMod.legWidth * 0.7, thighColor, isRight?40:20, s, true);
 
              // Socks & Shoes Overlay
              if(skinObj.socksColor || skinObj.shoesColor) {
