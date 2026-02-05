@@ -5935,7 +5935,8 @@ let lastDisplayedContestTime = -1;
             const neckW = 12 * s * sizeMod.w * 0.7;
             ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
         }
-        let shoulderY = torsoY + (2*s); // Raised shoulders for higher jersey
+        let shoulderY = torsoY + (2*s); // Raised shoulders for higher jersey (Anchor)
+        let armY = torsoY + (5*s); // Lower attachment point for arms
         let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
@@ -5954,6 +5955,7 @@ let lastDisplayedContestTime = -1;
                  torsoY = p.y - legLen - bodyH;
                  headY = torsoY - (10 * s * sizeMod.head);
                  shoulderY = torsoY + (2*s);
+                 armY = torsoY + (5*s);
                  // Recalculate shoulders for Human
                  leftShoulderX = p.x - 16*s; rightShoulderX = p.x + 16*s;
              }
@@ -5967,7 +5969,7 @@ let lastDisplayedContestTime = -1;
             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
 
-            let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+            let elbow = getJoint(shootSX, armY, upperArmLen, shootUAngle);
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
 
             // Calculate Ball Position based on wrist transform
@@ -6069,8 +6071,8 @@ let lastDisplayedContestTime = -1;
         };
 
         // Arms First (Layer 1) - Arms behind legs
-        drawHumanArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawHumanArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+        drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle);
+        drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle);
 
         // Draw Thighs (Skin tone - under shorts)
         // Hip Joints
@@ -6983,7 +6985,8 @@ let lastDisplayedContestTime = -1;
 
         // Lift shoulders for humans to extend jersey higher (Trapezoid shape)
         let shoulderY = torsoY + (2*s);
-        if (currentAnimal === 'human') shoulderY = torsoY; // Square shoulders at top of bounding box
+        let armY = torsoY + (5*s); // Lower attachment
+        if (currentAnimal === 'human') { shoulderY = torsoY; armY = torsoY; } // Square shoulders at top of bounding box
 
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
@@ -7100,7 +7103,8 @@ let lastDisplayedContestTime = -1;
                  p.y -= offset;
                  torsoY = p.y - legLen - bodyH;
                  headY = torsoY - (10 * s * sizeMod.head);
-                 shoulderY = torsoY + (5*s);
+                 shoulderY = torsoY + (2*s);
+                 armY = torsoY + (5*s);
                  // Recalculate shoulders
                  leftShoulderX = p.x - 12*s; rightShoulderX = p.x + 12*s;
              }
@@ -7124,7 +7128,7 @@ let lastDisplayedContestTime = -1;
                  const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
                  const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
 
-                 let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
+                 let elbow = getJoint(shootSX, armY, upperArmLen, shootUAngle);
                  let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
 
                  let theta = shootFAngle + wristAngle;
@@ -7137,8 +7141,8 @@ let lastDisplayedContestTime = -1;
         }
 
         // Arms First (Layer 1) - Arms behind legs
-        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+        drawSegmentedArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle);
+        drawSegmentedArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle);
 
         // 2. Legs (Base implementation)
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
