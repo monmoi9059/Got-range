@@ -1,0 +1,100 @@
+                         var r = 0.5;
+                         var sx = Math.cos(ang)*r; var sy = -0.9 + Math.sin(ang)*r*0.2; var sz = Math.sin(ang)*r;
+                         var p = projectPoint({x:sx, y:sy, z:sz});
+                         if(p) {
+                             ctx.fillStyle = sprinkleColors[i%3];
+                             ctx.fillRect(p.x, p.y, 4*p.scale, 2*p.scale);
+                         }
+                     }
+                 }
+                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+                 if(centerProj) {
+                     ctx.fillStyle = '#222';
+                     ctx.beginPath(); ctx.arc(centerProj.x, centerProj.y, 25*centerProj.scale*0.25, 0, Math.PI*2); ctx.fill();
+                 }
+            }
+            else if (type === 'watermelon') {
+                 ctx.strokeStyle = '#155e15';
+                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+                 var s = centerProj ? centerProj.scale : 1;
+                 ctx.lineWidth = 4 * s;
+                 for(var sIdx=0; sIdx<Geometry.watermelon.length; sIdx++) {
+                     ctx.beginPath();
+                     var first = true;
+                     var line = Geometry.watermelon[sIdx];
+                     for(var i=0; i<line.length; i++) {
+                         var proj = projectPoint(line[i]);
+                         if(proj) {
+                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                             else ctx.lineTo(proj.x, proj.y);
+                         } else first = true;
+                     }
+                     ctx.stroke();
+                 }
+            }
+            else if (type === 'camo') {
+                ctx.fillStyle = ball.color2;
+                var patches = [1,2,3,4];
+                patches.forEach(function(i) {
+                    var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.beginPath();
+                        ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.4, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                });
+            }
+            else if (type === 'earth') {
+                 ctx.fillStyle = '#228B22'; // Land
+                 var continents = [0, 2, 4];
+                 continents.forEach(function(i) {
+                    var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
+                    var proj = projectPoint(p);
+                     if (proj) {
+                        ctx.beginPath();
+                        ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                 });
+            }
+            else if (type === 'baseball' || type === 'tennis') {
+                ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
+                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+                var s = centerProj ? centerProj.scale : 1;
+                ctx.lineWidth = 3 * s;
+                if (type === 'baseball') ctx.setLineDash([4*s, 3*s]);
+
+                ctx.beginPath();
+                var first = true;
+                for(var i=0; i<Geometry.seam.length; i++) {
+                    var proj = projectPoint(Geometry.seam[i]);
+                    if (proj) {
+                        if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                        else ctx.lineTo(proj.x, proj.y);
+                    } else {
+                        first = true;
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            else if (type === 'beach') {
+                var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
+                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+                var s = centerProj ? centerProj.scale : 1;
+
+                for(var k=0; k<6; k++) {
+                     ctx.fillStyle = colors[k];
+                     // Beach ball segments are essentially slices.
+                     // Geometry.beach contains lines. We want to FILL them for 3D look.
+                     // But we have a mesh.
+                     // The mesh is white.
+                     // We can draw filled polygons for segments.
+                     // Or just thick lines for now to match 2D style.
+                     // Let's stick to lines but thick.
+                     ctx.strokeStyle = colors[k];
+                     ctx.lineWidth = 25 * s * 0.5; // Very thick to simulate color
+                     ctx.lineCap = 'round';

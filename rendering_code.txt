@@ -1,0 +1,421 @@
+
+        const pattern = ctx.createPattern(gradCanvas, 'repeat');
+        g_gradientCache[key] = pattern;
+        return pattern;
+    }
+
+    function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
+        // V-Taper Jersey
+        const color = skinObj.jerseyColor || '#FFF';
+
+        let slX, srX, sY, blX, brX, bY;
+
+        if (anchors && anchors.shoulders) {
+            // Narrow shoulders by 10% for the jersey fabric
+            slX = cx + (anchors.shoulders.left.x - cx) * 0.9;
+            srX = cx + (anchors.shoulders.right.x - cx) * 0.9;
+            sY = anchors.shoulders.left.y;
+
+            // For bottom, use hips if available, otherwise calculate from width
+            // Jersey tucks into shorts, so align with hip joints
+            if (anchors.hips) {
+                blX = anchors.hips.left.x;
+                brX = anchors.hips.right.x;
+                bY = anchors.hips.left.y; // Assuming roughly level
+            } else {
+                const waistW = w * 0.9;
+                blX = cx - waistW/2;
+                brX = cx + waistW/2;
+                bY = topY + h;
+            }
+        } else {
+            const shoulderW = w * 1.6;
+            const waistW = w * 0.9;
+            slX = cx - shoulderW/2;
+            srX = cx + shoulderW/2;
+            sY = topY;
+            blX = cx - waistW/2;
+            brX = cx + waistW/2;
+            bY = topY + h;
+        }
+
+        const shoulderW = srX - slX;
+        const waistW = brX - blX;
+        const bottomY = bY;
+        const armpitY = sY + h * 0.4;
+
+        ctx.beginPath();
+        ctx.moveTo(slX, sY);
+        // Gentle neck curve (High back collar)
+        ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
+
+        // Right side
+        ctx.lineTo(srX, armpitY);
+        // Curve from armpit to bottom right (hip)
+        ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+
+        // Bottom curve (Tuck)
+        ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+
+        // Left side
+        ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
+        ctx.lineTo(slX, sY);
+
+        ctx.closePath();
+
+        // Fill
+        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+        grad.addColorStop(0, color);
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, color);
+
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = grad;
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        // High Graphics Folds
+        if (playerData.graphics === 'HIGH') {
+             ctx.save();
+             ctx.clip();
+
+             // Spine Indent (Deeper)
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath();
+             ctx.moveTo(cx, topY + 5*scale);
+             ctx.lineTo(cx + 3*scale, bottomY);
+             ctx.lineTo(cx - 3*scale, bottomY);
+             ctx.fill();
+
+             // Tension Lines (Wrinkles)
+             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+             ctx.lineWidth = 1.5 * scale;
+             ctx.lineCap = 'round';
+
+             // Radiating from armpits
+             for(let i=0; i<3; i++) {
+                 // Left
+                 ctx.beginPath();
+                 ctx.moveTo(cx - shoulderW/2 + 2*scale, armpitY + i*4*scale);
+                 ctx.quadraticCurveTo(cx - waistW*0.3, armpitY + 10*scale + i*5*scale, cx - waistW*0.2, bottomY - 10*scale);
+                 ctx.stroke();
+
+                 // Right
+                 ctx.beginPath();
+                 ctx.moveTo(cx + shoulderW/2 - 2*scale, armpitY + i*4*scale);
+                 ctx.quadraticCurveTo(cx + waistW*0.3, armpitY + 10*scale + i*5*scale, cx + waistW*0.2, bottomY - 10*scale);
+                 ctx.stroke();
+             }
+
+             // Horizontal crunch at waist
+             ctx.beginPath();
+             ctx.moveTo(cx - waistW*0.3, bottomY - 5*scale);
+             ctx.quadraticCurveTo(cx, bottomY - 8*scale, cx + waistW*0.3, bottomY - 5*scale);
+             ctx.stroke();
+
+             ctx.restore();
+        }
+
+        // --- PATTERNS ---
+        // Pinstripes
+        if(skinObj.pinstripesColor) {
+            ctx.strokeStyle = skinObj.pinstripesColor;
+            ctx.lineWidth = 1 * scale;
+            const step = 4 * scale;
+            for(let dx = -shoulderW/2; dx <= shoulderW/2; dx += step) {
+                if(Math.abs(dx) < 2*scale) continue; // Skip spine
+                ctx.beginPath();
+                ctx.moveTo(cx + dx, sY);
+                ctx.lineTo(cx + dx * 0.7, bottomY); // Taper in
+                ctx.stroke();
+            }
+        }
+
+        // Side Panels
+        if(skinObj.sideStripesColor) {
+            ctx.fillStyle = skinObj.sideStripesColor;
+            const stripeW = 3 * scale;
+
+            // Left Panel
+            ctx.beginPath();
+            ctx.moveTo(cx - shoulderW/2, armpitY);
+            ctx.quadraticCurveTo(cx - waistW*0.6, (armpitY+bottomY)/2, cx - waistW/2, bottomY);
+            ctx.lineTo(cx - waistW/2 + stripeW, bottomY);
+            ctx.quadraticCurveTo(cx - waistW*0.6 + stripeW, (armpitY+bottomY)/2, cx - shoulderW/2 + stripeW, armpitY);
+            ctx.fill();
+
+            // Right Panel
+            ctx.beginPath();
+            ctx.moveTo(cx + shoulderW/2, armpitY);
+            ctx.quadraticCurveTo(cx + waistW*0.6, (armpitY+bottomY)/2, cx + waistW/2, bottomY);
+            ctx.lineTo(cx + waistW/2 - stripeW, bottomY);
+            ctx.quadraticCurveTo(cx + waistW*0.6 - stripeW, (armpitY+bottomY)/2, cx + shoulderW/2 - stripeW, armpitY);
+            ctx.fill();
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Spine/Back Detail
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath();
+        ctx.moveTo(cx, topY + h*0.2);
+        ctx.lineTo(cx + 1*scale, topY + h*0.7);
+        ctx.lineTo(cx - 1*scale, topY + h*0.7);
+        ctx.fill();
+
+        // Mesh Texture
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+        for(let i=0; i<h; i+=4*scale) {
+            if (i%8===0) ctx.fillRect(cx - shoulderW, topY + i, shoulderW*2, 1*scale);
+        }
+        ctx.restore();
+
+        // --- TRIM (Over Texture) ---
+        if(skinObj.trimColor) {
+            ctx.strokeStyle = skinObj.trimColor;
+            ctx.lineWidth = 2 * scale;
+            // Neck
+            ctx.beginPath();
+            ctx.moveTo(cx - shoulderW/2, sY);
+            ctx.lineTo(cx + shoulderW/2, sY);
+            ctx.stroke();
+            // Armholes
+            ctx.beginPath();
+            ctx.moveTo(cx - shoulderW/2, sY);
+            ctx.lineTo(cx - shoulderW/2, armpitY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + shoulderW/2, sY);
+            ctx.lineTo(cx + shoulderW/2, armpitY);
+            ctx.stroke();
+        }
+
+        // Tuck Shadow at bottom
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.moveTo(cx - waistW/2, bottomY);
+        ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx + waistW/2, bottomY);
+        ctx.lineTo(cx + waistW/2, bottomY - 4*scale);
+        ctx.quadraticCurveTo(cx, bottomY - 1*scale, cx - waistW/2, bottomY - 4*scale);
+        ctx.fill();
+    }
+
+    function drawLinkTunic(cx, topY, w, h, scale, skinObj, anchors = null) {
+        const color = skinObj.jerseyColor || '#00A000';
+        const beltColor = '#8B4513';
+
+        // Extended length for tunic
+        const tunicLen = h * 1.2;
+        let slX, srX, sY, wlX, wrX, wY, bY;
+
+        if (anchors && anchors.shoulders) {
+            slX = anchors.shoulders.left.x;
+            srX = anchors.shoulders.right.x;
+            sY = anchors.shoulders.left.y;
+            wY = sY + h * 0.55;
+            bY = sY + tunicLen;
+
+            // Waist width relative to hips
+            let hipW = w;
+            if (anchors.hips) {
+                hipW = (anchors.hips.right.x - anchors.hips.left.x);
+            }
+            wlX = cx - hipW*0.6;
+            wrX = cx + hipW*0.6;
+        } else {
+            const shoulderW = w * 1.6;
+            const waistW = w * 1.0;
+            slX = cx - shoulderW/2;
+            srX = cx + shoulderW/2;
+            sY = topY;
+            wY = topY + h * 0.55;
+            bY = topY + tunicLen;
+            wlX = cx - waistW/2;
+            wrX = cx + waistW/2;
+        }
+
+        const bottomW = (wrX - wlX) * 1.3; // Flare
+
+        // Main Tunic Shape
+        ctx.beginPath();
+        ctx.moveTo(slX, sY);
+        ctx.lineTo(srX, sY);
+
+        // Sides to waist
+        ctx.lineTo(wrX, wY);
+        // Flared bottom (Skirt part of tunic)
+        ctx.lineTo(cx + bottomW/2, bY);
+        ctx.lineTo(cx - bottomW/2, bY);
+        ctx.lineTo(wlX, wY);
+        ctx.lineTo(slX, sY);
+        ctx.closePath();
+
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Shading
+        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Belt
+        ctx.fillStyle = beltColor;
+        ctx.fillRect(cx - waistW*0.55, waistY - 5*scale, waistW*1.1, 10*scale);
+        // Buckle (silver)
+        ctx.fillStyle = '#C0C0C0';
+        ctx.fillRect(cx - 5*scale, waistY - 5*scale, 10*scale, 10*scale);
+
+        // Collar (Back)
+        ctx.fillStyle = '#EEE'; // White undershirt collar
+        ctx.beginPath();
+        ctx.moveTo(cx - 10*scale, topY);
+        ctx.quadraticCurveTo(cx, topY + 5*scale, cx + 10*scale, topY);
+        ctx.lineTo(cx + 8*scale, topY - 2*scale);
+        ctx.quadraticCurveTo(cx, topY + 3*scale, cx - 8*scale, topY - 2*scale);
+        ctx.fill();
+    }
+
+    function drawShorts(cx, waistY, w, h, scale, skinObj) {
+        if (skinObj.shortsType === 'kilt') {
+             const color = skinObj.shortsColor || '#5D4037'; // Leather
+             const beltH = 5 * scale;
+             const stripCount = 5;
+             const stripW = w / stripCount;
+
+             // Belt
+             ctx.fillStyle = '#3E2723';
+             ctx.fillRect(cx - w/2, waistY, w, beltH);
+             // Gold Buckle
+             ctx.fillStyle = '#FFD700';
+             ctx.fillRect(cx - w*0.1, waistY, w*0.2, beltH);
+
+             // Pteruges (Strips)
+             for(let i=0; i<stripCount; i++) {
+                 const sx = (cx - w/2) + i*stripW;
+                 ctx.fillStyle = color;
+                 // Main Strip
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, stripW - 2*scale, h - beltH);
+
+                 // Shadow/Edge
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                 ctx.fillRect(sx + 1*scale, waistY + beltH, 1*scale, h - beltH);
+
+                 // Stud Detail
+                 ctx.fillStyle = '#C0C0C0';
+                 ctx.beginPath(); ctx.arc(sx + stripW/2, waistY + h - 5*scale, 2*scale, 0, Math.PI*2); ctx.fill();
+             }
+             return;
+        }
+
+        // Baggy Shorts
+        const color = skinObj.shortsColor || '#FFF';
+        const waistW = w * 1.0;
+        const hipW = w * 1.3;
+        const legW = w * 0.6; // Width of one leg hole
+
+        const bottomY = waistY + h;
+        const crotchY = waistY + h * 0.45;
+
+        // --- Get Base Pattern (Color + Shading) ---
+        const cacheKey = `shorts_base_${color}`;
+        let fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+            // Base Color
+            gradCtx.fillStyle = color;
+            gradCtx.fillRect(0, 0, size, size);
+            // Gradient Overlay
+            const grad = gradCtx.createLinearGradient(0, 0, size, 0);
+            grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+            gradCtx.fillStyle = grad;
+            gradCtx.fillRect(0, 0, size, size);
+        });
+        if (!fillStyle) fillStyle = color;
+
+        // --- Draw Main Shape ---
+        ctx.beginPath();
+        ctx.moveTo(cx - waistW/2, waistY); ctx.lineTo(cx + waistW/2, waistY);
+        ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
+        ctx.lineTo(cx + hipW/2 - legW, bottomY);
+        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
+        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
+        ctx.lineTo(cx - hipW/2, bottomY);
+        ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
+        ctx.closePath();
+
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+
+        // --- Draw Stripes Dynamically (to preserve curves) ---
+        if(skinObj.sideStripesColor) {
+            ctx.save();
+            ctx.clip(); // Clip to the shorts path just drawn
+
+            ctx.fillStyle = skinObj.sideStripesColor;
+            const stripeW = 4 * scale;
+
+            // Left Stripe Path
+            ctx.beginPath();
+            ctx.moveTo(cx - hipW/2, waistY);
+            ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY);
+            ctx.lineTo(cx - hipW/2 + stripeW, bottomY);
+            ctx.quadraticCurveTo(cx - hipW/2 + stripeW, waistY + h*0.5, cx - hipW/2 + stripeW, waistY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Right Stripe Path
+            ctx.beginPath();
+            ctx.moveTo(cx + hipW/2, waistY);
+            ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY);
+            ctx.lineTo(cx + hipW/2 - stripeW, bottomY);
+            ctx.quadraticCurveTo(cx + hipW/2 - stripeW, waistY + h*0.5, cx + hipW/2 - stripeW, waistY);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore(); // Remove clipping mask
+        }
+
+        // --- Details (on top of everything) ---
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(cx - waistW/2, waistY, waistW, 5*scale);
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 1*scale;
+        ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + hipW/2, waistY); ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY); ctx.stroke();
+
+        // FOLDS (High Graphics)
+        if (playerData.graphics === 'HIGH' && skinObj.shortsType !== 'kilt') {
+             ctx.save();
+             // Re-trace path for clipping
+             ctx.beginPath();
+             ctx.moveTo(cx - waistW/2, waistY); ctx.lineTo(cx + waistW/2, waistY);
+             ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
+             ctx.lineTo(cx + hipW/2 - legW, bottomY);
+             ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
+             ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
+             ctx.lineTo(cx - hipW/2, bottomY);
+             ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
+             ctx.closePath();
+             ctx.clip();
+
+             ctx.globalCompositeOperation = 'source-over';
+             // Crotch Creases
+             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+             ctx.lineWidth = 1.5 * scale;
+             ctx.lineCap = 'round';
+
+             ctx.beginPath();
+             ctx.moveTo(cx, crotchY);
+             ctx.quadraticCurveTo(cx - hipW*0.2, crotchY + h*0.1, cx - hipW*0.3, bottomY - 5*scale);
+             ctx.stroke();
+
+             ctx.beginPath();
