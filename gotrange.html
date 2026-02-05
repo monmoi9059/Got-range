@@ -6794,6 +6794,12 @@ let lastDisplayedContestTime = -1;
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
 
+        // V-Taper / Hulk Body Size Adjustment
+        if (skin.includes('hulk') || (currentAnimal === 'human' && skinObj.jerseyType === 'none')) {
+            sizeMod.w *= 1.5;
+            sizeMod.h *= 1.5;
+        }
+
         // Determine if Furry
         const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
         const isNonFurrySkin = skin.includes('robot') || skin.includes('astronaut') || skin.includes('alien') || skin.includes('ninja');
