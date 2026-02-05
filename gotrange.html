@@ -6241,8 +6241,8 @@ let lastDisplayedContestTime = -1;
                 fColor = activeSleeveColor;
             }
 
-            // Shoulder Joint
-            drawJoint(sx, sy, 7*s*sizeMod.armWidth * 0.7, uColor, isMechanical);
+            // Shoulder Joint (Seamless: Match Upper Arm Start Width 8)
+            drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
 
@@ -6262,8 +6262,8 @@ let lastDisplayedContestTime = -1;
             const foreTattoos = skinObj.tattoos && !activeSleeveColor;
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
 
-            // Elbow Joint
-            drawJoint(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, activeSleeveColor || uColor, isMechanical);
+            // Elbow Joint (Seamless: Match Forearm Start Width 6 -> Radius 3)
+            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, activeSleeveColor || uColor, isMechanical);
 
             // Hand
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
@@ -6289,9 +6289,9 @@ let lastDisplayedContestTime = -1;
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle);
 
         // Draw Thighs (Skin tone - under shorts)
-        // Hip Joints
-        drawJoint(p.x - 7*s, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, skinTone, isMechanical);
-        drawJoint(p.x + 7*s, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, skinTone, isMechanical);
+        // Hip Joints (Seamless: Match Thigh Start Width 8 -> Radius 4)
+        drawJoint(p.x - 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        drawJoint(p.x + 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
@@ -7126,30 +7126,30 @@ let lastDisplayedContestTime = -1;
             return;
         }
 
-        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, snoutScale: 1.0 };
+        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, snoutScale: 1.0, limbTaper: 0.7 };
         switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 0.8, snoutScale: 1.0 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 1.2, neckWidth: 0.8 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.4 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.7, armWidth: 1.3, legWidth: 1.5, shoulderWidth: 0.9, footScale: 1.3, neckWidth: 1.4, snoutScale: 1.2 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0 }; break;
-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 1.1 }; break;
-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05, legWidth: 1.1, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.2 }; break;
-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1 }; break;
-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.7, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 1.2, snoutScale: 1.0 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9, legWidth: 1.2, shoulderWidth: 0.7, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.2 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 0.8 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.5, shoulderWidth: 0.5, footScale: 1.3, neckWidth: 1.0 }; break;
-            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6, shoulderWidth: 0.5, footScale: 0.8, neckWidth: 0.6 }; break;
-            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8, shoulderWidth: 0.6, footScale: 1.4, neckWidth: 0.8 }; break;
-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.2 }; break;
-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 0.8, armWidth: 1.5, legWidth: 1.6, shoulderWidth: 0.9, footScale: 1.5, neckWidth: 1.5 }; break;
-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1, legWidth: 1.4, shoulderWidth: 0.7, footScale: 1.3, neckWidth: 1.2, snoutScale: 1.3 }; break;
-            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.75, footScale: 1.0, neckWidth: 1.2, snoutScale: 1.2 }; break;
-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5, shoulderWidth: 0.7, footScale: 1.2, neckWidth: 0.7 }; break;
+            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 0.8, snoutScale: 1.0, limbTaper: 0.7 }; break;
+            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8, limbTaper: 0.7 }; break;
+            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 1.2, neckWidth: 0.8, limbTaper: 0.7 }; break;
+            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1, limbTaper: 0.7 }; break;
+            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.4, limbTaper: 0.7 }; break;
+            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.7, armWidth: 1.3, legWidth: 1.5, shoulderWidth: 0.9, footScale: 1.3, neckWidth: 1.4, snoutScale: 1.2, limbTaper: 0.85 }; break;
+            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, limbTaper: 0.8 }; break;
+            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 1.1, limbTaper: 0.7 }; break;
+            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05, legWidth: 1.1, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.2, limbTaper: 0.75 }; break;
+            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1, limbTaper: 0.8 }; break;
+            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1, limbTaper: 0.8 }; break;
+            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.7, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 1.2, snoutScale: 1.0, limbTaper: 0.85 }; break;
+            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9, legWidth: 1.2, shoulderWidth: 0.7, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.2, limbTaper: 0.85 }; break;
+            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 0.8, limbTaper: 0.7 }; break;
+            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.5, shoulderWidth: 0.5, footScale: 1.3, neckWidth: 1.0, limbTaper: 0.8 }; break;
+            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6, shoulderWidth: 0.5, footScale: 0.8, neckWidth: 0.6, limbTaper: 0.6 }; break;
+            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8, shoulderWidth: 0.6, footScale: 1.4, neckWidth: 0.8, limbTaper: 0.7 }; break;
+            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.2, limbTaper: 0.8 }; break;
+            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 0.8, armWidth: 1.5, legWidth: 1.6, shoulderWidth: 0.9, footScale: 1.5, neckWidth: 1.5, limbTaper: 0.9 }; break;
+            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1, legWidth: 1.4, shoulderWidth: 0.7, footScale: 1.3, neckWidth: 1.2, snoutScale: 1.3, limbTaper: 0.8 }; break;
+            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.75, footScale: 1.0, neckWidth: 1.2, snoutScale: 1.2, limbTaper: 0.7 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5, shoulderWidth: 0.7, footScale: 1.2, neckWidth: 0.7, limbTaper: 0.7 }; break;
         }
 
         // Apply Skin Overrides (Size & Proportions)
@@ -7359,28 +7359,37 @@ let lastDisplayedContestTime = -1;
                 thisForeColor = activeSleeveColor;
             }
 
+            // Calculate Tapered Widths
+            const taper = sizeMod.limbTaper || 0.7;
+            const upperStartW = 7 * s * sizeMod.armWidth;
+            const upperEndW = upperStartW * taper;
+            const foreStartW = upperEndW; // Seamless transition
+            const foreEndW = foreStartW * taper;
+
             let elbow = getJoint(sx, sy, upperArmLen, angle1);
 
-            // Shoulder Joint (Radius increased to 0.7)
-            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, seedBase, s, true);
+            // Shoulder Joint (Radius = Half Width for seamless look)
+            if(!armFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
+            else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
 
             // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 7*s*sizeMod.armWidth, thisUpperColor, s, armFurry, seedBase, 5*s*sizeMod.armWidth);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW);
 
             // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
             if (activeSleeveColor) {
                 const midX = (sx + elbow.x) / 2;
                 const midY = (sy + elbow.y) / 2;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.armWidth, activeSleeveColor, s, false, seedBase, 5.2*s*sizeMod.armWidth);
+                // Interpolate width at mid point
+                const midW = upperStartW + (upperEndW - upperStartW) * 0.5;
+                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, midW, activeSleeveColor, s, false, seedBase, upperEndW);
             }
 
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
 
             // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.armWidth, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, 3.5*s*sizeMod.armWidth);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW);
 
-            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
+            // Elbow Joint (Radius = Half Width)
             let elbowColor = thisUpperColor;
             if (activeSleeveColor) {
                 elbowColor = activeSleeveColor;
@@ -7391,8 +7400,8 @@ let lastDisplayedContestTime = -1;
             }
 
             const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, seedBase+2, s, true);
+            if(!elbowFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
+            else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
@@ -7517,25 +7526,32 @@ let lastDisplayedContestTime = -1;
         let hipY = p.y - legLen;
         if (isSitting) hipY = p.y - 10 * s;
 
+        // Calculate Tapered Leg Widths
+        const legTaper = sizeMod.limbTaper || 0.7;
+        const thighStartW = 8 * s * sizeMod.legWidth;
+        const thighEndW = thighStartW * legTaper;
+        const calfStartW = thighEndW;
+        const calfEndW = calfStartW * legTaper;
+
         // Hip Joints
         if(!legFurry) {
-            drawJoint(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-            drawJoint(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
+            drawJoint(p.x - hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
+            drawJoint(p.x + hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
         } else {
-            drawFuzzyCircle(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
+            drawFuzzyCircle(p.x - hipX, hipY, thighStartW * 0.5, thighColor, 10, s, true);
+            drawFuzzyCircle(p.x + hipX, hipY, thighStartW * 0.5, thighColor, 30, s, true);
         }
 
-        // Tapered Thighs (8 -> 5)
-        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, 8*s*sizeMod.legWidth, thighColor, s, legFurry, 1, 5*s*sizeMod.legWidth);
-        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, 8*s*sizeMod.legWidth, thighColor, s, legFurry, 3, 5*s*sizeMod.legWidth);
+        // Tapered Thighs
+        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, thighStartW, thighColor, s, legFurry, 1, thighEndW);
+        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, thighStartW, thighColor, s, legFurry, 3, thighEndW);
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
 
-             // Draw Base Calf (Tapered 5 -> 3.5)
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, 5*s*sizeMod.legWidth, calfBaseColor, s, legFurry, isRight?4:2, 3.5*s*sizeMod.legWidth);
+             // Draw Base Calf
+             drawFuzzyLimb(xTop, yTop, xBot, yBot, calfStartW, calfBaseColor, s, legFurry, isRight?4:2, calfEndW);
 
              // Paw / Foot (If no shoes)
              if (legFurry && !skinObj.shoesColor) {
@@ -7548,9 +7564,9 @@ let lastDisplayedContestTime = -1;
                  }
              }
 
-             // Knee Joint (Radius 0.7)
-             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-             else drawFuzzyCircle(xTop, yTop, 6*s*sizeMod.legWidth * 0.7, thighColor, isRight?40:20, s, true);
+             // Knee Joint (Radius = Half Width)
+             if(!legFurry) drawJoint(xTop, yTop, thighEndW * 0.5, thighColor, isMechanical);
+             else drawFuzzyCircle(xTop, yTop, thighEndW * 0.5, thighColor, isRight?40:20, s, true);
 
              // Socks & Shoes Overlay
              if(skinObj.socksColor || skinObj.shoesColor) {
@@ -7567,11 +7583,15 @@ let lastDisplayedContestTime = -1;
                  if(skinObj.socksColor) {
                      const sockTopX = getXAtY(sockY);
                      const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, 5.8*s*sizeMod.legWidth, skinObj.socksColor, s, false, 0);
+                     // Interpolate widths
+                     const sockTopW = calfStartW + (calfEndW - calfStartW) * ((sockY - yTop)/(yBot - yTop));
+                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
+                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, sockTopW, skinObj.socksColor, s, false, 0, ankleW);
                  }
                  if(skinObj.shoesColor) {
                      const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, 6*s*sizeMod.legWidth, skinObj.shoesColor, s, false, 0);
+                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
+                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, ankleW, skinObj.shoesColor, s, false, 0, calfEndW);
                      // Shoe Foot
                      ctx.fillStyle = skinObj.shoesColor;
                      ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
@@ -7940,14 +7960,6 @@ let lastDisplayedContestTime = -1;
             ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.quadraticCurveTo(p.x+15*s, headY-20*s, p.x+12*s, headY-25*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.fill();
         }
 
-        // MANE (Lion)
-        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
-             ctx.fillStyle = '#8B4513';
-             if(skin === 'lion_white') ctx.fillStyle = '#EEE';
-             if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry, false);
-        }
-
         // Head Circle
         let headColor = furColor;
         if(skin.includes('alien')) headColor = '#32CD32';
@@ -8029,6 +8041,14 @@ let lastDisplayedContestTime = -1;
         }
         else {
              drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
+        }
+
+        // MANE (Lion) - Moved to be last layer
+        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
+             ctx.fillStyle = '#8B4513';
+             if(skin === 'lion_white') ctx.fillStyle = '#EEE';
+             if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
+             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry, false);
         }
 
         // FOREHEAD MANE (Lion) - Fix baldness
