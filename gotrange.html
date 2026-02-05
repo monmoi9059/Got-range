@@ -5998,7 +5998,13 @@ let lastDisplayedContestTime = -1;
         // Calculate Straight Leg Alignment
         const hipOffset = 7 * s; // From drawJoint below
         const footOffset = 10 * s * stanceModLegs;
-        const kneeOffset = (hipOffset + footOffset) / 2; // Midpoint for straight leg
+        let kneeOffset = (hipOffset + footOffset) / 2; // Midpoint for straight leg
+
+        // Crouch Bending (Knees go outward)
+        if (state === 'PRE_JUMP') {
+            const bendFactor = 10 * s;
+            kneeOffset += bendFactor;
+        }
 
         let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
         let rKneeX = p.x + kneeOffset, rKneeY = baseKneeY;
