@@ -3967,8 +3967,28 @@ let lastDisplayedContestTime = -1;
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
-    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true) => {
-        if(!furry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill(); return; }
+    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
+        if(!furry) {
+            if (applyShading) {
+                // Apply simple 3D shading even for smooth circles
+                const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+                grad.addColorStop(0, '#FFFFFF'); // Highlight
+                grad.addColorStop(0.2, c);
+                grad.addColorStop(1, '#000000'); // Shadow
+                // Blend with base color to avoid white/black takeover
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+
+                // Overlay gradient
+                const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+                gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
+                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+                ctx.fillStyle = gradOverlay; ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+            }
+            return;
+        }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
             const a = (i/CIRCLE_SEGS)*Math.PI*2;
@@ -3977,10 +3997,31 @@ let lastDisplayedContestTime = -1;
             p.y = cy + Math.sin(a)*r;
         }
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
+
+        if (applyShading) {
+            // Radial Shading Overlay
+            const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
+            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+
+            ctx.save();
+            ctx.beginPath();
+            // Re-trace fuzzy path to clip the shadow
+            ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
+            for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
+            ctx.closePath();
+            ctx.clip();
+
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
+        }
     };
 
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
+            // Apply 3D shading even for non-furry (e.g. robot/skin) if requested
             drawLimb(x1, y1, x2, y2, width, color);
             return;
         }
@@ -4001,32 +4042,35 @@ let lastDisplayedContestTime = -1;
         const p3 = g_limbPoints[2]; p3.x = x2 + dx2; p3.y = y2 - dy2;
         const p4 = g_limbPoints[3]; p4.x = x1 + dx1; p4.y = y1 - dy1;
 
-        // High Graphics: 3D Cylinder Shading (Perpendicular)
-        if (playerData.graphics === 'HIGH') {
-             ctx.save();
-             ctx.translate(x1, y1);
-             ctx.rotate(angle);
-             const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-
-             // Tapered Shading
-             const grad3d = ctx.createLinearGradient(0, -w1, 0, w1); // Approx gradient
-             grad3d.addColorStop(0, 'rgba(0,0,0,0.4)');
-             grad3d.addColorStop(0.4, 'rgba(255,255,255,0.15)'); // Highlight
-             grad3d.addColorStop(1, 'rgba(0,0,0,0.4)');
-
-             ctx.fillStyle = grad3d;
-             ctx.beginPath();
-             ctx.moveTo(0, -w1);
-             ctx.lineTo(len, -w2);
-             ctx.lineTo(len, w2);
-             ctx.lineTo(0, w1);
-             ctx.fill();
-             ctx.restore();
-        }
-
+        // 1. Draw Base Fur
         drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
-        // Add shadow gradient overlay for depth (Axial)
+        // 2. Apply 3D Shading (Cylinder effect)
+        // We use a linear gradient perpendicular to the limb axis
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+
+        // Gradient: Dark edges, lighter center
+        const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
+        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+
+        ctx.fillStyle = grad3d;
+        ctx.beginPath();
+        ctx.moveTo(0, -w1);
+        ctx.lineTo(len, -w2);
+        ctx.lineTo(len, w2);
+        ctx.lineTo(0, w1);
+        ctx.fill();
+        ctx.restore();
+
+        // 3. Axial Shadow (Depth along length)
+        // Kept for joint shading
         ctx.save();
         ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
         ctx.clip();
@@ -4088,6 +4132,32 @@ let lastDisplayedContestTime = -1;
                      hr, hl,
                      {x: cx - bellyW/2, y: bellyY},
                      {x: cx - w*0.8, y: topY + h*0.3}
+                 ];
+            } else if (options.bodyShape === 'giraffe') {
+                 // Giraffe: Sloping shoulders
+                 points = [
+                     {x: sl.x, y: sl.y + h*0.1}, // Sloped down
+                     {x: cx, y: sl.y}, // Neck connect point
+                     {x: sr.x, y: sr.y + h*0.1}, // Sloped down
+                     hr, hl
+                 ];
+            } else if (options.bodyShape === 'heavy') {
+                 // Elephant: Wide belly
+                 const bellyW = w * 1.4;
+                 points = [
+                     sl, sr,
+                     {x: cx + bellyW/2, y: topY + h*0.5},
+                     hr, hl,
+                     {x: cx - bellyW/2, y: topY + h*0.5}
+                 ];
+            } else if (options.bodyShape === 'penguin') {
+                 // Tear drop
+                 const botW = w * 1.5;
+                 points = [
+                     sl, sr,
+                     {x: cx + botW/2, y: hl.y - h*0.2},
+                     {x: cx, y: hl.y + h*0.1}, // Pointy tail/bottom
+                     {x: cx - botW/2, y: hl.y - h*0.2}
                  ];
             } else {
                  // Default / Athletic / Oval
@@ -4240,23 +4310,30 @@ let lastDisplayedContestTime = -1;
         }
 
         if (isFurry) {
-            // High Quality: Draw base gradient shape for volume
-            if (playerData.graphics === 'HIGH') {
-                 ctx.beginPath();
-                 ctx.moveTo(points[0].x, points[0].y);
-                 for(let i=1; i<points.length; i++) {
-                     ctx.lineTo(points[i].x, points[i].y);
-                 }
-                 ctx.closePath();
-
-                 const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-                 grad.addColorStop(0, 'rgba(0,0,0,0.4)');
-                 grad.addColorStop(0.5, color);
-                 grad.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = grad;
-                 ctx.fill();
-            }
+            // Draw base fuzzy shape
             drawFuzzyPath(points, color, scale, true, seed);
+
+            // Apply 3D Volume Gradient (Universal)
+            // Use clipping on the polygon
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.clip();
+
+            // Cylindrical Shading (Horizontal gradient)
+            const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
+            grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
         } else {
             ctx.beginPath();
 
@@ -7049,30 +7126,30 @@ let lastDisplayedContestTime = -1;
             return;
         }
 
-        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0 };
+        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, snoutScale: 1.0 };
         switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
-            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
-            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
-            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
+            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 0.8, snoutScale: 1.0 }; break;
+            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8 }; break;
+            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 1.2, neckWidth: 0.8 }; break;
+            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1 }; break;
+            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.4 }; break;
+            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.7, armWidth: 1.3, legWidth: 1.5, shoulderWidth: 0.9, footScale: 1.3, neckWidth: 1.4, snoutScale: 1.2 }; break;
+            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0 }; break;
+            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 1.1 }; break;
+            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05, legWidth: 1.1, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.2 }; break;
+            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1 }; break;
+            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1 }; break;
+            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.7, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 1.2, snoutScale: 1.0 }; break;
+            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9, legWidth: 1.2, shoulderWidth: 0.7, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.2 }; break;
+            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 0.8 }; break;
+            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.5, shoulderWidth: 0.5, footScale: 1.3, neckWidth: 1.0 }; break;
+            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6, shoulderWidth: 0.5, footScale: 0.8, neckWidth: 0.6 }; break;
+            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8, shoulderWidth: 0.6, footScale: 1.4, neckWidth: 0.8 }; break;
+            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.2 }; break;
+            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 0.8, armWidth: 1.5, legWidth: 1.6, shoulderWidth: 0.9, footScale: 1.5, neckWidth: 1.5 }; break;
+            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1, legWidth: 1.4, shoulderWidth: 0.7, footScale: 1.3, neckWidth: 1.2, snoutScale: 1.3 }; break;
+            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.75, footScale: 1.0, neckWidth: 1.2, snoutScale: 1.2 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5, shoulderWidth: 0.7, footScale: 1.2, neckWidth: 0.7 }; break;
         }
 
         // Apply Skin Overrides (Size & Proportions)
@@ -7216,7 +7293,7 @@ let lastDisplayedContestTime = -1;
         }
 
         // Draw Neck (Universal - Connect Head to Body)
-        const neckWidth = 10 * s * (sizeMod.w || 1.0) * 0.6;
+        const neckWidth = 10 * s * (sizeMod.neckWidth || (sizeMod.w || 1.0) * 0.6);
         const neckTopY = headY + headRadius * 0.5;
         const neckBottomY = torsoY + (10*s);
 
@@ -7240,7 +7317,7 @@ let lastDisplayedContestTime = -1;
         const stanceMod = sizeMod.stance || 1.0;
 
         // Dynamic Shoulder Width (Scaling with Body Width)
-        const shoulderScale = (sizeMod.w || 1.0);
+        const shoulderScale = (sizeMod.w || 1.0) * (sizeMod.shoulderWidth || 1.0);
         let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
 
         // Extra Broad for Hulk/Strong types (Shirtless = Broad)
@@ -7463,10 +7540,11 @@ let lastDisplayedContestTime = -1;
              // Paw / Foot (If no shoes)
              if (legFurry && !skinObj.shoesColor) {
                  const pawColor = calfBaseColor;
-                 drawFuzzyCircle(xBot, yBot, 4.5*s, pawColor, isRight?50:60, s, true);
+                 const footS = sizeMod.footScale || 1.0;
+                 drawFuzzyCircle(xBot, yBot, 4.5*s*footS, pawColor, isRight?50:60, s, true);
                  // Toes
                  for(let k=-1; k<=1; k++) {
-                     drawFuzzyCircle(xBot + k*3*s, yBot + 4*s, 3*s, pawColor, isRight?51+k:61+k, s, true);
+                     drawFuzzyCircle(xBot + k*3*s*footS, yBot + 4*s*footS, 3*s*footS, pawColor, isRight?51+k:61+k, s, true);
                  }
              }
 
@@ -7785,10 +7863,6 @@ let lastDisplayedContestTime = -1;
             const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+12*s, y: headY-h}, {x: p.x+w+5*s, y: headY-5*s}];
             drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
             drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-            // Inner Ear (White/Pink)
-            ctx.fillStyle = (currentAnimal === 'wolf') ? '#AAA' : '#FFF';
-            ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-12*s, headY-h+5*s); ctx.lineTo(p.x-15*s, headY-10*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+12*s, headY-h+5*s); ctx.lineTo(p.x+15*s, headY-10*s); ctx.fill();
         } else if (currentAnimal === 'rabbit') {
              ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
@@ -7796,8 +7870,8 @@ let lastDisplayedContestTime = -1;
             let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
             if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
             if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
-            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry);
-            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry);
+            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry, false);
+            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry, false);
         } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
             const earColor = ctx.fillStyle;
             ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
@@ -7871,7 +7945,7 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = '#8B4513';
              if(skin === 'lion_white') ctx.fillStyle = '#EEE';
              if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry, false);
         }
 
         // Head Circle
@@ -7884,26 +7958,59 @@ let lastDisplayedContestTime = -1;
              else headColor = '#8B4513';
         }
 
+        // SNOUT POINTING UP (Back View)
+        // Draw a smaller, slightly offset circle near the top of the head to represent the snout pointing towards the basket.
+        // Moved BEFORE the head drawing to ensure it's "behind" (rendered first) or "on top" correctly depending on view logic.
+        // Actually, for a back view, if the animal looks UP, the snout is on the far side (front face) peeking over.
+        // Drawing it FIRST ensures the main head mass covers the bottom of it, making it look like it's attached to the front/top.
+        if (['dog', 'wolf', 'fox', 'bear', 'pig', 'cow', 'moose', 'rat', 'lion', 'tiger'].includes(currentAnimal)) {
+            // Position snout higher to "peek" over the top of the head
+            const snoutScale = sizeMod.snoutScale || 1.0;
+            const snoutY = headY - headRadius * 0.85;
+            const snoutR = headRadius * 0.45 * snoutScale;
+
+            // Slightly darker shade for snout to distinguish it
+            let snoutColor = headColor;
+
+            // Draw Snout (With shading enabled to match "reimplement 3d shading" request)
+            drawFuzzyCircle(p.x, snoutY, snoutR, snoutColor, 65, s, isFurry, true);
+
+            // Nose Tip (Black dot usually)
+            if (currentAnimal !== 'moose') { // Moose has big nose nostrils
+                const noseY = snoutY - snoutR * 0.5;
+                const noseR = snoutR * 0.4;
+                const noseColor = (currentAnimal === 'pig') ? '#FF69B4' : '#000'; // Pig nose pinkish? Or darker pink.
+
+                if (isFurry) {
+                    drawFuzzyCircle(p.x, noseY, noseR, noseColor, 66, s, true, true);
+                } else {
+                    ctx.fillStyle = noseColor;
+                    // Add simple shading for smooth nose tip
+                    const grad = ctx.createRadialGradient(p.x - noseR*0.3, noseY - noseR*0.3, noseR*0.1, p.x, noseY, noseR);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.5)');
+                    grad.addColorStop(1, noseColor);
+                    ctx.fillStyle = grad;
+                    ctx.beginPath(); ctx.arc(p.x, noseY, noseR, 0, Math.PI*2); ctx.fill();
+                }
+            }
+        }
+
         if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
-             // Wide Head
-             if (isFurry) {
-                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true);
-                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true);
-             } else {
+             // Wide Head - Single Mass
+             if (!isFurry) {
                  ctx.fillStyle = headColor;
                  ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
              }
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry);
+             // Draw Main Head
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry, true);
         }
         else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
-             // Boxy / Snouty Head
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry);
+             // Boxy Head - Single Mass
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
         }
         else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
-             // Diamond / Tapered
-             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry);
+             // Tapered Head - Single Mass
+             drawFuzzyCircle(p.x, headY, headRadius * 1.0, headColor, 60, s, isFurry, true);
         }
         else if (currentAnimal === 'penguin') {
              // Continuous
@@ -7921,7 +8028,7 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.2, 0, Math.PI*2); ctx.fill();
         }
         else {
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
         }
 
         // FOREHEAD MANE (Lion) - Fix baldness
