@@ -5390,8 +5390,9 @@ let lastDisplayedContestTime = -1;
         let slX, srX, sY, blX, brX, bY;
 
         if (anchors && anchors.shoulders) {
-            slX = anchors.shoulders.left.x;
-            srX = anchors.shoulders.right.x;
+            // Narrow shoulders by 10% for the jersey fabric
+            slX = cx + (anchors.shoulders.left.x - cx) * 0.9;
+            srX = cx + (anchors.shoulders.right.x - cx) * 0.9;
             sY = anchors.shoulders.left.y;
 
             // For bottom, use hips if available, otherwise calculate from width
