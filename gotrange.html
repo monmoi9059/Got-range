@@ -5994,10 +5994,16 @@ let lastDisplayedContestTime = -1;
         // 2. Legs (Base implementation)
         const baseKneeY = p.y - (legLen * 0.5);
         const stanceModLegs = sizeMod.stance || 1.0;
-        let lKneeX = p.x - 9*s*stanceModLegs, lKneeY = baseKneeY;
-        let rKneeX = p.x + 9*s*stanceModLegs, rKneeY = baseKneeY;
-        let lFootX = p.x - 10*s*stanceModLegs, lFootY = p.y;
-        let rFootX = p.x + 10*s*stanceModLegs, rFootY = p.y;
+
+        // Calculate Straight Leg Alignment
+        const hipOffset = 7 * s; // From drawJoint below
+        const footOffset = 10 * s * stanceModLegs;
+        const kneeOffset = (hipOffset + footOffset) / 2; // Midpoint for straight leg
+
+        let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
+        let rKneeX = p.x + kneeOffset, rKneeY = baseKneeY;
+        let lFootX = p.x - footOffset, lFootY = p.y;
+        let rFootX = p.x + footOffset, rFootY = p.y;
 
         // Dirk Kick Logic
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
