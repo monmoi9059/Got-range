@@ -10208,6 +10208,8 @@ let lastDisplayedContestTime = -1;
     window.addEventListener('orientationchange', checkOrientation);
     document.addEventListener('fullscreenchange', checkFullscreenState);
     document.addEventListener('webkitfullscreenchange', checkFullscreenState);
+    window.addEventListener("gamepadconnected", populateInputSelects);
+    window.addEventListener("gamepaddisconnected", populateInputSelects);
 
     window.choosePlatform = function(mode) {
         AudioSystem.init();
