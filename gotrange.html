@@ -1152,7 +1152,7 @@
         { id: 'human_bouffon', animal: 'human', name: 'Bouffon Fou', cost: 20000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', skinTone: '#FFF', hairStyle: 'short', hairColor: '#00FF00', pattern: 'suit', shoesColor: '#000' },
         { id: 'human_iron', animal: 'human', name: 'Homme Fer', cost: 25000, jerseyColor: '#8B0000', shortsColor: '#8B0000', legType: 'pants', sleeveColor: '#8B0000', skinTone: '#FFD700', headAccessory: 'helmet', hatColor: '#8B0000', headDetail: 'visor', shoesColor: '#FFD700' },
         { id: 'human_spider', animal: 'human', name: 'Araignée', cost: 25000, jerseyColor: '#FF0000', shortsColor: '#0000FF', legType: 'tights', sleeveColor: '#FF0000', skinTone: '#FF0000', pattern: 'grid', shoesColor: '#FF0000', headAccessory: 'mask', hatColor: '#FF0000' },
-        { id: 'human_hulk', animal: 'human', name: 'Géant Vert', cost: 20000, heightScale: 1.5, widthScale: 1.8, jerseyType: 'none', shortsColor: '#800080', skinTone: '#32CD32', hairStyle: 'short', hairColor: '#000', shoesColor: '#32CD32' },
+        { id: 'human_hulk', animal: 'human', name: 'Géant Vert', cost: 20000, heightScale: 1.4, widthScale: 2.8, jerseyType: 'none', shortsColor: '#800080', shortsPattern: 'ripped', skinTone: '#32CD32', hairStyle: 'shaggy', hairColor: '#000', shoesColor: '#32CD32', armWidthScale: 1.5, legWidthScale: 1.5 },
         { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000' },
         { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
     ];
@@ -2898,24 +2898,26 @@ let lastDisplayedContestTime = -1;
         window.state = state;
     }
 
-    const defaultData = {
-        tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-        stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-        purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-        lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-        dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
-        unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
-        unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
-        mobileControls: false, platformChosen: false,
-        meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
-        releaseTiming: 3, // 0: Jump, 1: Setpoint, 2: Push, 3: Release (Default)
-        graphics: 'HIGH', // 'HIGH' or 'LOW'
-        currentTrackIndex: 0,
-        leaderboards: { classic: [], contest: [], time_attack: [] }
-    };
+    function createDefaultData() {
+        return {
+            tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+            dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
+            unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
+            unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
+            mobileControls: false, platformChosen: false,
+            meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            releaseTiming: 3,
+            graphics: 'HIGH',
+            currentTrackIndex: 0,
+            leaderboards: { classic: [], contest: [], time_attack: [] }
+        };
+    }
 
     let savedData = localStorage.getItem('tacoSaveData');
-    let playerData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
+    let playerData = savedData ? JSON.parse(savedData) : createDefaultData();
 
     // Migration logic to fix old saves
     if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
@@ -5752,10 +5754,38 @@ let lastDisplayedContestTime = -1;
         ctx.beginPath();
         ctx.moveTo(cx - waistW/2, waistY); ctx.lineTo(cx + waistW/2, waistY);
         ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
-        ctx.lineTo(cx + hipW/2 - legW, bottomY);
-        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
-        ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
-        ctx.lineTo(cx - hipW/2, bottomY);
+
+        // Ripped Bottom Edge?
+        if (skinObj.shortsPattern === 'ripped') {
+            const jagSize = 3 * scale;
+            const drawJaggedLine = (xStart, xEnd, yBase) => {
+                let currX = xStart;
+                const dist = Math.abs(xEnd - xStart);
+                const steps = Math.floor(dist / jagSize);
+                const stepX = (xEnd - xStart) / steps;
+
+                for(let i=0; i<steps; i++) {
+                    currX += stepX;
+                    const yOff = (i % 2 === 0) ? -jagSize : jagSize;
+                    ctx.lineTo(currX, yBase + yOff);
+                }
+                ctx.lineTo(xEnd, yBase);
+            };
+
+            drawJaggedLine(cx + hipW/2, cx + hipW/2 - legW, bottomY); // Right Leg Bottom
+
+            ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
+            ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
+
+            drawJaggedLine(cx - hipW/2 + legW, cx - hipW/2, bottomY); // Left Leg Bottom
+
+        } else {
+            ctx.lineTo(cx + hipW/2 - legW, bottomY);
+            ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
+            ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
+            ctx.lineTo(cx - hipW/2, bottomY);
+        }
+
         ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
         ctx.closePath();
         
@@ -5976,11 +6006,7 @@ let lastDisplayedContestTime = -1;
             legWidth: skinObj.legWidthScale || (skinObj.widthScale || 0.9)
         };
 
-        // Hulk Override (Must be applied here as drawPlayer sizeMod is not passed)
-        if (skinObj.id === 'human_hulk') {
-            sizeMod.w *= 3.0; // Chest 3x
-            sizeMod.h *= 1.5;
-        }
+        // Hulk Override: Removed hardcoded check, relying on SKINS_DB widthScale
 
         const skinTone = skinObj.skinTone || '#8d5524';
         
@@ -6537,6 +6563,38 @@ let lastDisplayedContestTime = -1;
                  ctx.moveTo(sx + Math.cos(angle+1.5)*6*s, sy + Math.sin(angle+1.5)*6*s);
                  ctx.lineTo(ex, ey);
                  ctx.lineTo(sx + Math.cos(angle-1.5)*6*s, sy + Math.sin(angle-1.5)*6*s);
+                 ctx.fill();
+             }
+        }
+        else if(skinObj.hairStyle === 'shaggy') {
+             // Hulk Hair: Messy, jagged black mop
+             ctx.fillStyle = skinObj.hairColor || '#000';
+
+             // Base cap
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.3, Math.PI, 0); ctx.fill();
+
+             // Jagged Edges
+             const numJags = 12;
+             ctx.beginPath();
+             for(let i=0; i<=numJags; i++) {
+                 const angle = Math.PI + (i/numJags)*Math.PI;
+                 const r = (i%2===0) ? headRadius * 1.5 : headRadius * 1.2;
+                 const hx = p.x + Math.cos(angle) * r;
+                 const hy = headY + Math.sin(angle) * r * 0.6; // Flattened
+                 if (i===0) ctx.moveTo(hx, hy);
+                 else ctx.lineTo(hx, hy);
+             }
+             ctx.closePath();
+             ctx.fill();
+
+             // Top messy bits
+             for(let i=0; i<5; i++) {
+                 const tx = p.x + (Math.random()-0.5)*headRadius*1.5;
+                 const ty = headY - headRadius + (Math.random()-0.5)*5*s;
+                 ctx.beginPath();
+                 ctx.moveTo(tx, ty);
+                 ctx.lineTo(tx-5*s, ty-10*s);
+                 ctx.lineTo(tx+5*s, ty-10*s);
                  ctx.fill();
              }
         }
@@ -9667,10 +9725,27 @@ let lastDisplayedContestTime = -1;
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
-        playerData = JSON.parse(JSON.stringify(defaultData)); saveData();
-        updateUI(); closeStats(); resetGame();
-        resetStage = 0; btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; feedback = "RESET!"; feedbackTimer = 60;
+        playerData = createDefaultData();
+        saveData();
+        updateUI();
+        closeStats();
+        resetGame();
+        resetStage = 0;
+        btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000";
+        feedback = "RESET!"; feedbackTimer = 60;
+
+        // Ensure P1 context is updated immediately
+        game1.playerData = playerData;
+        if(isSplitscreen) game2.playerData = JSON.parse(JSON.stringify(playerData));
+
         saveContext(game1);
+
+        // Brute force: Reload the page to ensure clean state if in-memory reset fails
+        // This is a common pattern in web games for "Factory Reset" to avoid state pollution
+        // Wait a short moment to show the "RESET!" feedback
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
     }
     window.unlockAllSkins = function() {
         if(resetStage === 0) {
