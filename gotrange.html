@@ -6236,13 +6236,27 @@ let lastDisplayedContestTime = -1;
         }
 
         // --- NAME & NUMBER (Layer 4.5 - On Jersey) ---
-        // Name on Back
-        if (skinObj.jerseyName || (skinObj.name && skinObj.animal === 'human')) {
-             const nameText = (skinObj.jerseyName || skinObj.name).toUpperCase();
-             // Skip if name is too generic/long and not explicitly set as jerseyName, unless it fits
-             if (skinObj.jerseyName || nameText.length <= 12) {
-                 ctx.fillStyle = skinObj.numberColor || "#FFF";
-                 ctx.font = `bold ${7 * s}px Arial`;
+        // Name on Back (Strictly enforced for NBA Legends only via jerseyName property)
+        if (skinObj.jerseyName) {
+             const nameText = skinObj.jerseyName.toUpperCase();
+             ctx.fillStyle = skinObj.numberColor || "#FFF";
+
+             // Dynamic font sizing to prevent bleeding
+             const maxW = reducedBodyW * 0.9;
+             let fontSize = 7 * s;
+             ctx.font = `bold ${fontSize}px Arial`;
+             let textW = ctx.measureText(nameText).width;
+
+             if (textW > maxW) {
+                 const scaleFactor = maxW / textW;
+                 // Don't go too small, instead condense vertically or clip?
+                 // Simple Scaling
+                 ctx.save();
+                 ctx.translate(p.x, torsoY + bodyH * 0.25);
+                 ctx.scale(scaleFactor, 1);
+                 ctx.fillText(nameText, 0, 0);
+                 ctx.restore();
+             } else {
                  ctx.textAlign = "center";
                  ctx.fillText(nameText, p.x, torsoY + bodyH * 0.25);
              }
