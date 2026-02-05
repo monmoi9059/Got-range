@@ -6879,7 +6879,7 @@ let lastDisplayedContestTime = -1;
         let neckLen = 0;
 
         // Pose Logic
-        const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
+        const isSitting = (state === 'GAMEOVER' && currentAnimal !== 'human');
         const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
 
         let torsoY;
@@ -7092,18 +7092,20 @@ let lastDisplayedContestTime = -1;
 
         const legFurry = isFurry && (legColor === furColor);
         const hipX = 8 * s * stanceMod;
+        let hipY = p.y - legLen;
+        if (isSitting) hipY = p.y - 10 * s;
 
         // Hip Joints
         if(!legFurry) {
-            drawJoint(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-            drawJoint(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
+            drawJoint(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
+            drawJoint(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
         } else {
-            drawFuzzyCircle(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
+            drawFuzzyCircle(p.x - hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
+            drawFuzzyCircle(p.x + hipX, hipY, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
         }
 
-        drawFuzzyLimb(p.x - hipX, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + hipX, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
+        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
+        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
 
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
@@ -7177,7 +7179,7 @@ let lastDisplayedContestTime = -1;
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - hipX, y: p.y - legLen}, right: {x: p.x + hipX, y: p.y - legLen} }
+            hips: { left: {x: p.x - hipX, y: hipY}, right: {x: p.x + hipX, y: hipY} }
         };
         drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions, anchors);
 
