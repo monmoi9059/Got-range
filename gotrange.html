@@ -3968,7 +3968,23 @@ let lastDisplayedContestTime = -1;
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true) => {
-        if(!furry) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill(); return; }
+        if(!furry) {
+            // Apply simple 3D shading even for smooth circles
+            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            grad.addColorStop(0, '#FFFFFF'); // Highlight
+            grad.addColorStop(0.2, c);
+            grad.addColorStop(1, '#000000'); // Shadow
+            // Blend with base color to avoid white/black takeover
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+
+            // Overlay gradient
+            const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+            gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
+            gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = gradOverlay; ctx.fill();
+            return;
+        }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
             const a = (i/CIRCLE_SEGS)*Math.PI*2;
@@ -3977,10 +3993,29 @@ let lastDisplayedContestTime = -1;
             p.y = cy + Math.sin(a)*r;
         }
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
+
+        // Radial Shading Overlay
+        const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
+        grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
+        grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+
+        ctx.save();
+        ctx.beginPath();
+        // Re-trace fuzzy path to clip the shadow
+        ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
+        for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
     };
 
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
+            // Apply 3D shading even for non-furry (e.g. robot/skin) if requested
             drawLimb(x1, y1, x2, y2, width, color);
             return;
         }
@@ -4001,32 +4036,35 @@ let lastDisplayedContestTime = -1;
         const p3 = g_limbPoints[2]; p3.x = x2 + dx2; p3.y = y2 - dy2;
         const p4 = g_limbPoints[3]; p4.x = x1 + dx1; p4.y = y1 - dy1;
 
-        // High Graphics: 3D Cylinder Shading (Perpendicular)
-        if (playerData.graphics === 'HIGH') {
-             ctx.save();
-             ctx.translate(x1, y1);
-             ctx.rotate(angle);
-             const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-
-             // Tapered Shading
-             const grad3d = ctx.createLinearGradient(0, -w1, 0, w1); // Approx gradient
-             grad3d.addColorStop(0, 'rgba(0,0,0,0.4)');
-             grad3d.addColorStop(0.4, 'rgba(255,255,255,0.15)'); // Highlight
-             grad3d.addColorStop(1, 'rgba(0,0,0,0.4)');
-
-             ctx.fillStyle = grad3d;
-             ctx.beginPath();
-             ctx.moveTo(0, -w1);
-             ctx.lineTo(len, -w2);
-             ctx.lineTo(len, w2);
-             ctx.lineTo(0, w1);
-             ctx.fill();
-             ctx.restore();
-        }
-
+        // 1. Draw Base Fur
         drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
-        // Add shadow gradient overlay for depth (Axial)
+        // 2. Apply 3D Shading (Cylinder effect)
+        // We use a linear gradient perpendicular to the limb axis
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+
+        // Gradient: Dark edges, lighter center
+        const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
+        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+
+        ctx.fillStyle = grad3d;
+        ctx.beginPath();
+        ctx.moveTo(0, -w1);
+        ctx.lineTo(len, -w2);
+        ctx.lineTo(len, w2);
+        ctx.lineTo(0, w1);
+        ctx.fill();
+        ctx.restore();
+
+        // 3. Axial Shadow (Depth along length)
+        // Kept for joint shading
         ctx.save();
         ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
         ctx.clip();
@@ -4266,23 +4304,30 @@ let lastDisplayedContestTime = -1;
         }
 
         if (isFurry) {
-            // High Quality: Draw base gradient shape for volume
-            if (playerData.graphics === 'HIGH') {
-                 ctx.beginPath();
-                 ctx.moveTo(points[0].x, points[0].y);
-                 for(let i=1; i<points.length; i++) {
-                     ctx.lineTo(points[i].x, points[i].y);
-                 }
-                 ctx.closePath();
-
-                 const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-                 grad.addColorStop(0, 'rgba(0,0,0,0.4)');
-                 grad.addColorStop(0.5, color);
-                 grad.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = grad;
-                 ctx.fill();
-            }
+            // Draw base fuzzy shape
             drawFuzzyPath(points, color, scale, true, seed);
+
+            // Apply 3D Volume Gradient (Universal)
+            // Use clipping on the polygon
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.clip();
+
+            // Cylindrical Shading (Horizontal gradient)
+            const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
+            grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
         } else {
             ctx.beginPath();
 
