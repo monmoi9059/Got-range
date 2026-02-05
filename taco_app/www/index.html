@@ -6136,6 +6136,67 @@ let lastDisplayedContestTime = -1;
         drawAnimalLeg(hipX_L, p.y - legLen, footX_L, footY, false);
         drawAnimalLeg(hipX_R, p.y - legLen, footX_R, footY, true);
 
+        // 4. Arms
+        let shoulderY = torsoY + 5*s;
+        let leftShoulderX = p.x - bodyW*0.8;
+        let rightShoulderX = p.x + bodyW*0.8;
+
+        if (currentAnimal === 'bear') {
+            leftShoulderX = p.x - bodyW*0.7; rightShoulderX = p.x + bodyW*0.7;
+            shoulderY += 5*s; // Lower shoulders
+        }
+
+        let upperArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
+        let foreArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
+
+        const drawAnimalArm = (sx, sy, isRight, a1, a2) => {
+            if (currentAnimal === 'penguin') {
+                // Wings / Flippers
+                const wx = sx + (isRight?5:-5)*s;
+                const wy = sy + 10*s;
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.ellipse(wx, wy, 5*s, 18*s, isRight ? -0.5 : 0.5, 0, Math.PI*2);
+                ctx.fill();
+                return;
+            }
+
+            const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
+
+            let elbow = getJoint(sx, sy, upperArmLen, a1);
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, a2);
+
+            // Upper
+            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, armColor, 'thigh', s); // Thigh shape works for upper arm
+            // Lower
+            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth, armColor, 'calf', s); // Calf shape works for forearm
+
+            // Hand/Paw
+            ctx.save();
+            ctx.translate(wrist.x, wrist.y);
+            ctx.rotate(a2 + (isShootingSide ? wristAngle : 0));
+            ctx.fillStyle = furColor;
+            if (['dog','cat','wolf','fox','bear'].includes(currentAnimal)) {
+                // Paw Pad
+                ctx.beginPath(); ctx.arc(0, 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+            } else {
+                // Generic Hand
+                ctx.beginPath(); ctx.arc(0, 5*s, 3*s, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+
+            // Held Ball
+            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !['airbud','telekinesis'].includes(playerData.currentStyle)) {
+                let theta = a2 + wristAngle;
+                let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+                let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+                drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
+            }
+        };
+
+        drawAnimalArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawAnimalArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
         // 3. Body
         if (currentAnimal === 'penguin') {
             // Teardrop shape
@@ -6204,67 +6265,6 @@ let lastDisplayedContestTime = -1;
                 ctx.stroke();
             }
         }
-
-        // 4. Arms
-        let shoulderY = torsoY + 5*s;
-        let leftShoulderX = p.x - bodyW*0.8;
-        let rightShoulderX = p.x + bodyW*0.8;
-
-        if (currentAnimal === 'bear') {
-            leftShoulderX = p.x - bodyW*0.7; rightShoulderX = p.x + bodyW*0.7;
-            shoulderY += 5*s; // Lower shoulders
-        }
-
-        let upperArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
-        let foreArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
-
-        const drawAnimalArm = (sx, sy, isRight, a1, a2) => {
-            if (currentAnimal === 'penguin') {
-                // Wings / Flippers
-                const wx = sx + (isRight?5:-5)*s;
-                const wy = sy + 10*s;
-                ctx.fillStyle = '#111';
-                ctx.beginPath();
-                ctx.ellipse(wx, wy, 5*s, 18*s, isRight ? -0.5 : 0.5, 0, Math.PI*2);
-                ctx.fill();
-                return;
-            }
-
-            const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
-
-            let elbow = getJoint(sx, sy, upperArmLen, a1);
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, a2);
-
-            // Upper
-            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, armColor, 'thigh', s); // Thigh shape works for upper arm
-            // Lower
-            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth, armColor, 'calf', s); // Calf shape works for forearm
-
-            // Hand/Paw
-            ctx.save();
-            ctx.translate(wrist.x, wrist.y);
-            ctx.rotate(a2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = furColor;
-            if (['dog','cat','wolf','fox','bear'].includes(currentAnimal)) {
-                // Paw Pad
-                ctx.beginPath(); ctx.arc(0, 5*s, 4*s, 0, Math.PI*2); ctx.fill();
-            } else {
-                // Generic Hand
-                ctx.beginPath(); ctx.arc(0, 5*s, 3*s, 0, Math.PI*2); ctx.fill();
-            }
-            ctx.restore();
-
-            // Held Ball
-            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !['airbud','telekinesis'].includes(playerData.currentStyle)) {
-                let theta = a2 + wristAngle;
-                let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
-                let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
-                drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
-            }
-        };
-
-        drawAnimalArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawAnimalArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
 
         // 5. Head
         // BACK OF HEAD ONLY - NO FACE
