@@ -7026,7 +7026,10 @@ let lastDisplayedContestTime = -1;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
 
         // V-Taper / Hulk Body Size Adjustment
-        if (skin.includes('hulk') || (currentAnimal === 'human' && skinObj.jerseyType === 'none')) {
+        if (skin.includes('hulk')) {
+            sizeMod.w *= 3.0; // Chest 3x larger as requested
+            sizeMod.h *= 1.5;
+        } else if (currentAnimal === 'human' && skinObj.jerseyType === 'none') {
             sizeMod.w *= 1.5;
             sizeMod.h *= 1.5;
         }
