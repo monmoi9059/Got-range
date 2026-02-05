@@ -1,0 +1,501 @@
+        { id: 'lion_scar', animal: 'lion', name: 'Balafré', cost: 3000, furColor: '#8B4513' },
+        { id: 'lion_white', animal: 'lion', name: 'Blanc', cost: 3000, furColor: '#FFF', headAccessory: 'crown' },
+        { id: 'lion_king', animal: 'lion', name: 'Roi', cost: 10000, headAccessory: 'crown', backAccessory: 'cape', backColor: '#800080' },
+        { id: 'lion_rasta', animal: 'lion', name: 'Rasta', cost: 4000, jerseyColor: '#008000', shortsColor: '#FFFF00', shoesColor: '#FF0000', headAccessory: 'beanie' },
+        { id: 'lion_mech', animal: 'lion', name: 'Mecha', cost: 5000, furColor: '#C0C0C0', headDetail: 'visor' },
+
+        // TIGERS (NEW)
+        { id: 'tiger_classic', animal: 'tiger', name: 'Classique', cost: 1500, pattern: 'tiger_stripes' },
+        { id: 'tiger_white', animal: 'tiger', name: 'Blanc', cost: 3000, furColor: '#FFF', pattern: 'tiger_stripes', headAccessory: 'headband', hatColor: '#FFF' },
+        { id: 'tiger_sabretooth', animal: 'tiger', name: 'Smilodon', cost: 5000, furColor: '#D2B48C', headAccessory: 'collar', hatColor: '#000' },
+        { id: 'tiger_karate', animal: 'tiger', name: 'Karaté', cost: 3500, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', headAccessory: 'headband' },
+        { id: 'tiger_tony', animal: 'tiger', name: 'Mascotte', cost: 4000, jerseyColor: '#FF0000', headAccessory: 'bandana_neck' },
+        { id: 'tiger_neon', animal: 'tiger', name: 'Néon', cost: 4500, furColor: '#00FFFF', pattern: 'tiger_stripes' },
+
+        // PIGS (NEW)
+        { id: 'pig_classic', animal: 'pig', name: 'Classique', cost: 1000 },
+        { id: 'pig_muddy', animal: 'pig', name: 'Boueux', cost: 2000, furColor: '#FFC0CB', pattern: 'spots', spotColor: '#8B4513' },
+        { id: 'pig_boar', animal: 'pig', name: 'Sanglier', cost: 3000, furColor: '#5D4037', headDetail: 'mohawk', hairColor: '#000' },
+        { id: 'pig_bank', animal: 'pig', name: 'Tirelire', cost: 4000, furColor: '#FF69B4', skinType: 'shiny' },
+        { id: 'pig_police', animal: 'pig', name: 'Police', cost: 3500, jerseyColor: '#000080', shortsColor: '#000080', headAccessory: 'hat', hatColor: '#000080' },
+        { id: 'pig_gentleman', animal: 'pig', name: 'Riche', cost: 5000, jerseyColor: '#000', shortsColor: '#000', legType: 'pants', headAccessory: 'top_hat', pattern: 'suit' },
+
+        // COWS (NEW)
+        { id: 'cow_classic', animal: 'cow', name: 'Classique', cost: 500, bodyShape: 'round' },
+        { id: 'cow_highland', animal: 'cow', name: 'Highland', cost: 3000, furColor: '#8B0000' },
+        { id: 'cow_bull', animal: 'cow', name: 'Taureau', cost: 3500, furColor: '#000', headAccessory: 'bandana_neck' },
+        { id: 'cow_strawberry', animal: 'cow', name: 'Fraise', cost: 2500, furColor: '#FFC0CB', pattern: 'cow_spots', headAccessory: 'flower' },
+        { id: 'cow_farmer', animal: 'cow', name: 'Fermier', cost: 3000, clothingDetail: 'overalls', jerseyColor: '#87CEEB', shortsColor: '#000080' },
+        { id: 'cow_space', animal: 'cow', name: 'Espace', cost: 5000, furColor: '#00FF00', headAccessory: 'helmet' },
+
+        // MONKEYS (NEW)
+        { id: 'monkey_classic', animal: 'monkey', name: 'Classique', cost: 500, bodyShape: 'athletic_animal', armLen: 1.2 },
+        { id: 'monkey_gorilla', animal: 'monkey', name: 'Gorille', cost: 3000, furColor: '#000', backProp: 'barrel' },
+        { id: 'monkey_chimp', animal: 'monkey', name: 'Chimpanzé', cost: 2500, furColor: '#333', headAccessory: 'fez' },
+        { id: 'monkey_wukong', animal: 'monkey', name: 'Wukong', cost: 10000, furColor: '#FFD700', headAccessory: 'crown', backProp: 'staff' },
+        { id: 'monkey_space', animal: 'monkey', name: 'Cosmonaute', cost: 4000, jerseyColor: '#FFA500', shortsColor: '#FFA500', legType: 'pants', headAccessory: 'helmet' },
+        { id: 'monkey_zombie', animal: 'monkey', name: 'Zombie', cost: 3000, furColor: '#556B2F' },
+
+        // PENGUINS (NEW)
+        { id: 'penguin_classic', animal: 'penguin', name: 'Classique', cost: 500, bodyShape: 'penguin', limbLen: 0.5 },
+        { id: 'penguin_emperor', animal: 'penguin', name: 'Empereur', cost: 2500, headDetail: 'yellow_neck' },
+        { id: 'penguin_tuxedo', animal: 'penguin', name: 'Tuxedo', cost: 2000, pattern: 'suit' },
+        { id: 'penguin_icy', animal: 'penguin', name: 'Glace', cost: 3000, furColor: '#ADD8E6', headAccessory: 'ear_muffs', hatColor: '#FFF' },
+        { id: 'penguin_pilot', animal: 'penguin', name: 'Pilote', cost: 3500, headAccessory: 'helmet', hatColor: '#CCC' },
+        { id: 'penguin_rico', animal: 'penguin', name: 'Rico', cost: 3000, headDetail: 'mohawk' },
+
+        // NBA LEGENDS (Humans - Accurate Colors & Patterns)
+        { id: 'human_wall', animal: 'human', name: 'Speedy', cost: 5000, heightScale: 1.085, widthScale: 0.9, jerseyColor: '#FFF', shortsColor: '#FFF', sideStripesColor: '#002B5C', trimColor: '#E31837', number: '2', numberColor: '#E31837', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', sleeveRight: '#E31837' },
+        { id: 'human_lebron', animal: 'human', name: 'The King', cost: 25000, heightScale: 1.170, widthScale: 1.0, armWidthScale: 1.1, legWidthScale: 1.1, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '23', numberColor: '#552583', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#552583', sleeveRight: '#FDB927', socksColor: '#FFF', shoesColor: '#552583', tattoos: true },
+        { id: 'human_kobe8', animal: 'human', name: 'Frobe', cost: 30000, heightScale: 1.130, widthScale: 0.9, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '8', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000', socksColor: '#FFF', shoesColor: '#111' },
+        { id: 'human_kobe24', animal: 'human', name: 'Black Mamba', cost: 30000, heightScale: 1.130, widthScale: 0.9, jerseyColor: '#FFF', shortsColor: '#FFF', trimColor: '#552583', number: '24', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'bald', hairColor: '#000', sleeveRight: '#FFF', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_curry', animal: 'human', name: 'Chef Curry', cost: 30000, heightScale: 1.070, widthScale: 0.85, armWidthScale: 0.9, legWidthScale: 0.9, jerseyColor: '#1D428A', shortsColor: '#1D428A', trimColor: '#FFC72C', number: '30', numberColor: '#FFC72C', skinTone: '#dcb98a', hairStyle: 'short', hairColor: '#000', jerseyType: 'tshirt', socksColor: '#FFF', shoesColor: '#FFC72C' },
+        { id: 'human_magic', animal: 'human', name: 'Magic', cost: 30000, heightScale: 1.170, widthScale: 0.95, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '32', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short' },
+        { id: 'human_drj', animal: 'human', name: 'The Doctor', cost: 35000, heightScale: 1.140, widthScale: 0.9, jerseyColor: '#FFF', shortsColor: '#FFF', trimColor: '#ED174C', number: '32', numberColor: '#ED174C', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000', socksColor: '#FFF', shoesColor: '#ED174C', shortsLength: 'short' },
+        { id: 'human_wilt', animal: 'human', name: 'The Stilt', cost: 40000, heightScale: 1.230, widthScale: 0.95, jerseyColor: '#552583', shortsColor: '#552583', sideStripesColor: '#FDB927', number: '13', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'headband', hairColor: '#000', headbandColor: '#FDB927', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short' },
+        { id: 'human_mj', animal: 'human', name: 'The G.O.A.T.', cost: 50000, heightScale: 1.130, widthScale: 0.9, jerseyColor: '#CE1141', shortsColor: '#CE1141', trimColor: '#000', number: '23', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#CE1141' },
+        { id: 'human_bird', animal: 'human', name: 'Larry Legend', cost: 40000, heightScale: 1.170, widthScale: 0.95, jerseyColor: '#007A33', shortsColor: '#007A33', trimColor: '#FFF', number: '33', numberColor: '#FFF', skinTone: '#f0d5be', hairStyle: 'short', hairColor: '#e3c179', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_shaq', animal: 'human', name: 'Diesel', cost: 40000, heightScale: 1.230, widthScale: 1.2, armWidthScale: 1.3, legWidthScale: 1.3, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '34', numberColor: '#552583', skinTone: '#3c2415', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#111' },
+        { id: 'human_ai', animal: 'human', name: 'The Answer', cost: 35000, heightScale: 1.040, widthScale: 0.8, jerseyColor: '#000', shortsColor: '#000', trimColor: '#ED174C', number: '3', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'cornrows', hairColor: '#000', headbandColor: '#FFF', sleeveRight: '#000', socksColor: '#000', shoesColor: '#FFF', tattoos: true },
+        { id: 'human_duncan', animal: 'human', name: 'Big Fundamental', cost: 35000, heightScale: 1.200, widthScale: 0.95, jerseyColor: '#000', shortsColor: '#000', trimColor: '#C4CED4', number: '21', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_rodman', animal: 'human', name: 'The Worm', cost: 30000, heightScale: 1.140, widthScale: 0.9, jerseyColor: '#CE1141', shortsColor: '#000', trimColor: '#000', number: '91', numberColor: '#000', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#00FF00', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short', tattoos: true },
+        { id: 'human_barkley', animal: 'human', name: 'Sir Charles', cost: 30000, heightScale: 1.130, widthScale: 1.05, jerseyColor: '#1D1160', shortsColor: '#1D1160', sideStripesColor: '#E56020', number: '34', numberColor: '#E56020', skinTone: '#8d5524', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_dirk', animal: 'human', name: 'German Jesus', cost: 30000, heightScale: 1.215, widthScale: 0.92, jerseyColor: '#00538C', shortsColor: '#00538C', sideStripesColor: '#B8C4CA', number: '41', numberColor: '#FFF', skinTone: '#f0d5be', hairStyle: 'curly_long', hairColor: '#dcb98a', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_giannis', animal: 'human', name: 'Greek Freak', cost: 25000, heightScale: 1.200, widthScale: 0.98, jerseyColor: '#00471B', shortsColor: '#00471B', sideStripesColor: '#EEE1C6', number: '34', numberColor: '#EEE1C6', skinTone: '#4a3020', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_joker', animal: 'human', name: 'The Joker', cost: 25000, heightScale: 1.200, widthScale: 1.1, armWidthScale: 1.1, legWidthScale: 1.1, jerseyColor: '#0E2240', shortsColor: '#0E2240', trimColor: '#FEC524', number: '15', numberColor: '#FEC524', skinTone: '#f0d5be', hairStyle: 'short', hairColor: '#4a3020', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_luka', animal: 'human', name: 'Luka Magic', cost: 25000, heightScale: 1.140, widthScale: 1.0, jerseyColor: '#00538C', shortsColor: '#00538C', sideStripesColor: '#B8C4CA', number: '77', numberColor: '#FFF', skinTone: '#f0d5be', hairStyle: 'short', hairColor: '#4a3020', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_kd', animal: 'human', name: 'Slim Reaper', cost: 30000, heightScale: 1.200, widthScale: 0.85, armWidthScale: 0.8, legWidthScale: 0.8, jerseyColor: '#1D1160', shortsColor: '#1D1160', sideStripesColor: '#E56020', number: '35', numberColor: '#E56020', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#1D428A' },
+        { id: 'human_harden', animal: 'human', name: 'The Beard', cost: 25000, heightScale: 1.110, widthScale: 0.95, jerseyColor: '#CE1141', shortsColor: '#CE1141', sideStripesColor: '#FFF', number: '13', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'mohawk', hairColor: '#000', beard: true, beardColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_vince', animal: 'human', name: 'Vinsanity', cost: 30000, heightScale: 1.130, widthScale: 0.92, jerseyColor: '#753BBD', shortsColor: '#753BBD', pinstripesColor: '#CE1141', number: '15', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_kareem', animal: 'human', name: 'Cap', cost: 45000, heightScale: 1.245, widthScale: 0.88, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '33', numberColor: '#552583', skinTone: '#4a3020', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#1D428A', shortsLength: 'short' },
+        { id: 'human_russell', animal: 'human', name: 'Bill', cost: 50000, heightScale: 1.185, widthScale: 0.9, jerseyColor: '#007A33', shortsColor: '#007A33', trimColor: '#FFF', number: '6', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', beard: true, beardColor: '#ccc', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_pip', animal: 'human', name: 'Pip', cost: 30000, heightScale: 1.160, widthScale: 0.9, jerseyColor: '#CE1141', shortsColor: '#CE1141', trimColor: '#000', number: '33', numberColor: '#000', skinTone: '#4a3020', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_wade', animal: 'human', name: 'Flash', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#98002E', number: '3', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'short', hairColor: '#000', socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_reggie', animal: 'human', name: 'Reggie', cost: 25000, heightScale: 1.140, widthScale: 0.85, jerseyColor: '#002D62', shortsColor: '#002D62', pinstripesColor: '#FDB927', number: '31', numberColor: '#FDB927', skinTone: '#8d5524', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#FFF' },
+        { id: 'human_tmac', animal: 'human', name: 'T-Mac', cost: 25000, heightScale: 1.160, widthScale: 0.9, jerseyColor: '#007DC5', shortsColor: '#007DC5', pinstripesColor: '#C4CED4', number: '1', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_kg', animal: 'human', name: 'Big Ticket', cost: 30000, heightScale: 1.200, widthScale: 0.88, jerseyColor: '#005083', shortsColor: '#005083', trimColor: '#78BE20', number: '21', numberColor: '#FFF', skinTone: '#2e1e16', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_jackie', animal: 'human', name: 'Semi Moon', cost: 500, heightScale: 1.1, widthScale: 1.0, jerseyColor: '#FFF', shortsColor: '#FFF', trimColor: '#FFA500', sideStripesColor: '#00CED1', number: '33', numberColor: '#00CED1', skinTone: '#ffe0bd', hairStyle: 'afro', hairColor: '#5D4037', headAccessory: 'headband', hatColor: '#FFA500', socksColor: '#FFF', shoesColor: '#FFF', shortsLength: 'short' },
+
+        // PARODIES & MYTHICAL (Unique)
+        { id: 'human_hedgehog', animal: 'human', name: 'Hérisson Bleu', cost: 15000, heightScale: 0.9, widthScale: 0.9, jerseyColor: '#0000FF', shortsColor: '#0000FF', sleeveColor: '#0000FF', skinTone: '#0000FF', hairStyle: 'spikes', hairColor: '#0000FF', shoesColor: '#FF0000', socksColor: '#FFF' },
+        { id: 'human_soldier', animal: 'human', name: 'Soldat du Futur', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#2E8B57', shortsColor: '#2E8B57', sleeveColor: '#000', headAccessory: 'helmet', hatColor: '#2E8B57', skinTone: '#000', headDetail: 'visor' },
+        { id: 'human_raider', animal: 'human', name: 'Aventurière', cost: 15000, heightScale: 1.05, widthScale: 0.95, jerseyColor: '#00CED1', shortsColor: '#8B4513', skinTone: '#f0d5be', hairStyle: 'long', hairColor: '#5D4037', backAccessory: 'backpack', backColor: '#8B4513', shortsLength: 'short' },
+        { id: 'human_goku', animal: 'human', name: 'Guerrier Z', cost: 25000, heightScale: 1.1, widthScale: 1.05, jerseyColor: '#FF4500', shortsColor: '#FF4500', sleeveColor: '#000080', skinTone: '#f0d5be', hairStyle: 'spikes', hairColor: '#FFD700', shoesColor: '#000080' },
+        { id: 'human_samus', animal: 'human', name: 'Chasseuse Spatiale', cost: 25000, heightScale: 1.15, widthScale: 1.0, jerseyColor: '#FF4500', shortsColor: '#FF4500', headAccessory: 'helmet', hatColor: '#FF0000', headDetail: 'visor', skinTone: '#FFD700', sleeveColor: '#FFD700', shoesColor: '#FFD700' },
+        { id: 'hybrid_marsupial', animal: 'human', name: 'Marsupial', cost: 15000, headType: 'bandicoot', heightScale: 1.0, widthScale: 1.0, jerseyType: 'none', shortsColor: '#0000FF', skinTone: '#FFA500', furColor: '#FFA500', shoesColor: '#FF0000' },
+        { id: 'hybrid_yeti', animal: 'human', name: 'Yéti', cost: 20000, headType: 'yeti', heightScale: 1.3, widthScale: 1.3, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#FFF', furColor: '#FFF' },
+        { id: 'hybrid_cyclops', animal: 'human', name: 'Cyclope', cost: 25000, headType: 'cyclops', heightScale: 1.4, widthScale: 1.2, jerseyType: 'none', shortsColor: '#8B4513', skinTone: '#f0d5be' },
+
+        // NEW LEGENDS & CURRENT STARS
+        { id: 'human_nash', animal: 'human', name: 'Captain Canada', cost: 35000, heightScale: 1.05, widthScale: 0.88, jerseyColor: '#1D1160', shortsColor: '#1D1160', sideStripesColor: '#E56020', number: '13', numberColor: '#E56020', skinTone: '#f0d5be', hairStyle: 'long', hairColor: '#6B4423', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_dream', animal: 'human', name: 'The Dream', cost: 40000, heightScale: 1.21, widthScale: 0.95, jerseyColor: '#CE1141', shortsColor: '#CE1141', trimColor: '#FDB927', number: '34', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_ewing', animal: 'human', name: 'Big Pat', cost: 35000, heightScale: 1.21, widthScale: 0.95, jerseyColor: '#006BB6', shortsColor: '#006BB6', trimColor: '#F58426', number: '33', numberColor: '#F58426', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_zeke', animal: 'human', name: 'Zeke', cost: 35000, heightScale: 1.02, widthScale: 0.85, jerseyColor: '#006BB6', shortsColor: '#006BB6', sideStripesColor: '#ED174C', number: '11', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_glide', animal: 'human', name: 'The Glide', cost: 35000, heightScale: 1.15, widthScale: 0.92, jerseyColor: '#CE1141', shortsColor: '#CE1141', trimColor: '#000', number: '22', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'bald', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
+        { id: 'human_truth', animal: 'human', name: 'The Truth', cost: 30000, heightScale: 1.15, widthScale: 1.0, jerseyColor: '#007A33', shortsColor: '#007A33', trimColor: '#000', number: '34', numberColor: '#FFF', skinTone: '#5c3a21', hairStyle: 'headband', hairColor: '#000', headbandColor: '#007A33', socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_shuttlesworth', animal: 'human', name: 'Jesus', cost: 30000, heightScale: 1.13, widthScale: 0.9, jerseyColor: '#007A33', shortsColor: '#007A33', trimColor: '#FFF', number: '20', numberColor: '#FFF', skinTone: '#8d5524', hairStyle: 'bald', hairColor: '#000', sleeveLeft: '#007A33', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_klaw', animal: 'human', name: 'The Klaw', cost: 35000, heightScale: 1.15, widthScale: 1.0, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#C4CED4', number: '2', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'cornrows', hairColor: '#000', socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_wemby', animal: 'human', name: 'L\'Alien', cost: 35000, heightScale: 1.30, widthScale: 0.85, armWidthScale: 0.8, legWidthScale: 0.8, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#C4CED4', number: '1', numberColor: '#FFF', skinTone: '#8d5524', hairStyle: 'short', hairColor: '#000', socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_sga', animal: 'human', name: 'SGA', cost: 30000, heightScale: 1.14, widthScale: 0.9, jerseyColor: '#007AC1', shortsColor: '#007AC1', sideStripesColor: '#EF3B24', number: '2', numberColor: '#EF3B24', skinTone: '#5c3a21', hairStyle: 'cornrows', hairColor: '#000', headbandColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_brow', animal: 'human', name: 'The Brow', cost: 30000, heightScale: 1.21, widthScale: 0.95, jerseyColor: '#FDB927', shortsColor: '#FDB927', sideStripesColor: '#552583', number: '3', numberColor: '#552583', skinTone: '#5c3a21', hairStyle: 'afro', hairColor: '#000', beard: true, socksColor: '#FFF', shoesColor: '#000' },
+        { id: 'human_kyrie', animal: 'human', name: 'Uncle Drew', cost: 30000, heightScale: 1.04, widthScale: 0.9, jerseyColor: '#00538C', shortsColor: '#00538C', sideStripesColor: '#B8C4CA', number: '11', numberColor: '#FFF', skinTone: '#8d5524', hairStyle: 'short', hairColor: '#000', beard: true, socksColor: '#000', shoesColor: '#000' },
+        { id: 'human_dame', animal: 'human', name: 'Dame Time', cost: 30000, heightScale: 1.04, widthScale: 0.95, jerseyColor: '#000', shortsColor: '#000', pinstripesColor: '#CE1141', number: '0', numberColor: '#CE1141', skinTone: '#5c3a21', hairStyle: 'short', hairColor: '#000', sleeveLeft: '#000', socksColor: '#000', shoesColor: '#000', tattoos: true },
+        { id: 'human_tatum', animal: 'human', name: 'Taco Jay', cost: 30000, heightScale: 1.18, widthScale: 0.95, jerseyColor: '#007A33', shortsColor: '#007A33', trimColor: '#FFF', number: '0', numberColor: '#FFF', skinTone: '#dcb98a', hairStyle: 'short', hairColor: '#000', beard: true, socksColor: '#FFF', shoesColor: '#FFF', tattoos: true },
+        { id: 'human_process', animal: 'human', name: 'The Process', cost: 30000, heightScale: 1.25, widthScale: 1.1, jerseyColor: '#006BB6', shortsColor: '#006BB6', trimColor: '#ED174C', number: '21', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'short', hairColor: '#000', beard: true, socksColor: '#FFF', shoesColor: '#000' },
+
+        // FAKE VIDEO GAME CHARACTERS
+        { id: 'fake_mario', animal: 'human', name: 'Plombier Rouge', cost: 10000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#F00', shortsColor: '#00F', number: 'M', numberColor: '#F00', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#F00', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
+        { id: 'fake_luigi', animal: 'human', name: 'Plombier Vert', cost: 10000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#00A000', shortsColor: '#00F', number: 'L', numberColor: '#00A000', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#3c2415', hatColor: '#00A000', clothingDetail: 'overalls', beard: true, beardColor: '#3c2415', socksColor: '#FFF', shoesColor: '#3c2415' },
+        { id: 'fake_link', animal: 'human', name: 'Elfe Héros', cost: 12000, heightScale: 1.0, widthScale: 0.95, jerseyType: 'link_tunic', jerseyColor: '#00A000', shortsColor: '#EEE', legType: 'tights', number: '', numberColor: '#000', skinTone: '#ffe0bd', hairStyle: 'long', hairColor: '#FFD700', ears: 'elf', headAccessory: 'floppy_cap', hatColor: '#00A000', backProp: 'hero_gear', socksColor: '#EEE', shoesColor: '#3c2415' },
+        { id: 'fake_kratos', animal: 'human', name: 'Spartiate', cost: 15000, heightScale: 1.15, widthScale: 1.2, jerseyType: 'none', shortsType: 'kilt', shortsColor: '#333', number: '', numberColor: '#000', skinTone: '#F0F0F0', hairStyle: 'beard', hairColor: '#333', beard: true, beardColor: '#333', pattern: 'spartan_tattoo', backProp: 'chaos_blades', headDetail: 'tattoo_stripe', socksColor: '#333', shoesColor: '#333' },
+        { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', beard: true, beardColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
+
+        // THE ANCHOR (Ron Burgundy Parody)
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
+
+        // MYTHICAL CREATURES (HYBRIDS)
+        { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
+        { id: 'hybrid_gorgon', animal: 'human', name: 'Gorgone', cost: 25000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#228B22', shortsColor: '#333', skinTone: '#90EE90', hairStyle: 'snakes', hairColor: '#006400', tailType: 'snake' },
+        { id: 'hybrid_anubis', animal: 'human', name: 'Anubis', cost: 30000, headType: 'jackal', heightScale: 1.2, widthScale: 0.95, jerseyType: 'none', shortsColor: '#FFF', skinTone: '#000', furColor: '#000', headAccessory: 'gold_bands' },
+
+        // NEW ADDITIONS
+        { id: 'human_deadpool', animal: 'human', name: 'Mercenaire', cost: 15000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#FF0000', shortsColor: '#000', legType: 'pants', sleeveColor: '#FF0000', skinTone: '#FF0000', headAccessory: 'helmet', hatColor: '#FF0000', backProp: 'katanas', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'hat', hairColor: '#333', shoesColor: '#FFA500' },
+
+        // CHICKENS
+        { id: 'chicken_classic', animal: 'chicken', name: 'Poulet', cost: 1000, furColor: '#FFF', headDetail: 'mohawk', hairColor: '#FF0000', shoesColor: '#FFD700' },
+        { id: 'chicken_rooster', animal: 'chicken', name: 'Coq', cost: 2500, furColor: '#A52A2A', headDetail: 'mohawk', hairColor: '#FF0000', tailType: 'multi', tailColor: '#006400' },
+
+        // FROGS
+        { id: 'frog_classic', animal: 'frog', name: 'Grenouille', cost: 1000, furColor: '#32CD32', shoesColor: '#32CD32' },
+        { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' },
+
+        // TURTLES
+        { id: 'turtle_classic', animal: 'turtle', name: 'Tortue', cost: 1000, furColor: '#228B22', backAccessory: 'backpack', backColor: '#006400' },
+        { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'backpack', backColor: '#006400' },
+
+        // ELEPHANTS
+        { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 2000, bodyShape: 'heavy', widthScale: 1.4, armWidthScale: 1.4, legWidthScale: 1.4 },
+        { id: 'elephant_circus', animal: 'elephant', name: 'Cirque', cost: 3000, furColor: '#A9A9A9', headAccessory: 'fez' },
+
+        // DINOS
+        { id: 'dino_rex', animal: 'dino', name: 'T-Rex', cost: 5000, furColor: '#2E8B57', armWidthScale: 0.6, armLen: 0.6, tailType: 'reptile' },
+        { id: 'dino_purple', animal: 'dino', name: 'Barney', cost: 3000, furColor: '#800080', tailType: 'reptile', pattern: 'spots', spotColor: '#00FF00', armLen: 0.85 },
+
+        // ZEBRAS
+        { id: 'zebra_classic', animal: 'zebra', name: 'Zèbre', cost: 2000, furColor: '#FFF', pattern: 'tiger_stripes' },
+        { id: 'zebra_rainbow', animal: 'zebra', name: 'Disco', cost: 5000, furColor: '#FF69B4', pattern: 'tiger_stripes' },
+
+        // GIRAFFES
+        { id: 'giraffe_classic', animal: 'giraffe', name: 'Girafe', cost: 2000, furColor: '#FFFF00', pattern: 'cow_spots', spotColor: '#8B4513', heightScale: 1.3, widthScale: 0.9, neckLength: 40, bodyShape: 'giraffe', limbLen: 1.4 },
+
+        // NEW HUMANS
+        { id: 'human_bouffon', animal: 'human', name: 'Bouffon Fou', cost: 20000, jerseyColor: '#800080', shortsColor: '#800080', legType: 'pants', skinTone: '#FFF', hairStyle: 'short', hairColor: '#00FF00', pattern: 'suit', shoesColor: '#000' },
+        { id: 'human_iron', animal: 'human', name: 'Homme Fer', cost: 25000, jerseyColor: '#8B0000', shortsColor: '#8B0000', legType: 'pants', sleeveColor: '#8B0000', skinTone: '#FFD700', headAccessory: 'helmet', hatColor: '#8B0000', headDetail: 'visor', shoesColor: '#FFD700' },
+        { id: 'human_spider', animal: 'human', name: 'Araignée', cost: 25000, jerseyColor: '#FF0000', shortsColor: '#0000FF', legType: 'tights', sleeveColor: '#FF0000', skinTone: '#FF0000', pattern: 'grid', shoesColor: '#FF0000', headAccessory: 'mask', hatColor: '#FF0000' },
+        { id: 'human_hulk', animal: 'human', name: 'Géant Vert', cost: 20000, heightScale: 1.5, widthScale: 1.8, jerseyType: 'none', shortsColor: '#800080', skinTone: '#32CD32', hairStyle: 'short', hairColor: '#000', shoesColor: '#32CD32' },
+        { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000' },
+        { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
+    ];
+
+    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
+    var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
+
+    // --- BALL GEOMETRY & RENDERER ---
+    var Geometry = {
+        basketball: [],
+        soccer: [],
+        seam: [],
+        dimples: [],
+        beach: [],
+        watermelon: [],
+        sphere: { vertices: [], faces: [] },
+
+        init: function() {
+            // Sphere (Subdivided Octahedron)
+            var v = [
+                {x:0, y:1, z:0}, {x:0, y:-1, z:0},
+                {x:1, y:0, z:0}, {x:-1, y:0, z:0},
+                {x:0, y:0, z:1}, {x:0, y:0, z:-1}
+            ];
+            var f = [
+                [0, 2, 4], [0, 4, 3], [0, 3, 5], [0, 5, 2],
+                [1, 4, 2], [1, 3, 4], [1, 5, 3], [1, 2, 5]
+            ];
+            var subdiv = 2;
+            for(var s=0; s<subdiv; s++) {
+                var newF = [];
+                var midCache = {};
+                var getMid = function(i1, i2) {
+                    var key = i1 < i2 ? i1 + "_" + i2 : i2 + "_" + i1;
+                    if(midCache[key]) return midCache[key];
+                    var p1 = v[i1], p2 = v[i2];
+                    var mx = (p1.x + p2.x)/2, my = (p1.y + p2.y)/2, mz = (p1.z + p2.z)/2;
+                    var len = Math.sqrt(mx*mx + my*my + mz*mz);
+                    var idx = v.length;
+                    v.push({x:mx/len, y:my/len, z:mz/len});
+                    midCache[key] = idx;
+                    return idx;
+                };
+                for(var i=0; i<f.length; i++) {
+                    var tri = f[i];
+                    var a = getMid(tri[0], tri[1]);
+                    var b = getMid(tri[1], tri[2]);
+                    var c = getMid(tri[2], tri[0]);
+                    newF.push([tri[0], a, c]);
+                    newF.push([tri[1], b, a]);
+                    newF.push([tri[2], c, b]);
+                    newF.push([a, b, c]);
+                }
+                f = newF;
+            }
+            this.sphere.vertices = v;
+            this.sphere.faces = f;
+
+            // Basketball (3 Rings - Orthogonal)
+            var res = 32;
+            // Ring 1 (XY)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:Math.cos(a), y:Math.sin(a), z:0}); }
+            // Ring 2 (YZ)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:0, y:Math.cos(a), z:Math.sin(a)}); }
+            // Ring 3 (XZ)
+            for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:Math.cos(a), y:0, z:Math.sin(a)}); }
+
+            // Soccer (Pentagons)
+            var t = (1.0 + Math.sqrt(5.0)) / 2.0;
+            var icosa = [
+                [-1,  t,  0], [ 1,  t,  0], [-1, -t,  0], [ 1, -t,  0],
+                [ 0, -1,  t], [ 0,  1,  t], [ 0, -1, -t], [ 0,  1, -t],
+                [ t,  0, -1], [ t,  0,  1], [-t,  0, -1], [-t,  0,  1]
+            ];
+
+            var self = this;
+            icosa.forEach(function(center) {
+                var len = Math.sqrt(center[0]*center[0] + center[1]*center[1] + center[2]*center[2]);
+                var cx = center[0]/len; var cy = center[1]/len; var cz = center[2]/len;
+
+                var up = [0, 1, 0];
+                if (Math.abs(cy) > 0.9) up = [1, 0, 0];
+
+                var tx = up[1]*cz - up[2]*cy;
+                var ty = up[2]*cx - up[0]*cz;
+                var tz = up[0]*cy - up[1]*cx;
+                var tLen = Math.sqrt(tx*tx + ty*ty + tz*tz);
+
+                var ux = tx/tLen; var uy = ty/tLen; var uz = tz/tLen;
+                var vx = cy*uz - cz*uy;
+                var vy = cz*ux - cx*uz;
+                var vz = cx*uy - cy*ux;
+
+                var pentagon = [];
+                var radius = 0.25;
+
+                for(var i=0; i<5; i++) {
+                    var angle = (i/5) * Math.PI * 2;
+                    var px = ux * Math.cos(angle) * radius + vx * Math.sin(angle) * radius;
+                    var py = uy * Math.cos(angle) * radius + vy * Math.sin(angle) * radius;
+                    var pz = uz * Math.cos(angle) * radius + vz * Math.sin(angle) * radius;
+
+                    var fx = cx + px; var fy = cy + py; var fz = cz + pz;
+                    var fl = Math.sqrt(fx*fx + fy*fy + fz*fz);
+                    pentagon.push({x:fx/fl, y:fy/fl, z:fz/fl});
+                }
+                self.soccer.push(pentagon);
+            });
+
+            // Seam (Baseball/Tennis)
+            for(var i=0; i<=100; i++) {
+                var t = (i/100)*Math.PI*2;
+                var r0 = 0.4;
+                var x = Math.sin(t) - r0 * Math.sin(3*t);
+                var y = Math.cos(t) + r0 * Math.cos(3*t);
+                var z = 1.4 * Math.cos(2*t);
+                var len = Math.sqrt(x*x + y*y + z*z);
+                this.seam.push({x:x/len, y:y/len, z:z/len});
+            }
+
+            // Dimples (Golf)
+            var numDimples = 200;
+            var phi = Math.PI * (3. - Math.sqrt(5.));
+            for (var i=0; i<numDimples; i++) {
+                var y = 1 - (i / (numDimples - 1)) * 2;
+                var radius = Math.sqrt(1 - y * y);
+                var theta = phi * i;
+                var x = Math.cos(theta) * radius;
+                var z = Math.sin(theta) * radius;
+                this.dimples.push({x:x, y:y, z:z});
+            }
+
+            // Beach Ball
+            for(var s=0; s<6; s++) {
+                var angle = (s/6)*Math.PI*2;
+                var line = [];
+                for(var i=0; i<=20; i++) {
+                    var lat = -Math.PI/2 + (i/20)*Math.PI;
+                    var x = Math.cos(lat) * Math.cos(angle);
+                    var y = Math.sin(lat);
+                    var z = Math.cos(lat) * Math.sin(angle);
+                    line.push({x:x, y:y, z:z});
+                }
+                this.beach.push(line);
+            }
+
+            // Watermelon
+             for(var s=0; s<8; s++) {
+                var angle = (s/8)*Math.PI*2;
+                var line = [];
+                for(var i=0; i<=20; i++) {
+                    var lat = -Math.PI/2 + (i/20)*Math.PI;
+                    var wobble = Math.sin(i * 1.5) * 0.1;
+                    var localAngle = angle + wobble;
+                    var x = Math.cos(lat) * Math.cos(localAngle);
+                    var y = Math.sin(lat);
+                    var z = Math.cos(lat) * Math.sin(localAngle);
+                    line.push({x:x, y:y, z:z});
+                }
+                this.watermelon.push(line);
+            }
+        }
+    };
+    Geometry.init();
+
+    var BallRenderer = {
+    _projResult: {x:0, y:0, z:0},
+
+    projectIso: function(p, r, cosR, sinR) {
+        var ry = p.y * cosR - p.z * sinR;
+        var rz = p.y * sinR + p.z * cosR;
+        this._projResult.x = p.x * r;
+        this._projResult.y = ry * r;
+        this._projResult.z = rz;
+    },
+
+        draw: function(ctx, x, y, scale, rotation, ball, phys) {
+            // phys: {x, y, z, rotationX, rotationY, rotationZ}
+            if (phys && playerData.graphics === 'HIGH') {
+                this.draw3D(ctx, ball, phys);
+                return;
+            }
+
+            var radius = 25 * scale;
+            if (radius < 1) return; // Cull if too small
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Clip to sphere
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.clip();
+
+            this.drawBackground(ctx, radius, ball);
+            this.drawPattern(ctx, radius, rotation, ball);
+            this.drawLighting(ctx, radius, ball);
+
+            // Border
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2);
+            ctx.lineWidth = 1 * scale;
+            if(ctx.lineWidth < 1) ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
+
+            ctx.restore();
+        },
+
+        rotatePoint: function(p, rx, ry, rz) {
+            var x = p.x, y = p.y, z = p.z;
+            // X Rotation
+            var cx = Math.cos(rx), sx = Math.sin(rx);
+            var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
+            // Y Rotation
+            var cy = Math.cos(ry), sy = Math.sin(ry);
+            var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
+            // Z Rotation
+            var cz = Math.cos(rz), sz = Math.sin(rz);
+            tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
+            return {x:x, y:y, z:z};
+        },
+
+        draw3D: function(ctx, ball, phys) {
+            // 1. Draw Mesh Base
+            var verts = Geometry.sphere.vertices;
+            var faces = Geometry.sphere.faces;
+            var tVerts = [];
+
+            // Transform Vertices
+            var radius = 8; // Match legacy visual size (roughly)
+            for(var i=0; i<verts.length; i++) {
+                var r = this.rotatePoint(verts[i], phys.rotationX, phys.rotationY, phys.rotationZ);
+                var wx = phys.x + r.x * radius;
+                var wy = phys.y + r.y * radius;
+                var wz = phys.z + r.z * radius;
+                var proj = project(wx, wy, wz, g_camCache);
+                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: r});
+            }
+
+            // Prepare Faces
+            var drawFaces = [];
+            var camX = g_camCache.x; var camY = g_camCache.y; var camZ = 0; // Approx
+            // Actually view vector is (phys.x - camX, ...).
+            // Simplified Backface Culling: Dot product of Normal and Camera Vector
+            // Camera Vector in World Space: (camX - phys.x, camY - phys.y, -phys.z) roughly?
+            // Actually, we rotated the normal.
+            // Let's use screen space culling (winding order)
+
+            for(var i=0; i<faces.length; i++) {
+                var f = faces[i];
+                var v0 = tVerts[f[0]], v1 = tVerts[f[1]], v2 = tVerts[f[2]];
+                if(!v0.valid || !v1.valid || !v2.valid) continue;
+
+                // Screen Space Winding (Cross Product)
+                var cp = (v1.x - v0.x)*(v2.y - v0.y) - (v1.y - v0.y)*(v2.x - v0.x);
+                if (cp > 0) continue; // Cull (Assume standard CCW or CW, check sign)
+                // With standard coordinates, positive might be back facing or front depending on axis.
+                // Let's test. Usually < 0 is front for canvas Y-down.
+
+                // Lighting (Gouraud approximation on centroid)
+                // Light Source: Sun at (700, 80, 200)?
+                // Directional Light
+                var nx = (v0.normal.x + v1.normal.x + v2.normal.x) / 3;
+                var ny = (v0.normal.y + v1.normal.y + v2.normal.y) / 3;
+                var nz = (v0.normal.z + v1.normal.z + v2.normal.z) / 3;
+                // Normalize
+                var nl = Math.sqrt(nx*nx + ny*ny + nz*nz); nx/=nl; ny/=nl; nz/=nl;
+
+                // Light Dir (Top-Left-Front)
+                var lx = 0.5, ly = -0.5, lz = 0.7; // Normalized approx
+                var dot = nx*lx + ny*ly + nz*lz;
+                var light = 0.5 + Math.max(0, dot) * 0.5;
+
+                drawFaces.push({f:f, z: v0.z + v1.z + v2.z, light: light});
+            }
+            drawFaces.sort(function(a,b){ return b.z - a.z; });
+
+            // Draw Base Mesh
+            var type = ball.type || 'basketball';
+            var baseColor = ball.color1;
+            if (type === 'soccer' || type === 'baseball' || type === 'golf') baseColor = ball.color1;
+            else if (type === 'earth') baseColor = '#0000FF';
+            else if (type === 'watermelon') baseColor = '#155e15'; // Dark stripes base?
+            else if (type === 'beach') baseColor = '#FFF'; // Base white?
+
+            // Helper to darken color
+            var shadeColor = function(color, percent) {
+                var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+                return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+            };
+
+            for(var i=0; i<drawFaces.length; i++) {
+                var df = drawFaces[i];
+                var f = df.f;
+                var v0 = tVerts[f[0]], v1 = tVerts[f[1]], v2 = tVerts[f[2]];
+
+                ctx.fillStyle = baseColor;
+                // Apply lighting
+                // Since baseColor might be name or complex, simple opacity overlay?
+                // Or shading function if hex.
+                if (baseColor.startsWith('#')) {
+                    // Simple shading
+                    ctx.fillStyle = shadeColor(baseColor, (df.light - 1.0) * 0.5); // Darken
+                } else {
+                    // Gradient or special color, skip shading or use overlay
+                }
+
+                if (type === 'basketball' && ball.color2) {
+                    // Basketball has gradient look.
+                    // Simulate with lighting?
+                    // Just use shaded color1.
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(v0.x, v0.y);
+                ctx.lineTo(v1.x, v1.y);
+                ctx.lineTo(v2.x, v2.y);
+                ctx.closePath();
+                ctx.fill();
+                // Fix seams
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // 2. Draw Patterns (3D)
+            this.drawPattern3D(ctx, ball, phys);
+        },
+
+        drawPattern3D: function(ctx, ball, phys) {
+            var type = ball.type || 'basketball';
+            var self = this;
+            var radius = 8; // Match draw3D radius
+
+            var projectPoint = function(p) {
+                var r = self.rotatePoint(p, phys.rotationX, phys.rotationY, phys.rotationZ);
+                // Visibility Check (Front Facing)
+                // Dot product of rotated normal (which is just r for unit sphere) and View Vector.
+
+                var wx = phys.x + r.x * radius;
+                var wy = phys.y + r.y * radius;
+                var wz = phys.z + r.z * radius;
+
+                // DistSq to Camera
+                // camX/Y from g_camCache. camZ = cameraHeight.
+                // This is heavy.
+                // Alternative: Rotated vector `r`.
+                // View Vector is (phys.x - camX, phys.y - camY, phys.z - camZ).
