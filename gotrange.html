@@ -7959,25 +7959,21 @@ let lastDisplayedContestTime = -1;
         }
 
         if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
-             // Wide Head
-             if (isFurry) {
-                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true, false);
-                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true, false);
-             } else {
+             // Wide Head - Single Mass
+             if (!isFurry) {
                  ctx.fillStyle = headColor;
                  ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
              }
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry, true); // Main head has shading
+             // Draw Main Head
+             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry, true);
         }
         else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
-             // Boxy / Snouty Head
+             // Boxy Head - Single Mass
              drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry, false);
         }
         else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
-             // Diamond / Tapered
-             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry, true);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry, false);
+             // Tapered Head - Single Mass
+             drawFuzzyCircle(p.x, headY, headRadius * 1.0, headColor, 60, s, isFurry, true);
         }
         else if (currentAnimal === 'penguin') {
              // Continuous
@@ -7996,6 +7992,43 @@ let lastDisplayedContestTime = -1;
         }
         else {
              drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry, true);
+        }
+
+        // SNOUT POINTING UP (Back View)
+        // Draw a smaller, slightly offset circle near the top of the head to represent the snout pointing towards the basket.
+        if (['dog', 'wolf', 'fox', 'bear', 'pig', 'cow', 'moose', 'rat', 'lion', 'tiger'].includes(currentAnimal)) {
+            const snoutY = headY - headRadius * 0.5;
+            const snoutR = headRadius * 0.45;
+
+            // Slightly darker shade for snout to distinguish it
+            let snoutColor = headColor;
+
+            // If hex, darken slightly
+            if (snoutColor.startsWith('#') && snoutColor.length === 7) {
+                // Simple hex darkening logic or just reuse headColor with shadow
+                // For fuzzy rendering, we can rely on the lack of shading or a specific seed
+            }
+
+            // Draw Snout (No 3D shading to look flat/on top, or specific style)
+            // Use shading=false to blend it, but maybe a slight offset color?
+            // Actually, just drawing it "on top" might be enough if the edges are fuzzy.
+            // Let's use the same color but maybe smaller/higher.
+
+            drawFuzzyCircle(p.x, snoutY, snoutR, snoutColor, 65, s, isFurry, false);
+
+            // Nose Tip (Black dot usually)
+            if (currentAnimal !== 'moose') { // Moose has big nose nostrils
+                const noseY = snoutY - snoutR * 0.5;
+                const noseR = snoutR * 0.4;
+                const noseColor = (currentAnimal === 'pig') ? '#FF69B4' : '#000'; // Pig nose pinkish? Or darker pink.
+
+                if (isFurry) {
+                    drawFuzzyCircle(p.x, noseY, noseR, noseColor, 66, s, true, false);
+                } else {
+                    ctx.fillStyle = noseColor;
+                    ctx.beginPath(); ctx.arc(p.x, noseY, noseR, 0, Math.PI*2); ctx.fill();
+                }
+            }
         }
 
         // FOREHEAD MANE (Lion) - Fix baldness
