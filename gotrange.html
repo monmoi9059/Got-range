@@ -4000,21 +4000,25 @@ let lastDisplayedContestTime = -1;
 
         if (applyShading) {
             // Radial Shading Overlay
-            const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
-            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+            // Use a softer, more diffuse gradient for fur to avoid "plastic ball" look
+            const grad = ctx.createRadialGradient(cx, cy, r*0.4, cx, cy, r);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.3)'); // Soft shadow at edges
+
+            // Highlight (Top-Left)
+            const highlight = ctx.createRadialGradient(cx - r*0.4, cy - r*0.4, r*0.1, cx - r*0.4, cy - r*0.4, r*0.6);
+            highlight.addColorStop(0, 'rgba(255,255,255,0.1)');
+            highlight.addColorStop(1, 'rgba(255,255,255,0)');
 
             ctx.save();
             ctx.beginPath();
-            // Re-trace fuzzy path to clip the shadow
             ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
             for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
             ctx.closePath();
             ctx.clip();
 
-            ctx.fillStyle = grad;
-            ctx.fill();
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.fillStyle = highlight; ctx.fill();
             ctx.restore();
         }
     };
@@ -7868,8 +7872,14 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
         } else if (currentAnimal === 'bear' || currentAnimal === 'dog' || currentAnimal === 'lion' || currentAnimal === 'tiger' || currentAnimal === 'monkey') {
             let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
+            // Adjust ears lower for "snout" animals looking up - Further lower them to headY
+            if(['bear', 'dog', 'lion', 'tiger'].includes(currentAnimal)) {
+                 earY = headY; // Ears level with head center for backward tilt look
+                 earX = 11*s; // Slightly wider for perspective
+            }
             if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
-            if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
+            if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earR = 6*s; }
+
             drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry, false);
             drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry, false);
         } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
