@@ -5151,7 +5151,7 @@ let lastDisplayedContestTime = -1;
 
         // Draw Neck (Extension)
         if (neckLen > 5*s) {
-            ctx.fillStyle = furColor;
+            ctx.fillStyle = skinTone;
             const neckW = 12 * s * sizeMod.w * 0.7;
             ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
         }
@@ -5982,138 +5982,80 @@ let lastDisplayedContestTime = -1;
     let g_cachedSkinId = null;
     let g_cachedSkinObj = null;
 
-    function drawPlayer(p) {
-        if (!p) return;
-        const s = p.scale;
-        const skin = playerData.currentSkin;
-
-        let skinObj;
-        if (skin === g_cachedSkinId && g_cachedSkinObj) {
-            skinObj = g_cachedSkinObj;
-        } else {
-            skinObj = SKINS_DB.find(x => x.id === skin);
-            if(!skinObj) skinObj = SKINS_DB[0];
-            g_cachedSkinId = skin;
-            g_cachedSkinObj = skinObj;
-        }
-
-        const isMechanical = isMechanicalSkin(skinObj.id);
+    function drawRemasteredAnimal(p, s, skinObj) {
         const currentAnimal = skinObj.animal;
+        const skin = skinObj.id;
+        const isMechanical = isMechanicalSkin(skin);
 
-        if (currentAnimal === 'human') {
-            drawRealisticHuman(p, s, skinObj);
-            return;
-        }
-
+        // 1. Proportions & Setup
         let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0 };
+        // Refined proportions
         switch(currentAnimal) {
             case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
             case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
             case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
             case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
+            case 'bear': sizeMod = { w: 1.5, h: 1.4, head: 1.3, stance: 1.4, limbLen: 0.9, armWidth: 1.4, legWidth: 1.4 }; break; // Heavier
             case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
             case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
             case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
             case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
+            case 'pig': sizeMod = { w: 1.2, h: 1.0, head: 1.1, stance: 1.3, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'cow': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
+            case 'monkey': sizeMod = { w: 0.9, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, armWidth: 0.9 }; break; // Long arms
+            case 'penguin': sizeMod = { w: 1.2, h: 0.9, head: 1.0, stance: 1.2, limbLen: 0.6, armWidth: 1.0, legWidth: 1.0 }; break; // Squat
             case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
             case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
+            case 'turtle': sizeMod = { w: 1.2, h: 1.0, head: 0.9, stance: 1.3, limbLen: 0.7, armWidth: 1.2, legWidth: 1.2 }; break;
+            case 'elephant': sizeMod = { w: 1.6, h: 1.4, head: 1.5, stance: 1.4, limbLen: 1.0, armWidth: 1.6, legWidth: 1.6 }; break;
+            case 'dino': sizeMod = { w: 1.4, h: 1.4, head: 1.3, stance: 1.2, limbLen: 1.1 }; break;
+            case 'moose': sizeMod = { w: 1.3, h: 1.4, head: 1.2, stance: 1.2, limbLen: 1.2 }; break;
             case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.7, head: 1.0, stance: 1.2, limbLen: 1.6 }; break;
         }
 
-        // Apply Skin Overrides (Size & Proportions)
+        // Apply Skin Overrides
         if (skinObj.widthScale) sizeMod.w = skinObj.widthScale;
         if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
         if (skinObj.armWidthScale) sizeMod.armWidth = skinObj.armWidthScale;
         if (skinObj.legWidthScale) sizeMod.legWidth = skinObj.legWidthScale;
-
-        // Fill defaults if missing
         if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
         if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
 
-        // Determine if Furry
-        const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
+        // Furry Check
+        const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant'];
         const isNonFurrySkin = skin.includes('robot') || skin.includes('astronaut') || skin.includes('alien') || skin.includes('ninja');
         let isFurry = !NON_FURRY_ANIMALS.includes(currentAnimal) && !isNonFurrySkin;
 
-        // 1. Setup Base Colors
-        let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
-        let thighColor = '#555', calfColor = '#555';
-        let bellyColor = null, hasSpots = false, hasBlackEars = false;
+        // 2. Colors
+        let furColor = skinObj.furColor || '#555';
+        if (currentAnimal === 'rat') furColor = '#696969';
+        else if (currentAnimal === 'cat') furColor = '#808080';
+        else if (currentAnimal === 'bear') furColor = '#4B3621';
+        // ... (Keep existing color logic from DB if set)
 
-        if (skin === 'bear_panda') hasBlackEars = true;
-
-        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
-        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
-        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
-        else if(currentAnimal === 'fox') { furColor = '#D2691E'; tailColor = '#D2691E'; }
-        else if(currentAnimal === 'wolf') { furColor = '#808080'; tailColor = '#808080'; }
-        else if(currentAnimal === 'lion') { furColor = '#DAA520'; tailColor = '#DAA520'; }
-        else if(currentAnimal === 'tiger') { furColor = '#FFA500'; tailColor = '#FFA500'; }
-        else if(currentAnimal === 'pig') { furColor = '#FFC0CB'; tailColor = '#FFC0CB'; }
-        else if(currentAnimal === 'cow') { furColor = '#FFF'; tailColor = '#FFF'; }
-        else if(currentAnimal === 'monkey') { furColor = '#8B4513'; tailColor = '#8B4513'; }
-        else if(currentAnimal === 'penguin') { furColor = '#000'; tailColor = '#000'; }
-        else if(currentAnimal === 'human') {
-            furColor = skinObj.skinTone || '#8d5524';
-            tailColor = 'transparent';
+        // Default Logic for missing DB colors
+        if (!skinObj.furColor) {
+             if (currentAnimal === 'dog') furColor = '#8B4513';
+             if (currentAnimal === 'penguin') furColor = '#111';
+             if (currentAnimal === 'frog') furColor = '#32CD32';
+             if (currentAnimal === 'elephant') furColor = '#808080';
         }
 
-        // 2. Apply Skin Overrides (Data Driven)
-        // Biological overrides first
-        if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
-        if (skinObj.hasSpots) hasSpots = true;
+        let jerseyColor = skinObj.jerseyColor || furColor;
+        let shortsColor = skinObj.shortsColor || furColor;
+        let armColor = skinObj.sleeveColor || furColor;
+        let legColor = skinObj.legType === 'pants' ? shortsColor : furColor;
+        let tailColor = skinObj.tailColor || furColor;
 
-        if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
-        if (skin.includes('zombie')) { furColor = '#98FB98'; }
-        if (skin.includes('robot')) { furColor = '#C0C0C0'; }
+        if (skin === 'bear_panda') { furColor = '#FFF'; armColor = '#000'; legColor = '#000'; }
 
-        // Default clothes to fur color (naked)
-        torsoColor = furColor; legColor = furColor; armColor = furColor;
-        thighColor = legColor; calfColor = legColor;
-
-        // Clothing overrides
-        torsoColor = skinObj.jerseyColor || furColor;
-        thighColor = skinObj.shortsColor || furColor;
-        calfColor = furColor; // Default exposed calf
-
-        // Arms: Default to fur, check for sleeves
-        armColor = furColor;
-        if (skinObj.sleeveColor) armColor = skinObj.sleeveColor;
-
-        // Legs: If "trousers" (long pants), calf follows thigh color
-        if (skinObj.legType === 'pants') calfColor = thighColor;
-        if (skinObj.legType === 'tights') calfColor = thighColor;
-
-        // Panda Logic (Black limbs)
-        if (skinObj.legType === 'panda_limbs') {
-            legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
-        }
-
-        // 0. Calculate Arm Config EARLY
-        // Uses global smooth animation state
-        const r_la = g_animState.la;
-        const r_ra = g_animState.ra;
-        const r_lfa = g_animState.lfa;
-        const r_rfa = g_animState.rfa;
+        // 3. Animation State
+        const r_la = g_animState.la; const r_ra = g_animState.ra;
+        const r_lfa = g_animState.lfa; const r_rfa = g_animState.rfa;
         const r_w = g_animState.w;
-
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
-        const isLefty = playerData.isLefty;
-        if (isLefty) {
+        if (playerData.isLefty) {
             leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
             leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
             wristAngle = -r_w;
@@ -6123,740 +6065,262 @@ let lastDisplayedContestTime = -1;
             wristAngle = r_w;
         }
 
-        let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
-        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
-
-        let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
-        let neckLen = 0;
+        // 4. Dimensions
+        const bodyW = 20 * s * sizeMod.w;
+        const bodyH = 40 * s * sizeMod.h;
+        let legLen = 30 * s * sizeMod.h * sizeMod.limbLen;
 
         // Pose Logic
-        const isSitting = (state === 'IDLE' && currentAnimal !== 'human');
-        const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
+        const isCrouching = (state === 'PRE_JUMP');
+        if (isCrouching) legLen *= 0.7;
 
-        let torsoY;
-        if (isSitting) {
-             torsoY = p.y - bodyH * 0.85; // Low to ground
-        } else if (isCrouching) {
-             torsoY = p.y - legLen * 0.6 - bodyH; // Crouched
-        } else {
-             torsoY = p.y - legLen - bodyH;
-        }
-        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
-        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
+        let torsoY = p.y - legLen - bodyH;
+        let headY = torsoY - (10 * s * sizeMod.head);
         let headRadius = 12 * s * sizeMod.head;
 
-        // Super Saiyan Aura
-        if (currentStreak >= 10) {
-             const hue = getStreakFireHue(currentStreak);
-             ctx.save();
-             // Outer Glow
-             ctx.shadowBlur = 30 * s;
-             ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
-             ctx.fill();
-             // Inner Core
-             ctx.shadowBlur = 15 * s;
-             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.restore();
+        // Penguin Special: Head attached to body
+        if (currentAnimal === 'penguin') {
+            headY = torsoY + 5*s; // Lower head
+            headRadius *= 1.1;
         }
 
-        // Draw Neck (Extension)
-        if (neckLen > 5*s) {
-            ctx.fillStyle = furColor;
-            const neckW = 12 * s * sizeMod.w * 0.7;
-            ctx.fillRect(p.x - neckW/2, torsoY + 10*s, neckW, -neckLen - 5*s);
-        }
-        let shoulderY = torsoY + (5*s);
-        // Stance modifier for shoulder width and hip width
-        const stanceMod = sizeMod.stance || 1.0;
-        let leftShoulderX = p.x - 12*s * stanceMod; let rightShoulderX = p.x + 12*s * stanceMod;
-
-        let armLenMod = sizeMod.limbLen || 1.0;
-        if (skinObj.armLen) armLenMod = skinObj.armLen;
-        else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
-        let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
-
-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2) => {
-            const armFurry = isFurry && (armColor === furColor);
-            const seedBase = isRight ? 10 : 20;
-            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
-
-            let thisUpperColor = armColor;
-            let thisForeColor = armColor;
-            let activeSleeveColor = null;
-
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
-                thisUpperColor = torsoColor;
-            }
-
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                activeSleeveColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                activeSleeveColor = skinObj.sleeveLeft;
-            }
-
-            if (activeSleeveColor) {
-                thisForeColor = activeSleeveColor;
-            }
-
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
-
-            // Shoulder Joint (Radius increased to 0.7)
-            if(!armFurry) drawJoint(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, 7*s*sizeMod.armWidth * 0.7, thisUpperColor, seedBase, s, true);
-
-            // Upper Arm
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, 6*s*sizeMod.armWidth, thisUpperColor, s, armFurry, seedBase);
-
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
-            if (activeSleeveColor) {
-                const midX = (sx + elbow.x) / 2;
-                const midY = (sy + elbow.y) / 2;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, 6.2*s*sizeMod.armWidth, activeSleeveColor, s, false, seedBase);
-            }
-
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
-
-            // Forearm
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, 5*s*sizeMod.armWidth, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1);
-
-            // Elbow Joint (Radius 0.7, Drawn AFTER limbs to cap the connection)
-            let elbowColor = thisUpperColor;
-            if (activeSleeveColor) {
-                elbowColor = activeSleeveColor;
-            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
-                elbowColor = thisUpperColor; // Sleeve covers elbow
-            } else if (thisUpperColor === furColor) {
-                elbowColor = furColor;
-            }
-
-            const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, 6*s*sizeMod.armWidth * 0.7, elbowColor, seedBase+2, s, true);
-
-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
-            ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
-            if (wristAngle > 0.5 && isShootingSide) {
-                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
-            }
-
-            // Ball removed (drawn earlier)
-            ctx.restore();
-        };
-
-        if (playerData.currentStyle === 'airbud' && state === 'SHOOTING') {
-             const t = airbudJumpTime;
-             const maxT = 30;
-             if (t < maxT) {
-                 const jumpHeight = 60 * s * sizeMod.h;
-                 const nt = t / maxT;
-                 const offset = 4 * jumpHeight * nt * (1 - nt);
-                 p.y -= offset;
-                 torsoY = p.y - legLen - bodyH;
-                 headY = torsoY - (10 * s * sizeMod.head);
-                 shoulderY = torsoY + (5*s);
-                 // Recalculate shoulders
-                 leftShoulderX = p.x - 12*s; rightShoulderX = p.x + 12*s;
-             }
-        }
-
-        // 0b. Detached Ball Rendering
+        // 0. Detached Ball
         drawDetachedBall(p, s, torsoY, bodyH, headY);
 
-        // 0c. HELD BALL RENDERING (Layer 0)
-        const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
-        if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
-             let ballX, ballY;
+        // 1. Legs
+        const stanceW = 10 * s * sizeMod.stance;
+        const hipX_L = p.x - 7*s*sizeMod.w;
+        const hipX_R = p.x + 7*s*sizeMod.w;
+        const footX_L = p.x - stanceW;
+        const footX_R = p.x + stanceW;
+        const footY = p.y;
 
-             if (isSitting) {
-                 // Ball in Lap
-                 ballX = p.x;
-                 ballY = torsoY + bodyH * 0.8;
-             } else {
-                 const isRightHand = !isLefty;
-                 const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
-                 const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
-                 const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
-
-                 let elbow = getJoint(shootSX, shoulderY, upperArmLen, shootUAngle);
-                 let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
-
-                 let theta = shootFAngle + wristAngle;
-                 ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
-                 ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
-             }
-
-             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0);
-        }
-
-        // Arms First (Layer 1) - Arms behind legs
-        drawSegmentedArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
-        drawSegmentedArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
-
-        // 2. Legs (Base implementation)
-        let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
-
-        if (isSitting) {
-             // Sitting Pose: Knees wide, Feet forward/central
-             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
-             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
-             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
-             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
-        } else if (isCrouching) {
-             // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
-        } else {
-             // Standing
-             const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
-        }
-
-        // Dirk Kick Logic
-        if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
-            const style = getCurrentStyle();
-            const maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
-            const lift = Math.min(1.0, Math.max(0, (maxVz - getCurrentVz()) / maxVz));
-            const kickH = 20 * s * lift;
-            const kickW = 15 * s * lift;
-            if (playerData.isLefty) {
-                 lKneeY -= kickH; lKneeX -= kickW; lFootX -= kickW; lFootY -= kickH*0.8;
-            } else {
-                 rKneeY -= kickH; rKneeX += kickW; rFootX += kickW; rFootY -= kickH*0.8;
+        const drawAnimalLeg = (hx, hy, fx, fy, isRight) => {
+            if (currentAnimal === 'penguin') {
+                // Short stubby feet
+                ctx.fillStyle = '#FFA500'; // Orange feet
+                ctx.beginPath();
+                ctx.ellipse(fx, fy, 6*s, 3*s, 0, 0, Math.PI*2);
+                ctx.fill();
+                return;
             }
-        }
 
+            const isDigitigrade = ['dog', 'cat', 'wolf', 'fox', 'lion', 'tiger', 'dino'].includes(currentAnimal);
 
-        const legFurry = isFurry && (legColor === furColor);
-        const hipX = 8 * s * stanceMod;
+            if (isDigitigrade) {
+                // Thigh -> Knee (High) -> Hock (Backwards) -> Foot
+                // Simple 2-segment for now, but shaped like dog leg
+                const kneeX = hx + (isRight?5:-5)*s;
+                const kneeY = hy + legLen * 0.4;
+                const hockX = fx - (isRight?2:-2)*s;
+                const hockY = fy - 5*s;
 
-        // Hip Joints
-        if(!legFurry) {
-            drawJoint(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-            drawJoint(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-        } else {
-            drawFuzzyCircle(p.x - hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, p.y - legLen, 7*s*sizeMod.legWidth * 0.7, thighColor, 30, s, true);
-        }
+                // Thigh
+                drawMuscleLimb(hx, hy, kneeX, kneeY, 9*s*sizeMod.legWidth, legColor, 'thigh', s);
+                // Calf/Hock
+                drawMuscleLimb(kneeX, kneeY, hockX, hockY, 7*s*sizeMod.legWidth, legColor, 'calf', s);
+                // Foot
+                drawRealisticShoe(fx, fy, 5*s, 5*s, skinObj.shoesColor || legColor, isRight); // Paw-like shoe
+            } else {
+                // Plantigrade (Bear, Rabbit, Rat, Human-like)
+                const kneeX = (hx + fx) / 2 + (isRight?2:-2)*s; // Knees out slightly
+                const kneeY = hy + legLen * 0.5;
 
-        drawFuzzyLimb(p.x - hipX, p.y - legLen, lKneeX, lKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 1); // Left Thigh
-        drawFuzzyLimb(p.x + hipX, p.y - legLen, rKneeX, rKneeY, 7*s*sizeMod.legWidth, thighColor, s, legFurry, 3); // Right Thigh
-
-        // Calves & Socks/Shoes
-        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             const calfBaseColor = calfColor;
-
-             // Draw Base Calf
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, 6*s*sizeMod.legWidth, calfBaseColor, s, legFurry, isRight?4:2);
-
-             // Knee Joint (Radius 0.7, Drawn AFTER calf but theoretically overlaps thigh bottom)
-             // Thigh was drawn before this function.
-             if(!legFurry) drawJoint(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isMechanical);
-             else drawFuzzyCircle(xTop, yTop, 7*s*sizeMod.legWidth * 0.7, thighColor, isRight?40:20, s, true);
-
-             // Socks & Shoes Overlay
-             if(skinObj.socksColor || skinObj.shoesColor) {
-                 const shoeH = 5 * s; const sockH = 7 * s;
-                 // Calculate local Y relative to the foot Y
-                 const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
-
-                 // Interpolate X/Y
-                 const getXAtY = (y) => {
-                     const t = (y - yTop) / (yBot - yTop);
-                     return xTop + (xBot - xTop) * t;
-                 };
-
-                 if(skinObj.socksColor) {
-                     const sockTopX = getXAtY(sockY);
-                     const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, 5.8*s*sizeMod.legWidth, skinObj.socksColor, s, false, 0);
-                 }
-                 if(skinObj.shoesColor) {
-                     const ankleX = getXAtY(ankleY);
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, 6*s*sizeMod.legWidth, skinObj.shoesColor, s, false, 0);
-                     // Shoe Foot
-                     ctx.fillStyle = skinObj.shoesColor;
-                     ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
-                 }
-             }
+                drawMuscleLimb(hx, hy, kneeX, kneeY, 10*s*sizeMod.legWidth, legColor, 'thigh', s);
+                drawMuscleLimb(kneeX, kneeY, fx, fy, 9*s*sizeMod.legWidth, legColor, 'calf', s);
+                drawRealisticShoe(fx, fy, 6*s, 6*s, skinObj.shoesColor || legColor, isRight);
+            }
         };
 
-        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
-        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
+        drawAnimalLeg(hipX_L, p.y - legLen, footX_L, footY, false);
+        drawAnimalLeg(hipX_R, p.y - legLen, footX_R, footY, true);
 
-        // 6. Draw Body (Layer 2)
-        const bodyFurry = isFurry && (torsoColor === furColor);
-        let bodyOptions = {};
+        // 3. Body
+        if (currentAnimal === 'penguin') {
+            // Teardrop shape
+            const grad = ctx.createLinearGradient(p.x, torsoY, p.x, p.y - 10*s);
+            grad.addColorStop(0, '#111');
+            grad.addColorStop(1, '#222');
+            ctx.fillStyle = grad;
 
-        // Define Body Shapes for Animals
-        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
-        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'oval'; // Small animals
-        }
-        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
-        }
-        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
-            bodyOptions.bodyShape = 'round'; // Chunky
-            bodyOptions.waistScale = 1.1;
-            bodyOptions.roundness = 0.2;
-        }
-
-        if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
-
-        // Auto-detect Jersey
-        if (!bodyFurry && torsoColor !== furColor && !skinObj.pattern) {
-            bodyOptions.isJersey = true;
-        }
-
-        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
-        bodyOptions.animal = currentAnimal;
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions);
-
-        if(currentAnimal === 'penguin' && torsoColor === furColor) {
-             ctx.fillStyle = '#FFF';
-             ctx.beginPath(); ctx.ellipse(p.x, torsoY + bodyH * 0.55, bodyW * 0.7, bodyH * 0.4, 0, 0, Math.PI*2); ctx.fill();
-        }
-        if(skinObj.pattern === 'tiger_stripes') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
-             // Body stripes
-             ctx.beginPath(); ctx.moveTo(p.x - bodyW/2, torsoY + 10*s); ctx.lineTo(p.x - bodyW/4, torsoY + 15*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + bodyW/2, torsoY + 10*s); ctx.lineTo(p.x + bodyW/4, torsoY + 15*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x - bodyW/2, torsoY + 25*s); ctx.lineTo(p.x - bodyW/4, torsoY + 30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + bodyW/2, torsoY + 25*s); ctx.lineTo(p.x + bodyW/4, torsoY + 30*s); ctx.stroke();
-        }
-        if(skinObj.pattern === 'cow_spots') {
-             ctx.fillStyle = (skin === 'cow_strawberry') ? '#FF69B4' : '#000';
-             ctx.beginPath(); ctx.arc(p.x - 5*s, torsoY + 10*s, 6*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 25*s, 5*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x - 2*s, torsoY + 30*s, 4*s, 0, Math.PI*2); ctx.fill();
-        }
-
-        if(hasSpots) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 20*s, 4*s, 0, Math.PI*2); ctx.fill(); }
-        if(skin.includes('tabby')) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2*s; ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x+5*s, torsoY+10*s); ctx.stroke(); }
-        // Pattern Rendering
-        if(skinObj.pattern === 'plaid') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+10*s); ctx.lineTo(p.x+bodyW/2, torsoY+10*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+20*s); ctx.lineTo(p.x+bodyW/2, torsoY+20*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x-bodyW/2, torsoY+30*s); ctx.lineTo(p.x+bodyW/2, torsoY+30*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY); ctx.lineTo(p.x, torsoY+bodyH); ctx.stroke();
-        }
-        else if(skinObj.pattern === 'stripes') { // Referee or Bandit
-             ctx.fillStyle = '#000';
-             ctx.fillRect(p.x-5*s, torsoY, 10*s, bodyH); // Center stripe
-             ctx.fillRect(p.x-15*s, torsoY, 5*s, bodyH); // Left stripe
-             ctx.fillRect(p.x+10*s, torsoY, 5*s, bodyH); // Right stripe
-        }
-        else if(skinObj.pattern === 'suit') { // Tuxedo button
-             ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, torsoY + 15*s, 2*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x, torsoY + 25*s, 2*s, 0, Math.PI*2); ctx.fill();
-             // Bowtie
-             ctx.fillStyle = 'red';
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x-5*s, torsoY+2*s); ctx.lineTo(p.x-5*s, torsoY+8*s); ctx.fill();
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+5*s); ctx.lineTo(p.x+5*s, torsoY+2*s); ctx.lineTo(p.x+5*s, torsoY+8*s); ctx.fill();
-        }
-        else if(skinObj.pattern === 'suit_jacket') { // Back view of a suit
-             ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1*s;
-             // Center seam (Vent)
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY + bodyH * 0.7); ctx.lineTo(p.x, torsoY + bodyH); ctx.stroke();
-             // Shoulder seams
-             ctx.beginPath();
-             ctx.moveTo(p.x - bodyW/2 + 5*s, torsoY + 5*s);
-             ctx.quadraticCurveTo(p.x, torsoY + 8*s, p.x + bodyW/2 - 5*s, torsoY + 5*s);
-             ctx.stroke();
-        }
-
-        // Clothing Details (New Layer)
-        if(skinObj.clothingDetail === 'suspenders') {
-             ctx.fillStyle = '#1a1a1a'; // Dark suspenders
-             // Left
-             ctx.fillRect(p.x - bodyW/2 + 2*s, torsoY, 3*s, bodyH);
-             // Right
-             ctx.fillRect(p.x + bodyW/2 - 5*s, torsoY, 3*s, bodyH);
-        }
-        if(skinObj.clothingDetail === 'apron_ties') {
-             ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
-             ctx.lineTo(p.x - 10*s, torsoY + bodyH*0.6 + 5*s); // Left hanging
-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
-             ctx.lineTo(p.x + 10*s, torsoY + bodyH*0.6 + 5*s); // Right hanging
-             // Knot
-             ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, torsoY+bodyH*0.6, 3*s, 0, Math.PI*2); ctx.fill();
-             ctx.stroke();
-        }
-        if(skinObj.clothingDetail === 'overalls') {
-             ctx.fillStyle = skinObj.shortsColor || '#000080';
-             // Bib
-             ctx.fillRect(p.x - bodyW*0.3, torsoY + bodyH*0.3, bodyW*0.6, bodyH*0.4);
-             // Straps
-             ctx.fillRect(p.x - bodyW*0.3, torsoY, bodyW*0.1, bodyH*0.3);
-             ctx.fillRect(p.x + bodyW*0.2, torsoY, bodyW*0.1, bodyH*0.3);
-        }
-        if(skinObj.clothingDetail === 'stitches') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             // Random stitches
-             ctx.beginPath(); ctx.moveTo(p.x-5*s, torsoY+10*s); ctx.lineTo(p.x-5*s, torsoY+15*s); ctx.moveTo(p.x-8*s, torsoY+12*s); ctx.lineTo(p.x-2*s, torsoY+12*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x+5*s, torsoY+25*s); ctx.lineTo(p.x+5*s, torsoY+30*s); ctx.moveTo(p.x+2*s, torsoY+27*s); ctx.lineTo(p.x+8*s, torsoY+27*s); ctx.stroke();
-             // Head stitch
-             ctx.beginPath(); ctx.moveTo(p.x, headY-headRadius); ctx.lineTo(p.x, headY-headRadius+5*s); ctx.moveTo(p.x-3*s, headY-headRadius+2*s); ctx.lineTo(p.x+3*s, headY-headRadius+2*s); ctx.stroke();
-        }
-
-        // 7. Draw Tail (Layer 3)
-        // Skip for bears, humans, robots, astronauts, frogs (unless specific tail logic exists)
-        const hasTail = (!['bear', 'human', 'frog'].includes(currentAnimal) || skinObj.tailType) && !skin.includes('astronaut') && !skin.includes('robot');
-
-        if (hasTail) {
-            const tx = p.x;
-            const ty = (torsoY + bodyH) - 5*s;
-
-            if (skinObj.tailType === 'devil') {
-                ctx.strokeStyle = '#8B0000'; ctx.lineWidth = 4 * s;
-                ctx.beginPath(); ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 25*s, ty - 20*s); ctx.stroke();
-                // Triangle Tip
-                ctx.fillStyle = '#8B0000'; ctx.beginPath();
-                const ttx = tx + 25*s, tty = ty - 20*s;
-                ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
-            }
-            else if (skinObj.tailType === 'bull') {
-                 // Minotaur tail
-                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
-                 ctx.moveTo(tx, ty);
-                 ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
-                 drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], '#000', s, true, 101);
-            }
-            else if (currentAnimal === 'rat') {
-                // Rat: Long, thin, smooth, flesh colored
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3*s;
-                ctx.moveTo(tx, ty);
-                // S-curve down
-                ctx.bezierCurveTo(tx + 20*s, ty + 10*s, tx + 10*s, ty + 30*s, tx + 25*s, ty + 40*s);
-                ctx.stroke();
-            }
-            else if (currentAnimal === 'monkey') {
-                // Monkey: Long, curled up
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4*s;
-                ctx.moveTo(tx, ty);
-                ctx.bezierCurveTo(tx + 20*s, ty - 10*s, tx + 25*s, ty - 30*s, tx + 10*s, ty - 40*s);
-                ctx.stroke();
-            }
-            else if (currentAnimal === 'dino') {
-                // T-Rex: Thick, tapered
-                ctx.fillStyle = tailColor;
-                ctx.beginPath();
-                ctx.moveTo(tx - 5*s, ty);
-                ctx.lineTo(tx + 5*s, ty);
-                // Curve down to a point
-                ctx.quadraticCurveTo(tx + 30*s, ty + 10*s, tx + 45*s, ty + 5*s); // Tip
-                ctx.quadraticCurveTo(tx + 20*s, ty + 20*s, tx - 5*s, ty + 5*s);
-                ctx.fill();
-            }
-            else if (currentAnimal === 'turtle') {
-                // Turtle: Short pointed
-                ctx.fillStyle = tailColor;
-                ctx.beginPath(); ctx.moveTo(tx - 3*s, ty); ctx.lineTo(tx + 3*s, ty); ctx.lineTo(tx, ty + 10*s); ctx.fill();
-            }
-            else if (currentAnimal === 'chicken') {
-                // Chicken: Feathers
-                ctx.fillStyle = tailColor;
-                for(let i=-1; i<=1; i++) {
-                    ctx.beginPath(); ctx.ellipse(tx + (i*5*s), ty - 5*s, 4*s, 10*s, i*0.5, 0, Math.PI*2); ctx.fill();
-                }
-            }
-            else if (currentAnimal === 'fox' || currentAnimal === 'wolf' || skinObj.tailType === 'multi') {
-                // Bushy Tail
-                const tailPoints = [
-                    {x: tx, y: ty},
-                    {x: tx + 15*s, y: ty + 5*s},
-                    {x: tx + 30*s, y: ty - 10*s}, // Tip
-                    {x: tx + 15*s, y: ty - 15*s}
-                ];
-                let tColor = tailColor;
-                if(skinObj.tailType === 'multi') { // Kitsune
-                    for(let k=0; k<3; k++) {
-                        const off = (k-1)*10*s;
-                        drawFuzzyPath([{x:tx,y:ty},{x:tx+15*s+off,y:ty+5*s},{x:tx+30*s+off,y:ty-10*s},{x:tx+15*s+off,y:ty-15*s}], '#FFD700', s, true, 100+k);
-                    }
-                } else {
-                    drawFuzzyPath(tailPoints, tColor, s, true, 99);
-                    // White tip for classic fox
-                    if(currentAnimal === 'fox' && skin === 'fox_classic') {
-                        const tipPoints = [{x: tx + 20*s, y: ty - 5*s}, {x: tx + 30*s, y: ty - 10*s}, {x: tx + 20*s, y: ty - 12*s}];
-                        drawFuzzyPath(tipPoints, '#FFF', s, true, 100);
-                    }
-                }
-            }
-            else if (currentAnimal === 'rabbit') {
-                // Round Fluffy Tail
-                drawFuzzyCircle(p.x, ty - 2*s, 6*s, tailColor, 102, s, true);
-            }
-            else if (currentAnimal === 'pig') {
-                // Curly Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.bezierCurveTo(tx + 10*s, ty - 5*s, tx + 10*s, ty + 10*s, tx + 20*s, ty);
-                ctx.stroke();
-            }
-            else if (['lion', 'cow', 'zebra', 'giraffe'].includes(currentAnimal)) {
-                // Tufted Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 3 * s;
-                ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 10*s, tx + 25*s, ty + 5*s); ctx.stroke();
-                // Tuft
-                let tuftColor = '#000';
-                if (currentAnimal === 'lion') tuftColor = '#8B4513';
-                if (currentAnimal === 'cow' && skinObj.furColor === '#8B0000') tuftColor = '#8B0000'; // Highland
-                if (skin === 'lion_white') tuftColor = '#EEE';
-
-                drawFuzzyPath([{x: tx+25*s, y: ty+5*s}, {x: tx+35*s, y: ty+8*s}, {x: tx+35*s, y: ty+2*s}], tuftColor, s, true, 101);
-            }
-            else if (currentAnimal === 'elephant') {
-                 // Thin tail with small tuft
-                 ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 2*s;
-                 ctx.moveTo(tx, ty);
-                 ctx.quadraticCurveTo(tx + 5*s, ty + 15*s, tx + 8*s, ty + 25*s); ctx.stroke();
-                 drawFuzzyCircle(tx + 8*s, ty + 25*s, 3*s, tailColor, 101, s, true);
-            }
-            else if (currentAnimal === 'penguin') {
-                // Stubby Tail
-                ctx.fillStyle = tailColor;
-                ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + 10*s, ty + 5*s); ctx.lineTo(tx + 5*s, ty + 10*s); ctx.fill();
-            }
-            else {
-                // Standard Thin Tail
-                ctx.beginPath(); ctx.strokeStyle = tailColor; ctx.lineWidth = 4 * s;
-                ctx.lineCap = 'round'; ctx.moveTo(tx, ty);
-                ctx.quadraticCurveTo(tx + 15*s, ty + 5*s, tx + 20*s, ty - 10*s); ctx.stroke();
-                if(currentAnimal === 'tiger' || skinObj.pattern === 'tiger_stripes') {
-                    // Stripes on tail
-                    ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
-                    ctx.beginPath(); ctx.moveTo(tx+5*s, ty); ctx.lineTo(tx+5*s, ty+3*s); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(tx+10*s, ty); ctx.lineTo(tx+10*s, ty+3*s); ctx.stroke();
-                }
-
-            }
-        }
-
-        // 8. Draw Head & Ears (Layer 4)
-        ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
-        if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
-
-        // EARS & HORNS
-        if(currentAnimal === 'rat') {
-            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51, s, isFurry);
-            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52, s, isFurry);
-        } else if (currentAnimal === 'cat') {
-            const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
-            const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
-            drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
-            drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-        } else if (currentAnimal === 'fox' || currentAnimal === 'wolf') {
-            // Pointy Ears
-            const h = (currentAnimal === 'wolf') ? 18*s : 22*s;
-            const w = (currentAnimal === 'wolf') ? 10*s : 12*s;
-            const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-12*s, y: headY-h}, {x: p.x-w-5*s, y: headY-5*s}];
-            const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+12*s, y: headY-h}, {x: p.x+w+5*s, y: headY-5*s}];
-            drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
-            drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-            // Inner Ear (White/Pink)
-            ctx.fillStyle = (currentAnimal === 'wolf') ? '#AAA' : '#FFF';
-            ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-12*s, headY-h+5*s); ctx.lineTo(p.x-15*s, headY-10*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+12*s, headY-h+5*s); ctx.lineTo(p.x+15*s, headY-10*s); ctx.fill();
-        } else if (currentAnimal === 'rabbit') {
-             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'bear' || currentAnimal === 'dog' || currentAnimal === 'lion' || currentAnimal === 'tiger' || currentAnimal === 'monkey') {
-            let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
-            if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
-            if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
-            drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry);
-            drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry);
-        } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
-            const earColor = ctx.fillStyle;
-            ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 14*s, headY - 2*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'elephant') {
-            // Big Flappy Ears
-            ctx.fillStyle = furColor;
-            // Left
             ctx.beginPath();
-            ctx.moveTo(p.x - 10*s, headY - 5*s);
-            ctx.bezierCurveTo(p.x - 35*s, headY - 15*s, p.x - 35*s, headY + 15*s, p.x - 12*s, headY + 10*s);
+            ctx.moveTo(p.x, headY - headRadius);
+            ctx.bezierCurveTo(p.x + bodyW*1.2, headY, p.x + bodyW, p.y - 10*s, p.x, p.y - 10*s);
+            ctx.bezierCurveTo(p.x - bodyW, p.y - 10*s, p.x - bodyW*1.2, headY, p.x, headY - headRadius);
             ctx.fill();
-            // Right
-            ctx.beginPath();
-            ctx.moveTo(p.x + 10*s, headY - 5*s);
-            ctx.bezierCurveTo(p.x + 35*s, headY - 15*s, p.x + 35*s, headY + 15*s, p.x + 12*s, headY + 10*s);
-            ctx.fill();
-        } else if (currentAnimal === 'giraffe') {
-            // Ossicones (Horns)
-            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 8*s); ctx.lineTo(p.x - 6*s, headY - 18*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 18*s); ctx.stroke();
-            // Knobs
-            ctx.fillStyle = '#5D4037';
-            ctx.beginPath(); ctx.arc(p.x - 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
-            // Ears
-            ctx.fillStyle = furColor;
-            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY - 5*s, 5*s, 3*s, 0.2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY - 5*s, 5*s, 3*s, -0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'human') {
-            // Human Ears
-            ctx.fillStyle = furColor;
-            if (skinObj.ears === 'elf') {
-                // Pointy Elf Ears
-                // Left Ear
-                ctx.beginPath();
-                ctx.moveTo(p.x - 10*s, headY);
-                ctx.lineTo(p.x - 22*s, headY - 8*s); // Tip
-                ctx.lineTo(p.x - 10*s, headY + 6*s);
-                ctx.fill();
-                // Right Ear
-                ctx.beginPath();
-                ctx.moveTo(p.x + 10*s, headY);
-                ctx.lineTo(p.x + 22*s, headY - 8*s); // Tip
-                ctx.lineTo(p.x + 10*s, headY + 6*s);
-                ctx.fill();
+
+            // White Belly (Back view: visible on sides if fat?)
+            // Usually back is full black. Keep it solid black for back view accuracy.
+        }
+        else if (currentAnimal === 'bear') {
+            // Heavy, rounded body
+            if (isFurry) {
+                // Fuzzy large oval
+                drawFuzzyCircle(p.x, torsoY + bodyH*0.4, bodyW, jerseyColor, 10, s, true);
             } else {
-                ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY, 3*s, 6*s, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = jerseyColor;
+                ctx.beginPath();
+                ctx.ellipse(p.x, torsoY + bodyH*0.4, bodyW, bodyH*0.6, 0, 0, Math.PI*2);
+                ctx.fill();
             }
-
-            if(skinObj.hairStyle === 'afro') {
-                 ctx.fillStyle = skinObj.hairColor || '#000';
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
-            }
-        }
-        if(currentAnimal === 'moose') {
-            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
-            ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-10*s); ctx.lineTo(p.x-30*s, headY-25*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x+10*s, headY-10*s); ctx.lineTo(p.x+30*s, headY-25*s); ctx.stroke();
-        }
-        if(currentAnimal === 'cow') {
-            ctx.fillStyle = '#EEE';
-            ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.quadraticCurveTo(p.x-15*s, headY-20*s, p.x-12*s, headY-25*s); ctx.lineTo(p.x-8*s, headY-15*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.quadraticCurveTo(p.x+15*s, headY-20*s, p.x+12*s, headY-25*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.fill();
-        }
-
-        // MANE (Lion)
-        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
-             ctx.fillStyle = '#8B4513';
-             if(skin === 'lion_white') ctx.fillStyle = '#EEE';
-             if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             drawFuzzyCircle(p.x, headY, headRadius * 1.6, ctx.fillStyle, 61, s, isFurry);
-        }
-
-        // Head Circle
-        let headColor = furColor;
-        if(skin.includes('alien')) headColor = '#32CD32';
-        if(currentAnimal === 'penguin') headColor = '#000';
-        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
-             if(skin === 'lion_white') headColor = '#EEE';
-             else if(skin === 'lion_classic') headColor = '#A0522D';
-             else headColor = '#8B4513';
-        }
-
-        if (currentAnimal === 'cat' || currentAnimal === 'bear' || currentAnimal === 'frog') {
-             // Wide Head
-             if (isFurry) {
-                 drawFuzzyCircle(p.x - 5*s, headY, headRadius, headColor, 60, s, true);
-                 drawFuzzyCircle(p.x + 5*s, headY, headRadius, headColor, 61, s, true);
-             } else {
-                 ctx.fillStyle = headColor;
-                 ctx.beginPath(); ctx.ellipse(p.x, headY, headRadius * 1.2, headRadius * 0.9, 0, 0, Math.PI*2); ctx.fill();
-             }
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 62, s, isFurry);
-        }
-        else if (currentAnimal === 'cow' || currentAnimal === 'moose' || currentAnimal === 'pig') {
-             // Boxy / Snouty Head
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 63, s, isFurry);
-        }
-        else if (['fox', 'wolf', 'dog'].includes(currentAnimal)) {
-             // Diamond / Tapered
-             drawFuzzyCircle(p.x, headY - 5*s, headRadius * 1.0, headColor, 60, s, isFurry);
-             drawFuzzyCircle(p.x, headY + 5*s, headRadius * 0.9, headColor, 64, s, isFurry);
-        }
-        else if (currentAnimal === 'penguin') {
-             // Continuous
-             ctx.fillStyle = headColor;
-             ctx.beginPath();
-             ctx.moveTo(p.x - bodyW/2, torsoY + 5*s);
-             ctx.lineTo(p.x + bodyW/2, torsoY + 5*s);
-             ctx.lineTo(p.x + headRadius, headY);
-             ctx.lineTo(p.x - headRadius, headY);
-             ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
-        }
-        else if (currentAnimal === 'elephant') {
-             ctx.fillStyle = headColor;
-             ctx.beginPath(); ctx.arc(p.x, headY, headRadius * 1.2, 0, Math.PI*2); ctx.fill();
         }
         else {
-             drawFuzzyCircle(p.x, headY, headRadius, headColor, 60, s, isFurry);
+            // Standard Animal Body (Athletic or Round)
+            if (skinObj.jerseyType === 'none' || !skinObj.jerseyColor) {
+                drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, furColor, false, 0, { pattern: skinObj.pattern }, {
+                    shoulders: {left: {x: p.x-bodyW*0.8, y: torsoY}, right: {x: p.x+bodyW*0.8, y: torsoY}},
+                    hips: {left: {x: hipX_L, y: p.y-legLen}, right: {x: hipX_R, y: p.y-legLen}}
+                });
+            } else {
+                drawJersey(p.x, torsoY, bodyW, bodyH, s, skinObj, {
+                    shoulders: {left: {x: p.x-bodyW*0.8, y: torsoY}, right: {x: p.x+bodyW*0.8, y: torsoY}},
+                    hips: {left: {x: hipX_L, y: p.y-legLen}, right: {x: hipX_R, y: p.y-legLen}}
+                });
+            }
         }
 
-        // FOREHEAD MANE (Lion) - Fix baldness
-        if(currentAnimal === 'lion' && skin !== 'lion_scar') {
-             ctx.fillStyle = '#8B4513';
-             if(skin === 'lion_white') ctx.fillStyle = '#EEE';
-             if(skin === 'lion_classic') ctx.fillStyle = '#A0522D';
-             // Draw a smaller fuzzy circle slightly higher to cover the "bald" spot
-             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 0.8, ctx.fillStyle, 62, s, isFurry);
+        // 2. Tail (Behind Body - Drawn ON TOP for Back View)
+        if (!['human', 'frog'].includes(currentAnimal)) {
+            const tx = p.x;
+            const ty = torsoY + bodyH - 10*s;
+            ctx.strokeStyle = tailColor;
+            ctx.lineCap = 'round';
+
+            if (currentAnimal === 'bear') {
+                // Stubby bear tail
+                drawFuzzyCircle(tx, ty + 5*s, 6*s, tailColor, 90, s, true);
+            } else if (currentAnimal === 'penguin') {
+                // Tail point
+                ctx.fillStyle = tailColor;
+                ctx.beginPath(); ctx.moveTo(tx, ty+15*s); ctx.lineTo(tx-5*s, ty); ctx.lineTo(tx+5*s, ty); ctx.fill();
+            } else if (currentAnimal === 'rabbit') {
+                drawFuzzyCircle(tx, ty, 8*s, '#FFF', 90, s, true);
+            } else {
+                // Generic Tail
+                ctx.lineWidth = 4*s;
+                ctx.beginPath(); ctx.moveTo(tx, ty);
+                ctx.quadraticCurveTo(tx + 20*s, ty + 10*s, tx + 10*s, ty - 10*s);
+                ctx.stroke();
+            }
         }
 
-        // FACE DETAILS REMOVED - Back View Only
+        // 4. Arms
+        let shoulderY = torsoY + 5*s;
+        let leftShoulderX = p.x - bodyW*0.8;
+        let rightShoulderX = p.x + bodyW*0.8;
 
-        if(skinObj.pattern === 'tiger_stripes') {
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x, headY - 10*s); ctx.lineTo(p.x, headY - 5*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 8*s); ctx.lineTo(p.x - 2*s, headY - 4*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 8*s); ctx.lineTo(p.x + 2*s, headY - 4*s); ctx.stroke();
+        if (currentAnimal === 'bear') {
+            leftShoulderX = p.x - bodyW*0.7; rightShoulderX = p.x + bodyW*0.7;
+            shoulderY += 5*s; // Lower shoulders
         }
 
-        // Head Details
-        if(skinObj.headDetail === 'antenna') {
-             ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
-             ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
+        let upperArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
+        let foreArmLen = 20 * s * sizeMod.h * sizeMod.limbLen;
+
+        const drawAnimalArm = (sx, sy, isRight, a1, a2) => {
+            if (currentAnimal === 'penguin') {
+                // Wings / Flippers
+                const wx = sx + (isRight?5:-5)*s;
+                const wy = sy + 10*s;
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.ellipse(wx, wy, 5*s, 18*s, isRight ? -0.5 : 0.5, 0, Math.PI*2);
+                ctx.fill();
+                return;
+            }
+
+            const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
+
+            let elbow = getJoint(sx, sy, upperArmLen, a1);
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, a2);
+
+            // Upper
+            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, armColor, 'thigh', s); // Thigh shape works for upper arm
+            // Lower
+            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth, armColor, 'calf', s); // Calf shape works for forearm
+
+            // Hand/Paw
+            ctx.save();
+            ctx.translate(wrist.x, wrist.y);
+            ctx.rotate(a2 + (isShootingSide ? wristAngle : 0));
+            ctx.fillStyle = furColor;
+            if (['dog','cat','wolf','fox','bear'].includes(currentAnimal)) {
+                // Paw Pad
+                ctx.beginPath(); ctx.arc(0, 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+            } else {
+                // Generic Hand
+                ctx.beginPath(); ctx.arc(0, 5*s, 3*s, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+
+            // Held Ball
+            if (isShootingSide && state !== 'SHOOTING' && state !== 'GAMEOVER' && !['airbud','telekinesis'].includes(playerData.currentStyle)) {
+                let theta = a2 + wristAngle;
+                let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+                let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+                drawBallSprite(ballX, ballY, s, (currentStreak >= 5));
+            }
+        };
+
+        drawAnimalArm(leftShoulderX, shoulderY, false, leftArmAngle, leftForeArmAngle);
+        drawAnimalArm(rightShoulderX, shoulderY, true, rightArmAngle, rightForeArmAngle);
+
+        // 5. Head
+        // BACK OF HEAD ONLY - NO FACE
+        const earColor = (hasBlackEars) ? '#000' : furColor;
+
+        if (currentAnimal === 'bear') {
+            // Round ears on TOP/SIDES
+            drawFuzzyCircle(p.x - headRadius*0.8, headY - headRadius*0.6, 6*s, earColor, 55, s, true);
+            drawFuzzyCircle(p.x + headRadius*0.8, headY - headRadius*0.6, 6*s, earColor, 56, s, true);
+            // Round Head
+            drawFuzzyCircle(p.x, headY, headRadius, furColor, 60, s, true);
         }
-        if(skinObj.headDetail === 'tattoo_stripe') {
-             ctx.fillStyle = '#FF0000';
-             // Stripe going up the back left side of the head (Kratos)
-             ctx.beginPath();
-             ctx.moveTo(p.x - 4*s, headY + headRadius * 0.8);
-             ctx.quadraticCurveTo(p.x - 12*s, headY, p.x - 4*s, headY - headRadius * 0.9);
-             ctx.lineTo(p.x - 8*s, headY - headRadius * 0.9);
-             ctx.quadraticCurveTo(p.x - 16*s, headY, p.x - 8*s, headY + headRadius * 0.8);
-             ctx.fill();
+        else if (currentAnimal === 'cat' || currentAnimal === 'wolf' || currentAnimal === 'fox') {
+            // Pointy Ears (Back side)
+            const h = (currentAnimal === 'cat') ? 10*s : 15*s;
+            const w = 8*s;
+
+            // Left Ear (Triangle)
+            ctx.fillStyle = earColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - headRadius*0.5, headY - headRadius*0.5);
+            ctx.lineTo(p.x - headRadius - w, headY - headRadius); // Tip out
+            ctx.lineTo(p.x - headRadius, headY);
+            ctx.fill();
+
+            // Right Ear
+            ctx.beginPath();
+            ctx.moveTo(p.x + headRadius*0.5, headY - headRadius*0.5);
+            ctx.lineTo(p.x + headRadius + w, headY - headRadius);
+            ctx.lineTo(p.x + headRadius, headY);
+            ctx.fill();
+
+            drawFuzzyCircle(p.x, headY, headRadius, furColor, 60, s, true);
         }
-        if(skinObj.headDetail === 'bandana_ties') {
-             ctx.fillStyle = 'red';
-             ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY);
-             ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s);
-             ctx.lineTo(p.x + headRadius + 12*s, headY + 15*s);
-             ctx.lineTo(p.x + headRadius, headY + 5*s);
-             ctx.fill();
+        else if (currentAnimal === 'rabbit') {
+            // Long Ears
+            ctx.fillStyle = earColor;
+            ctx.beginPath(); ctx.ellipse(p.x - 5*s, headY - 20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x + 5*s, headY - 20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
+            drawFuzzyCircle(p.x, headY, headRadius, furColor, 60, s, true);
+        }
+        else if (currentAnimal === 'penguin') {
+            // Smooth Head
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+            // Yellow neck ring hint?
+            if (skinObj.headDetail === 'yellow_neck') {
+                ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2*s;
+                ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.5, headRadius, 0.5, 2.6); ctx.stroke();
+            }
+        }
+        else {
+            // Generic
+            drawFuzzyCircle(p.x, headY, headRadius, furColor, 60, s, isFurry);
         }
 
-
-        // Head Accessories
+        // Accessories (Restored Full Logic)
         if (skinObj.headAccessory === 'sombrero') {
             ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
@@ -6874,12 +6338,22 @@ let lastDisplayedContestTime = -1;
         else if (skinObj.headAccessory === 'chef_hat') {
              ctx.fillStyle = '#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s);
         }
+        else if (skinObj.headAccessory === 'hat') {
+             ctx.fillStyle = skinObj.hatColor || '#5D4037';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+        }
+        else if (skinObj.headAccessory === 'floppy_cap') {
+             const capColor = skinObj.hatColor || '#00A000';
+             ctx.fillStyle = capColor;
+             ctx.beginPath(); ctx.moveTo(p.x - headRadius, headY - 2*s); ctx.lineTo(p.x + headRadius, headY - 2*s); ctx.lineTo(p.x + headRadius, headY - 8*s); ctx.lineTo(p.x - headRadius, headY - 8*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s); ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
+             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s);
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s); ctx.fill();
+        }
         else if (skinObj.headAccessory === 'helmet') {
-             ctx.strokeStyle = skinObj.hatColor || '#87CEEB'; ctx.lineWidth=2*s;
-             ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke();
-             if(skinObj.hatColor === '#FFF') { // Hockey mask fill
-                 ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
-             }
+             ctx.fillStyle = skinObj.hatColor || '#87CEEB';
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 1*s, 0, Math.PI*2); ctx.fill();
         }
         else if (skinObj.headAccessory === 'horns') {
              ctx.fillStyle = 'red';
@@ -6895,127 +6369,25 @@ let lastDisplayedContestTime = -1;
         else if (skinObj.headAccessory === 'red_nose') {
              ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(p.x, headY, 3*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-             const col = skinObj.hatColor || '#FFF';
-             ctx.fillStyle = col;
-             ctx.beginPath(); ctx.arc(p.x - headRadius - 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x + headRadius + 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
-             ctx.strokeStyle = col; ctx.lineWidth = 3*s;
-             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 4*s, Math.PI, 0); ctx.stroke();
+        else if (skinObj.headAccessory === 'eyepatch') {
+             ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(p.x+3*s, headY-2*s, 3*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'collar') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
-             ctx.fillRect(p.x - headRadius, headY + headRadius - 2*s, headRadius * 2, 4*s);
-             ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 3*s, 0, Math.PI*2); ctx.fill();
+        else if (skinObj.headAccessory === 'laurel') {
+            ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.strokeStyle = skinObj.hatColor || '#00008B'; ctx.lineWidth = 6*s;
-             ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 6*s, 0, Math.PI, false); ctx.stroke();
-             // Dangling part
-             ctx.fillStyle = skinObj.hatColor || '#00008B';
-             ctx.fillRect(p.x + 4*s, headY + headRadius, 6*s, 15*s);
-        }
-        else if (skinObj.headAccessory === 'fez') {
-             ctx.fillStyle = '#8B0000';
-             ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
-             ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
-        }
-        else if (skinObj.headAccessory === 'bow') {
-             ctx.fillStyle = skinObj.hatColor || '#FFC0CB';
-             ctx.beginPath();
-             ctx.ellipse(p.x - 6*s, headY - 8*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath();
-             ctx.ellipse(p.x + 6*s, headY - 8*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.arc(p.x, headY - 8*s, 2*s, 0, Math.PI*2); ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'flower') {
-             ctx.fillStyle = '#FF69B4';
-             const fx = p.x + headRadius; const fy = headY - 5*s;
-             for(let i=0; i<5; i++) {
-                 const a = (i/5)*Math.PI*2;
-                 ctx.beginPath(); ctx.arc(fx + Math.cos(a)*4*s, fy + Math.sin(a)*4*s, 3*s, 0, Math.PI*2); ctx.fill();
-             }
-             ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(fx, fy, 2*s, 0, Math.PI*2); ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'algae') {
-             ctx.fillStyle = '#2E8B57';
-             drawFuzzyPath([{x:p.x-5*s,y:headY-10*s},{x:p.x+5*s,y:headY-12*s},{x:p.x+8*s,y:headY-5*s},{x:p.x-8*s,y:headY-4*s}], '#2E8B57', s, true, 200);
-        }
-        else if (skinObj.headAccessory === 'hat') {
-             ctx.fillStyle = skinObj.hatColor || '#5D4037';
-             // Brim
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
-             // Top
-             ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'floppy_cap') {
-             const capColor = skinObj.hatColor || '#00A000';
-             ctx.fillStyle = capColor;
-             // Base (Headband part)
-             ctx.beginPath();
-             ctx.moveTo(p.x - headRadius, headY - 2*s);
-             ctx.lineTo(p.x + headRadius, headY - 2*s);
-             ctx.lineTo(p.x + headRadius, headY - 8*s);
-             ctx.lineTo(p.x - headRadius, headY - 8*s);
-             ctx.fill();
-
-             // Floppy Tail
-             ctx.beginPath();
-             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
-             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
-             // Curve down and to the right/left
-             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
-             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
-             ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'top_hat') {
-             ctx.fillStyle = '#111';
-             // Brim
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.5, 3*s, 0, 0, Math.PI*2); ctx.fill();
-             // Cylinder
-             ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
-        }
-        else if (skinObj.headAccessory === 'headband') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; // Default red
-             if(skinObj.hatColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
-             ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
-             // Knot/Tails
-             ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = '#FF0000';
-             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
-        }
-        else if (skinObj.headAccessory === 'feathers') {
-             ctx.fillStyle = '#FFF';
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 4*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
-             ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
-             ctx.fillStyle = '#FF0000';
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+        else if (skinObj.headAccessory === 'gold_bands') {
+             ctx.fillStyle = '#FFD700'; ctx.fillRect(p.x - 10*s, headY - 10*s, 20*s, 5*s);
+             ctx.fillStyle = '#000080'; ctx.fillRect(p.x - 10*s, headY - 10*s, 5*s, 5*s); ctx.fillRect(p.x + 5*s, headY - 10*s, 5*s, 5*s);
         }
 
-        // Head Details that act like accessories
-        if(skinObj.headDetail === 'mohawk') {
-             ctx.fillStyle = skinObj.hairColor || '#000';
-             for(let i=0; i<5; i++) {
-                 ctx.beginPath(); ctx.arc(p.x, headY - 10*s - (i*4*s), (5-i)*s + 2*s, 0, Math.PI*2); ctx.fill();
-             }
-        }
-        if(skinObj.headDetail === 'visor') {
-             ctx.fillStyle = '#FF0000'; ctx.shadowBlur = 5; ctx.shadowColor = '#FF0000';
-             ctx.fillRect(p.x - 8*s, headY - 5*s, 16*s, 4*s);
-             ctx.shadowBlur = 0;
-        }
-        if(skinObj.headDetail === 'yellow_neck') {
-             ctx.fillStyle = '#FFD700';
-             ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 8*s, 0, Math.PI, false); ctx.fill();
+        if (skinObj.headDetail === 'visor') {
+             ctx.fillStyle = '#FFD700'; ctx.fillRect(p.x - 10*s, headY - 5*s, 20*s, 6*s);
         }
 
-        // 11. Back Props (New Layer - Drawn on top of body for Back View)
-        // Existing Back Accessories moved here
+        // Back Props
         if (skinObj.backAccessory === 'cape') {
-            ctx.fillStyle = skinObj.backColor || '#000';
-            ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
+            ctx.fillStyle = skinObj.backColor || '#000'; ctx.fillRect(p.x - bodyW/1.5, torsoY + 5*s, bodyW*1.3, bodyH*0.8);
         }
         if (skinObj.backAccessory === 'wings') {
             ctx.fillStyle = skinObj.backColor || '#FFF';
@@ -7023,211 +6395,70 @@ let lastDisplayedContestTime = -1;
             ctx.beginPath(); ctx.ellipse(p.x + 20*s, torsoY + 10*s, 10*s, 20*s, 0.5, 0, Math.PI*2); ctx.fill();
         }
         if (skinObj.backAccessory === 'backpack') {
-             ctx.fillStyle = skinObj.backColor || '#555';
-             ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
+             ctx.fillStyle = skinObj.backColor || '#555'; ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
+             ctx.fillStyle = '#5D4037'; ctx.fillRect(p.x - bodyW/2, torsoY + 15*s, bodyW, 5*s);
+        }
+        if (skinObj.backProp === 'quiver') {
+             ctx.fillStyle = '#8B4513'; ctx.beginPath(); ctx.moveTo(p.x + 5*s, torsoY); ctx.lineTo(p.x - 10*s, torsoY + 30*s); ctx.lineTo(p.x - 5*s, torsoY + 30*s); ctx.lineTo(p.x + 10*s, torsoY); ctx.fill();
+             ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY - 5*s, 2*s, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(p.x + 5*s, torsoY - 8*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
 
-        // New Props
-        if (skinObj.backProp) {
-             const bp = skinObj.backProp;
-             const centerX = p.x;
-             const centerY = torsoY + bodyH * 0.4;
-
-             if (bp === 'axe') {
-                 // Axe handle diagonal
-                 ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 4*s;
-                 ctx.beginPath(); ctx.moveTo(centerX - 15*s, centerY - 15*s); ctx.lineTo(centerX + 15*s, centerY + 15*s); ctx.stroke();
-                 // Axe head
-                 ctx.fillStyle = '#AAA';
-                 ctx.beginPath();
-                 ctx.moveTo(centerX - 15*s, centerY - 15*s);
-                 ctx.lineTo(centerX - 20*s, centerY - 20*s);
-                 ctx.quadraticCurveTo(centerX - 10*s, centerY - 25*s, centerX - 5*s, centerY - 15*s);
-                 ctx.fill();
-             }
-             if (bp === 'hero_gear') {
-                 // Sword Hilt (Behind Shield)
-                 ctx.fillStyle = '#800080'; // Master Sword Hilt
-                 ctx.fillRect(centerX - 15*s, centerY - 30*s, 30*s, 5*s); // Crossguard
-                 ctx.fillStyle = '#00008B'; // Handle
-                 ctx.fillRect(centerX - 3*s, centerY - 35*s, 6*s, 15*s);
-
-                 // Shield
-                 ctx.fillStyle = '#00008B'; // Blue
-                 ctx.beginPath();
-                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
-                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
-                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
-                 ctx.lineTo(centerX, centerY + 20*s);
-                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
-                 ctx.fill();
-
-                 // Silver Trim
-                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
-                 ctx.beginPath();
-                 ctx.moveTo(centerX - 12*s, centerY - 20*s);
-                 ctx.lineTo(centerX + 12*s, centerY - 20*s);
-                 ctx.lineTo(centerX + 10*s, centerY + 10*s);
-                 ctx.lineTo(centerX, centerY + 20*s);
-                 ctx.lineTo(centerX - 10*s, centerY + 10*s);
-                 ctx.closePath();
-                 ctx.stroke();
-
-                 // Triforce detail
-                 ctx.fillStyle = '#FFD700';
-                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 10*s); ctx.lineTo(centerX + 4*s, centerY); ctx.lineTo(centerX - 4*s, centerY); ctx.fill();
-             }
-             if (bp === 'chaos_blades') {
-                 // Two Crossed Blades
-                 const drawBlade = (x, y, angle, flip) => {
-                     ctx.save();
-                     ctx.translate(x, y);
-                     ctx.rotate(angle);
-                     if(flip) ctx.scale(-1, 1);
-
-                     // Blade
-                     ctx.fillStyle = '#A9A9A9'; // Metal
-                     ctx.beginPath();
-                     ctx.moveTo(0, 0);
-                     ctx.quadraticCurveTo(10*s, 10*s, 5*s, 30*s); // Outer edge
-                     ctx.quadraticCurveTo(0, 20*s, -5*s, 30*s); // Inner hook?
-                     ctx.lineTo(-2*s, 0);
-                     ctx.fill();
-
-                     // Glow
-                     ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 1*s;
-                     ctx.stroke();
-
-                     // Handle
-                     ctx.fillStyle = '#8B4513';
-                     ctx.fillRect(-2*s, -10*s, 4*s, 10*s);
-
-                     ctx.restore();
-                 };
-
-                 drawBlade(centerX - 5*s, centerY - 10*s, -0.5, false);
-                 drawBlade(centerX + 5*s, centerY - 10*s, 0.5, true);
-
-                 // Chain
-                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
-                 ctx.beginPath();
-                 ctx.moveTo(centerX - 5*s, centerY - 20*s);
-                 ctx.quadraticCurveTo(centerX, centerY, centerX + 5*s, centerY - 20*s);
-                 ctx.stroke();
-             }
-             if (bp === 'guitar') {
-                 // Guitar Body
-                 ctx.fillStyle = '#8B4513';
-                 ctx.beginPath();
-                 ctx.ellipse(centerX, centerY, 12*s, 18*s, -0.2, 0, Math.PI*2);
-                 ctx.fill();
-                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(centerX, centerY, 5*s, 0, Math.PI*2); ctx.fill();
-                 // Neck
-                 ctx.fillStyle = '#5D4037';
-                 ctx.fillRect(centerX - 3*s, centerY - 30*s, 6*s, 20*s);
-             }
-             if (bp === 'oxygen_tank') {
-                 ctx.fillStyle = '#FFF'; ctx.strokeStyle = '#AAA'; ctx.lineWidth = 1*s;
-                 ctx.fillRect(centerX - 12*s, centerY - 15*s, 24*s, 35*s);
-                 ctx.strokeRect(centerX - 12*s, centerY - 15*s, 24*s, 35*s);
-                 // Tubes
-                 ctx.strokeStyle = '#CCC'; ctx.lineWidth = 3*s;
-                 ctx.beginPath(); ctx.moveTo(centerX, centerY - 15*s); ctx.quadraticCurveTo(centerX, centerY - 25*s, centerX - 10*s, centerY - 20*s); ctx.stroke();
-             }
-             if (bp === 'katanas') {
-                 ctx.strokeStyle = '#333'; ctx.lineWidth = 3*s;
-                 // X shape
-                 ctx.beginPath(); ctx.moveTo(centerX - 15*s, centerY - 15*s); ctx.lineTo(centerX + 15*s, centerY + 15*s); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(centerX + 15*s, centerY - 15*s); ctx.lineTo(centerX - 15*s, centerY + 15*s); ctx.stroke();
-                 // Hilts
-                 ctx.fillStyle = '#000';
-                 ctx.fillRect(centerX - 18*s, centerY - 18*s, 5*s, 5*s);
-                 ctx.fillRect(centerX + 13*s, centerY - 18*s, 5*s, 5*s);
-             }
-             if (bp === 'sword') {
-                 ctx.strokeStyle = '#555'; ctx.lineWidth = 4*s;
-                 ctx.beginPath(); ctx.moveTo(centerX - 15*s, centerY - 15*s); ctx.lineTo(centerX + 15*s, centerY + 15*s); ctx.stroke();
-                 // Hilt (Basket)
-                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(centerX - 15*s, centerY - 15*s, 5*s, 0, Math.PI*2); ctx.fill();
-             }
-             if (bp === 'hockey_sticks') {
-                 ctx.strokeStyle = '#D2B48C'; ctx.lineWidth = 3*s; // Wood
-                 // Crossed
-                 ctx.beginPath(); ctx.moveTo(centerX - 10*s, centerY - 20*s); ctx.lineTo(centerX + 10*s, centerY + 20*s); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(centerX + 10*s, centerY - 20*s); ctx.lineTo(centerX - 10*s, centerY + 20*s); ctx.stroke();
-                 // Blades at bottom
-                 ctx.fillStyle = '#000'; // Tape
-                 ctx.fillRect(centerX + 8*s, centerY + 18*s, 8*s, 4*s);
-                 ctx.fillRect(centerX - 16*s, centerY + 18*s, 8*s, 4*s);
-             }
-             if (bp === 'staff') {
-                 ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3*s;
-                 ctx.beginPath(); ctx.moveTo(centerX + 15*s, centerY - 30*s); ctx.lineTo(centerX - 15*s, centerY + 30*s); ctx.stroke();
-                 // Orb (Optimized)
-                 const orbX = centerX + 15*s;
-                 const orbY = centerY - 30*s;
-                 const orbR = 5*s;
-                 const glowR = orbR + 15;
-                 const orbGrad = ctx.createRadialGradient(orbX, orbY, 0, orbX, orbY, glowR);
-                 orbGrad.addColorStop(0, '#00FFFF');
-                 orbGrad.addColorStop(orbR/glowR, '#00FFFF');
-                 orbGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
-                 ctx.fillStyle = orbGrad;
-                 ctx.beginPath(); ctx.arc(orbX, orbY, glowR, 0, Math.PI*2); ctx.fill();
-             }
-             if (bp === 'windup_key') {
-                 ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 3*s;
-                 ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX, centerY + 10*s); ctx.stroke();
-                 // Handle
-                 ctx.lineWidth = 2*s;
-                 ctx.beginPath(); ctx.arc(centerX - 5*s, centerY, 5*s, 0, Math.PI*2); ctx.stroke();
-                 ctx.beginPath(); ctx.arc(centerX + 5*s, centerY, 5*s, 0, Math.PI*2); ctx.stroke();
-             }
-        }
-
-        // 9. Jersey Number (Layer 5)
-        if(!skin.includes('alien') && !skin.includes('robot') && skinObj.number) {
+        // Jersey Number
+        if(skinObj.number) {
             ctx.fillStyle = skinObj.numberColor || "#FFF";
             ctx.font = `bold ${12 * s}px Arial`;
             ctx.textAlign = "center";
-            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.5);
         }
 
-        // 10. Shot Meter (Layer 6)
+        // Shot Meter
         if (state === 'JUMPING' || state === 'PRE_JUMP') {
             const style = getCurrentStyle();
             let baseMaxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
             if (baseMaxVz <= 0.5) baseMaxVz = 9;
-
-            // Adjust maxVz to include the pre-jump "virtual velocity" boost
             const boost = 0.5 * 0.10 * 60;
             const adjustedMaxVz = baseMaxVz + boost;
-
             const curVz = getCurrentVz();
             const targetVz = getReleaseTargetVz(baseMaxVz);
             const dist = adjustedMaxVz - targetVz;
-
-            // Reversal Logic: Fill to target (1.0), then empty
             let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
             progress = Math.max(0, Math.min(1, progress));
-
             const groundY = p.y + (player3D.z * s);
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
-
             const thresh = calculateShotThreshold();
             const greenWidth = thresh / dist;
-
-            // Green zone at the top (100%)
             let gStart = 1.0 - greenWidth;
             let gEnd = 1.0;
             gStart = Math.max(0, gStart);
-
             if (playerData.meterEnabled) {
                 drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
             }
         }
     }
+
+    function drawPlayer(p) {
+        if (!p) return;
+        const s = p.scale;
+        const skin = playerData.currentSkin;
+
+        let skinObj;
+        if (skin === g_cachedSkinId && g_cachedSkinObj) {
+            skinObj = g_cachedSkinObj;
+        } else {
+            skinObj = SKINS_DB.find(x => x.id === skin);
+            if(!skinObj) skinObj = SKINS_DB[0];
+            g_cachedSkinId = skin;
+            g_cachedSkinObj = skinObj;
+        }
+
+        if (skinObj.animal === 'human') {
+            drawRealisticHuman(p, s, skinObj);
+        } else {
+            drawRemasteredAnimal(p, s, skinObj);
+        }
+    }
+
     function getProjectedY(gDist, currentDist, horizonY) {
         if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
         const ratio = gDist / currentDist;
