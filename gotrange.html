@@ -4089,6 +4089,32 @@ let lastDisplayedContestTime = -1;
                      {x: cx - bellyW/2, y: bellyY},
                      {x: cx - w*0.8, y: topY + h*0.3}
                  ];
+            } else if (options.bodyShape === 'giraffe') {
+                 // Giraffe: Sloping shoulders
+                 points = [
+                     {x: sl.x, y: sl.y + h*0.1}, // Sloped down
+                     {x: cx, y: sl.y}, // Neck connect point
+                     {x: sr.x, y: sr.y + h*0.1}, // Sloped down
+                     hr, hl
+                 ];
+            } else if (options.bodyShape === 'heavy') {
+                 // Elephant: Wide belly
+                 const bellyW = w * 1.4;
+                 points = [
+                     sl, sr,
+                     {x: cx + bellyW/2, y: topY + h*0.5},
+                     hr, hl,
+                     {x: cx - bellyW/2, y: topY + h*0.5}
+                 ];
+            } else if (options.bodyShape === 'penguin') {
+                 // Tear drop
+                 const botW = w * 1.5;
+                 points = [
+                     sl, sr,
+                     {x: cx + botW/2, y: hl.y - h*0.2},
+                     {x: cx, y: hl.y + h*0.1}, // Pointy tail/bottom
+                     {x: cx - botW/2, y: hl.y - h*0.2}
+                 ];
             } else {
                  // Default / Athletic / Oval
                  const midY = (sl.y + hl.y) / 2;
@@ -7049,30 +7075,30 @@ let lastDisplayedContestTime = -1;
             return;
         }
 
-        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0 };
+        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0 };
         switch(currentAnimal) {
-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0 }; break;
-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3 }; break;
-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0 }; break;
-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95 }; break;
-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05 }; break;
-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05 }; break;
-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05 }; break;
-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9 }; break;
-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2 }; break;
-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7 }; break;
-            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6 }; break;
-            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8 }; break;
-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2 }; break;
-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5 }; break;
-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1 }; break;
-            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1 }; break;
-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5 }; break;
+            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6 }; break;
+            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6 }; break;
+            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6 }; break;
+            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7 }; break;
+            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8 }; break;
+            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.9, armWidth: 1.3, legWidth: 1.3, shoulderWidth: 0.9 }; break;
+            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0 }; break;
+            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95, shoulderWidth: 0.6 }; break;
+            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05, shoulderWidth: 0.7 }; break;
+            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05, shoulderWidth: 0.8 }; break;
+            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05, shoulderWidth: 0.8 }; break;
+            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.8, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.6 }; break;
+            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9, shoulderWidth: 0.7 }; break;
+            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, shoulderWidth: 0.8 }; break;
+            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.7, shoulderWidth: 0.5 }; break;
+            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6, shoulderWidth: 0.5 }; break;
+            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8, shoulderWidth: 0.6 }; break;
+            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.8 }; break;
+            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 1.0, armWidth: 1.5, legWidth: 1.5, shoulderWidth: 0.9 }; break;
+            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1, shoulderWidth: 0.7 }; break;
+            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.75 }; break;
+            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5, shoulderWidth: 0.7 }; break;
         }
 
         // Apply Skin Overrides (Size & Proportions)
@@ -7240,7 +7266,7 @@ let lastDisplayedContestTime = -1;
         const stanceMod = sizeMod.stance || 1.0;
 
         // Dynamic Shoulder Width (Scaling with Body Width)
-        const shoulderScale = (sizeMod.w || 1.0);
+        const shoulderScale = (sizeMod.w || 1.0) * (sizeMod.shoulderWidth || 1.0);
         let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
 
         // Extra Broad for Hulk/Strong types (Shirtless = Broad)
@@ -7785,10 +7811,6 @@ let lastDisplayedContestTime = -1;
             const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+12*s, y: headY-h}, {x: p.x+w+5*s, y: headY-5*s}];
             drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
             drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-            // Inner Ear (White/Pink)
-            ctx.fillStyle = (currentAnimal === 'wolf') ? '#AAA' : '#FFF';
-            ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-12*s, headY-h+5*s); ctx.lineTo(p.x-15*s, headY-10*s); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+12*s, headY-h+5*s); ctx.lineTo(p.x+15*s, headY-10*s); ctx.fill();
         } else if (currentAnimal === 'rabbit') {
              ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
