@@ -6287,7 +6287,7 @@ let lastDisplayedContestTime = -1;
             const dx = guideTargetX - guideElbow.x;
             const dy = guideTargetY - guideElbow.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            const fixedGuideFAngle = Math.atan2(dx, dy);
+            const fixedGuideFAngle = Math.atan2(dy, dx); // Standard atan2(y, x)
 
             // Calculate required Z for Forearm to bridge the gap
             // clamped to avoid NaN if unreachable
