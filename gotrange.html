@@ -6203,16 +6203,26 @@ let lastDisplayedContestTime = -1;
         const r_lfa = g_animState.lfa;
         const r_rfa = g_animState.rfa;
         const r_w = g_animState.w;
+        const r_la_z = g_animState.la_z || 0;
+        const r_ra_z = g_animState.ra_z || 0;
+        const r_lfa_z = g_animState.lfa_z || 0;
+        const r_rfa_z = g_animState.rfa_z || 0;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
+        let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
+
         if (playerData.isLefty) {
             leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
             leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
             wristAngle = -r_w;
+            leftArmZ = r_ra_z; rightArmZ = r_la_z;
+            leftForeArmZ = r_rfa_z; rightForeArmZ = r_lfa_z;
         } else {
             leftArmAngle = r_la; rightArmAngle = r_ra;
             leftForeArmAngle = r_lfa; rightForeArmAngle = r_rfa;
             wristAngle = r_w;
+            leftArmZ = r_la_z; rightArmZ = r_ra_z;
+            leftForeArmZ = r_lfa_z; rightForeArmZ = r_rfa_z;
         }
 
         // Draw Neck (Extension)
@@ -6236,32 +6246,41 @@ let lastDisplayedContestTime = -1;
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
             const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+            const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+            const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
 
-            const elbow = getJoint(shootSX, armY, upperArmLen, shootUAngle);
-            const wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+            const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+            const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+
+            const elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+            const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
             const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
 
             // 2. Calculate Guide Arm Target (Side of ball)
-            // Offset slightly to the side (relative to shooter)
-            // If Right Handed, Guide is Left. Target is left side of ball.
-            // Ball radius is roughly 25*s. Hand should touch surface.
-            // Let's target ballX - 15*s.
-
             const guideTargetX = ballPos.x + (isRightHand ? -15*s : 15*s);
-            const guideTargetY = ballPos.y; // Center vertically
+            const guideTargetY = ballPos.y;
 
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
 
             // 3. Solve IK
-            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, upperArmLen, foreArmLen, playerData.isLefty);
+            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
+            const maxLen = upperArmLen + foreArmLen;
+            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
+            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
+            const guideZ = Math.min(shootUZ, maxZ);
+
+            const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
+            const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
+
+            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, playerData.isLefty);
 
             // 4. Override Guide Arm Angles
             if (isRightHand) {
-                leftArmAngle = ik.uAngle;
-                leftForeArmAngle = ik.fAngle;
+                leftArmAngle = ik.uAngle; leftForeArmAngle = ik.fAngle;
+                leftArmZ = guideZ; leftForeArmZ = guideZ;
             } else {
-                rightArmAngle = ik.uAngle;
-                rightForeArmAngle = ik.fAngle;
+                rightArmAngle = ik.uAngle; rightForeArmAngle = ik.fAngle;
+                rightArmZ = guideZ; rightForeArmZ = guideZ;
             }
         }
 
@@ -6343,7 +6362,7 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
+        const drawHumanArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
@@ -6357,10 +6376,13 @@ let lastDisplayedContestTime = -1;
                 fColor = activeSleeveColor;
             }
 
+            const effUpper = upperArmLen * Math.max(0.1, Math.cos(angle1_z || 0));
+            const effFore = foreArmLen * Math.max(0.1, Math.cos(angle2_z || 0));
+
             // Shoulder Joint (Seamless: Match Upper Arm Start Width 8)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
+            let elbow = getJoint(sx, sy, effUpper, angle1);
 
             // Upper Arm (Deltoid to Elbow) - Base
             const upperTattoos = skinObj.tattoos && !activeSleeveColor;
@@ -6373,7 +6395,7 @@ let lastDisplayedContestTime = -1;
                  drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
             }
             
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+            let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
             // Forearm (Elbow to Wrist)
             const foreTattoos = skinObj.tattoos && !activeSleeveColor;
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
@@ -6401,8 +6423,8 @@ let lastDisplayedContestTime = -1;
         };
 
         // Arms First (Layer 1) - Arms behind legs
-        drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle);
-        drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle);
+        drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
+        drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
         // Draw Thighs (Skin tone - under shorts)
         // Hip Joints (Seamless: Match Thigh Start Width 8 -> Radius 4)
@@ -7488,12 +7510,13 @@ let lastDisplayedContestTime = -1;
 
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
 
-            // 3. Solve IK (Using full lengths for now to find 2D angles, Z is ignored for guide hand IK currently)
-            // Ideally, we should solve 3D IK, but that's overkill.
-            // We assume guide hand moves in similar Z plane to shooting hand?
-            // Let's keep guide hand Z as 0 for simplicity or copy shooting Z?
-            // Copying shooting Z seems reasonable for "Two Handed" style
-            const guideZ = shootUZ; // Approximation
+            // 3. Solve IK
+            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
+            const maxLen = upperArmLen + foreArmLen;
+            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
+            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
+            const guideZ = Math.min(shootUZ, maxZ);
+
             const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
             const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
 
