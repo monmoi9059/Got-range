@@ -2547,6 +2547,72 @@
 
             this.tracks = [
                 {
+                    name: 'Neon Horizon',
+                    tempo: 0.16, // ~94 BPM
+                    totalTicks: 1024, // 64 Bars
+                    schedule: (beat, time, sys) => {
+                        const bar = Math.floor(beat / 16);
+                        const step = beat % 16;
+
+                        let chords = [ [220.0, 261.6, 329.6], [174.6, 220.0, 261.6], [261.6, 329.6, 392.0], [196.0, 246.9, 293.7] ];
+                        let currentChord = chords[Math.floor(bar / 4) % 4];
+
+                        if (bar < 16) {
+                            if (step === 0) sys.playChord(time, currentChord, 'sine', 800, 0.05);
+                            if (bar > 7 && step % 4 === 0) sys.playKick(time, {freq: 100, decay: 0.5, vol: 0.3});
+                        } else if (bar < 32) {
+                            if (step === 0 || step === 8) sys.playKick(time, {freq: 60, decay: 0.4, type:'sine'});
+                            if (step === 4 || step === 12) sys.playSnare(time, {noise: 1500, decay: 0.2, vol: 0.3});
+                            if (step % 2 === 0) sys.playHiHat(time, {vol: 0.1});
+                            if (step % 2 === 0) sys.playTone(time, currentChord[(step/2) % 3] * 2, 'triangle', 0.1);
+                            if (step === 0 || step === 3 || step === 8 || step === 11) sys.playTone(time, currentChord[0] / 2, 'sawtooth', 0.2);
+                        } else if (bar < 48) {
+                            if (step === 0) sys.playKick(time);
+                            if (step % 4 === 2) sys.playHiHat(time);
+                            if (step === 0) sys.playChord(time, currentChord, 'sawtooth', 600, 0.03);
+                        } else {
+                            if (step % 4 === 0) sys.playKick(time);
+                            if (step % 4 === 2) sys.playSnare(time);
+                            if (step % 1 === 0) sys.playHiHat(time, {vol: 0.05});
+                            if (step % 4 === 0) sys.playChord(time, currentChord, 'sawtooth', 1200, 0.08);
+                            if (step === 0 || step === 6 || step === 12) sys.playTone(time, currentChord[1]*2, 'square', 0.1);
+                        }
+                    }
+                },
+                {
+                    name: 'Midnight Lo-Fi',
+                    tempo: 0.18, // ~83 BPM
+                    totalTicks: 896, // 56 Bars
+                    schedule: (beat, time, sys) => {
+                        const bar = Math.floor(beat / 16);
+                        const step = beat % 16;
+                        let chords = [ [261.6, 329.6, 392.0, 493.9], [220.0, 261.6, 329.6, 392.0], [146.8, 174.6, 220.0, 261.6], [196.0, 246.9, 293.7, 329.6] ];
+                        let currentChord = chords[Math.floor(bar / 4) % 4];
+                        let swing = (step % 2 === 1) ? 0.03 : 0;
+                        const t = time + swing;
+
+                        if (bar < 8) {
+                            if (step === 0) sys.playChord(t, currentChord, 'sine', 400, 0.06);
+                            if (step % 4 === 0 && Math.random() > 0.5) sys.playHiHat(t, {freq: 4000, decay: 0.05, vol: 0.05});
+                        } else if (bar < 24) {
+                            if (step === 0 || (step === 10 && Math.random()>0.3)) sys.playKick(t, {freq: 60, decay: 0.3, vol: 0.5});
+                            if (step === 8) sys.playSnare(t, {tone: 200, noise: 1000, decay: 0.1, vol: 0.2});
+                            if (step % 2 === 0) sys.playHiHat(t, {freq: 6000, vol: 0.05});
+                            if (step === 0) sys.playChord(t, currentChord, 'triangle', 800, 0.04);
+                        } else if (bar < 40) {
+                            if (step === 0 || step === 10 || step === 14) sys.playKick(t);
+                            if (step === 8) sys.playSnare(t, {tone: 250, noise: 1200, vol: 0.3});
+                            if (step % 2 === 0) sys.playHiHat(t, {vol: 0.08});
+                            if (step === 0 || step === 3 || step === 7) sys.playTone(t, currentChord[step % 3] * 2, 'sine', 0.15);
+                        } else {
+                            if (step === 0) sys.playChord(t, currentChord, 'sine', 400, 0.05);
+                            if (step === 0 && bar % 2 === 0) sys.playKick(t, {vol: 0.3});
+                        }
+                    }
+                }
+            ];
+            var _ignoreOld = [
+                {
                     name: 'Lo-Fi Chill',
                     tempo: 0.2, // Seconds per 16th note (approx 75 BPM)
                     schedule: (beat, time, sys) => {
@@ -2981,7 +3047,8 @@
                 this.scheduleNote(this.beatCount, this.nextNoteTime);
                 this.nextNoteTime += beatInterval;
                 this.beatCount++;
-                if(this.beatCount >= 32) this.beatCount = 0;
+                const max = track.totalTicks || 32;
+                if(this.beatCount >= max) this.beatCount = 0;
             }
             this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
         },
