@@ -6269,9 +6269,15 @@ let lastDisplayedContestTime = -1;
             const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
             const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
 
+            // Mirror angle for Left-Handed Shooters (Right Guide Arm)
+            // -1.7 is Up-Left. We need Up-Right for the right arm.
+            // Mirror around -PI/2 (-1.57).
+            // -1.7 is -0.13 from vertical. Mirror is -1.57 + 0.13 = -1.44.
+            const finalGuideU = isRightHand ? animGuideU : (-Math.PI - animGuideU);
+
             // Calculate Elbow Position based on animated Forward Kinematics
             const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
-            const guideElbow = getJoint(guideSX, armY, guideEffUpper, animGuideU);
+            const guideElbow = getJoint(guideSX, armY, guideEffUpper, finalGuideU);
 
             // Solve Forearm to reach Target
             const dx = guideTargetX - guideElbow.x;
@@ -6286,10 +6292,10 @@ let lastDisplayedContestTime = -1;
 
             // 4. Override Guide Arm Angles
             if (isRightHand) {
-                leftArmAngle = animGuideU; leftForeArmAngle = fixedGuideFAngle;
+                leftArmAngle = finalGuideU; leftForeArmAngle = fixedGuideFAngle;
                 leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
             } else {
-                rightArmAngle = animGuideU; rightForeArmAngle = fixedGuideFAngle;
+                rightArmAngle = finalGuideU; rightForeArmAngle = fixedGuideFAngle;
                 rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
             }
         }
