@@ -6228,7 +6228,7 @@ let lastDisplayedContestTime = -1;
 
         // --- PROCEDURAL GUIDE HAND LOGIC ---
         // Ensure left hand tracks the ball for two-handed shots
-        if (isTwoHandedStyle(playerData.currentStyle) && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
             const isRightHand = !playerData.isLefty;
 
             // 1. Calculate Shooting Arm & Ball Position
@@ -7449,7 +7449,7 @@ let lastDisplayedContestTime = -1;
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
-        if (isTwoHandedStyle(playerData.currentStyle) && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
             const isRightHand = !isLefty;
 
             // 1. Calculate Shooting Arm & Ball Position
