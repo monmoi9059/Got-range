@@ -7304,9 +7304,21 @@ let lastDisplayedContestTime = -1;
         let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, snoutScale: 1.0, limbTaper: 0.7 };
         switch(currentAnimal) {
             case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 0.8, snoutScale: 1.0, limbTaper: 0.7 }; break;
-            case 'cat': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8, limbTaper: 0.7 }; break;
+            case 'cat':
+                sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8, limbTaper: 0.7 };
+                if (skin.includes('sphinx')) { sizeMod.w = 0.7; sizeMod.h = 0.85; sizeMod.head = 0.85; } // Skinny
+                if (skin.includes('persian')) { sizeMod.w = 1.0; sizeMod.h = 0.8; sizeMod.head = 1.0; } // Fluffy
+                if (skin.includes('panther')) { sizeMod.w = 0.9; sizeMod.h = 0.9; sizeMod.limbLen = 1.0; } // Athletic
+                if (skin.includes('garfield')) { sizeMod.w = 1.1; sizeMod.h = 0.9; sizeMod.head = 1.1; } // Fat cat
+                break;
             case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 1.2, neckWidth: 0.8, limbTaper: 0.7 }; break;
-            case 'dog': sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1, limbTaper: 0.7 }; break;
+            case 'dog':
+                sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1, limbTaper: 0.7 };
+                if (skin.includes('pug')) { sizeMod.w = 0.9; sizeMod.h = 0.75; sizeMod.head = 1.1; sizeMod.limbLen = 0.8; sizeMod.snoutScale = 0.5; } // Small & Flat
+                if (skin.includes('husky') || skin.includes('police') || skin.includes('wolf')) { sizeMod.w = 1.05; sizeMod.h = 1.1; sizeMod.limbLen = 1.1; } // Athletic
+                if (skin.includes('boxer')) { sizeMod.w = 1.1; sizeMod.h = 1.05; sizeMod.shoulderWidth = 0.9; } // Muscular
+                if (skin.includes('dalmation')) { sizeMod.w = 0.95; sizeMod.h = 1.05; sizeMod.limbLen = 1.1; } // Lean
+                break;
             case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.4, limbTaper: 0.7 }; break;
             case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.7, armWidth: 1.3, legWidth: 1.5, shoulderWidth: 0.9, footScale: 1.3, neckWidth: 1.4, snoutScale: 1.2, limbTaper: 0.85 }; break;
             case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, limbTaper: 0.8 }; break;
@@ -8134,64 +8146,137 @@ let lastDisplayedContestTime = -1;
         ctx.fillStyle = (hasBlackEars) ? '#000' : furColor;
         if(skin.includes('alien')) ctx.fillStyle = '#32CD32';
 
-        // EARS & HORNS
-        if(currentAnimal === 'rat') {
-            drawFuzzyCircle(p.x - 12*s, headY - 5*s, 7*s, ctx.fillStyle, 51, s, isFurry);
-            drawFuzzyCircle(p.x + 12*s, headY - 5*s, 7*s, ctx.fillStyle, 52, s, isFurry);
-        } else if (currentAnimal === 'cat') {
-            const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-15*s, y: headY-20*s}, {x: p.x-15*s, y: headY}];
-            const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+15*s, y: headY-20*s}, {x: p.x+15*s, y: headY}];
-            drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
-            drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-        } else if (currentAnimal === 'fox' || currentAnimal === 'wolf') {
-            // Pointy Ears
-            const h = (currentAnimal === 'wolf') ? 18*s : 22*s;
-            const w = (currentAnimal === 'wolf') ? 10*s : 12*s;
-            const earL = [{x: p.x-5*s, y: headY-8*s}, {x: p.x-12*s, y: headY-h}, {x: p.x-w-5*s, y: headY-5*s}];
-            const earR = [{x: p.x+5*s, y: headY-8*s}, {x: p.x+12*s, y: headY-h}, {x: p.x+w+5*s, y: headY-5*s}];
-            drawFuzzyPath(earL, ctx.fillStyle, s, true, 53);
-            drawFuzzyPath(earR, ctx.fillStyle, s, true, 54);
-        } else if (currentAnimal === 'rabbit') {
-             ctx.beginPath(); ctx.ellipse(p.x-8*s, headY-20*s, 5*s, 15*s, -0.2, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.ellipse(p.x+8*s, headY-20*s, 5*s, 15*s, 0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'bear' || currentAnimal === 'dog' || currentAnimal === 'lion' || currentAnimal === 'tiger' || currentAnimal === 'monkey') {
-            let earY = headY - 8*s; let earX = 10*s; let earR = 5*s;
-            if(currentAnimal === 'monkey') { earY = headY; earX = 14*s; earR = 4*s; }
-            if(currentAnimal === 'lion' || currentAnimal === 'tiger') { earX = 12*s; earR = 6*s; }
+        const drawEarPair = (drawFunc) => {
+             // Left (Base)
+             ctx.save(); ctx.translate(p.x, headY); drawFunc(1); ctx.restore();
+             // Right (Mirrored)
+             ctx.save(); ctx.translate(p.x, headY); ctx.scale(-1, 1); drawFunc(-1); ctx.restore();
+        };
+
+        if (currentAnimal === 'lion') {
+            // LION (Unchanged as requested)
+            let earY = headY - 8*s; let earX = 12*s; let earR = 6*s;
             drawFuzzyCircle(p.x - earX, earY, earR, ctx.fillStyle, 55, s, isFurry, false);
             drawFuzzyCircle(p.x + earX, earY, earR, ctx.fillStyle, 56, s, isFurry, false);
-        } else if (currentAnimal === 'pig' || currentAnimal === 'cow') {
-            const earColor = ctx.fillStyle;
-            ctx.beginPath(); ctx.ellipse(p.x - 14*s, headY - 2*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 14*s, headY - 2*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'elephant') {
-            // Big Flappy Ears
-            ctx.fillStyle = furColor;
-            // Left
-            ctx.beginPath();
-            ctx.moveTo(p.x - 10*s, headY - 5*s);
-            ctx.bezierCurveTo(p.x - 35*s, headY - 15*s, p.x - 35*s, headY + 15*s, p.x - 12*s, headY + 10*s);
-            ctx.fill();
-            // Right
-            ctx.beginPath();
-            ctx.moveTo(p.x + 10*s, headY - 5*s);
-            ctx.bezierCurveTo(p.x + 35*s, headY - 15*s, p.x + 35*s, headY + 15*s, p.x + 12*s, headY + 10*s);
-            ctx.fill();
-        } else if (currentAnimal === 'giraffe') {
-            // Ossicones (Horns)
-            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x - 5*s, headY - 8*s); ctx.lineTo(p.x - 6*s, headY - 18*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + 5*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 18*s); ctx.stroke();
-            // Knobs
-            ctx.fillStyle = '#5D4037';
-            ctx.beginPath(); ctx.arc(p.x - 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + 6*s, headY - 18*s, 3*s, 0, Math.PI*2); ctx.fill();
-            // Ears
-            ctx.fillStyle = furColor;
-            ctx.beginPath(); ctx.ellipse(p.x - 12*s, headY - 5*s, 5*s, 3*s, 0.2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + 12*s, headY - 5*s, 5*s, 3*s, -0.2, 0, Math.PI*2); ctx.fill();
-        } else if (currentAnimal === 'human') {
-            // Human Ears
+        }
+        else if (currentAnimal === 'rat') {
+             drawEarPair(() => {
+                 drawFuzzyCircle(-12*s, -10*s, 8*s, ctx.fillStyle, 51, s, true);
+             });
+        }
+        else if (currentAnimal === 'cat') {
+             let w = 10*s; let h = 12*s; let baseAngle = 0;
+             if(skin.includes('sphinx')) { w=16*s; h=20*s; baseAngle = -0.2; }
+             if(skin.includes('persian')) { w=8*s; h=7*s; }
+
+             drawEarPair(() => {
+                 ctx.save();
+                 ctx.rotate(baseAngle);
+                 const pts = [{x: -5*s, y: -8*s}, {x: -12*s, y: -8*s - h}, {x: -5*s - w, y: -2*s}];
+                 drawFuzzyPath(pts, ctx.fillStyle, s, true, 53);
+                 ctx.restore();
+             });
+        }
+        else if (currentAnimal === 'dog') {
+             let type = 'floppy';
+             if(skin.includes('husky') || skin.includes('police') || skin.includes('wolf') || skin.includes('boxer')) type = 'pricked';
+             if(skin.includes('pug')) type = 'button';
+
+             drawEarPair(() => {
+                 if(type === 'pricked') {
+                     const pts = [{x: -5*s, y: -8*s}, {x: -10*s, y: -24*s}, {x: -16*s, y: -4*s}];
+                     drawFuzzyPath(pts, ctx.fillStyle, s, true, 55);
+                 } else if (type === 'button') {
+                     // Folded forward/side (Pug)
+                     const pts = [{x: -6*s, y: -10*s}, {x: -14*s, y: -6*s}, {x: -8*s, y: 0}];
+                     drawFuzzyPath(pts, ctx.fillStyle, s, true, 55);
+                 } else {
+                     // Floppy (Golden/Dalmation) - Drooping
+                     ctx.beginPath();
+                     ctx.fillStyle = ctx.fillStyle;
+                     ctx.moveTo(-10*s, -6*s);
+                     ctx.bezierCurveTo(-18*s, -6*s, -22*s, 8*s, -14*s, 16*s); // Outer curve
+                     ctx.bezierCurveTo(-10*s, 16*s, -6*s, 5*s, -8*s, -2*s); // Inner return
+                     ctx.fill();
+                     // Fuzz overlay
+                     drawFuzzyPath([{x:-10*s, y:-6*s}, {x:-20*s, y:6*s}, {x:-14*s, y:16*s}], ctx.fillStyle, s, true, 55);
+                 }
+             });
+        }
+        else if (currentAnimal === 'bear') {
+             drawEarPair(() => {
+                 drawFuzzyCircle(-16*s, -12*s, 7*s, ctx.fillStyle, 55, s, true);
+             });
+        }
+        else if (currentAnimal === 'rabbit') {
+             drawEarPair(() => {
+                 // Long ears
+                 const pts = [{x: -4*s, y: -10*s}, {x: -4*s, y: -45*s}, {x: -10*s, y: -45*s}, {x: -10*s, y: -8*s}];
+                 drawFuzzyPath(pts, ctx.fillStyle, s, true, 57);
+             });
+        }
+        else if (currentAnimal === 'fox' || currentAnimal === 'wolf') {
+             drawEarPair(() => {
+                 const pts = [{x: -6*s, y: -8*s}, {x: -12*s, y: -26*s}, {x: -20*s, y: -6*s}];
+                 drawFuzzyPath(pts, ctx.fillStyle, s, true, 58);
+             });
+        }
+        else if (currentAnimal === 'tiger') {
+             drawEarPair(() => {
+                 drawFuzzyCircle(-14*s, -10*s, 6*s, ctx.fillStyle, 59, s, true);
+             });
+        }
+        else if (currentAnimal === 'monkey') {
+             drawEarPair(() => {
+                 drawFuzzyCircle(-18*s, 0, 7*s, ctx.fillStyle, 60, s, true);
+             });
+        }
+        else if (currentAnimal === 'pig') {
+             drawEarPair(() => {
+                 // Leaf shape upright
+                 ctx.beginPath();
+                 ctx.moveTo(-8*s, -10*s);
+                 ctx.bezierCurveTo(-12*s, -22*s, -18*s, -22*s, -16*s, -8*s);
+                 ctx.quadraticCurveTo(-14*s, 0, -8*s, -2*s);
+                 ctx.fill();
+             });
+        }
+        else if (currentAnimal === 'cow' || currentAnimal === 'moose') {
+             drawEarPair(() => {
+                 // Horizontal ears
+                 ctx.beginPath();
+                 ctx.moveTo(-12*s, -5*s);
+                 ctx.quadraticCurveTo(-22*s, -8*s, -24*s, 0); // Tip
+                 ctx.quadraticCurveTo(-22*s, 8*s, -12*s, 2*s);
+                 ctx.fill();
+             });
+        }
+        else if (currentAnimal === 'elephant') {
+             drawEarPair(() => {
+                 // Giant Fan Ears
+                 ctx.beginPath();
+                 ctx.moveTo(-10*s, -5*s);
+                 ctx.bezierCurveTo(-45*s, -20*s, -45*s, 20*s, -15*s, 15*s);
+                 ctx.fill();
+             });
+        }
+        else if (currentAnimal === 'giraffe') {
+             drawEarPair(() => {
+                 // Horns
+                 ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 4*s; ctx.lineCap = 'round';
+                 ctx.beginPath(); ctx.moveTo(-6*s, -10*s); ctx.lineTo(-8*s, -20*s); ctx.stroke();
+                 ctx.fillStyle = '#5D4037';
+                 ctx.beginPath(); ctx.arc(-8*s, -20*s, 3*s, 0, Math.PI*2); ctx.fill();
+
+                 // Ears
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath();
+                 ctx.ellipse(-14*s, -5*s, 6*s, 3*s, 0.3, 0, Math.PI*2);
+                 ctx.fill();
+             });
+        }
+        else if (currentAnimal === 'human') {
+            // Human Ears (Keep existing logic, simplified)
             ctx.fillStyle = furColor;
             if (skinObj.ears === 'elf') {
                 // Pointy Elf Ears
