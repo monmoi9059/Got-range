@@ -2051,213 +2051,215 @@
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
-    const DEFAULT_IDLE = { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 };
+    const DEFAULT_IDLE = {
+        la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0,
+        la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0,
+        guide_u: 0.5, guide_u_z: 0
+    };
     const ANIM_DATA = {
-        // --- KEPT ---
+        // --- REMASTERED REALISTIC (VERTICAL X/Y for FORWARD Z) ---
+        // Standard high release (Vertical angles ~-1.6, High Z ~1.2)
         classic: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1, lfaz: 0.1, rfaz: 0.1 },
-            set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0, laz: 1.0, raz: 1.0, lfaz: 1.0, rfaz: 1.0 }
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1, guide_u: 0.5, guide_u_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.6, w: 0, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6, guide_u: -1.7, guide_u_z: 1.2 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.6, rfa: -1.6, w: 1.0, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4, guide_u: -1.7, guide_u_z: 1.3 }
         },
         curry: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.8, rfa: -1.8, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -1.0, ra: -1.2, lfa: -2.5, rfa: -2.8, w: 0.5, laz: 0.4, raz: 0.4, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.2, ra: -Math.PI/2 - 0.3, lfa: -2.2, rfa: -Math.PI/2, w: 1.5, laz: 1.1, raz: 1.2, lfaz: 1.1, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.8, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2, guide_u: 0.5, guide_u_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -2.2, rfa: -2.2, w: 0.5, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6, guide_u: -1.5, guide_u_z: 1.2 },
+            release: { la: -1.5, ra: -1.5, lfa: -2.0, rfa: -1.5, w: 1.5, la_z: 1.3, ra_z: 1.5, lfa_z: 1.3, rfa_z: 1.5, guide_u: -1.6, guide_u_z: 1.3 }
         },
-
-        // --- NEW REALISTIC ---
         jordan: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.3, ra: -2.5, lfa: -1.2, rfa: -1.6, w: 0, laz: 0.6, raz: 0.6, lfaz: 0.6, rfaz: 0.6 },
-            // Guide Hand: la stays high (-2.3), lfa points up/forward (-1.2 -> -1.5), laz matches
-            release: { la: -2.3, ra: -Math.PI/2 - 0.4, lfa: -1.5, rfa: -Math.PI/2 - 0.2, w: 1.6, laz: 1.0, raz: 1.2, lfaz: 1.0, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2, guide_u: 0.5, guide_u_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.7, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5, guide_u: -1.8, guide_u_z: 1.2 }, // Wider elbow
+            release: { la: -1.6, ra: -1.6, lfa: -1.2, rfa: -1.6, w: 1.6, la_z: 1.1, ra_z: 1.3, lfa_z: 1.1, rfa_z: 1.3, guide_u: -1.8, guide_u_z: 1.3 }
         },
         kobe: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.4, ra: -2.4, lfa: -1.5, rfa: -2.6, w: 0, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -2.4, ra: -Math.PI/2 - 0.5, lfa: -1.8, rfa: -Math.PI/2 - 0.3, w: 1.7, laz: 1.1, raz: 1.3, lfaz: 1.1, rfaz: 1.3 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2, guide_u: 0.5, guide_u_z: 0.2 },
+            set: { la: -1.7, ra: -1.7, lfa: -1.6, rfa: -2.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5, guide_u: -1.7, guide_u_z: 1.2 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.6, w: 1.7, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4, guide_u: -1.7, guide_u_z: 1.3 }
         },
         lebron: {
-            ready: { la: 0.4, ra: 2.4, lfa: 1.4, rfa: -1.6, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -2.0, ra: -2.3, lfa: -2.0, rfa: -2.8, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -2.2, rfa: -Math.PI/2, w: 1.5, laz: 1.0, raz: 1.1, lfaz: 1.0, rfaz: 1.1 }
+            ready: { la: 0.4, ra: 2.4, lfa: 1.4, rfa: -1.6, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2, guide_u: 0.4, guide_u_z: 0.2 },
+            set: { la: -1.6, ra: -1.7, lfa: -2.0, rfa: -2.0, w: 0, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6, guide_u: -2.0, guide_u_z: 1.1 }, // Flared
+            release: { la: -1.7, ra: -1.6, lfa: -2.0, rfa: -1.6, w: 1.5, la_z: 1.1, ra_z: 1.3, lfa_z: 1.1, rfa_z: 1.3, guide_u: -2.0, guide_u_z: 1.2 }
         },
         kd: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.6, ra: -2.8, lfa: -2.0, rfa: -2.0, w: 0, laz: 0.8, raz: 0.8, lfaz: 0.8, rfaz: 0.8 },
-            release: { la: -2.6, ra: -Math.PI/2 - 0.8, lfa: -1.8, rfa: -Math.PI/2 - 0.6, w: 1.8, laz: 1.2, raz: 1.4, lfaz: 1.2, rfaz: 1.4 }
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2, guide_u: 0.5, guide_u_z: 0.2 },
+            set: { la: -1.7, ra: -1.7, lfa: -1.6, rfa: -1.6, w: 0, la_z: 0.7, ra_z: 0.7, lfa_z: 0.7, rfa_z: 0.7, guide_u: -1.6, guide_u_z: 1.3 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.6, w: 1.8, la_z: 1.3, ra_z: 1.5, lfa_z: 1.3, rfa_z: 1.5, guide_u: -1.6, guide_u_z: 1.4 }
         },
         ray: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.6, rfa: -1.9, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.9, w: 0, laz: 0.6, raz: 0.6, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -2.2, ra: -Math.PI/2 - 0.3, lfa: -2.5, rfa: -Math.PI/2 - 0.1, w: 1.6, laz: 1.0, raz: 1.2, lfaz: 1.0, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.6, rfa: -1.9, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -2.0, rfa: -2.2, w: 0, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.8, rfa: -1.6, w: 1.6, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
         bird: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.5, w: 0.5, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -2.8, ra: -Math.PI/2 - 0.1, lfa: -1.5, rfa: -Math.PI/2, w: 1.2, laz: 1.1, raz: 1.1, lfaz: 1.1, rfaz: 1.1 }
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -1.5, rfa: -1.5, w: 0.5, la_z: 0.3, ra_z: 0.3, lfa_z: 0.3, rfa_z: 0.3 }, // Behind head (less forward Z)
+            release: { la: -1.6, ra: -1.6, lfa: -1.2, rfa: -1.6, w: 1.2, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
         dirk: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.5, ra: -2.5, lfa: -1.5, rfa: -1.5, w: 0, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -2.5, ra: -Math.PI/2, lfa: -1.5, rfa: -Math.PI/2, w: 1.0, laz: 1.1, raz: 1.2, lfaz: 1.1, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 }, // High release point
+            release: { la: -1.6, ra: -1.6, lfa: -1.3, rfa: -1.5, w: 1.0, la_z: 1.3, ra_z: 1.5, lfa_z: 1.3, rfa_z: 1.5 }
         },
-        kareem: {
-            ready: { la: 1.0, ra: 1.0, lfa: 1.5, rfa: 1.5, w: 0, laz: 0, raz: 0 },
-            set: { la: 0.5, ra: 0.0, lfa: 2.0, rfa: -2.0, w: 0, laz: 0.2, raz: -0.2 },
-            release: { la: 0.5, ra: -Math.PI + 0.5, lfa: 1.5, rfa: -Math.PI, w: 0.5, laz: 0.5, raz: 0.1, lfaz: 0.5, rfaz: 0.1 }
+        kareem: { // Skyhook - Keeps Side Motion
+            ready: { la: 1.0, ra: 1.0, lfa: 1.5, rfa: 1.5, w: 0, la_z: 0, ra_z: 0 },
+            set: { la: 0.5, ra: 0.0, lfa: 2.0, rfa: -2.0, w: 0, la_z: 0, ra_z: 0 },
+            release: { la: 0.5, ra: -3.0, lfa: 1.5, rfa: -3.1, w: 0.5, la_z: 0, ra_z: 0 }
         },
-        shaq: {
-            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -1.5, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -1.5, ra: -2.0, lfa: -0.5, rfa: -1.0, w: 0, laz: 0.6, raz: 0.6, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.0, ra: -Math.PI/2, lfa: -0.5, rfa: -1.0, w: 0.5, laz: 0.9, raz: 0.9, lfaz: 0.9, rfaz: 0.9 }
+        shaq: { // Push - Less Flick
+            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -1.5, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.2, rfa: -1.2, w: 0, la_z: 0.5, ra_z: 0.5 },
+            release: { la: -1.5, ra: -1.5, lfa: -1.0, rfa: -1.2, w: 0.5, la_z: 1.0, ra_z: 1.2 }
         },
         magic: {
-            ready: { la: 0.5, ra: 2.4, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.8, ra: -1.8, lfa: -0.5, rfa: -0.5, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -1.8, ra: -Math.PI/2 + 0.2, lfa: -0.8, rfa: -Math.PI/2 + 0.2, w: 1.0, laz: 1.0, raz: 1.0, lfaz: 1.0, rfaz: 1.0 }
+            ready: { la: 0.5, ra: 2.4, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.0, rfa: -1.0, w: 0, la_z: 0.6, ra_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.2, rfa: -1.4, w: 1.0, la_z: 1.2, ra_z: 1.4 }
         },
         harden: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.5, ra: -1.5, lfa: -2.5, rfa: -2.5, w: 0, laz: 0.4, raz: 0.4, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.5, ra: -Math.PI/2 - 0.4, lfa: -2.0, rfa: -Math.PI/2 - 0.2, w: 1.5, laz: 1.0, raz: 1.1, lfaz: 1.0, rfaz: 1.1 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.5, ra: -1.5, lfa: -2.0, rfa: -2.0, w: 0, la_z: 0.6, ra_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.8, rfa: -1.6, w: 1.5, la_z: 1.2, ra_z: 1.4 }
         },
         luka: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.0, ra: -2.2, lfa: -1.0, rfa: -1.8, w: 0.2, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.3, lfa: -1.2, rfa: -Math.PI/2, w: 1.4, laz: 1.0, raz: 1.2, lfaz: 1.0, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.7, ra: -1.7, lfa: -1.5, rfa: -1.8, w: 0.2, la_z: 0.6, ra_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 1.4, la_z: 1.2, ra_z: 1.4 }
         },
         klay: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.1, ra: -2.1, lfa: -2.3, rfa: -2.6, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -2.1, ra: -Math.PI/2 - 0.2, lfa: -2.1, rfa: -Math.PI/2, w: 1.5, laz: 1.0, raz: 1.2, lfaz: 1.0, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.8, rfa: -2.0, w: 0, la_z: 0.6, ra_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.7, rfa: -1.5, w: 1.5, la_z: 1.2, ra_z: 1.4 }
         },
         reggie: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.2, ra: -2.2, lfa: -2.5, rfa: -2.9, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -2.2, ra: -Math.PI/2 - 0.2, lfa: -1.5, rfa: -Math.PI/2 - 0.4, w: 1.5, laz: 1.0, raz: 1.1, lfaz: 1.0, rfaz: 1.1 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2 },
+            set: { la: -1.7, ra: -1.7, lfa: -1.8, rfa: -2.2, w: 0, la_z: 0.6, ra_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 1.5, la_z: 1.2, ra_z: 1.4 }
         },
         westbrook: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -2.5, ra: -2.8, lfa: -2.0, rfa: -2.5, w: 0, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -2.5, ra: -Math.PI/2 - 0.6, lfa: -2.2, rfa: -Math.PI/2 - 0.4, w: 2.0, laz: 1.2, raz: 1.4, lfaz: 1.2, rfaz: 1.4 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 0, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.6, rfa: -1.6, w: 2.0, la_z: 1.2, ra_z: 1.6, lfa_z: 1.2, rfa_z: 1.6 } // High jump snap
         },
-        joker: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.2, ra: -3.0, lfa: -2.3, rfa: -2.2, w: 0, laz: 0.6, raz: 0.6, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.2, ra: -Math.PI/2 - 0.1, lfa: -2.0, rfa: -Math.PI/2, w: 0.8, laz: 1.0, raz: 1.1, lfaz: 1.0, rfaz: 1.1 }
+        joker: { // Behind Head
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -1.5, rfa: -1.5, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Less forward, more vertical X/Y behind head? No, behind head means Z is negative? Or just vertical with low Z? Let's use Vertical X/Y + Low Z.
+            release: { la: -1.6, ra: -1.6, lfa: -1.6, rfa: -1.5, w: 0.8, la_z: 1.1, ra_z: 1.3, lfa_z: 1.1, rfa_z: 1.3 }
         },
         trae: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -1.2, ra: -1.2, lfa: -2.5, rfa: -2.5, w: 0.5, laz: 0.4, raz: 0.4, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.2, ra: -1.0, lfa: -2.2, rfa: -1.5, w: 1.0, laz: 1.0, raz: 1.0, lfaz: 1.0, rfaz: 1.0 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -1.8, rfa: -1.8, w: 0.5, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 },
+            release: { la: -1.2, ra: -1.2, lfa: -1.6, rfa: -1.2, w: 1.0, la_z: 1.3, ra_z: 1.5, lfa_z: 1.3, rfa_z: 1.5 } // Push forward
         },
         ai: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.4, ra: -3.0, lfa: -2.5, rfa: -2.5, w: 0, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -1.4, ra: -Math.PI/2 - 0.5, lfa: -2.2, rfa: -Math.PI/2 - 0.3, w: 1.8, laz: 1.1, raz: 1.3, lfaz: 1.1, rfaz: 1.3 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -1.5, rfa: -1.5, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.6, rfa: -1.6, w: 1.8, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
         melo: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.3, ra: -2.3, lfa: -2.0, rfa: -2.6, w: 0, laz: 0.6, raz: 0.6, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -2.3, ra: -Math.PI/2 - 0.3, lfa: -1.8, rfa: -Math.PI/2 - 0.1, w: 1.5, laz: 1.1, raz: 1.2, lfaz: 1.1, rfaz: 1.2 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.7, ra: -1.7, lfa: -1.6, rfa: -1.8, w: 0, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.6, w: 1.5, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
         haliburton: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -1.5, ra: -1.5, lfa: -1.5, rfa: -1.5, w: 0, laz: 0.4, raz: 0.4, lfaz: 0.4, rfaz: 0.4 },
-            release: { la: -1.5, ra: -1.2, lfa: -1.5, rfa: -1.2, w: 1.0, laz: 0.9, raz: 0.9, lfaz: 0.9, rfaz: 0.9 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.5, ra: -1.5, lfa: -1.5, rfa: -1.5, w: 0, la_z: 0.7, ra_z: 0.7, lfa_z: 0.7, rfa_z: 0.7 },
+            release: { la: -1.5, ra: -1.5, lfa: -1.5, rfa: -1.5, w: 1.0, la_z: 1.3, ra_z: 1.4, lfa_z: 1.3, rfa_z: 1.4 }
         },
         marion: {
-            ready: { la: 0.5, ra: 2.5, lfa: 2.0, rfa: -2.0, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -1.0, ra: -1.2, lfa: -2.8, rfa: -2.8, w: 0, laz: 0.4, raz: 0.4, lfaz: 0.6, rfaz: 0.6 },
-            release: { la: -1.0, ra: -0.8, lfa: -2.5, rfa: -0.5, w: 0.2, laz: 0.9, raz: 0.9, lfaz: 0.9, rfaz: 0.9 }
+            ready: { la: 0.5, ra: 2.5, lfa: 2.0, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.4, ra: -1.4, lfa: -2.0, rfa: -2.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 },
+            release: { la: -1.4, ra: -1.4, lfa: -2.0, rfa: -1.2, w: 0.2, la_z: 1.2, ra_z: 1.3, lfa_z: 1.2, rfa_z: 1.3 }
         },
-        noah: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.8, ra: -1.8, lfa: 0.5, rfa: -0.5, w: 1.0, laz: 0.5, raz: 0.5, lfaz: 0.2, rfaz: 0.2 },
-            release: { la: -1.8, ra: -0.8, lfa: 0.2, rfa: -0.2, w: 0, laz: 1.0, raz: 1.0, lfaz: 0.8, rfaz: 0.8 }
+        noah: { // Tornado: keep weird
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.8, ra: -1.8, lfa: 0.5, rfa: -0.5, w: 1.0, la_z: 0.3, ra_z: 0.3, lfa_z: 0.3, rfa_z: 0.3 },
+            release: { la: -1.5, ra: -0.8, lfa: 0.2, rfa: -0.2, w: 0, la_z: 0.8, ra_z: 1.0, lfa_z: 0.8, rfa_z: 1.0 }
         },
         bol: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.8, ra: -3.0, lfa: -1.5, rfa: -1.8, w: 0, laz: 0.7, raz: 0.7, lfaz: 0.7, rfaz: 0.7 },
-            release: { la: -2.5, ra: -1.5, lfa: -1.2, rfa: -1.2, w: 0.5, laz: 1.1, raz: 1.1, lfaz: 1.1, rfaz: 1.1 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.3, ra: -1.3, lfa: -1.2, rfa: -1.2, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 0.5, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
         sga: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -1.8, ra: -2.0, lfa: -1.5, rfa: -1.8, w: 0.2, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 },
-            release: { la: -1.6, ra: -Math.PI/2 - 0.2, lfa: -1.2, rfa: -Math.PI/2, w: 1.2, laz: 1.0, raz: 1.1, lfaz: 1.0, rfaz: 1.1 }
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -1.6, ra: -1.6, lfa: -1.5, rfa: -1.5, w: 0.2, la_z: 0.6, ra_z: 0.6, lfa_z: 0.6, rfa_z: 0.6 },
+            release: { la: -1.6, ra: -1.6, lfa: -1.2, rfa: -1.5, w: 1.2, la_z: 1.2, ra_z: 1.4, lfa_z: 1.2, rfa_z: 1.4 }
         },
 
         // --- NEW SILLY / GROUNDED ---
         granny: {
-            ready: { la: 0.8, ra: 0.8, lfa: 2.0, rfa: 2.0, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: 1.0, ra: 1.2, lfa: 2.2, rfa: 2.2, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 }, // Low between legs
-            release: { la: -1.0, ra: -1.0, lfa: 0.5, rfa: 0.5, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Scoop up forward
+            ready: { la: 0.8, ra: 0.8, lfa: 2.0, rfa: 2.0, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 },
+            set: { la: 1.0, ra: 1.2, lfa: 2.2, rfa: 2.2, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 }, // Low between legs
+            release: { la: -1.0, ra: -1.0, lfa: 0.5, rfa: 0.5, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Underhand scoop
         },
         bowling: {
-            ready: { la: 0.2, ra: 1.5, lfa: 2.0, rfa: 1.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: 0.2, ra: 2.8, lfa: 2.0, rfa: 2.9, w: 0, laz: 0.1, raz: -0.8 }, // Backswing (Negative Z)
-            release: { la: 0.2, ra: -1.8, lfa: 1.0, rfa: -0.2, w: 0, laz: 0.1, raz: 1.2, rfaz: 1.2 } // Roll forward
+            ready: { la: 0.2, ra: 1.5, lfa: 2.0, rfa: 1.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.5, ra: 2.0, lfa: 0.2, rfa: -1.0, w: 0.2, la_z: 0.2, ra_z: -0.5, lfa_z: 0.2, rfa_z: -0.5 }, // Arm back
+            release: { la: 0.5, ra: 0.2, lfa: 0.2, rfa: 0.5, w: 0.5, la_z: 0.2, ra_z: 1.4, lfa_z: 0.2, rfa_z: 1.4 } // Arm forward low
         },
         hadouken: {
-            ready: { la: 1.5, ra: 1.5, lfa: 2.5, rfa: 0.5, w: 0, laz: -0.5, raz: -0.5, lfaz: -0.5, rfaz: -0.5 }, // Hands at hip (Back)
-            set: { la: 1.8, ra: 1.8, lfa: 2.9, rfa: 0.4, w: 0, laz: -0.8, raz: -0.8, lfaz: -0.8, rfaz: -0.8 }, // Charge back
-            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Thrust forward
+            ready: { la: 1.5, ra: 1.5, lfa: 2.5, rfa: 0.5, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 1.8, ra: 1.8, lfa: 2.9, rfa: 0.4, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Charge at hip
+            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.5, ra_z: 1.5, lfa_z: 1.5, rfa_z: 1.5 } // Thrust forward
         },
         tpose: {
-            ready: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 },
-            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 },
-            release: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 } // Dominance (Flat)
+            ready: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
+            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
+            release: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 } // Rigid
         },
         airbud: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: 1.3, ra: 1.8, lfa: 1.3, rfa: 1.8, w: 0, laz: 0.3, raz: 0.3 },
-            release: { la: 1.5, ra: 1.6, lfa: 1.5, rfa: 1.6, w: 0, laz: 0.8, raz: 0.8, lfaz: 0.8, rfaz: 0.8 } // Paws forward
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 }, // Holding ball (Classic Ready)
+            set: { la: 1.3, ra: 1.8, lfa: 1.3, rfa: 1.8, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 }, // Paws drop down (Tuck)
+            release: { la: 1.5, ra: 1.6, lfa: 1.5, rfa: 1.6, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 } // Stay down
         },
         telekinesis: {
-            ready: { la: 1.5, ra: 1.6, lfa: 1.5, rfa: 1.6, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 }, // Temples
-            release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Fling Out Forward
+            ready: { la: 1.5, ra: 1.6, lfa: 1.5, rfa: 1.6, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Sides
+            set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Temples
+            release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 } // Fling Out
         },
         peekaboo: {
-            ready: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, laz: 0.8, raz: 0.8 }, // Hands on face
-            set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, laz: 0.8, raz: 0.8 },
-            release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Open Forward
+            ready: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Hands on face
+            set: { la: -2.0, ra: -1.1, lfa: -0.5, rfa: -2.6, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Still on face
+            release: { la: -0.5, ra: -2.6, lfa: -0.5, rfa: -2.6, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 } // Fling Out
         },
         soccer: {
-            ready: { la: 2.5, ra: 0.6, lfa: 2.0, rfa: 1.0, w: 0, laz: -0.5, raz: -0.5 }, // Overhead Back
-            set: { la: 2.8, ra: 0.3, lfa: 2.5, rfa: 0.5, w: 0, laz: -0.8, raz: -0.8 }, // Further Back
-            release: { la: -1.5, ra: -1.6, lfa: 0.1, rfa: -0.1, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Throw Forward
+            ready: { la: 2.5, ra: 0.6, lfa: 2.0, rfa: 1.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Overhead
+            set: { la: 2.8, ra: 0.3, lfa: 2.5, rfa: 0.5, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Back
+            release: { la: -1.5, ra: -1.6, lfa: 0.1, rfa: -0.1, w: 0, la_z: 1.3, ra_z: 1.3, lfa_z: 1.3, rfa_z: 1.3 } // Throw
         },
         no_look: {
-            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0, laz: 0.5, raz: 0.5 },
-            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0, laz: 1.0, raz: 1.0 } // Standard but head turns (handled elsewhere if at all)
+            ready: { la: 0.5, ra: 2.6, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -2.2, ra: -2.2, lfa: -0.5, rfa: -0.8, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 },
+            release: { la: -2.0, ra: -Math.PI/2 - 0.2, lfa: -0.8, rfa: -Math.PI/2 - 0.1, w: 1.0, la_z: 1.0, ra_z: 1.2, lfa_z: 1.0, rfa_z: 1.2 }
         },
         shot_put: {
-            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -2.5, w: 0, laz: 0.2, raz: 0.2 }, // Ball at neck
-            set: { la: -1.0, ra: -1.0, lfa: -1.0, rfa: -2.8, w: 0, laz: 0.4, raz: 0.4 }, // Crouch
-            release: { la: -2.0, ra: -1.5, lfa: -2.0, rfa: -0.5, w: 0, laz: 0.8, raz: 1.5, rfaz: 1.5 } // Push out right arm far
+            ready: { la: 0.5, ra: 2.0, lfa: 1.5, rfa: -2.5, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Ball at neck
+            set: { la: -1.0, ra: -1.0, lfa: -1.0, rfa: -2.8, w: 0, la_z: 0.2, ra_z: 0.4, lfa_z: 0.2, rfa_z: 0.4 }, // Crouch
+            release: { la: -2.0, ra: -1.5, lfa: -2.0, rfa: -0.5, w: 0, la_z: 0.2, ra_z: 1.3, lfa_z: 0.2, rfa_z: 1.3 } // Push out
         },
         dab: {
-            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0, laz: 0.1, raz: 0.1 },
-            set: { la: -2.0, ra: -2.0, lfa: -1.0, rfa: -1.0, w: 0, laz: 0.3, raz: 0.3 },
-            release: { la: -0.5, ra: -2.5, lfa: 2.5, rfa: -0.5, w: 0, laz: 0.5, raz: 0.5 } // Dab is mostly flat
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -2.0, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: -2.0, ra: -2.0, lfa: -1.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.2, lfa_z: 0.5, rfa_z: 0.2 },
+            release: { la: -0.5, ra: -2.5, lfa: 2.5, rfa: -0.5, w: 0, la_z: 0.5, ra_z: 0.8, lfa_z: 0.5, rfa_z: 0.8 } // Dab pose
         },
         helicopter: {
-            ready: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0 },
-            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0 },
-            release: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0 } // Spin is flat
+            ready: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Arms up
+            set: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Down
+            release: { la: 3.0, ra: 3.0, lfa: 0, rfa: 0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 } // Up again
         },
         prayer: {
-            ready: { la: -1.5, ra: -1.6, lfa: -1.0, rfa: -2.1, w: 0, laz: 0.5, raz: 0.5, lfaz: 0.5, rfaz: 0.5 }, // Hands clasped front
-            set: { la: -1.8, ra: -1.9, lfa: -1.0, rfa: -2.1, w: 0, laz: 0.6, raz: 0.6 },
-            release: { la: -2.0, ra: -2.1, lfa: -0.5, rfa: -2.6, w: 0, laz: 1.0, raz: 1.0, lfaz: 1.0, rfaz: 1.0 } // Reach up forward
+            ready: { la: -1.5, ra: -1.6, lfa: -1.0, rfa: -2.1, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 }, // Hands clasped
+            set: { la: -1.8, ra: -1.9, lfa: -1.0, rfa: -2.1, w: 0, la_z: 0.4, ra_z: 0.4, lfa_z: 0.4, rfa_z: 0.4 }, // Look up
+            release: { la: -2.0, ra: -2.1, lfa: -0.5, rfa: -2.6, w: 0, la_z: 1.0, ra_z: 1.0, lfa_z: 1.0, rfa_z: 1.0 } // Reach up
         },
         spirit_bomb: {
-            ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0, laz: 0.2, raz: 0.2 },
-            set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0, laz: 0.3, raz: 0.3 }, // Charge
-            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, laz: 1.2, raz: 1.2, lfaz: 1.2, rfaz: 1.2 } // Throw down forward
+            ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Hands high V shape
+            set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Charge
+            release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Throw down
         }
     };
 
@@ -3988,21 +3990,16 @@ let lastDisplayedContestTime = -1;
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
-    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true, shadingFactor = 0) => {
-        let drawColor = c;
-        if (shadingFactor !== 0 && c.startsWith('#')) {
-             drawColor = adjustColorBrightness(c, Math.floor(-shadingFactor * 80));
-        }
-
+    const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
             if (applyShading) {
                 // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
                 grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.2, drawColor);
+                grad.addColorStop(0.2, c);
                 grad.addColorStop(1, '#000000'); // Shadow
                 // Blend with base color to avoid white/black takeover
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = drawColor; ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
 
                 // Overlay gradient
                 const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
@@ -4011,7 +4008,7 @@ let lastDisplayedContestTime = -1;
                 gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
                 ctx.fillStyle = gradOverlay; ctx.fill();
             } else {
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = drawColor; ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
             }
             return;
         }
@@ -4022,7 +4019,7 @@ let lastDisplayedContestTime = -1;
             p.x = cx + Math.cos(a)*r;
             p.y = cy + Math.sin(a)*r;
         }
-        drawFuzzyPath(g_circlePoints, drawColor, scale, true, seed);
+        drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
         if (applyShading) {
             // Radial Shading Overlay
@@ -4045,29 +4042,10 @@ let lastDisplayedContestTime = -1;
         }
     };
 
-    function adjustColorBrightness(color, amount) {
-        let usePound = false;
-        if (color[0] === "#") { color = color.slice(1); usePound = true; }
-        let num = parseInt(color, 16);
-        if(isNaN(num)) return (usePound?"#":"") + color;
-        let r = (num >> 16) + amount;
-        if (r > 255) r = 255; else if (r < 0) r = 0;
-        let b = ((num >> 8) & 0x00FF) + amount;
-        if (b > 255) b = 255; else if (b < 0) b = 0;
-        let g = (num & 0x0000FF) + amount;
-        if (g > 255) g = 255; else if (g < 0) g = 0;
-        return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-    }
-
-    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null, shadingFactor = 0) {
-        let drawColor = color;
-        if (shadingFactor !== 0 && color.startsWith('#')) {
-             drawColor = adjustColorBrightness(color, Math.floor(-shadingFactor * 80));
-        }
-
+    function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
             // Apply 3D shading even for non-furry (e.g. robot/skin) if requested
-            drawLimb(x1, y1, x2, y2, width, drawColor);
+            drawLimb(x1, y1, x2, y2, width, color);
             return;
         }
         // Construct polygon for limb (Tapered support)
@@ -6112,6 +6090,63 @@ let lastDisplayedContestTime = -1;
         }
     }
 
+    function isTwoHandedStyle(styleId) {
+        if (!styleId) return true; // Default classic
+        // List of styles that are NOT standard two-handed jump shots
+        const nonTwoHanded = [
+            'granny', 'bowling', 'hadouken', 'tpose', 'airbud', 'telekinesis', 'peekaboo',
+            'soccer', 'shot_put', 'dab', 'helicopter', 'prayer', 'spirit_bomb', 'kareem',
+            'hook', 'one_hand'
+        ];
+        return !nonTwoHanded.includes(styleId);
+    }
+
+    function calculateBallPosition(wristX, wristY, s, fAngle, wristAngle) {
+        const theta = fAngle + wristAngle;
+        return {
+            x: wristX - Math.sin(theta) * 5 * s,
+            y: wristY + Math.cos(theta) * 5 * s
+        };
+    }
+
+    function solveIK(sx, sy, tx, ty, l1, l2, isLefty) {
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const distSq = dx*dx + dy*dy;
+        const dist = Math.sqrt(distSq);
+
+        if (dist >= l1 + l2 - 0.01) {
+            const angle = Math.atan2(dx, dy); // 0 is down
+            return { uAngle: angle, fAngle: angle };
+        }
+
+        const cosAlpha = (l1*l1 + distSq - l2*l2) / (2 * l1 * dist);
+        const alpha = Math.acos(Math.max(-1, Math.min(1, cosAlpha)));
+        const baseAngle = Math.atan2(dx, dy);
+
+        // Choose bend direction.
+        // For standard basketball stance, elbows usually flare OUT.
+        // If Right Hand Shooter: Left Arm (Guide) is 'behind' or 'left'. Elbow points Left (-X).
+        // If Left Hand Shooter: Right Arm (Guide) is 'behind' or 'right'. Elbow points Right (+X).
+        // Base Vector (Shoulder -> Ball) is usually Up/Forward.
+        // If Righty: Left Shoulder to Ball. Vector is Up/Right.
+        // We want Elbow to be "Left" of that vector.
+        // Cross Product check or just try +/- alpha.
+        // -Alpha usually rotates counter-clockwise (Left in standard math, but here 0 is down... confusing).
+        // Let's stick with -alpha and see.
+
+        let theta = baseAngle - alpha;
+        if (isLefty) theta = baseAngle + alpha; // Flip for lefty shooter's guide arm (Right arm)?
+
+        // Elbow position
+        const ex = sx + Math.sin(theta) * l1;
+        const ey = sy + Math.cos(theta) * l1;
+
+        const fAngle = Math.atan2(tx - ex, ty - ey);
+
+        return { uAngle: theta, fAngle: fAngle };
+    }
+
     function drawRealisticHuman(p, s, skinObj) {
         const isMechanical = isMechanicalSkin(skinObj.id);
         // Base Setup
@@ -6170,16 +6205,26 @@ let lastDisplayedContestTime = -1;
         const r_lfa = g_animState.lfa;
         const r_rfa = g_animState.rfa;
         const r_w = g_animState.w;
+        const r_la_z = g_animState.la_z || 0;
+        const r_ra_z = g_animState.ra_z || 0;
+        const r_lfa_z = g_animState.lfa_z || 0;
+        const r_rfa_z = g_animState.rfa_z || 0;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
+        let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
+
         if (playerData.isLefty) {
             leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
             leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
             wristAngle = -r_w;
+            leftArmZ = r_ra_z; rightArmZ = r_la_z;
+            leftForeArmZ = r_rfa_z; rightForeArmZ = r_lfa_z;
         } else {
             leftArmAngle = r_la; rightArmAngle = r_ra;
             leftForeArmAngle = r_lfa; rightForeArmAngle = r_rfa;
             wristAngle = r_w;
+            leftArmZ = r_la_z; rightArmZ = r_ra_z;
+            leftForeArmZ = r_lfa_z; rightForeArmZ = r_rfa_z;
         }
 
         // Draw Neck (Extension)
@@ -6193,6 +6238,71 @@ let lastDisplayedContestTime = -1;
         let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s; // Move arms out
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
+
+        // --- PROCEDURAL GUIDE HAND LOGIC ---
+        // Ensure left hand tracks the ball for two-handed shots
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+            const isRightHand = !playerData.isLefty;
+
+            // 1. Calculate Shooting Arm & Ball Position
+            const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+            const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+            const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+            const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+            const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
+
+            const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+            const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+
+            const elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+            const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
+            const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
+
+            // 2. Calculate Guide Arm Target (Side of ball)
+            // Reduced offset for humans (15 -> 8)
+            const guideTargetX = ballPos.x + (isRightHand ? -8*s : 8*s);
+            const guideTargetY = ballPos.y;
+
+            const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
+
+            // 3. "Elbow to Basket" Logic (FK + IK)
+            // Read guide properties from Animation State (defaults to standard vertical if missing)
+            // Use shootUAngle as fallback for timing/transition if specific guide prop is missing, but prefer hard defaults for stability
+            // Standard form: guide elbow points forward (-1.7) and deep (1.3)
+
+            const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
+            const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
+
+            // Mirror angle for Left-Handed Shooters (Right Guide Arm)
+            // -1.7 is Up-Left. We need Up-Right for the right arm.
+            // Mirror around -PI/2 (-1.57).
+            // -1.7 is -0.13 from vertical. Mirror is -1.57 + 0.13 = -1.44.
+            const finalGuideU = isRightHand ? animGuideU : (-Math.PI - animGuideU);
+
+            // Calculate Elbow Position based on animated Forward Kinematics
+            const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
+            const guideElbow = getJoint(guideSX, armY, guideEffUpper, finalGuideU);
+
+            // Solve Forearm to reach Target
+            const dx = guideTargetX - guideElbow.x;
+            const dy = guideTargetY - guideElbow.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const fixedGuideFAngle = Math.atan2(dx, dy);
+
+            // Calculate required Z for Forearm to bridge the gap
+            // clamped to avoid NaN if unreachable
+            const ratio = Math.min(0.99, dist / foreArmLen);
+            const fixedGuideFZ = Math.acos(ratio);
+
+            // 4. Override Guide Arm Angles
+            if (isRightHand) {
+                leftArmAngle = finalGuideU; leftForeArmAngle = fixedGuideFAngle;
+                leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
+            } else {
+                rightArmAngle = finalGuideU; rightForeArmAngle = fixedGuideFAngle;
+                rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
+            }
+        }
 
         // 0b. Detached Ball Rendering
         drawDetachedBall(p, s, torsoY, bodyH, headY);
@@ -6272,7 +6382,7 @@ let lastDisplayedContestTime = -1;
             }
         }
 
-        const drawHumanArm = (sx, sy, isRight, angle1, angle2) => {
+        const drawHumanArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
             let uColor = skinTone, fColor = skinTone;
             let activeSleeveColor = null;
@@ -6286,10 +6396,27 @@ let lastDisplayedContestTime = -1;
                 fColor = activeSleeveColor;
             }
 
+            // Shadow Logic: Ignore foreshortening to sell the 3D effect (Shadow is full length projected on floor)
+            // But wait, if we project a vertical arm (up) on the floor, it should be long.
+            // If we project a forward arm (Z) on the floor, it should also be long?
+            // Actually, if we look from behind, a forward arm shadow extends forward?
+            // The shadow projection is `project(x, y, 0)`.
+            // Our simplified shadow just draws the sprite flat and skewed/scaled.
+            // If the sprite is foreshortened (short), the shadow is short.
+            // To make the shadow look like a "Forward" arm, we need it to look long.
+            // So we disable foreshortening for the shadow pass.
+
+            let uZ = angle1_z || 0;
+            let fZ = angle2_z || 0;
+            if (p.type === 'player_shadow') { uZ = 0; fZ = 0; }
+
+            const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
+            const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
+
             // Shoulder Joint (Seamless: Match Upper Arm Start Width 8)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
-            let elbow = getJoint(sx, sy, upperArmLen, angle1);
+            let elbow = getJoint(sx, sy, effUpper, angle1);
 
             // Upper Arm (Deltoid to Elbow) - Base
             const upperTattoos = skinObj.tattoos && !activeSleeveColor;
@@ -6302,7 +6429,7 @@ let lastDisplayedContestTime = -1;
                  drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
             }
             
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen, angle2);
+            let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
             // Forearm (Elbow to Wrist)
             const foreTattoos = skinObj.tattoos && !activeSleeveColor;
             drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
@@ -6330,8 +6457,8 @@ let lastDisplayedContestTime = -1;
         };
 
         // Arms First (Layer 1) - Arms behind legs
-        drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle);
-        drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle);
+        drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
+        drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
         // Draw Thighs (Skin tone - under shorts)
         // Hip Joints (Seamless: Match Thigh Start Width 8 -> Radius 4)
@@ -7282,30 +7409,31 @@ let lastDisplayedContestTime = -1;
         const r_lfa = g_animState.lfa;
         const r_rfa = g_animState.rfa;
         const r_w = g_animState.w;
-        // Z-Angles (Depth)
-        const r_laz = g_animState.laz || 0;
-        const r_raz = g_animState.raz || 0;
-        const r_lfaz = g_animState.lfaz || 0;
-        const r_rfaz = g_animState.rfaz || 0;
+
+        // Z-Rotation (Depth)
+        const r_la_z = g_animState.la_z || 0;
+        const r_ra_z = g_animState.ra_z || 0;
+        const r_lfa_z = g_animState.lfa_z || 0;
+        const r_rfa_z = g_animState.rfa_z || 0;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
         let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
 
         const isLefty = playerData.isLefty;
         if (isLefty) {
-            // Mirroring for Lefty: Swap Left/Right angles
             leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
             leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
             wristAngle = -r_w;
-            // Mirror Z angles (Swapped)
-            leftArmZ = r_raz; rightArmZ = r_laz;
-            leftForeArmZ = r_rfaz; rightForeArmZ = r_lfaz;
+            // Swap Z for Lefty
+            leftArmZ = r_ra_z; rightArmZ = r_la_z;
+            leftForeArmZ = r_rfa_z; rightForeArmZ = r_lfa_z;
         } else {
             leftArmAngle = r_la; rightArmAngle = r_ra;
             leftForeArmAngle = r_lfa; rightForeArmAngle = r_rfa;
             wristAngle = r_w;
-            leftArmZ = r_laz; rightArmZ = r_raz;
-            leftForeArmZ = r_lfaz; rightForeArmZ = r_rfaz;
+            // Standard Z
+            leftArmZ = r_la_z; rightArmZ = r_ra_z;
+            leftForeArmZ = r_lfa_z; rightForeArmZ = r_rfa_z;
         }
 
         let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
@@ -7391,7 +7519,59 @@ let lastDisplayedContestTime = -1;
         else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angleZ1 = 0, angleZ2 = 0) => {
+        // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
+        // Updated to handle Z-foreshortening in IK (Approximation)
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+            const isRightHand = !isLefty;
+
+            const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+            const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+            const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+            const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+            const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
+
+            // Calculate effective lengths for 2D projection
+            const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+            const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+
+            const elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+            const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
+            const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
+
+            // 2. Calculate Guide Arm Target
+            const guideTargetX = ballPos.x + (isRightHand ? -15*s : 15*s);
+            const guideTargetY = ballPos.y;
+
+            const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
+
+            // 3. Solve IK
+            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
+            const maxLen = upperArmLen + foreArmLen;
+            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
+            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
+            const guideZ = Math.min(shootUZ, maxZ);
+
+            const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
+            const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
+
+            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isLefty);
+
+            // 4. Override Guide Arm Angles
+            if (isRightHand) {
+                leftArmAngle = ik.uAngle;
+                leftForeArmAngle = ik.fAngle;
+                // Sync Z
+                leftArmZ = guideZ; leftForeArmZ = guideZ;
+            } else {
+                rightArmAngle = ik.uAngle;
+                rightForeArmAngle = ik.fAngle;
+                rightArmZ = guideZ; rightForeArmZ = guideZ;
+            }
+        }
+
+        const isShadow = (p.type === 'player_shadow');
+
+        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
             const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
@@ -7424,21 +7604,35 @@ let lastDisplayedContestTime = -1;
             const foreStartW = upperEndW; // Seamless transition
             const foreEndW = foreStartW * taper;
 
-            // 3D FORESHORTENING & SHADING
-            const upperLen = upperArmLen * Math.cos(angleZ1);
-            const foreLen = foreArmLen * Math.cos(angleZ2);
-            const upperShade = Math.sin(angleZ1);
-            const foreShade = Math.sin(angleZ2);
+            // FORESHORTENING
+            let uFactor = Math.cos(angle1_z || 0);
+            let fFactor = Math.cos(angle2_z || 0);
 
-            let elbow = getJoint(sx, sy, upperLen, angle1);
+            // Shadow Logic: Show full length (projected to ground) to imply depth
+            if (isShadow) {
+                // If shadow, we ignore the Z-shortening because the shadow
+                // of a forward-reaching arm (parallel to ground) is full length.
+                // However, our Z-angle is "angle from screen plane".
+                // If Z=90, arm is pointing at camera (horizontal). Shadow is full length.
+                // If Z=0, arm is parallel to screen (horizontal). Shadow is full length.
+                // What if arm is pointing UP? That's controlled by angle1 (X/Y).
+                // If angle1 is -PI/2 (UP), and Z=0, arm is vertical. Shadow is short (blob).
+                // So, we should use uFactor = 1.0 for shadow pass?
+                uFactor = 1.0;
+                fFactor = 1.0;
+            }
+
+            uFactor = Math.max(0.1, Math.abs(uFactor));
+            fFactor = Math.max(0.1, Math.abs(fFactor));
+
+            let elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
 
             // Shoulder Joint (Radius = Half Width for seamless look)
-            // Use upperShade for joint too
             if(!armFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true, true, upperShade);
+            else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
 
             // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW, upperShade);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW);
 
             // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
             if (activeSleeveColor) {
@@ -7446,13 +7640,13 @@ let lastDisplayedContestTime = -1;
                 const midY = (sy + elbow.y) / 2;
                 // Interpolate width at mid point
                 const midW = upperStartW + (upperEndW - upperStartW) * 0.5;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, midW, activeSleeveColor, s, false, seedBase, upperEndW, upperShade);
+                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, midW, activeSleeveColor, s, false, seedBase, upperEndW);
             }
 
-            let wrist = getJoint(elbow.x, elbow.y, foreLen, angle2);
+            let wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
 
             // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW, foreShade);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW);
 
             // Elbow Joint (Radius = Half Width)
             let elbowColor = thisUpperColor;
@@ -7466,7 +7660,7 @@ let lastDisplayedContestTime = -1;
 
             const elbowFurry = activeSleeveColor ? false : armFurry;
             if(!elbowFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true, true, foreShade);
+            else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
@@ -7525,10 +7719,16 @@ let lastDisplayedContestTime = -1;
                  const isRightHand = !isLefty;
                  const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
                  const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+                 // Use Z-factor for ball position too!
+                 const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+                 const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
+                 const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+                 const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+
                  const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
 
-                 let elbow = getJoint(shootSX, armY, upperArmLen, shootUAngle);
-                 let wrist = getJoint(elbow.x, elbow.y, foreArmLen, shootFAngle);
+                 let elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+                 let wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
 
                  let theta = shootFAngle + wristAngle;
                  ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
@@ -9294,7 +9494,6 @@ let lastDisplayedContestTime = -1;
             return a + (b - a) * t;
         };
         const lerp = (a, b, t) => a + (b - a) * t;
-        const getZ = (frame, prop) => (frame && frame[prop] !== undefined) ? frame[prop] : 0;
 
         if (state === 'SHOOTING') {
             // Target is Release
@@ -9303,11 +9502,13 @@ let lastDisplayedContestTime = -1;
             g_animTarget.lfa = anim.release.lfa;
             g_animTarget.rfa = anim.release.rfa;
             g_animTarget.w = anim.release.w;
-            // Z Interpolation
-            g_animTarget.laz = getZ(anim.release, 'laz');
-            g_animTarget.raz = getZ(anim.release, 'raz');
-            g_animTarget.lfaz = getZ(anim.release, 'lfaz');
-            g_animTarget.rfaz = getZ(anim.release, 'rfaz');
+            // Z-Angles (Default to 0 if missing)
+            g_animTarget.la_z = anim.release.la_z || 0;
+            g_animTarget.ra_z = anim.release.ra_z || 0;
+            g_animTarget.lfa_z = anim.release.lfa_z || 0;
+            g_animTarget.rfa_z = anim.release.rfa_z || 0;
+            g_animTarget.guide_u = anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7;
+            g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
@@ -9320,11 +9521,23 @@ let lastDisplayedContestTime = -1;
             g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
             g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
             g_animTarget.w = lerp(startPose.w, anim.set.w, lift);
-            // Z Interpolation
-            g_animTarget.laz = lerpAngle(getZ(startPose, 'laz'), getZ(anim.set, 'laz'), lift);
-            g_animTarget.raz = lerpAngle(getZ(startPose, 'raz'), getZ(anim.set, 'raz'), lift);
-            g_animTarget.lfaz = lerpAngle(getZ(startPose, 'lfaz'), getZ(anim.set, 'lfaz'), lift);
-            g_animTarget.rfaz = lerpAngle(getZ(startPose, 'rfaz'), getZ(anim.set, 'rfaz'), lift);
+
+            // Z-Angles Interpolation
+            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, lift);
+            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, lift);
+            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, lift);
+            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, lift);
+
+            // Guide Hand Interpolation
+            // Default Start: 0.5 (Side), Default Set: -1.7 (Up/Forward)
+            const startGuideU = startPose.guide_u !== undefined ? startPose.guide_u : 0.5;
+            const setGuideU = anim.set.guide_u !== undefined ? anim.set.guide_u : -1.7;
+            g_animTarget.guide_u = lerp(startGuideU, setGuideU, lift);
+
+            const startGuideUZ = startPose.guide_u_z !== undefined ? startPose.guide_u_z : 0.2;
+            const setGuideUZ = anim.set.guide_u_z !== undefined ? anim.set.guide_u_z : 1.3;
+            g_animTarget.guide_u_z = lerp(startGuideUZ, setGuideUZ, lift);
+
         } else if (state === 'PRE_JUMP') {
              // Gather Pose (Ready + Crouch emphasis)
              const ready = anim.ready || idle;
@@ -9333,11 +9546,14 @@ let lastDisplayedContestTime = -1;
              g_animTarget.lfa = ready.lfa;
              g_animTarget.rfa = ready.rfa;
              g_animTarget.w = ready.w;
-             // Z
-             g_animTarget.laz = getZ(ready, 'laz');
-             g_animTarget.raz = getZ(ready, 'raz');
-             g_animTarget.lfaz = getZ(ready, 'lfaz');
-             g_animTarget.rfaz = getZ(ready, 'rfaz');
+
+             g_animTarget.la_z = ready.la_z || 0;
+             g_animTarget.ra_z = ready.ra_z || 0;
+             g_animTarget.lfa_z = ready.lfa_z || 0;
+             g_animTarget.rfa_z = ready.rfa_z || 0;
+
+             g_animTarget.guide_u = ready.guide_u !== undefined ? ready.guide_u : 0.5;
+             g_animTarget.guide_u_z = ready.guide_u_z !== undefined ? ready.guide_u_z : 0.2;
         } else {
              // IDLE (With Breathing)
              g_animTarget.la = idle.la + breathArm;
@@ -9345,11 +9561,14 @@ let lastDisplayedContestTime = -1;
              g_animTarget.lfa = idle.lfa + breathArm * 0.5;
              g_animTarget.rfa = idle.rfa - breathArm * 0.5;
              g_animTarget.w = idle.w;
-             // Z (Default to idle 0)
-             g_animTarget.laz = idle.laz;
-             g_animTarget.raz = idle.raz;
-             g_animTarget.lfaz = idle.lfaz;
-             g_animTarget.rfaz = idle.rfaz;
+
+             g_animTarget.la_z = idle.la_z || 0;
+             g_animTarget.ra_z = idle.ra_z || 0;
+             g_animTarget.lfa_z = idle.lfa_z || 0;
+             g_animTarget.rfa_z = idle.rfa_z || 0;
+
+             g_animTarget.guide_u = idle.guide_u !== undefined ? idle.guide_u : 0.5;
+             g_animTarget.guide_u_z = idle.guide_u_z !== undefined ? idle.guide_u_z : 0.2;
         }
 
         // SMOOTHING (Interpolate State -> Target)
@@ -9362,10 +9581,18 @@ let lastDisplayedContestTime = -1;
         g_animState.rfa = lerpAngle(g_animState.rfa, g_animTarget.rfa, smoothFactor);
         g_animState.w = lerp(g_animState.w, g_animTarget.w, smoothFactor);
 
-        g_animState.laz = lerpAngle(g_animState.laz || 0, g_animTarget.laz || 0, smoothFactor);
-        g_animState.raz = lerpAngle(g_animState.raz || 0, g_animTarget.raz || 0, smoothFactor);
-        g_animState.lfaz = lerpAngle(g_animState.lfaz || 0, g_animTarget.lfaz || 0, smoothFactor);
-        g_animState.rfaz = lerpAngle(g_animState.rfaz || 0, g_animTarget.rfaz || 0, smoothFactor);
+        // Smooth Z-Angles
+        g_animState.la_z = lerp(g_animState.la_z||0, g_animTarget.la_z, smoothFactor);
+        g_animState.ra_z = lerp(g_animState.ra_z||0, g_animTarget.ra_z, smoothFactor);
+        g_animState.lfa_z = lerp(g_animState.lfa_z||0, g_animTarget.lfa_z, smoothFactor);
+        g_animState.rfa_z = lerp(g_animState.rfa_z||0, g_animTarget.rfa_z, smoothFactor);
+
+        // Smooth Guide Hand
+        const currentGuideU = g_animState.guide_u !== undefined ? g_animState.guide_u : 0.5;
+        g_animState.guide_u = lerp(currentGuideU, g_animTarget.guide_u, smoothFactor);
+
+        const currentGuideUZ = g_animState.guide_u_z !== undefined ? g_animState.guide_u_z : 0.2;
+        g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
     function updateParticles(dt) {
@@ -10998,8 +11225,8 @@ let lastDisplayedContestTime = -1;
             distanceLevel: 1,
             contestData: { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false },
             timeAttackData: { timer: 60, score: 0, active: false },
-            animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 },
-            animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, laz: 0, raz: 0, lfaz: 0, rfaz: 0 },
+            animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
+            animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
             breathingPhase: 0,
             camSmooth: { x: 433, y: 300 },
             camCache: {},
