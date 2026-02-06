@@ -8171,9 +8171,6 @@ let lastDisplayedContestTime = -1;
                  // Large, round, wide-set on top
                  const pts = [{x: -5*s, y: -10*s}, {x: -12*s, y: -20*s}, {x: -18*s, y: -8*s}, {x: -10*s, y: -2*s}];
                  drawFuzzyPath(pts, ctx.fillStyle, s, true, 51);
-                 // Inner ear detail
-                 ctx.fillStyle = '#FFC0CB';
-                 ctx.beginPath(); ctx.ellipse(-12*s, -10*s, 3*s, 5*s, -0.2, 0, Math.PI*2); ctx.fill();
              });
         }
         else if (currentAnimal === 'cat') {
@@ -8254,7 +8251,8 @@ let lastDisplayedContestTime = -1;
         }
         else if (currentAnimal === 'tiger') {
              drawEarPair(() => {
-                 // Rounded
+                 // Rounded - Black back with white spot
+                 ctx.fillStyle = '#000';
                  ctx.beginPath();
                  ctx.arc(-12*s, -8*s, 7*s, 0, Math.PI*2);
                  ctx.fill();
