@@ -1147,8 +1147,8 @@
         { id: 'frog_dart', animal: 'frog', name: 'Toxique', cost: 3000, furColor: '#0000FF', pattern: 'spots', spotColor: '#000' },
 
         // TURTLES
-        { id: 'turtle_classic', animal: 'turtle', name: 'Tortue', cost: 1000, furColor: '#228B22', backAccessory: 'backpack', backColor: '#006400' },
-        { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'backpack', backColor: '#006400' },
+        { id: 'turtle_classic', animal: 'turtle', name: 'Tortue', cost: 1000, furColor: '#228B22', backAccessory: 'shell', backColor: '#006400' },
+        { id: 'turtle_ninja', animal: 'turtle', name: 'Ninja', cost: 5000, furColor: '#32CD32', headAccessory: 'headband', hatColor: '#0000FF', backProp: 'katanas', backAccessory: 'shell', backColor: '#006400' },
 
         // ELEPHANTS
         { id: 'elephant_classic', animal: 'elephant', name: 'Éléphant', cost: 2000, bodyShape: 'heavy', widthScale: 1.4, armWidthScale: 1.4, legWidthScale: 1.4 },
@@ -6909,11 +6909,6 @@ let lastDisplayedContestTime = -1;
              }
         }
 
-        if(skinObj.beard) {
-             ctx.fillStyle = skinObj.beardColor || '#000';
-             ctx.beginPath(); ctx.arc(p.x, headY, 12*s, 0.2, Math.PI - 0.2); ctx.lineTo(p.x, headY + 15*s); ctx.closePath(); ctx.fill();
-        }
-
         // Headband
         if(skinObj.hairStyle === 'headband') {
              ctx.fillStyle = skinObj.hairColor || '#000';
@@ -6992,11 +6987,6 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = '#000080';
              ctx.fillRect(p.x - 10*s, headY - 10*s, 5*s, 5*s);
              ctx.fillRect(p.x + 5*s, headY - 10*s, 5*s, 5*s);
-        }
-
-        if (skinObj.headDetail === 'tattoo_stripe') {
-             ctx.strokeStyle = '#FF0000'; ctx.lineWidth = 3*s;
-             ctx.beginPath(); ctx.moveTo(p.x - 2*s, headY - 12*s); ctx.lineTo(p.x - 4*s, headY + 10*s); ctx.stroke();
         }
 
         if (skinObj.headDetail === 'visor') {
@@ -8522,6 +8512,57 @@ let lastDisplayedContestTime = -1;
         if (skinObj.backAccessory === 'backpack') {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
+        }
+        if (skinObj.backAccessory === 'shell') {
+             const shellW = bodyW * 1.4;
+             const shellH = bodyH * 0.8;
+             const sx = p.x;
+             const sy = torsoY + bodyH * 0.4;
+             const color = skinObj.backColor || '#006400';
+
+             // Shell Rim (Outline)
+             ctx.fillStyle = '#556B2F'; // Dark Olive Green
+             ctx.beginPath();
+             ctx.ellipse(sx, sy, shellW * 0.55, shellH * 0.55, 0, 0, Math.PI * 2);
+             ctx.fill();
+
+             // Shell Dome (Body)
+             const grad = ctx.createRadialGradient(sx - shellW * 0.2, sy - shellH * 0.2, shellW * 0.1, sx, sy, shellW * 0.6);
+             grad.addColorStop(0, '#228B22'); // Forest Green Light
+             grad.addColorStop(1, color); // Base Dark Green
+             ctx.fillStyle = grad;
+             ctx.beginPath();
+             ctx.ellipse(sx, sy, shellW * 0.5, shellH * 0.5, 0, 0, Math.PI * 2);
+             ctx.fill();
+
+             // Scute Pattern (Hexagons)
+             ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+             ctx.lineWidth = 2 * s;
+             ctx.beginPath();
+
+             // Center Scute
+             const hexR = shellW * 0.15;
+             for (let i = 0; i < 6; i++) {
+                 const angle = (i / 6) * Math.PI * 2;
+                 const hx = sx + Math.cos(angle) * hexR;
+                 const hy = sy + Math.sin(angle) * hexR;
+                 if (i === 0) ctx.moveTo(hx, hy);
+                 else ctx.lineTo(hx, hy);
+             }
+             ctx.closePath();
+
+             // Surrounding Scutes
+             const outerR = shellW * 0.35;
+             for(let i=0; i<6; i++) {
+                 const angle = (i/6) * Math.PI * 2;
+                 const hx = sx + Math.cos(angle) * hexR;
+                 const hy = sy + Math.sin(angle) * hexR;
+                 const ox = sx + Math.cos(angle) * outerR;
+                 const oy = sy + Math.sin(angle) * outerR;
+                 ctx.moveTo(hx, hy);
+                 ctx.lineTo(ox, oy);
+             }
+             ctx.stroke();
         }
 
         // New Props
