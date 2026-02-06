@@ -6257,7 +6257,8 @@ let lastDisplayedContestTime = -1;
             const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
 
             // 2. Calculate Guide Arm Target (Side of ball)
-            const guideTargetX = ballPos.x + (isRightHand ? -15*s : 15*s);
+            // Reduced offset for humans (15 -> 8)
+            const guideTargetX = ballPos.x + (isRightHand ? -8*s : 8*s);
             const guideTargetY = ballPos.y;
 
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
@@ -6272,7 +6273,8 @@ let lastDisplayedContestTime = -1;
             const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
             const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
 
-            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, playerData.isLefty);
+            // Use isRightHand (which is !isLefty) to force guide arm (Left Arm for Righty) to bend Outwards (Left).
+            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isRightHand);
 
             // 4. Override Guide Arm Angles
             if (isRightHand) {
