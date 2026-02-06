@@ -6272,6 +6272,7 @@ let lastDisplayedContestTime = -1;
             const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
 
             // Use isRightHand (which is !isLefty) to force guide arm (Left Arm for Righty) to bend Outwards (Left).
+            // solveIK uses: if(param) +alpha (Left flare) else -alpha (Right flare).
             const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isRightHand);
 
             // 4. Override Guide Arm Angles
