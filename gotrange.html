@@ -6788,14 +6788,62 @@ let lastDisplayedContestTime = -1;
         else if(skinObj.hairStyle === 'curly_long') {
              ctx.fillStyle = skinObj.hairColor || '#dcb98a';
 
-             // Static Lion-like Mane
-             const maneRadius = headRadius * 2.0;
+             // Base Shape (Long, wavy, shaggy look)
+             ctx.beginPath();
+             // Start left ear area
+             ctx.moveTo(p.x - headRadius * 1.1, headY);
+             // Curve up over head
+             ctx.bezierCurveTo(p.x - headRadius, headY - 10*s, p.x + headRadius, headY - 10*s, p.x + headRadius * 1.1, headY);
+             // Right side down to shoulder
+             ctx.quadraticCurveTo(p.x + headRadius * 1.4, headY + 15*s, p.x + headRadius * 1.2, headY + 25*s);
+             // Bottom edge (uneven)
+             ctx.lineTo(p.x - headRadius * 1.2, headY + 25*s);
+             // Left side up from shoulder
+             ctx.quadraticCurveTo(p.x - headRadius * 1.4, headY + 15*s, p.x - headRadius * 1.1, headY);
+             ctx.fill();
 
-             // Draw Mane (Static seed = 500)
-             drawFuzzyCircle(p.x, headY + 5*s, maneRadius, ctx.fillStyle, 500, s, true);
+             if (playerData.graphics === 'HIGH') {
+                 ctx.save();
+                 // Strands
+                 const seed = 41; // Dirichlet
+                 const rand = (i) => { return Math.abs(Math.sin(seed + i)) };
 
-             // Top/Forehead volume (Static seed = 501)
-             drawFuzzyCircle(p.x, headY - headRadius * 0.5, headRadius * 1.2, ctx.fillStyle, 501, s, true);
+                 ctx.lineWidth = 1.5*s;
+
+                 // Draw wavy strands falling down
+                 for(let i=0; i<25; i++) {
+                     const r = rand(i);
+                     const side = (r > 0.5) ? 1 : -1;
+                     const xOff = (rand(i*2) * headRadius * 0.8) * side;
+
+                     // Shadow or Highlight
+                     ctx.strokeStyle = (rand(i*3) > 0.6) ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)';
+
+                     ctx.beginPath();
+                     ctx.moveTo(p.x + xOff * 0.5, headY - 5*s); // Start near top/crown
+
+                     // Wavy path down
+                     const cp1x = p.x + xOff * 1.5;
+                     const cp1y = headY + 10*s;
+                     const endX = p.x + xOff * 1.2;
+                     const endY = headY + 25*s + rand(i*4)*5*s; // Varying lengths
+
+                     ctx.quadraticCurveTo(cp1x, cp1y, endX, endY);
+                     ctx.stroke();
+                 }
+
+                 // Messy bangs/top
+                 for(let i=0; i<10; i++) {
+                     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                     const x = p.x + (rand(i*5)-0.5) * headRadius * 1.6;
+                     const y = headY - 5*s;
+                     ctx.beginPath();
+                     ctx.moveTo(x, y);
+                     ctx.quadraticCurveTo(x + (rand(i*6)-0.5)*5*s, y + 5*s, x + (rand(i*7)-0.5)*5*s, y + 8*s);
+                     ctx.stroke();
+                 }
+                 ctx.restore();
+             }
         }
         else if(skinObj.hairStyle === 'spikes') {
              ctx.fillStyle = skinObj.hairColor || '#0000FF';
