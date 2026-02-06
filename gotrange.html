@@ -6261,27 +6261,36 @@ let lastDisplayedContestTime = -1;
 
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
 
-            // 3. Solve IK
-            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
-            const maxLen = upperArmLen + foreArmLen;
-            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
-            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
-            const guideZ = Math.min(shootUZ, maxZ);
+            // 3. "Elbow to Basket" Logic (FK + IK)
+            // Read guide properties from Animation State (defaults to standard vertical if missing)
+            // Use shootUAngle as fallback for timing/transition if specific guide prop is missing, but prefer hard defaults for stability
+            // Standard form: guide elbow points forward (-1.7) and deep (1.3)
 
-            const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
-            const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
+            const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
+            const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
 
-            // Use isRightHand (which is !isLefty) to force guide arm (Left Arm for Righty) to bend Outwards (Left).
-            // solveIK uses: if(param) +alpha (Left flare) else -alpha (Right flare).
-            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isRightHand);
+            // Calculate Elbow Position based on animated Forward Kinematics
+            const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
+            const guideElbow = getJoint(guideSX, armY, guideEffUpper, animGuideU);
+
+            // Solve Forearm to reach Target
+            const dx = guideTargetX - guideElbow.x;
+            const dy = guideTargetY - guideElbow.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const fixedGuideFAngle = Math.atan2(dx, dy);
+
+            // Calculate required Z for Forearm to bridge the gap
+            // clamped to avoid NaN if unreachable
+            const ratio = Math.min(0.99, dist / foreArmLen);
+            const fixedGuideFZ = Math.acos(ratio);
 
             // 4. Override Guide Arm Angles
             if (isRightHand) {
-                leftArmAngle = ik.uAngle; leftForeArmAngle = ik.fAngle;
-                leftArmZ = guideZ; leftForeArmZ = guideZ;
+                leftArmAngle = animGuideU; leftForeArmAngle = fixedGuideFAngle;
+                leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
             } else {
-                rightArmAngle = ik.uAngle; rightForeArmAngle = ik.fAngle;
-                rightArmZ = guideZ; rightForeArmZ = guideZ;
+                rightArmAngle = animGuideU; rightForeArmAngle = fixedGuideFAngle;
+                rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
             }
         }
 
