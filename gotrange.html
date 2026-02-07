@@ -6618,6 +6618,36 @@ let lastDisplayedContestTime = -1;
     }
 
     // --- SEEDED RANDOM HELPER ---
+    // --- HAIR RENDERER HELPERS ---
+    function adjustColor(color, percent) {
+        if (!color) return color;
+        if (color.startsWith('#')) {
+            let hex = color.replace('#', '');
+            if (hex.length === 3) {
+                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+            }
+            const num = parseInt(hex, 16);
+            const amt = Math.round(2.55 * percent);
+            let R = (num >> 16) + amt;
+            let G = (num >> 8 & 0x00FF) + amt;
+            let B = (num & 0x0000FF) + amt;
+            R = (R<255)?((R<0)?0:R):255;
+            G = (G<255)?((G<0)?0:G):255;
+            B = (B<255)?((B<0)?0:B):255;
+            return '#' + (0x1000000 + R*0x10000 + G*0x100 + B).toString(16).slice(1);
+        }
+        return color;
+    }
+
+    function createHairGradient(ctx, x, y, r, color) {
+         if (!color || !color.startsWith('#')) return color;
+         const grad = ctx.createRadialGradient(x - r*0.3, y - r*0.3, r*0.1, x, y, r);
+         grad.addColorStop(0, adjustColor(color, 40));
+         grad.addColorStop(0.5, color);
+         grad.addColorStop(1, adjustColor(color, -20));
+         return grad;
+    }
+
     // A simple hash function for strings to numbers
     function stringToSeed(str) {
         let hash = 0;
