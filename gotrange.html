@@ -6900,28 +6900,17 @@ let lastDisplayedContestTime = -1;
         }
 
         if (style === 'headband') {
-             // 1. Hair Base (Short/Fade underneath)
-             const r = headRadius * 1.05;
-             ctx.fillStyle = hairColor;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
+             const hbColor = skinObj.hairColor || '#000';
+             ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, headRadius, hbColor);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
 
-             // 2. The Band (Wraps around back)
              const bandColor = skinObj.headbandColor || '#FFF';
-             const bandY = headY - 5*s;
-             const bandH = 6*s;
+             ctx.strokeStyle = bandColor; ctx.lineWidth = 4*s;
+             ctx.beginPath(); ctx.moveTo(p.x-11*s, headY-5*s); ctx.lineTo(p.x+11*s, headY-5*s); ctx.stroke();
 
-             ctx.fillStyle = bandColor;
-             ctx.beginPath();
-             // Band follows curvature
-             ctx.ellipse(p.x, bandY, r + 1*s, bandH, 0, 0, Math.PI*2);
-             ctx.fill();
-
-             // 3. Hair Puff on Top (if not bald on top?)
-             // Assuming LeBron style (short on top)
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.ellipse(p.x, bandY - bandH, r * 0.9, r * 0.5, 0, Math.PI, 0);
-             ctx.fill();
+             // Highlight on band
+             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1*s;
+             ctx.beginPath(); ctx.moveTo(p.x-11*s, headY-6*s); ctx.lineTo(p.x+11*s, headY-6*s); ctx.stroke();
              return;
         }
 
