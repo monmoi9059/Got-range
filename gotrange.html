@@ -7336,50 +7336,61 @@ let lastDisplayedContestTime = -1;
                  const rW = headRadius * 1.05;
                  const rH = headRadius * 1.05;
 
-                 // Base fade shape
+                 // Base buzz cut shape - Tight fade
                  ctx.fillStyle = hairColor;
                  ctx.beginPath();
-                 ctx.moveTo(p.x - headRadius * 0.95, headY + 2*s);
 
-                 // Top Edge with deterministic bumps (nappy texture)
-                 const topSteps = 20;
+                 // Start at left temple/sideburn (Tighter to head)
+                 ctx.moveTo(p.x - headRadius * 0.85, headY);
+
+                 // Top Edge (Nappy/Buzz texture)
+                 const topSteps = 24;
                  for(let i=0; i<=topSteps; i++) {
                      const t = i/topSteps;
-                     // Interpolate from left ear to right ear over top
-                     // Approximate arc path
-                     const angle = Math.PI - (t * Math.PI); // Pi to 0
-                     const baseX = p.x + Math.cos(angle) * rW;
-                     const baseY = (headY - rH*0.2) - Math.sin(angle) * rH * 0.8;
+                     // Interpolate from left to right over top (tighter arc)
+                     const angle = Math.PI * (0.9 - t * 0.8); // 0.9 PI to 0.1 PI (Not full 180 to keep sides distinct)
+                     const baseX = p.x + Math.cos(angle) * (rW * 0.95);
+                     const baseY = (headY - rH*0.3) - Math.sin(angle) * (rH * 0.7);
 
-                     // Add deterministic zig-zag texture
-                     const zig = (i%2 === 0) ? -2*s : 2*s;
+                     // Micro zig-zag for buzz cut texture
+                     const zig = (i%2 === 0) ? -1.5*s : 1.5*s;
                      if(i===0) ctx.lineTo(baseX, baseY);
                      else ctx.lineTo(baseX, baseY + zig);
                  }
 
-                 ctx.lineTo(p.x + headRadius * 0.95, headY + 2*s);
-                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.95, headY + 2*s);
+                 // Right Sideburn
+                 ctx.lineTo(p.x + headRadius * 0.85, headY);
+
+                 // Fade / Neckline - Taper INWARDS sharply to simulate fade
+                 // Instead of rounding out, we cut in towards the neck/ears
+                 // Right side taper
+                 ctx.quadraticCurveTo(p.x + headRadius * 0.9, headY + 3*s, p.x + headRadius * 0.6, headY + 2*s);
+                 // Neckline (Higher and flatter)
+                 ctx.quadraticCurveTo(p.x, headY + 3*s, p.x - headRadius * 0.6, headY + 2*s);
+                 // Left side taper
+                 ctx.quadraticCurveTo(p.x - headRadius * 0.9, headY + 3*s, p.x - headRadius * 0.85, headY);
+
                  ctx.fill();
 
-                 // Static Internal Texture Pattern (Grid of tiny crescents)
-                 ctx.fillStyle = adjustColor(hairColor, -30);
-                 const rows = 5;
-                 const cols = 8;
+                 // Static Internal Texture Pattern (Stubble/Pores)
+                 // Use tiny dots instead of crescents for "shaved" look
+                 ctx.fillStyle = adjustColor(hairColor, -40); // Darker pores
+                 const rows = 6;
+                 const cols = 10;
                  for(let r=0; r<rows; r++) {
                      for(let c=0; c<cols; c++) {
-                         // Distribute crescents
-                         const cx = (p.x - rW*0.7) + (c/cols) * rW * 1.4;
-                         const cy = (headY - rH*0.9) + (r/rows) * rH * 0.8;
+                         // Tighter grid
+                         const cx = (p.x - rW*0.6) + (c/cols) * rW * 1.2;
+                         const cy = (headY - rH*0.8) + (r/rows) * rH * 0.6;
 
-                         // Offset rows for natural look
-                         const offsetX = (r%2) * (rW*0.1);
+                         const offsetX = (r%2) * (rW*0.05);
 
-                         // Check bounds (simple oval check)
+                         // Strict bounds check to keep texture on top/scalp
                          const dx = (cx + offsetX) - p.x;
-                         const dy = cy - (headY - rH*0.2);
-                         if ((dx*dx)/(rW*rW) + (dy*dy)/(rH*rH) < 0.8) {
+                         const dy = cy - (headY - rH*0.4);
+                         if ((dx*dx)/(rW*0.7*rW*0.7) + (dy*dy)/(rH*0.6*rH*0.6) < 0.9) {
                              ctx.beginPath();
-                             ctx.arc(cx + offsetX, cy, 1.5*s, 0, Math.PI);
+                             ctx.arc(cx + offsetX, cy, 0.8*s, 0, Math.PI*2); // Tiny dot
                              ctx.fill();
                          }
                      }
