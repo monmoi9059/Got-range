@@ -7101,13 +7101,20 @@ let lastDisplayedContestTime = -1;
 
             // Helper for 3D Shading
             const adjustColor = (color, percent) => {
-                if (!color || !color.startsWith('#')) return color;
-                const num = parseInt(color.replace('#',''), 16);
-                const amt = Math.round(2.55 * percent);
-                const R = (num >> 16) + amt;
-                const G = (num >> 8 & 0x00FF) + amt;
-                const B = (num & 0x0000FF) + amt;
-                return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+                if (!color) return color;
+                if (color.startsWith('#')) {
+                    let hex = color.replace('#', '');
+                    if (hex.length === 3) {
+                        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                    }
+                    const num = parseInt(hex, 16);
+                    const amt = Math.round(2.55 * percent);
+                    const R = (num >> 16) + amt;
+                    const G = (num >> 8 & 0x00FF) + amt;
+                    const B = (num & 0x0000FF) + amt;
+                    return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+                }
+                return color;
             };
 
             // Common Gradient Factory
@@ -7192,24 +7199,29 @@ let lastDisplayedContestTime = -1;
                  ctx.stroke();
             }
             else if(skinObj.hairStyle === 'curly') {
-                 const r = headRadius * 1.05;
+                 const r = headRadius * 1.02;
                  ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, r, hairColor);
 
                  ctx.beginPath();
                  ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
-                 ctx.lineTo(p.x + r, headY + 3*s);
-                 ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY + 3*s);
+                 ctx.lineTo(p.x + r, headY + 2*s);
+                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - r, headY + 2*s);
                  ctx.lineTo(p.x - r, headY - 2*s);
                  ctx.fill();
 
-                 const bumps = 12;
-                 for(let i=0; i<=bumps; i++) {
-                     const angle = Math.PI + (i/bumps) * Math.PI;
-                     const bx = p.x + Math.cos(angle) * r;
-                     const by = (headY - 2*s) + Math.sin(angle) * r;
+                 // Texture (Small random dots for curly look)
+                 ctx.fillStyle = adjustColor(hairColor, -15);
+                 const seedBase = (skinObj.id || 'def').split('').reduce((a,b)=>a+b.charCodeAt(0),0);
+                 for(let i=0; i<40; i++) {
+                     const seed = seedBase + i * 12345;
+                     const rnd1 = Math.abs(Math.sin(seed)) % 1;
+                     const rnd2 = Math.abs(Math.cos(seed * 0.5)) % 1;
 
-                     ctx.fillStyle = adjustColor(hairColor, (i%2===0 ? 20 : -10));
-                     ctx.beginPath(); ctx.arc(bx, by, 2.5*s, 0, Math.PI*2); ctx.fill();
+                     const angle = Math.PI + rnd1 * Math.PI;
+                     const dist = rnd2 * r * 0.9;
+                     const tx = p.x + Math.cos(angle) * dist;
+                     const ty = (headY - 2*s) + Math.sin(angle) * dist;
+                     ctx.beginPath(); ctx.arc(tx, ty, 1.2*s, 0, Math.PI*2); ctx.fill();
                  }
             }
             else if(skinObj.hairStyle === 'bald') {
