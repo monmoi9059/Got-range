@@ -7199,29 +7199,48 @@ let lastDisplayedContestTime = -1;
                  ctx.stroke();
             }
             else if(skinObj.hairStyle === 'curly') {
-                 const r = headRadius * 1.02;
-                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, r, hairColor);
+                 // Grown out look (John Wall): Taller top, tighter sides, less round
+                 const r = headRadius * 1.1; // Slightly wider for volume on top
+                 const topH = headRadius * 1.35; // Taller top
+
+                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - 5*s, r, hairColor);
 
                  ctx.beginPath();
-                 ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
-                 ctx.lineTo(p.x + r, headY + 2*s);
-                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - r, headY + 2*s);
-                 ctx.lineTo(p.x - r, headY - 2*s);
+                 // Start left side (near ear top)
+                 ctx.moveTo(p.x - headRadius * 0.9, headY);
+                 // Curve up to top-left corner (boxy round)
+                 // cp1 pulls out slightly, cp2 pulls up to flat top corner
+                 ctx.bezierCurveTo(p.x - headRadius * 1.05, headY - topH * 0.6, p.x - headRadius * 0.6, headY - topH, p.x, headY - topH);
+                 // Curve down to right side
+                 ctx.bezierCurveTo(p.x + headRadius * 0.6, headY - topH, p.x + headRadius * 1.05, headY - topH * 0.6, p.x + headRadius * 0.9, headY);
+
+                 // Neckline (Fade - tighter than before)
+                 ctx.lineTo(p.x + headRadius * 0.9, headY + 2*s);
+                 // Curve bottom neckline
+                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.9, headY + 2*s);
+                 ctx.closePath();
                  ctx.fill();
 
-                 // Texture (Small random dots for curly look)
+                 // Texture (Denser for nappy look)
                  ctx.fillStyle = adjustColor(hairColor, -15);
                  const seedBase = (skinObj.id || 'def').split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-                 for(let i=0; i<40; i++) {
+                 const textureCount = 65;
+                 for(let i=0; i<textureCount; i++) {
                      const seed = seedBase + i * 12345;
-                     const rnd1 = Math.abs(Math.sin(seed)) % 1;
-                     const rnd2 = Math.abs(Math.cos(seed * 0.5)) % 1;
 
-                     const angle = Math.PI + rnd1 * Math.PI;
-                     const dist = rnd2 * r * 0.9;
-                     const tx = p.x + Math.cos(angle) * dist;
-                     const ty = (headY - 2*s) + Math.sin(angle) * dist;
-                     ctx.beginPath(); ctx.arc(tx, ty, 1.2*s, 0, Math.PI*2); ctx.fill();
+                     // Distributed mostly on top half but within the new shape (approx)
+                     const rndX = (Math.abs(Math.sin(seed * 1.1)) - 0.5) * 2; // -1 to 1
+                     const rndY = (Math.abs(Math.cos(seed * 0.7)) - 0.5) * 2; // -1 to 1
+
+                     // Bias towards top
+                     const tx = p.x + rndX * headRadius * 0.85;
+                     const ty = headY - 2*s + rndY * headRadius * 0.8;
+
+                     // Simple bounds check to keep texture inside roughly
+                     if (ty < headY + 2*s && ty > headY - topH * 0.9) {
+                         const size = (Math.abs(Math.sin(seed*3)) * 1.5 + 0.5) * s;
+                         ctx.beginPath(); ctx.arc(tx, ty, size, 0, Math.PI*2); ctx.fill();
+                     }
                  }
             }
             else if(skinObj.hairStyle === 'bald') {
