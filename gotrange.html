@@ -7310,11 +7310,9 @@ let lastDisplayedContestTime = -1;
                  ctx.stroke();
             }
             else if(skinObj.hairStyle === 'curly') {
-                 // "4 inch long haircut... verge of small afro"
-                 // Rounder shape with volume, no dots, clean vector fade.
-
-                 const rW = headRadius * 1.15; // Width (slightly wider than head for afro volume)
-                 const rH = headRadius * 1.4;  // Height (tall enough for 4 inches)
+                 // "Very short afro" - Tighter, closer to head, textured look
+                 const rW = headRadius * 1.05; // Slightly wider than head
+                 const rH = headRadius * 1.1;  // Short height
 
                  // Gradient for 3D depth
                  ctx.fillStyle = createHairGradient(ctx, p.x, headY - rH * 0.5, rW, hairColor);
@@ -7323,28 +7321,38 @@ let lastDisplayedContestTime = -1;
                  // Start at left neckline/ear bottom
                  ctx.moveTo(p.x - headRadius * 0.9, headY + 2*s);
 
-                 // Left Side (Taper up into Afro)
+                 // Left Side (Vertical tight fade)
                  ctx.quadraticCurveTo(
                      p.x - rW, headY,
                      p.x - rW, headY - rH * 0.4
                  );
 
-                 // Top (Round Dome - Mini Afro)
+                 // Top (Flat-ish Dome)
                  ctx.bezierCurveTo(
-                     p.x - rW, headY - rH * 1.1,
-                     p.x + rW, headY - rH * 1.1,
+                     p.x - rW, headY - rH * 1.0,
+                     p.x + rW, headY - rH * 1.0,
                      p.x + rW, headY - rH * 0.4
                  );
 
-                 // Right Side (Taper down)
+                 // Right Side
                  ctx.quadraticCurveTo(
                      p.x + rW, headY,
                      p.x + headRadius * 0.9, headY + 2*s
                  );
 
-                 // Neckline (Curved)
+                 // Neckline
                  ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.9, headY + 2*s);
                  ctx.fill();
+
+                 // Texture (Stippling/Curls)
+                 ctx.fillStyle = "rgba(0,0,0,0.2)";
+                 for(let i=0; i<15; i++) {
+                     const tx = p.x + (Math.random()-0.5) * rW * 1.5;
+                     const ty = headY - rH * 0.5 + (Math.random()-0.5) * rH * 0.8;
+                     if (Math.abs(tx - p.x) < rW && ty < headY) {
+                        ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
             }
             else if(skinObj.hairStyle === 'bald') {
                  if (hairColor && hairColor !== '#000' && hairColor !== skinTone) {
