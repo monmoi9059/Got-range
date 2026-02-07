@@ -6707,8 +6707,19 @@ let lastDisplayedContestTime = -1;
 
              ctx.fillStyle = fadeGrad;
              ctx.beginPath();
-             // Top Dome
-             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
+
+             // Textured Top (Subtle bumps for buzz cut)
+             const numBumps = 30; // More bumps = smoother/tighter for straight hair
+             for(let i=0; i<=numBumps; i++) {
+                 const angle = Math.PI + (i / numBumps) * Math.PI;
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = r + (rnd * 0.8 * s); // Smaller variation than curly
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
+                 if (i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
+
              // Tapered sides
              ctx.lineTo(p.x + r, headY + 3*s);
              ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.6, headY + 8*s); // Sideburn curve in
@@ -6717,50 +6728,17 @@ let lastDisplayedContestTime = -1;
              ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
              ctx.lineTo(p.x - r, headY - 2*s);
              ctx.fill();
-             return;
-        }
 
-        if (style === 'short_curly') {
-             // Textured Fade (Curry/Giannis)
-             const r = headRadius * 1.05;
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
-             fadeGrad.addColorStop(0, hairColor);
-             fadeGrad.addColorStop(0.6, hairColor);
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-
-             ctx.fillStyle = fadeGrad;
-
-             // Draw base shape with bumpy perimeter
-             ctx.beginPath();
-             const numBumps = 18;
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = Math.PI + (i / numBumps) * Math.PI; // Top arc
-                 // Add noise to radius (Seeded)
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = r + (rnd * 2 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
-                 if (i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
-             }
-             // Tapered sides & Neckline
-             ctx.lineTo(p.x + r, headY + 3*s);
-             ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.7, headY + 8*s);
-             ctx.quadraticCurveTo(p.x, headY + 9.5*s, p.x - r * 0.7, headY + 8*s); // Deep round neckline
-             ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
-             ctx.lineTo(p.x - r, headY - 2*s);
-             ctx.fill();
-
-             // Internal Texture (Curls)
-             ctx.fillStyle = adjustColor(hairColor, 20); // Highlights
-             for(let i=0; i<15; i++) {
-                 const rnd1 = seededRandom(baseSeed + 100 + i);
-                 const rnd2 = seededRandom(baseSeed + 200 + i);
-
-                 const tx = p.x + (rnd1-0.5) * r * 1.5;
-                 const ty = headY - 2*s + (rnd2-0.5) * r;
+             // Internal Texture (Stubble Dots)
+             ctx.fillStyle = adjustColor(hairColor, 15);
+             for(let i=0; i<40; i++) { // Dense stubble
+                 const rnd1 = seededRandom(baseSeed + 300 + i);
+                 const rnd2 = seededRandom(baseSeed + 400 + i);
+                 const tx = p.x + (rnd1-0.5) * r * 1.8;
+                 const ty = headY - 2*s + (rnd2-0.5) * r * 1.2;
+                 // Clip circle check
                  if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < r) {
-                     ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     ctx.beginPath(); ctx.arc(tx, ty, 0.8*s, 0, Math.PI*2); ctx.fill();
                  }
              }
              return;
@@ -6771,18 +6749,34 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, afroR, hairColor);
 
              ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, afroR * 0.85, 0, Math.PI*2);
-             // Detailed Bumps
-             const numBumps = 20;
-             for(let i=0; i<numBumps; i++) {
-                 const angle = (i / numBumps) * Math.PI * 2;
-                 const cx = p.x + Math.cos(angle) * (afroR * 0.9);
-                 const cy = (headY - 2*s) + Math.sin(angle) * (afroR * 0.9);
+             // Textured Perimeter
+             const numBumps = 24;
+             for(let i=0; i<=numBumps; i++) {
+                 const angle = (i / numBumps) * Math.PI * 2; // Full circle
+                 const rnd = seededRandom(baseSeed + i);
                  const bumpR = afroR * 0.2;
-                 ctx.moveTo(cx + bumpR, cy);
+                 const nr = (afroR * 0.9) + (rnd * 2 * s);
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
+
+                 // Draw arc for bump
+                 // Simplified: Just move to and arc
+                 if (i===0) ctx.moveTo(cx + bumpR, cy);
                  ctx.arc(cx, cy, bumpR, 0, Math.PI*2);
              }
              ctx.fill();
+
+             // Internal Texture (Tight Curls)
+             ctx.fillStyle = adjustColor(hairColor, -15); // Darker pockets
+             for(let i=0; i<25; i++) {
+                 const rnd1 = seededRandom(baseSeed + 500 + i);
+                 const rnd2 = seededRandom(baseSeed + 600 + i);
+                 const tx = p.x + (rnd1-0.5) * afroR * 1.5;
+                 const ty = headY - 2*s + (rnd2-0.5) * afroR * 1.5;
+                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < afroR * 0.8) {
+                     ctx.beginPath(); ctx.arc(tx, ty, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 }
+             }
              return;
         }
 
@@ -6827,36 +6821,35 @@ let lastDisplayedContestTime = -1;
                  ctx.lineWidth = braidWidth;
                  ctx.beginPath(); ctx.moveTo(startX, startY); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY); ctx.stroke();
 
-                 // Braid Texture (Pattern)
-                 ctx.setLineDash([2*s, 2*s]);
-                 ctx.strokeStyle = adjustColor(hairColor, 30);
-                 ctx.lineWidth = 1.5 * s;
-                 ctx.beginPath(); ctx.moveTo(startX, startY); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY); ctx.stroke();
-                 ctx.setLineDash([]);
+                 // Braid Texture (Pattern - Bumpy Lines)
+                 // Use loops of dots instead of dashed line for more organic look
+                 ctx.fillStyle = adjustColor(hairColor, 30); // Highlight
+                 const steps = 10;
+                 for(let j=0; j<=steps; j++) {
+                     const tt = j/steps;
+                     // Bezier point math
+                     const inv = 1 - tt;
+                     const bx = inv*inv*inv*startX + 3*inv*inv*tt*cp1x + 3*inv*tt*tt*cp2x + tt*tt*tt*endX;
+                     const by = inv*inv*inv*startY + 3*inv*inv*tt*cp1y + 3*inv*tt*tt*cp2y + tt*tt*tt*endY;
+
+                     // Zigzag offset?
+                     const offset = (j%2 === 0) ? -1 : 1;
+                     // Simple highlight dot
+                     ctx.beginPath(); ctx.arc(bx, by, 1*s, 0, Math.PI*2); ctx.fill();
+                 }
              }
              return;
         }
 
-        if (style === 'curly') {
-             // Loose curls / small afro (Magic Johnson style)
-             const rW = headRadius * 1.2;
-             const rH = headRadius * 1.3;
-
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY - rH * 0.3, rW, hairColor);
-
-             ctx.beginPath();
-             // Shape: Rounded square-ish but soft
-             ctx.moveTo(p.x - headRadius, headY + 2*s);
-             ctx.quadraticCurveTo(p.x - rW, headY, p.x - rW, headY - rH * 0.5);
-             ctx.bezierCurveTo(p.x - rW, headY - rH * 1.2, p.x + rW, headY - rH * 1.2, p.x + rW, headY - rH * 0.5);
-             ctx.quadraticCurveTo(p.x + rW, headY, p.x + headRadius, headY + 2*s);
-             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - headRadius, headY + 2*s);
-             ctx.fill();
-             return;
-        }
-
         if (style === 'mohawk') {
-             // Shaved sides (Skin tone/Fade) already drawn by head
+             // Shaved sides (Fade) - Draw fading scalp first
+             const r = headRadius * 1.0;
+             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
+             fadeGrad.addColorStop(0, adjustColor(skinObj.skinTone, -10));
+             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+             ctx.fillStyle = fadeGrad;
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
+
              // Draw Central Strip
              const stripW = 8 * s;
              const stripTopY = headY - headRadius * 1.4;
@@ -6869,14 +6862,31 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = grad;
 
              ctx.beginPath();
-             ctx.moveTo(p.x - stripW/2, stripBotY);
-             ctx.lineTo(p.x - stripW/2, stripTopY);
-             // Rounded top
-             ctx.arc(p.x, stripTopY, stripW/2, Math.PI, 0);
+             // Top Texture
+             const numSpikes = 10;
+             for(let i=0; i<=numSpikes; i++) {
+                 const angle = Math.PI + (i/numSpikes)*Math.PI; // Top arc
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = (stripW/2) + (rnd * 2 * s);
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = stripTopY + Math.sin(angle) * (stripW/4); // Flattened top
+                 if(i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
              ctx.lineTo(p.x + stripW/2, stripBotY);
              // Rounded bottom
              ctx.arc(p.x, stripBotY, stripW/2, 0, Math.PI);
+             ctx.lineTo(p.x - stripW/2, stripTopY); // Close loop
              ctx.fill();
+
+             // Internal Texture
+             ctx.fillStyle = adjustColor(hairColor, 20);
+             for(let i=0; i<10; i++) {
+                 const rnd = seededRandom(baseSeed + 700 + i);
+                 const tx = p.x + (rnd-0.5) * stripW;
+                 const ty = stripTopY + (seededRandom(baseSeed+800+i) * (stripBotY - stripTopY));
+                 ctx.beginPath(); ctx.arc(tx, ty, 1*s, 0, Math.PI*2); ctx.fill();
+             }
              return;
         }
 
@@ -6891,14 +6901,39 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = grad;
 
              ctx.beginPath();
-             ctx.moveTo(p.x - w, headY);
-             ctx.lineTo(p.x - w, headY + len); // Left side down
-             // Bottom edge
-             ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x + w, headY + len);
-             ctx.lineTo(p.x + w, headY); // Right side up
-             // Top arc
-             ctx.arc(p.x, headY, w, 0, Math.PI, true);
+             // Texture Top
+             const numStrands = 20;
+             for(let i=0; i<=numStrands; i++) {
+                 const angle = Math.PI + (i/numStrands)*Math.PI;
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = w + (rnd * 1 * s);
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = headY + Math.sin(angle) * nr * 0.3; // Flat oval top
+                 if(i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
+
+             ctx.lineTo(p.x + w, headY + len); // Right side down
+             // Bottom edge (Ragged)
+             for(let i=0; i<=10; i++) {
+                 const t = i/10;
+                 const tx = (p.x + w)*(1-t) + (p.x - w)*t;
+                 const ty = headY + len + (seededRandom(baseSeed+900+i)*4*s);
+                 ctx.lineTo(tx, ty);
+             }
+             ctx.lineTo(p.x - w, headY); // Left side up
              ctx.fill();
+
+             // Strand lines
+             ctx.strokeStyle = adjustColor(hairColor, -30);
+             ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             for(let i=0; i<5; i++) {
+                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.5;
+                 ctx.moveTo(x, headY);
+                 ctx.lineTo(x, headY + len);
+             }
+             ctx.stroke();
              return;
         }
 
@@ -6910,16 +6945,35 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = createHairGradient(ctx, p.x, headY, w, hairColor);
 
              ctx.beginPath();
-             ctx.moveTo(p.x - headRadius, headY - headRadius);
-             // Top
-             ctx.bezierCurveTo(p.x - w, headY - headRadius*1.5, p.x + w, headY - headRadius*1.5, p.x + headRadius, headY - headRadius);
+             // Top Bumps
+             const numBumps = 15;
+             for(let i=0; i<=numBumps; i++) {
+                 const angle = Math.PI + (i/numBumps)*Math.PI;
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = w + (rnd * 3 * s);
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = headY + Math.sin(angle) * nr * 0.5;
+                 if(i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
+
              // Right Side (Wavy)
              ctx.bezierCurveTo(p.x + w*1.2, headY, p.x + w*0.8, headY + len/2, p.x + w, headY + len);
              // Bottom
              ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x - w, headY + len);
              // Left Side (Wavy)
-             ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - headRadius, headY - headRadius);
+             ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - w, headY); // Connect back to start roughly
              ctx.fill();
+
+             // Internal Curls
+             ctx.strokeStyle = adjustColor(hairColor, -20);
+             ctx.lineWidth = 1.5*s;
+             for(let i=0; i<8; i++) {
+                 const rndX = seededRandom(baseSeed + 1100 + i);
+                 const cx = p.x + (rndX-0.5)*w*1.5;
+                 const cy = headY + (seededRandom(baseSeed+1200+i)*len);
+                 ctx.beginPath(); ctx.arc(cx, cy, 3*s, 0, Math.PI*2); ctx.stroke();
+             }
              return;
         }
 
