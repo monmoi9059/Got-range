@@ -7654,11 +7654,45 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
         }
+        drawMeterCommon(p, s, sizeMod);
     }
 
 
     let g_cachedSkinId = null;
     let g_cachedSkinObj = null;
+
+    function drawMeterCommon(p, s, sizeMod) {
+        if (state === 'JUMPING' || state === 'PRE_JUMP') {
+            const style = getCurrentStyle();
+            let baseMaxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
+            if (baseMaxVz <= 0.5) baseMaxVz = 9;
+
+            const boost = 0.5 * 0.10 * 60;
+            const adjustedMaxVz = baseMaxVz + boost;
+
+            const curVz = getCurrentVz();
+            const targetVz = getReleaseTargetVz(baseMaxVz);
+            const dist = adjustedMaxVz - targetVz;
+
+            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
+            progress = Math.max(0, Math.min(1, progress));
+
+            const groundY = p.y + (player3D.z * s);
+            const meterY = groundY - (130 * s * sizeMod.h);
+            const cx = p.x + (60 * s); const radius = 50 * s;
+
+            const thresh = calculateShotThreshold();
+            const greenWidth = thresh / dist;
+
+            let gStart = 1.0 - greenWidth;
+            let gEnd = 1.0;
+            gStart = Math.max(0, gStart);
+
+            if (playerData.meterEnabled) {
+                drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
+            }
+        }
+    }
 
     function drawPlayer(p) {
         if (!p) return;
@@ -9216,39 +9250,7 @@ let lastDisplayedContestTime = -1;
         }
 
         // 10. Shot Meter (Layer 6)
-        if (state === 'JUMPING' || state === 'PRE_JUMP') {
-            const style = getCurrentStyle();
-            let baseMaxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
-            if (baseMaxVz <= 0.5) baseMaxVz = 9;
-
-            // Adjust maxVz to include the pre-jump "virtual velocity" boost
-            const boost = 0.5 * 0.10 * 60;
-            const adjustedMaxVz = baseMaxVz + boost;
-
-            const curVz = getCurrentVz();
-            const targetVz = getReleaseTargetVz(baseMaxVz);
-            const dist = adjustedMaxVz - targetVz;
-
-            // Reversal Logic: Fill to target (1.0), then empty
-            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
-            progress = Math.max(0, Math.min(1, progress));
-
-            const groundY = p.y + (player3D.z * s);
-            const meterY = groundY - (130 * s * sizeMod.h);
-            const cx = p.x + (60 * s); const radius = 50 * s;
-
-            const thresh = calculateShotThreshold();
-            const greenWidth = thresh / dist;
-
-            // Green zone at the top (100%)
-            let gStart = 1.0 - greenWidth;
-            let gEnd = 1.0;
-            gStart = Math.max(0, gStart);
-
-            if (playerData.meterEnabled) {
-                drawShotMeter(cx, meterY, radius * (playerData.meterScale || 1.0), s, progress, gStart, playerData.meterShape || 'arc', gEnd);
-            }
-        }
+        drawMeterCommon(p, s, sizeMod);
     }
     function getProjectedY(gDist, currentDist, horizonY) {
         if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
