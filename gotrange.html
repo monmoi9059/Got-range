@@ -6670,20 +6670,21 @@ let lastDisplayedContestTime = -1;
              // Modern Fade: Sharp top, faded sides/back
              const r = headRadius * 1.02;
              // Vertical Gradient for fade
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
+             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
              fadeGrad.addColorStop(0, hairColor);
-             fadeGrad.addColorStop(0.6, hairColor);
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade to transparent (shows skin underneath)
+             fadeGrad.addColorStop(0.5, hairColor);
+             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade to transparent
 
              ctx.fillStyle = fadeGrad;
              ctx.beginPath();
              // Top Dome
              ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
-             // Boxy sides for fade look
-             ctx.lineTo(p.x + r, headY + 2*s);
-             ctx.lineTo(p.x + r, headY + 5*s); // Sideburn area
-             // Neckline - Square or Curved? Fade usually implies soft edge
-             ctx.quadraticCurveTo(p.x, headY + 6*s, p.x - r, headY + 5*s);
+             // Tapered sides
+             ctx.lineTo(p.x + r, headY + 3*s);
+             ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.6, headY + 8*s); // Sideburn curve in
+             // Neckline - Lowered and Rounded (Natural "U")
+             ctx.quadraticCurveTo(p.x, headY + 9*s, p.x - r * 0.6, headY + 8*s);
+             ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
              ctx.lineTo(p.x - r, headY - 2*s);
              ctx.fill();
              return;
@@ -6692,9 +6693,9 @@ let lastDisplayedContestTime = -1;
         if (style === 'short_curly') {
              // Textured Fade (Curry/Giannis)
              const r = headRadius * 1.05;
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
+             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
              fadeGrad.addColorStop(0, hairColor);
-             fadeGrad.addColorStop(0.7, hairColor);
+             fadeGrad.addColorStop(0.6, hairColor);
              fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
              ctx.fillStyle = fadeGrad;
@@ -6712,9 +6713,11 @@ let lastDisplayedContestTime = -1;
                  if (i===0) ctx.moveTo(cx, cy);
                  else ctx.lineTo(cx, cy);
              }
-             // Sides down
-             ctx.lineTo(p.x + r, headY + 5*s);
-             ctx.quadraticCurveTo(p.x, headY + 6*s, p.x - r, headY + 5*s);
+             // Tapered sides & Neckline
+             ctx.lineTo(p.x + r, headY + 3*s);
+             ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.7, headY + 8*s);
+             ctx.quadraticCurveTo(p.x, headY + 9.5*s, p.x - r * 0.7, headY + 8*s); // Deep round neckline
+             ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
              ctx.lineTo(p.x - r, headY - 2*s);
              ctx.fill();
 
