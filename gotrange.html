@@ -7242,20 +7242,50 @@ let lastDisplayedContestTime = -1;
             }
             else             if(skinObj.hairStyle === 'afro') {
                  const afroR = headRadius * 1.5;
-                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, afroR, hairColor);
+                 const centerY = headY - 2*s;
 
+                 // Main volume gradient
+                 ctx.fillStyle = createHairGradient(ctx, p.x, centerY, afroR, hairColor);
+
+                 // Draw main irregular mass
                  ctx.beginPath();
-                 ctx.arc(p.x, headY - 2*s, afroR * 0.8, 0, Math.PI*2);
-                 const numBumps = 12;
+                 ctx.arc(p.x, centerY, afroR * 0.85, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Draw "puffs" to create realistic cartoony texture
+                 // Multiple layers of small circles
+                 const puffCount = 30;
+                 const baseColor = hairColor;
+                 const shadowColor = adjustColor(hairColor, -15);
+
+                 for(let i=0; i<puffCount; i++) {
+                     // Randomized positions within volume
+                     const angle = Math.random() * Math.PI * 2;
+                     const dist = Math.random() * (afroR * 0.95);
+                     const puffX = p.x + Math.cos(angle) * dist;
+                     const puffY = centerY + Math.sin(angle) * dist;
+                     const puffR = (afroR * 0.2) + Math.random() * (afroR * 0.15);
+
+                     ctx.beginPath();
+                     ctx.arc(puffX, puffY, puffR, 0, Math.PI*2);
+
+                     // Slight shading variation for depth
+                     ctx.fillStyle = (Math.random() > 0.5) ? baseColor : shadowColor;
+                     ctx.fill();
+                 }
+
+                 // Outline puffs (Silhouette)
+                 const numBumps = 16;
+                 ctx.fillStyle = baseColor;
                  for(let i=0; i<numBumps; i++) {
                      const angle = (i / numBumps) * Math.PI * 2;
                      const cx = p.x + Math.cos(angle) * (afroR * 0.9);
-                     const cy = (headY - 2*s) + Math.sin(angle) * (afroR * 0.9);
+                     const cy = centerY + Math.sin(angle) * (afroR * 0.9);
                      const bumpR = afroR * 0.25;
-                     ctx.moveTo(cx + bumpR, cy);
+                     ctx.beginPath();
                      ctx.arc(cx, cy, bumpR, 0, Math.PI*2);
+                     ctx.fill();
                  }
-                 ctx.fill();
             }
             else if(skinObj.hairStyle === 'cornrows') {
                  const numRows = 7;
@@ -7310,47 +7340,39 @@ let lastDisplayedContestTime = -1;
                  ctx.stroke();
             }
             else if(skinObj.hairStyle === 'curly') {
-                 // "Very short afro" - Tighter, closer to head, textured look
-                 const rW = headRadius * 1.05; // Slightly wider than head
-                 const rH = headRadius * 1.1;  // Short height
+                 // Short Curly / Buzz with texture (John Wall style)
+                 // More realistic fade and cartoony coil texture
+                 const rW = headRadius * 1.05;
+                 const rH = headRadius * 1.05; // Very short
 
-                 // Gradient for 3D depth
-                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - rH * 0.5, rW, hairColor);
-
+                 // Base shape (Fade cut)
+                 ctx.fillStyle = hairColor;
                  ctx.beginPath();
-                 // Start at left neckline/ear bottom
-                 ctx.moveTo(p.x - headRadius * 0.9, headY + 2*s);
-
-                 // Left Side (Vertical tight fade)
-                 ctx.quadraticCurveTo(
-                     p.x - rW, headY,
-                     p.x - rW, headY - rH * 0.4
-                 );
-
-                 // Top (Flat-ish Dome)
-                 ctx.bezierCurveTo(
-                     p.x - rW, headY - rH * 1.0,
-                     p.x + rW, headY - rH * 1.0,
-                     p.x + rW, headY - rH * 0.4
-                 );
-
-                 // Right Side
-                 ctx.quadraticCurveTo(
-                     p.x + rW, headY,
-                     p.x + headRadius * 0.9, headY + 2*s
-                 );
-
-                 // Neckline
-                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.9, headY + 2*s);
+                 ctx.moveTo(p.x - headRadius * 0.95, headY + 2*s);
+                 ctx.lineTo(p.x - rW, headY - rH * 0.5); // Sharp side
+                 ctx.quadraticCurveTo(p.x, headY - rH * 1.1, p.x + rW, headY - rH * 0.5); // Top dome
+                 ctx.lineTo(p.x + headRadius * 0.95, headY + 2*s); // Sharp side
+                 ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.95, headY + 2*s); // Neck
                  ctx.fill();
 
-                 // Texture (Stippling/Curls)
-                 ctx.fillStyle = "rgba(0,0,0,0.2)";
-                 for(let i=0; i<15; i++) {
-                     const tx = p.x + (Math.random()-0.5) * rW * 1.5;
-                     const ty = headY - rH * 0.5 + (Math.random()-0.5) * rH * 0.8;
-                     if (Math.abs(tx - p.x) < rW && ty < headY) {
-                        ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
+                 // Detailed Coil Texture
+                 // Draw many tiny arcs/cs to simulate tight curls
+                 ctx.strokeStyle = adjustColor(hairColor, -30); // Darker curls
+                 ctx.lineWidth = 1.0 * s;
+                 const numCurls = 40;
+
+                 for(let i=0; i<numCurls; i++) {
+                     // Concentrated more on top
+                     const cx = p.x + (Math.random()-0.5) * rW * 1.8;
+                     const cy = headY - rH * 0.5 + (Math.random()-0.5) * rH * 0.9;
+
+                     // Clip to head shape roughly
+                     if (Math.abs(cx - p.x) < rW * 0.9 && cy < headY + s) {
+                         const r = 2.5 * s;
+                         const startA = Math.random() * Math.PI;
+                         ctx.beginPath();
+                         ctx.arc(cx, cy, r, startA, startA + Math.PI * 1.2);
+                         ctx.stroke();
                      }
                  }
             }
@@ -7409,18 +7431,41 @@ let lastDisplayedContestTime = -1;
                  ctx.beginPath(); ctx.moveTo(p.x - 12*s, headY - 5*s); ctx.lineTo(p.x - 15*s, headY + 15*s); ctx.lineTo(p.x + 15*s, headY + 15*s); ctx.lineTo(p.x + 12*s, headY - 5*s); ctx.arc(p.x, headY - 5*s, 12*s, 0, Math.PI, true); ctx.fill();
             }
             else if(skinObj.hairStyle === 'curly_long') {
+                 // Long Curly (Dirk/Bird style) - Flowing clusters
                  const r = headRadius * 1.2;
-                 ctx.fillStyle = createHairGradient(ctx, p.x, headY, r, hairColor);
 
+                 // Base volume behind head
+                 ctx.fillStyle = adjustColor(hairColor, -20);
                  ctx.beginPath();
-                 ctx.moveTo(p.x - headRadius * 1.2, headY);
-                 ctx.bezierCurveTo(p.x - headRadius * 1.5, headY - headRadius * 1.5, p.x - headRadius * 0.5, headY - headRadius * 1.8, p.x, headY - headRadius * 1.5);
-                 ctx.bezierCurveTo(p.x + headRadius * 0.5, headY - headRadius * 1.8, p.x + headRadius * 1.5, headY - headRadius * 1.5, p.x + headRadius * 1.2, headY);
-                 ctx.bezierCurveTo(p.x + headRadius * 1.6, headY + 10*s, p.x + headRadius * 1.2, headY + 20*s, p.x + headRadius * 0.8, headY + 15*s);
-                 ctx.quadraticCurveTo(p.x + headRadius * 0.4, headY + 18*s, p.x, headY + 15*s);
-                 ctx.quadraticCurveTo(p.x - headRadius * 0.4, headY + 18*s, p.x - headRadius * 0.8, headY + 15*s);
-                 ctx.bezierCurveTo(p.x - headRadius * 1.2, headY + 20*s, p.x - headRadius * 1.6, headY + 10*s, p.x - headRadius * 1.2, headY);
+                 ctx.arc(p.x, headY + 5*s, r * 1.1, 0, Math.PI*2);
                  ctx.fill();
+
+                 // Main hair shape
+                 ctx.fillStyle = hairColor;
+
+                 // Draw as clusters of circles/ovals for "curly" look
+                 const clusters = [
+                     // Top/Crown
+                     {x:0, y:-1.2, r: 0.9},
+                     // Sides
+                     {x:-1.1, y:-0.5, r: 0.6}, {x:1.1, y:-0.5, r: 0.6},
+                     {x:-1.2, y:0.2, r: 0.7}, {x:1.2, y:0.2, r: 0.7},
+                     // Bottom/Back flow
+                     {x:-0.8, y:1.0, r: 0.6}, {x:0.8, y:1.0, r: 0.6},
+                     {x:0, y:1.2, r: 0.7}
+                 ];
+
+                 clusters.forEach(c => {
+                     ctx.beginPath();
+                     ctx.arc(p.x + c.x*headRadius, headY + c.y*headRadius, c.r*headRadius, 0, Math.PI*2);
+                     ctx.fill();
+                     // Add highlight detail
+                     ctx.strokeStyle = adjustColor(hairColor, 20);
+                     ctx.lineWidth = 1*s;
+                     ctx.beginPath();
+                     ctx.arc(p.x + c.x*headRadius, headY + c.y*headRadius, c.r*headRadius*0.7, 4, 5.5);
+                     ctx.stroke();
+                 });
             }
             else if(skinObj.hairStyle === 'spikes') {
                  const baseGrad = createHairGradient(ctx, p.x, headY - 1*s, headRadius * 1.3, hairColor);
