@@ -6617,39 +6617,33 @@ let lastDisplayedContestTime = -1;
         return { uAngle: theta, fAngle: fAngle };
     }
 
-    // --- HAIR RENDERER HELPERS ---
-    function adjustColor(color, percent) {
-        if (!color) return color;
-        if (color.startsWith('#')) {
-            let hex = color.replace('#', '');
-            if (hex.length === 3) {
-                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-            }
-            const num = parseInt(hex, 16);
-            const amt = Math.round(2.55 * percent);
-            let R = (num >> 16) + amt;
-            let G = (num >> 8 & 0x00FF) + amt;
-            let B = (num & 0x0000FF) + amt;
-            R = (R<255)?((R<0)?0:R):255;
-            G = (G<255)?((G<0)?0:G):255;
-            B = (B<255)?((B<0)?0:B):255;
-            return '#' + (0x1000000 + R*0x10000 + G*0x100 + B).toString(16).slice(1);
+    // --- SEEDED RANDOM HELPER ---
+    // A simple hash function for strings to numbers
+    function stringToSeed(str) {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0; // Convert to 32bit integer
         }
-        return color;
+        return Math.abs(hash);
     }
 
-    function createHairGradient(ctx, x, y, r, color) {
-         if (!color || !color.startsWith('#')) return color;
-         const grad = ctx.createRadialGradient(x - r*0.3, y - r*0.3, r*0.1, x, y, r);
-         grad.addColorStop(0, adjustColor(color, 40));
-         grad.addColorStop(0.5, color);
-         grad.addColorStop(1, adjustColor(color, -20));
-         return grad;
+    function seededRandom(seed) {
+        var x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
     }
 
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         const style = skinObj.hairStyle;
+
+        // Derive a stable seed from the skin ID and render position (optional, but skin ID is best for static texture)
+        // If we use 'p.x', it might change slightly if camera pans? No, 'p' is screen coords.
+        // If the player moves, 'p' changes. If we seed on 'p', texture swims.
+        // We MUST seed on something stable like skinObj.id + sub-index.
+        let baseSeed = stringToSeed(skinObj.id || 'default');
 
         // Common base for most styles (scalp coverage)
         // Note: 'p.x' is center X. 'headY' is center Y of skull.
@@ -6710,8 +6704,9 @@ let lastDisplayedContestTime = -1;
              const numBumps = 18;
              for(let i=0; i<=numBumps; i++) {
                  const angle = Math.PI + (i / numBumps) * Math.PI; // Top arc
-                 // Add noise to radius
-                 const nr = r + (Math.random() * 2 * s);
+                 // Add noise to radius (Seeded)
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = r + (rnd * 2 * s);
                  const cx = p.x + Math.cos(angle) * nr;
                  const cy = (headY - 2*s) + Math.sin(angle) * nr;
                  if (i===0) ctx.moveTo(cx, cy);
@@ -6726,8 +6721,11 @@ let lastDisplayedContestTime = -1;
              // Internal Texture (Curls)
              ctx.fillStyle = adjustColor(hairColor, 20); // Highlights
              for(let i=0; i<15; i++) {
-                 const tx = p.x + (Math.random()-0.5) * r * 1.5;
-                 const ty = headY - 2*s + (Math.random()-0.5) * r;
+                 const rnd1 = seededRandom(baseSeed + 100 + i);
+                 const rnd2 = seededRandom(baseSeed + 200 + i);
+
+                 const tx = p.x + (rnd1-0.5) * r * 1.5;
+                 const ty = headY - 2*s + (rnd2-0.5) * r;
                  if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < r) {
                      ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
                  }
@@ -6846,13 +6844,6 @@ let lastDisplayedContestTime = -1;
              // Rounded bottom
              ctx.arc(p.x, stripBotY, stripW/2, 0, Math.PI);
              ctx.fill();
-
-             // Texture (Spikes on top?)
-             if (skinObj.id === 'human_harden' || skinObj.id.includes('harden')) {
-                 // Harden's Mohawk is flatter/wider
-                 // Add beard sideburns connecting?
-                 // Back view: Mohawk strip connects to neck.
-             }
              return;
         }
 
@@ -6963,13 +6954,18 @@ let lastDisplayedContestTime = -1;
              ctx.lineCap = 'round';
              const numSnakes = 8;
              for(let i=0; i<numSnakes; i++) {
+                 // Static snakes!
+                 const rndAngle = seededRandom(baseSeed + i*10);
+                 const rndCp1 = seededRandom(baseSeed + i*10 + 1);
+                 const rndCp2 = seededRandom(baseSeed + i*10 + 2);
+
                  const angle = Math.PI + (i / (numSnakes-1)) * Math.PI;
                  const sx = p.x + Math.cos(angle) * 8*s;
                  const sy = (headY - 5*s) + Math.sin(angle) * 8*s;
 
-                 const cp1x = sx + Math.cos(angle) * 10*s + Math.random()*5*s;
+                 const cp1x = sx + Math.cos(angle) * 10*s + rndCp1*5*s;
                  const cp1y = sy + Math.sin(angle) * 10*s;
-                 const cp2x = sx + Math.cos(angle) * 20*s - Math.random()*5*s;
+                 const cp2x = sx + Math.cos(angle) * 20*s - rndCp2*5*s;
                  const cp2y = sy + Math.sin(angle) * 20*s;
                  const ex = sx + Math.cos(angle) * 25*s;
                  const ey = sy + Math.sin(angle) * 25*s;
@@ -6996,6 +6992,7 @@ let lastDisplayedContestTime = -1;
              ctx.fill();
         }
     }
+
 
     function drawRealisticHuman(p, s, skinObj) {
         const isMechanical = isMechanicalSkin(skinObj.id);
