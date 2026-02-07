@@ -20,18 +20,26 @@ def run():
 
         page.wait_for_timeout(1000)
 
-        # 1. Verify Curly (Simple) - John Wall
-        print("Capturing Simple Curly...")
-        page.evaluate("playerData.currentSkin = 'human_wall';")
+        # Set graphics to HIGH for best hair rendering
         page.evaluate("playerData.graphics = 'HIGH';")
-        page.wait_for_timeout(1000)
-        page.screenshot(path="verification_curly_simple.png")
 
-        # 2. Verify Straight (Simple) - Larry Bird
-        print("Capturing Simple Straight...")
-        page.evaluate("playerData.currentSkin = 'human_bird';")
-        page.wait_for_timeout(1000)
-        page.screenshot(path="verification_straight_simple.png")
+        skins_to_test = [
+            ('human_wall', 'Wall_Short_Fade'),
+            ('human_curry', 'Curry_Short_Curly'),
+            ('human_harden', 'Harden_Mohawk'),
+            ('human_lebron', 'LeBron_Headband'),
+            ('human_klaw', 'Kawhi_Cornrows'),
+            ('human_drj', 'DrJ_Afro'),
+            ('human_bird', 'Bird_Straight')
+        ]
+
+        for skin_id, name in skins_to_test:
+            print(f"Capturing {name}...")
+            page.evaluate(f"playerData.currentSkin = '{skin_id}';")
+            # Force idle state to reset animation
+            page.evaluate("state = 'IDLE'; player3D.z = 0;")
+            page.wait_for_timeout(500)
+            page.screenshot(path=f"verification_{name}.png")
 
         browser.close()
 
