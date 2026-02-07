@@ -7193,26 +7193,25 @@ let lastDisplayedContestTime = -1;
                  ctx.fill();
             }
             else if(skinObj.hairStyle === 'short_curly') {
-                 // Tighter curly hair
-                 const r = headRadius * 1.08;
+                 // Very very small afro (Mini-fro)
+                 const r = headRadius * 1.25; // Smaller than full afro (1.5)
                  ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, r, hairColor);
 
                  ctx.beginPath();
-                 ctx.arc(p.x, headY - 2*s, r * 0.9, Math.PI, 0); // Top Base
-                 ctx.lineTo(p.x + r, headY + 2*s);
-                 ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY + 2*s);
-                 ctx.lineTo(p.x - r, headY - 2*s);
-                 ctx.fill();
+                 // Tighter circle
+                 ctx.arc(p.x, headY - 2*s, r * 0.85, 0, Math.PI*2);
 
-                 // Texture bumps
-                 const numBumps = 14;
+                 // Texture bumps (Dense)
+                 const numBumps = 16;
                  for(let i=0; i<numBumps; i++) {
-                     const angle = Math.PI + (i / (numBumps-1)) * Math.PI; // Top arc
-                     const cx = p.x + Math.cos(angle) * r;
-                     const cy = (headY - 2*s) + Math.sin(angle) * r;
-                     const bumpR = 3*s;
-                     ctx.beginPath(); ctx.arc(cx, cy, bumpR, 0, Math.PI*2); ctx.fill();
+                     const angle = (i / numBumps) * Math.PI * 2;
+                     const cx = p.x + Math.cos(angle) * (r * 0.9);
+                     const cy = (headY - 2*s) + Math.sin(angle) * (r * 0.9);
+                     const bumpR = r * 0.2;
+                     ctx.moveTo(cx + bumpR, cy);
+                     ctx.arc(cx, cy, bumpR, 0, Math.PI*2);
                  }
+                 ctx.fill();
             }
             else             if(skinObj.hairStyle === 'afro') {
                  const afroR = headRadius * 1.5;
