@@ -7199,49 +7199,41 @@ let lastDisplayedContestTime = -1;
                  ctx.stroke();
             }
             else if(skinObj.hairStyle === 'curly') {
-                 // Grown out look (John Wall): Taller top, tighter sides, less round
-                 const r = headRadius * 1.1; // Slightly wider for volume on top
-                 const topH = headRadius * 1.35; // Taller top
+                 // "4 inch long haircut... verge of small afro"
+                 // Rounder shape with volume, no dots, clean vector fade.
 
-                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - 5*s, r, hairColor);
+                 const rW = headRadius * 1.15; // Width (slightly wider than head for afro volume)
+                 const rH = headRadius * 1.4;  // Height (tall enough for 4 inches)
+
+                 // Gradient for 3D depth
+                 ctx.fillStyle = createHairGradient(ctx, p.x, headY - rH * 0.5, rW, hairColor);
 
                  ctx.beginPath();
-                 // Start left side (near ear top)
-                 ctx.moveTo(p.x - headRadius * 0.9, headY);
-                 // Curve up to top-left corner (boxy round)
-                 // cp1 pulls out slightly, cp2 pulls up to flat top corner
-                 ctx.bezierCurveTo(p.x - headRadius * 1.05, headY - topH * 0.6, p.x - headRadius * 0.6, headY - topH, p.x, headY - topH);
-                 // Curve down to right side
-                 ctx.bezierCurveTo(p.x + headRadius * 0.6, headY - topH, p.x + headRadius * 1.05, headY - topH * 0.6, p.x + headRadius * 0.9, headY);
+                 // Start at left neckline/ear bottom
+                 ctx.moveTo(p.x - headRadius * 0.9, headY + 2*s);
 
-                 // Neckline (Fade - tighter than before)
-                 ctx.lineTo(p.x + headRadius * 0.9, headY + 2*s);
-                 // Curve bottom neckline
+                 // Left Side (Taper up into Afro)
+                 ctx.quadraticCurveTo(
+                     p.x - rW, headY,
+                     p.x - rW, headY - rH * 0.4
+                 );
+
+                 // Top (Round Dome - Mini Afro)
+                 ctx.bezierCurveTo(
+                     p.x - rW, headY - rH * 1.1,
+                     p.x + rW, headY - rH * 1.1,
+                     p.x + rW, headY - rH * 0.4
+                 );
+
+                 // Right Side (Taper down)
+                 ctx.quadraticCurveTo(
+                     p.x + rW, headY,
+                     p.x + headRadius * 0.9, headY + 2*s
+                 );
+
+                 // Neckline (Curved)
                  ctx.quadraticCurveTo(p.x, headY + 4*s, p.x - headRadius * 0.9, headY + 2*s);
-                 ctx.closePath();
                  ctx.fill();
-
-                 // Texture (Denser for nappy look)
-                 ctx.fillStyle = adjustColor(hairColor, -15);
-                 const seedBase = (skinObj.id || 'def').split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-                 const textureCount = 65;
-                 for(let i=0; i<textureCount; i++) {
-                     const seed = seedBase + i * 12345;
-
-                     // Distributed mostly on top half but within the new shape (approx)
-                     const rndX = (Math.abs(Math.sin(seed * 1.1)) - 0.5) * 2; // -1 to 1
-                     const rndY = (Math.abs(Math.cos(seed * 0.7)) - 0.5) * 2; // -1 to 1
-
-                     // Bias towards top
-                     const tx = p.x + rndX * headRadius * 0.85;
-                     const ty = headY - 2*s + rndY * headRadius * 0.8;
-
-                     // Simple bounds check to keep texture inside roughly
-                     if (ty < headY + 2*s && ty > headY - topH * 0.9) {
-                         const size = (Math.abs(Math.sin(seed*3)) * 1.5 + 0.5) * s;
-                         ctx.beginPath(); ctx.arc(tx, ty, size, 0, Math.PI*2); ctx.fill();
-                     }
-                 }
             }
             else if(skinObj.hairStyle === 'bald') {
                  if (hairColor && hairColor !== '#000' && hairColor !== skinTone) {
