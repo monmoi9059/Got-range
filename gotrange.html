@@ -7066,15 +7066,31 @@ let lastDisplayedContestTime = -1;
              ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - w, topY); // Connect back to start
              ctx.fill();
 
-             // Internal Curls
+             // Internal Curls (Twisting Lines)
              ctx.strokeStyle = adjustColor(hairColor, -20);
              ctx.lineWidth = 1.5*s;
-             for(let i=0; i<8; i++) {
+             ctx.beginPath();
+             for(let i=0; i<12; i++) {
+                 // Static seed positions
                  const rndX = seededRandom(baseSeed + 1100 + i);
-                 const cx = p.x + (rndX-0.5)*w*1.5;
-                 const cy = topY + (seededRandom(baseSeed+1200+i)*len);
-                 ctx.beginPath(); ctx.arc(cx, cy, 3*s, 0, Math.PI*2); ctx.stroke();
+                 const startX = p.x + (rndX-0.5) * w * 1.6;
+                 const startY = topY + (seededRandom(baseSeed + 1200 + i) * len * 0.8);
+
+                 // Skip if outside head area approximation
+                 if (Math.abs(startX - p.x) > w * 0.9) continue;
+
+                 const curlLen = 8 * s + seededRandom(baseSeed + 1300 + i) * 8 * s;
+                 const waveW = 4 * s;
+
+                 ctx.moveTo(startX, startY);
+                 // Draw S-Curve
+                 ctx.bezierCurveTo(
+                     startX + waveW, startY + curlLen * 0.3,
+                     startX - waveW, startY + curlLen * 0.6,
+                     startX, startY + curlLen
+                 );
              }
+             ctx.stroke();
              return;
         }
 
