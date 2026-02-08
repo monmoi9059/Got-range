@@ -7000,14 +7000,15 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = grad;
 
              ctx.beginPath();
-             // Texture Top
+             // Texture Top (Raised to cover skull)
              const numStrands = 20;
+             const topY = headY - headRadius * 0.3; // Higher anchor
              for(let i=0; i<=numStrands; i++) {
                  const angle = Math.PI + (i/numStrands)*Math.PI;
                  const rnd = seededRandom(baseSeed + i);
                  const nr = w + (rnd * 1 * s);
                  const cx = p.x + Math.cos(angle) * nr;
-                 const cy = headY + Math.sin(angle) * nr * 0.3; // Flat oval top
+                 const cy = topY + Math.sin(angle) * nr * 0.7; // Taller arc
                  if(i===0) ctx.moveTo(cx, cy);
                  else ctx.lineTo(cx, cy);
              }
@@ -7020,7 +7021,7 @@ let lastDisplayedContestTime = -1;
                  const ty = headY + len + (seededRandom(baseSeed+900+i)*4*s);
                  ctx.lineTo(tx, ty);
              }
-             ctx.lineTo(p.x - w, headY); // Left side up
+             ctx.lineTo(p.x - w, topY); // Left side up
              ctx.fill();
 
              // Strand lines
@@ -7029,7 +7030,7 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath();
              for(let i=0; i<5; i++) {
                  const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.5;
-                 ctx.moveTo(x, headY);
+                 ctx.moveTo(x, topY - 10*s);
                  ctx.lineTo(x, headY + len);
              }
              ctx.stroke();
@@ -7044,14 +7045,15 @@ let lastDisplayedContestTime = -1;
              ctx.fillStyle = createHairGradient(ctx, p.x, headY, w, hairColor);
 
              ctx.beginPath();
-             // Top Bumps
+             // Top Bumps (Raised)
              const numBumps = 15;
+             const topY = headY - headRadius * 0.5;
              for(let i=0; i<=numBumps; i++) {
                  const angle = Math.PI + (i/numBumps)*Math.PI;
                  const rnd = seededRandom(baseSeed + i);
                  const nr = w + (rnd * 3 * s);
                  const cx = p.x + Math.cos(angle) * nr;
-                 const cy = headY + Math.sin(angle) * nr * 0.5;
+                 const cy = topY + Math.sin(angle) * nr * 0.8; // Rounder top
                  if(i===0) ctx.moveTo(cx, cy);
                  else ctx.lineTo(cx, cy);
              }
@@ -7061,7 +7063,7 @@ let lastDisplayedContestTime = -1;
              // Bottom
              ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x - w, headY + len);
              // Left Side (Wavy)
-             ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - w, headY); // Connect back to start roughly
+             ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - w, topY); // Connect back to start
              ctx.fill();
 
              // Internal Curls
@@ -7070,7 +7072,7 @@ let lastDisplayedContestTime = -1;
              for(let i=0; i<8; i++) {
                  const rndX = seededRandom(baseSeed + 1100 + i);
                  const cx = p.x + (rndX-0.5)*w*1.5;
-                 const cy = headY + (seededRandom(baseSeed+1200+i)*len);
+                 const cy = topY + (seededRandom(baseSeed+1200+i)*len);
                  ctx.beginPath(); ctx.arc(cx, cy, 3*s, 0, Math.PI*2); ctx.stroke();
              }
              return;
