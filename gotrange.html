@@ -6892,21 +6892,23 @@ let lastDisplayedContestTime = -1;
 
              for(let i=0; i<numRows; i++) {
                  // Perspective: Rows converge towards the neck slightly
-                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1
+                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1 (Left to Right)
+                 const absT = Math.abs(t);
 
-                 // Top Point (Spread out)
+                 // Top Point (Spread out) - Start higher up front
                  const startX = p.x + t * (r * 0.9);
-                 const startY = headY - r * 0.8;
+                 const startY = headY - r * 0.9;
 
                  // Bottom Point (Converging at nape)
-                 const endX = p.x + t * (r * 0.6);
-                 const endY = headY + r * 0.9;
+                 const endX = p.x + t * (r * 0.3); // Converge tighter
+                 const endY = headY + r * 0.95;
 
-                 // Control Points for curvature over skull
-                 const cp1x = startX + t * 5 * s;
-                 const cp1y = headY - r * 1.2; // Arc up
-                 const cp2x = endX;
-                 const cp2y = headY + r * 0.2;
+                 // Control Points - follow head sphere
+                 // Side braids curve OUT then in
+                 const cp1x = startX + (t * r * 0.8); // Bulge out
+                 const cp1y = headY - r * 0.5;
+                 const cp2x = endX + (t * r * 0.2);
+                 const cp2y = headY + r * 0.5;
 
                  // Draw Braid Path
                  // Shadow/Gap
@@ -6920,23 +6922,34 @@ let lastDisplayedContestTime = -1;
                  ctx.lineWidth = braidWidth;
                  ctx.beginPath(); ctx.moveTo(startX, startY); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY); ctx.stroke();
 
-                 // Braid Texture (Pattern - Bumpy Lines)
-                 // Use loops of dots instead of dashed line for more organic look
+                 // Braid Texture
                  ctx.fillStyle = adjustColor(hairColor, 30); // Highlight
-                 const steps = 10;
+                 const steps = 12;
                  for(let j=0; j<=steps; j++) {
                      const tt = j/steps;
-                     // Bezier point math
                      const inv = 1 - tt;
                      const bx = inv*inv*inv*startX + 3*inv*inv*tt*cp1x + 3*inv*tt*tt*cp2x + tt*tt*tt*endX;
                      const by = inv*inv*inv*startY + 3*inv*inv*tt*cp1y + 3*inv*tt*tt*cp2y + tt*tt*tt*endY;
-
-                     // Zigzag offset?
-                     const offset = (j%2 === 0) ? -1 : 1;
-                     // Simple highlight dot
                      ctx.beginPath(); ctx.arc(bx, by, 1*s, 0, Math.PI*2); ctx.fill();
                  }
              }
+
+             // Headband (Team Color)
+             const bandColor = skinObj.headbandColor || skinObj.jerseyColor || '#FFF';
+             const bandY = headY - 5*s;
+             const bandH = 5*s;
+
+             ctx.fillStyle = bandColor;
+             ctx.beginPath();
+             // Band follows curvature around back of head (over braids)
+             // Arc from ear to ear
+             ctx.ellipse(p.x, bandY, r + 2*s, bandH, 0, 0, Math.PI*2);
+             ctx.fill();
+
+             // Texture/Detail on headband
+             ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1*s;
+             ctx.beginPath(); ctx.ellipse(p.x, bandY, r + 2*s, bandH, 0, 0, Math.PI*2); ctx.stroke();
+
              return;
         }
 
