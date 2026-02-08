@@ -7024,17 +7024,27 @@ let lastDisplayedContestTime = -1;
              ctx.lineTo(p.x - w, topY); // Left side up
              ctx.fill();
 
-             // Strand lines (Constrained)
+             // Strand lines (Randomized Lengths)
              ctx.strokeStyle = adjustColor(hairColor, -30);
              ctx.lineWidth = 1*s;
              ctx.beginPath();
-             for(let i=0; i<8; i++) {
-                 // Constrain X to within 80% of width to avoid bleed
-                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.6; // Spread slightly but clip
-                 if (Math.abs(x - p.x) > w * 0.9) continue; // Clip
+             // Increase density for natural look
+             for(let i=0; i<15; i++) {
+                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.6;
+                 if (Math.abs(x - p.x) > w * 0.9) continue;
 
-                 ctx.moveTo(x, topY + 5*s); // Start inside hair
-                 ctx.lineTo(x, headY + len - 5*s); // End before bottom
+                 // Vary start and length
+                 const startOffset = seededRandom(baseSeed + 2000 + i) * len * 0.4; // Start anywhere in top 40%
+                 const lineLen = len * 0.4 + (seededRandom(baseSeed + 3000 + i) * len * 0.5); // Random length
+
+                 const startY = topY + 5*s + startOffset;
+                 let endY = startY + lineLen;
+
+                 // Clip end to hair bottom
+                 if (endY > headY + len - 2*s) endY = headY + len - 2*s;
+
+                 ctx.moveTo(x, startY);
+                 ctx.lineTo(x, endY);
              }
              ctx.stroke();
              return;
