@@ -7024,14 +7024,17 @@ let lastDisplayedContestTime = -1;
              ctx.lineTo(p.x - w, topY); // Left side up
              ctx.fill();
 
-             // Strand lines
+             // Strand lines (Constrained)
              ctx.strokeStyle = adjustColor(hairColor, -30);
              ctx.lineWidth = 1*s;
              ctx.beginPath();
-             for(let i=0; i<5; i++) {
-                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.5;
-                 ctx.moveTo(x, topY - 10*s);
-                 ctx.lineTo(x, headY + len);
+             for(let i=0; i<8; i++) {
+                 // Constrain X to within 80% of width to avoid bleed
+                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.6; // Spread slightly but clip
+                 if (Math.abs(x - p.x) > w * 0.9) continue; // Clip
+
+                 ctx.moveTo(x, topY + 5*s); // Start inside hair
+                 ctx.lineTo(x, headY + len - 5*s); // End before bottom
              }
              ctx.stroke();
              return;
@@ -7076,11 +7079,14 @@ let lastDisplayedContestTime = -1;
                  const startX = p.x + (rndX-0.5) * w * 1.6;
                  const startY = topY + (seededRandom(baseSeed + 1200 + i) * len * 0.8);
 
-                 // Skip if outside head area approximation
-                 if (Math.abs(startX - p.x) > w * 0.9) continue;
+                 // Strict Clipping: Keep inside drawn width
+                 if (Math.abs(startX - p.x) > w * 0.85) continue;
 
                  const curlLen = 8 * s + seededRandom(baseSeed + 1300 + i) * 8 * s;
-                 const waveW = 4 * s;
+                 // Ensure end point is also somewhat contained
+                 if (startY + curlLen > headY + len) continue;
+
+                 const waveW = 3 * s; // Reduced wave width
 
                  ctx.moveTo(startX, startY);
                  // Draw S-Curve
