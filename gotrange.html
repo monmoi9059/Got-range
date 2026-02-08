@@ -6936,13 +6936,12 @@ let lastDisplayedContestTime = -1;
 
              // Headband (Team Color)
              const bandColor = skinObj.headbandColor || skinObj.jerseyColor || '#FFF';
-             const bandY = headY - 5*s;
-             const bandH = 5*s;
+             const bandY = headY - 1*s; // Lower
+             const bandH = 3*s; // Thinner
 
              ctx.fillStyle = bandColor;
              ctx.beginPath();
              // Band follows curvature around back of head (over braids)
-             // Arc from ear to ear
              ctx.ellipse(p.x, bandY, r + 2*s, bandH, 0, 0, Math.PI*2);
              ctx.fill();
 
