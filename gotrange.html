@@ -6895,9 +6895,10 @@ let lastDisplayedContestTime = -1;
                  const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1 (Left to Right)
                  const absT = Math.abs(t);
 
-                 // Top Point (Spread out) - Start higher up front
+                 // Top Point (Spread out) - Tapered Height
                  const startX = p.x + t * (r * 0.9);
-                 const startY = headY - r * 0.9;
+                 // Middle (t=0) is higher, sides (t=1) are lower
+                 const startY = (headY - r * 1.1) + (absT * r * 0.4);
 
                  // Bottom Point (Converging at nape)
                  const endX = p.x + t * (r * 0.3); // Converge tighter
@@ -6906,7 +6907,7 @@ let lastDisplayedContestTime = -1;
                  // Control Points - follow head sphere
                  // Side braids curve OUT then in
                  const cp1x = startX + (t * r * 0.8); // Bulge out
-                 const cp1y = headY - r * 0.5;
+                 const cp1y = (headY - r * 0.6) + (absT * r * 0.3); // Curve follows startY slope
                  const cp2x = endX + (t * r * 0.2);
                  const cp2y = headY + r * 0.5;
 
