@@ -7838,6 +7838,30 @@ let lastDisplayedContestTime = -1;
              ctx.beginPath(); ctx.arc(p.x + reducedBodyW*0.35 - 2*s, torsoY + 18*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
 
+        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
+            const width = 8 * s * sizeMod.legWidth;
+            drawMuscleLimb(xTop, yTop, xBot, yBot, width, skinTone, 'calf', s, skinObj.tattoos);
+            drawJoint(xTop, yTop, width * 0.35, skinTone, isMechanical);
+
+            if (skinObj.socksColor) {
+                 const sx = xTop + (xBot - xTop) * 0.7;
+                 const sy = yTop + (yBot - yTop) * 0.7;
+                 drawMuscleLimb(sx, sy, xBot, yBot, width * 0.6, skinObj.socksColor, 'standard', s, false);
+            }
+
+            if (skinObj.shoesColor) {
+                 const sx = xTop + (xBot - xTop) * 0.85;
+                 const sy = yTop + (yBot - yTop) * 0.85;
+                 drawMuscleLimb(sx, sy, xBot, yBot, width * 0.55, skinObj.shoesColor, 'standard', s, false);
+
+                 ctx.fillStyle = skinObj.shoesColor;
+                 ctx.beginPath(); ctx.ellipse(xBot, yBot + 2*s, 4*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+            } else {
+                 ctx.fillStyle = skinTone;
+                 ctx.beginPath(); ctx.ellipse(xBot, yBot + 2*s, 4*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+        };
+
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
         drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true);
 
@@ -8863,6 +8887,8 @@ let lastDisplayedContestTime = -1;
         const thighEndW = thighStartW * legTaper;
         const calfStartW = thighEndW;
         const calfEndW = calfStartW * legTaper;
+
+        const legFurry = isFurry && (legColor === furColor);
 
         // Hip Joints
         if(!legFurry) {
