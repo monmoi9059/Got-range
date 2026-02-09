@@ -6665,6 +6665,38 @@ let lastDisplayedContestTime = -1;
         return x - Math.floor(x);
     }
 
+    function drawBeard(ctx, p, headY, headRadius, s, skinObj) {
+        if (!skinObj.beard && skinObj.hairStyle !== 'beard') return;
+
+        const beardColor = skinObj.beardColor || skinObj.hairColor || '#000';
+        ctx.fillStyle = beardColor;
+
+        // Beard bleeding from behind the head (sides and bottom)
+        // Harden gets a massive beard
+        const isBigBeard = skinObj.id.includes('harden') || skinObj.hairStyle === 'beard' || skinObj.id.includes('kratos');
+
+        const beardW = headRadius * (isBigBeard ? 1.25 : 1.08);
+        const beardH = headRadius * (isBigBeard ? 1.4 : 1.15);
+        const yOffset = headRadius * 0.2;
+
+        ctx.beginPath();
+        // Ellipse centered lower to show jawline/beard bulk
+        ctx.ellipse(p.x, headY + yOffset, beardW, beardH, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Texture for big beards
+        if (isBigBeard) {
+             ctx.fillStyle = adjustColor(beardColor, 20);
+             const numDots = 15;
+             for(let i=0; i<numDots; i++) {
+                 const angle = (i/numDots) * Math.PI; // Bottom semi-circle
+                 const bx = p.x + Math.cos(angle) * beardW * 0.9;
+                 const by = headY + yOffset + Math.sin(angle) * beardH * 0.9;
+                 ctx.beginPath(); ctx.arc(bx, by, 2*s, 0, Math.PI*2); ctx.fill();
+             }
+        }
+    }
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         const style = skinObj.hairStyle;
@@ -7698,6 +7730,29 @@ let lastDisplayedContestTime = -1;
             drawHybridHead(p, headY, headRadius, s, skinObj.headType, skinObj);
         } else {
             // Standard Human Head - Back View
+
+            // 1. Draw Beard (Behind Head)
+            drawBeard(ctx, p, headY, headRadius, s, skinObj);
+
+            // 2. Draw Goggle Strap (Behind Ears)
+            if (skinObj.headAccessory === 'goggles') {
+                const strapColor = skinObj.jerseyColor || '#111';
+                ctx.strokeStyle = strapColor;
+                ctx.lineWidth = 4 * s;
+                ctx.beginPath();
+                // Strap wraps around back of head
+                ctx.arc(p.x, headY, headRadius * 1.05, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            if (skinObj.headAccessory === 'glasses' || skinObj.id.includes('potter')) {
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 1.5 * s;
+                ctx.beginPath();
+                ctx.moveTo(p.x - headRadius, headY - 2*s);
+                ctx.lineTo(p.x + headRadius, headY - 2*s);
+                ctx.stroke();
+            }
+
             ctx.fillStyle = skinTone;
             // Ears
             ctx.beginPath(); ctx.ellipse(p.x - headRadius*0.95, headY, 3.5*s, 6*s, -0.1, 0, Math.PI*2); ctx.fill();
