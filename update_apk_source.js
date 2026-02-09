@@ -20,22 +20,6 @@ window.addEventListener('load', function() {
 </script>
 `;
 
-function copyDir(src, dest) {
-    if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-
-    for (let entry of entries) {
-        let srcPath = path.join(src, entry.name);
-        let destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-            copyDir(srcPath, destPath);
-        } else {
-            fs.copyFileSync(srcPath, destPath);
-        }
-    }
-}
-
 try {
     // 1. Update Index HTML
     let content = fs.readFileSync(sourceFile, 'utf8');
@@ -53,18 +37,6 @@ try {
 
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
-
-    // 2. Copy CSS
-    if (fs.existsSync('css')) {
-        copyDir('css', path.join(targetDir, 'css'));
-        console.log('Copied css/');
-    }
-
-    // 3. Copy JS
-    if (fs.existsSync('js')) {
-        copyDir('js', path.join(targetDir, 'js'));
-        console.log('Copied js/');
-    }
 
 } catch (err) {
     console.error('Error updating APK source:', err);
