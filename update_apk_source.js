@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const sourceFile = 'gotrange.html';
-const targetFile = 'taco_app/www/index.html';
+const targetDir = 'taco_app/www';
+const targetFile = path.join(targetDir, 'index.html');
 
 // Logic to check for Capacitor native environment
 const capScript = `
@@ -20,9 +21,9 @@ window.addEventListener('load', function() {
 `;
 
 try {
+    // 1. Update Index HTML
     let content = fs.readFileSync(sourceFile, 'utf8');
 
-    // Inject script before body end
     if (content.includes('</body>')) {
         content = content.replace('</body>', `${capScript}\n</body>`);
     } else {
@@ -30,14 +31,13 @@ try {
         content += capScript;
     }
 
-    // Ensure directory exists
-    const dir = path.dirname(targetFile);
-    if (!fs.existsSync(dir)){
-        fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(targetDir)){
+        fs.mkdirSync(targetDir, { recursive: true });
     }
 
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
+
 } catch (err) {
     console.error('Error updating APK source:', err);
     process.exit(1);
