@@ -3753,41 +3753,7 @@ var BallRenderer = {
 
 
 
-        if (style === 'afro') {
-             const afroR = headRadius * 1.5;
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, afroR, hairColor);
 
-             ctx.beginPath();
-             // Textured Perimeter
-             const numBumps = 24;
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = (i / numBumps) * Math.PI * 2; // Full circle
-                 const rnd = seededRandom(baseSeed + i);
-                 const bumpR = afroR * 0.2;
-                 const nr = (afroR * 0.9) + (rnd * 2 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
-
-                 // Draw arc for bump
-                 // Simplified: Just move to and arc
-                 if (i===0) ctx.moveTo(cx + bumpR, cy);
-                 ctx.arc(cx, cy, bumpR, 0, Math.PI*2);
-             }
-             ctx.fill();
-
-             // Internal Texture (Tight Curls)
-             ctx.fillStyle = adjustColor(hairColor, -15); // Darker pockets
-             for(let i=0; i<25; i++) {
-                 const rnd1 = seededRandom(baseSeed + 500 + i);
-                 const rnd2 = seededRandom(baseSeed + 600 + i);
-                 const tx = p.x + (rnd1-0.5) * afroR * 1.5;
-                 const ty = headY - 2*s + (rnd2-0.5) * afroR * 1.5;
-                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < afroR * 0.8) {
-                     ctx.beginPath(); ctx.arc(tx, ty, 2.5*s, 0, Math.PI*2); ctx.fill();
-                 }
-             }
-             return;
-        }
 
         if (style === 'cornrows') {
              // Tight braids logic
@@ -4230,263 +4196,215 @@ var BallRenderer = {
 
 
 
-        if (style === 'dirk_shaggy') {
-             // Dirk: Long blonde, center partish, behind ears, layered at back
-             const r = headRadius * 1.2;
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY, r, hairColor);
 
-             ctx.beginPath();
-             // Left side (tucked behind ear logic but flowing down)
-             ctx.moveTo(p.x - headRadius, headY);
-             ctx.bezierCurveTo(p.x - r*1.1, headY + 5*s, p.x - r, headY + 12*s, p.x - r*0.6, headY + 15*s);
 
-             // Bottom neck line (Wavy)
-             const seed = baseSeed;
-             const neckY = headY + 15*s;
-             for(let i=0; i<=5; i++) {
-                 const t = i/5;
-                 const nx = (p.x - r*0.6) + (r * 1.2 * t);
-                 const ny = neckY + Math.sin(t * Math.PI * 2) * 3 * s;
-                 ctx.lineTo(nx, ny);
-             }
 
-             // Right side up
-             ctx.bezierCurveTo(p.x + r, headY + 12*s, p.x + r*1.1, headY + 5*s, p.x + headRadius, headY);
 
-             // Top (Smoother, center part hint)
-             ctx.quadraticCurveTo(p.x + headRadius, headY - r, p.x, headY - r); // Right top
-             ctx.quadraticCurveTo(p.x - headRadius, headY - r, p.x - headRadius, headY); // Left top
 
-             ctx.fill();
 
-             // Add texture lines for strands
-             ctx.strokeStyle = adjustColor(hairColor, -20);
-             ctx.lineWidth = 1*s;
-             ctx.beginPath();
-             // Left strands
-             ctx.moveTo(p.x - headRadius*0.5, headY - r*0.8);
-             ctx.quadraticCurveTo(p.x - r*0.8, headY + 5*s, p.x - r*0.5, headY + 14*s);
-             // Right strands
-             ctx.moveTo(p.x + headRadius*0.5, headY - r*0.8);
-             ctx.quadraticCurveTo(p.x + r*0.8, headY + 5*s, p.x + r*0.5, headY + 14*s);
-             ctx.stroke();
-             return;
-        }
+
+
+
+
+
+
+
+
+
 
 
 
 
                 if (style === 'luka_fade') {
              // Modern Luka: Cartoonish "Swoosh" volume on top, clean sides
-             // View: Back/Top. We see the crown and the fade down the back.
+             // View: Back/Top.
              const r = headRadius * 1.1; // Volume radius
              const topOffset = 8*s; // How high the hair goes above the skull line
 
-             // Gradient: Darker at bottom (fade), lighter at top (bleach/light reflection)
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
-             fadeGrad.addColorStop(0, adjustColor(hairColor, 40)); // Top highlight
-             fadeGrad.addColorStop(0.5, hairColor);
-             fadeGrad.addColorStop(1, adjustColor(hairColor, -40)); // Dark fade base
-             ctx.fillStyle = fadeGrad;
+             // 1. Draw the Main Mass with Volume Gradient
+             const volumeGrad = ctx.createLinearGradient(0, headY - r - topOffset, 0, headY);
+             volumeGrad.addColorStop(0, adjustColor(hairColor, 40)); // High light top
+             volumeGrad.addColorStop(0.4, hairColor); // Mid tone
+             volumeGrad.addColorStop(1, adjustColor(hairColor, -30)); // Shadow base
+             ctx.fillStyle = volumeGrad;
 
              ctx.beginPath();
-             // 1. Top Crown (The "Swoosh" shape)
-             // Start left temple (back view)
+             // Top Volume
              ctx.moveTo(p.x - r * 0.9, headY - 5*s);
-
-             // Curve up and over the top (The Volume)
-             // Use multiple bezier points to create a non-perfect arc
              ctx.bezierCurveTo(
                  p.x - r * 0.8, headY - r - topOffset,
                  p.x + r * 0.5, headY - r - topOffset * 1.2,
                  p.x + r * 0.9, headY - 5*s
              );
-
-             // 2. Right Side Fade
-             // Curve in towards the ear/nape
+             // Sides & Nape
              ctx.quadraticCurveTo(p.x + r, headY + 5*s, p.x + r * 0.7, headY + 8*s);
-
-             // 3. Nape (Clean Line)
              ctx.quadraticCurveTo(p.x, headY + 10*s, p.x - r * 0.7, headY + 8*s);
-
-             // 4. Left Side Fade
              ctx.quadraticCurveTo(p.x - r, headY + 5*s, p.x - r * 0.9, headY - 5*s);
-
              ctx.fill();
 
-             // Add Texture Lines (The "Combed" look)
-             ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-             ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             // Sweep lines
-             for(let i=1; i<4; i++) {
-                 const off = i * 4 * s;
-                 ctx.moveTo(p.x - r*0.5 + off, headY - r*0.5);
-                 ctx.quadraticCurveTo(p.x + off, headY - r - topOffset + 5*s, p.x + r*0.5 + off, headY - 5*s);
-             }
-             ctx.stroke();
+             // 2. Specular Highlight (The "Pomade" shine)
+             const shineGrad = ctx.createRadialGradient(p.x + r*0.3, headY - r*0.8, 2*s, p.x + r*0.3, headY - r*0.8, 15*s);
+             shineGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+             shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+             ctx.fillStyle = shineGrad;
+             ctx.fill();
+
              return;
         }
 
         if (style === 'luka_shaggy') {
-             // "Wonderboy": Messy "Mop" look. Overlapping layers.
+             // "Wonderboy": Messy "Mop" look. Smooth layers, no jaggy noise.
              const r = headRadius * 1.2;
-             const seed = baseSeed;
 
-             ctx.fillStyle = hairColor;
-
-             // Draw base shape (The bulk)
+             // 1. Shadow Layer (Behind the main mass)
+             ctx.fillStyle = adjustColor(hairColor, -30);
              ctx.beginPath();
-             // Top of head (Round but slightly flattened by hair weight)
-             ctx.arc(p.x, headY - 2*s, r * 0.9, Math.PI, 0);
-
-             // Sides flowing down (jagged)
-             const sideSteps = 5;
-             const sideYStart = headY - 2*s;
-             const sideYEnd = headY + 12*s; // Long in back
-
-             // Right side down
-             for(let i=0; i<=sideSteps; i++) {
-                 const t = i/sideSteps;
-                 const x = p.x + r * 0.9 + (Math.sin(t*Math.PI)*5*s) + (seededRandom(seed+i)*4*s);
-                 const y = sideYStart + (sideYEnd - sideYStart)*t;
-                 ctx.lineTo(x, y);
-             }
-
-             // Nape/Back (Messy zig zag)
-             const backSteps = 8;
-             for(let i=0; i<=backSteps; i++) {
-                 const t = i/backSteps;
-                 const x = (p.x + r*0.9) * (1-t) + (p.x - r*0.9) * t;
-                 const y = sideYEnd + (seededRandom(seed+100+i) * 6 * s - 3*s); // Jagged bottom
-                 ctx.lineTo(x, y);
-             }
-
-             // Left side up
-             for(let i=sideSteps; i>=0; i--) {
-                 const t = i/sideSteps;
-                 const x = p.x - r * 0.9 - (Math.sin(t*Math.PI)*5*s) - (seededRandom(seed+200+i)*4*s);
-                 const y = sideYStart + (sideYEnd - sideYStart)*t;
-                 ctx.lineTo(x, y);
-             }
-
-             ctx.closePath();
-
-             // Shading Gradient (Depth)
-             const grad = ctx.createRadialGradient(p.x, headY-5*s, r*0.5, p.x, headY, r*1.2);
-             grad.addColorStop(0, adjustColor(hairColor, 20));
-             grad.addColorStop(1, adjustColor(hairColor, -20));
-             ctx.fillStyle = grad;
+             ctx.arc(p.x, headY + 2*s, r * 0.95, 0, Math.PI*2);
              ctx.fill();
 
-             // Flyaways (Cartoon details)
-             ctx.strokeStyle = hairColor;
-             ctx.lineWidth = 2*s;
+             // 2. Main Volume (Spherical gradient)
+             const grad = ctx.createRadialGradient(p.x, headY - 5*s, r*0.2, p.x, headY, r);
+             grad.addColorStop(0, adjustColor(hairColor, 30)); // Crown highlight
+             grad.addColorStop(0.6, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -10));
+             ctx.fillStyle = grad;
+
              ctx.beginPath();
-             ctx.moveTo(p.x, headY - r);
-             ctx.quadraticCurveTo(p.x + 5*s, headY - r - 8*s, p.x + 10*s, headY - r - 2*s); // Cowlick
-             ctx.stroke();
+             // Top of head
+             ctx.arc(p.x, headY - 2*s, r * 0.9, Math.PI, 0);
+
+             // Sides (Flowing down, smooth curves)
+             ctx.bezierCurveTo(p.x + r * 1.1, headY + 2*s, p.x + r * 1.0, headY + 10*s, p.x + r * 0.6, headY + 12*s); // Right side
+
+             // Nape (Uneven but smooth)
+             ctx.quadraticCurveTo(p.x + r * 0.3, headY + 14*s, p.x, headY + 13*s); // Center dip
+             ctx.quadraticCurveTo(p.x - r * 0.3, headY + 14*s, p.x - r * 0.6, headY + 12*s); // Left side
+
+             // Left side up
+             ctx.bezierCurveTo(p.x - r * 1.0, headY + 10*s, p.x - r * 1.1, headY + 2*s, p.x - r * 0.9, headY - 2*s);
+
+             ctx.fill();
              return;
         }
 
         if (style === 'crew_cut') {
-             // Jokic: "The Joker" - Short, textured, distinct hairline.
-             // Not a square. A rounded box.
+             // Jokic: "The Joker" - Clean buzz.
+             // Depth via radial gradient on the scalp.
              const r = headRadius * 1.05;
 
-             // Base (Skin fade area)
-             ctx.fillStyle = adjustColor(hairColor, -40); // Darker base/stubble
-             ctx.beginPath();
-             ctx.arc(p.x, headY, r, 0, Math.PI*2);
-             ctx.fill();
+             // 1. Scalp/Fade Base
+             const baseGrad = ctx.createRadialGradient(p.x, headY - 5*s, r * 0.2, p.x, headY, r);
+             baseGrad.addColorStop(0, adjustColor(hairColor, 20)); // Top light
+             baseGrad.addColorStop(0.7, hairColor);
+             baseGrad.addColorStop(1, adjustColor(hairColor, -30)); // Dark edge/fade
+             ctx.fillStyle = baseGrad;
 
-             // The "Top" Patch (Slightly longer on top)
-             ctx.fillStyle = hairColor;
              ctx.beginPath();
-             // Top shape: slightly wider at temples, narrowing at crown?
-             // From back: It looks like a rounded cap.
-
+             // Top Boxy-Round shape
              const topW = r * 0.9;
-             const topH = r * 1.1;
-             const yOffset = -4*s;
+             const topY = headY - 4*s;
 
-             ctx.moveTo(p.x - topW, headY + yOffset);
-             // Top Curve (Flattened round)
-             ctx.bezierCurveTo(p.x - topW, headY - r - 2*s, p.x + topW, headY - r - 2*s, p.x + topW, headY + yOffset);
+             ctx.moveTo(p.x - topW, topY);
+             // Smooth top arch
+             ctx.bezierCurveTo(p.x - topW, headY - r - 2*s, p.x + topW, headY - r - 2*s, p.x + topW, topY);
 
-             // Back Curve (The fade line) - Smooth arc downwards
-             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - topW, headY + yOffset);
+             // Sides fade down
+             ctx.quadraticCurveTo(p.x + r, headY + 5*s, p.x + r * 0.6, headY + 6*s);
+             ctx.quadraticCurveTo(p.x, headY + 7*s, p.x - r * 0.6, headY + 6*s);
+             ctx.quadraticCurveTo(p.x - r, headY + 5*s, p.x - topW, topY);
+
              ctx.fill();
+             return;
+        }
 
-             // Texture (Stubble dots)
-             ctx.fillStyle = 'rgba(0,0,0,0.1)';
-             for(let i=0; i<30; i++) {
-                 const angle = seededRandom(baseSeed + i) * Math.PI * 2;
-                 const dist = seededRandom(baseSeed + i + 100) * (r * 0.8);
-                 if (Math.sin(angle) > 0) continue; // Mostly top/back
-                 ctx.beginPath();
-                 ctx.arc(p.x + Math.cos(angle)*dist, headY + Math.sin(angle)*dist - 2*s, 1.5*s, 0, Math.PI*2);
-                 ctx.fill();
-             }
+        if (style === 'dirk_shaggy') {
+             // Dirk: Long blonde, smooth flow.
+             const r = headRadius * 1.2;
+
+             // Gradient for depth
+             const grad = ctx.createLinearGradient(0, headY - r, 0, headY + 15*s);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(0.5, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -20));
+             ctx.fillStyle = grad;
+
+             ctx.beginPath();
+             // Top center part logic (implied by slight dip)
+             ctx.moveTo(p.x, headY - r);
+
+             // Right side flow
+             ctx.bezierCurveTo(p.x + r*0.8, headY - r, p.x + r*1.2, headY, p.x + r*1.1, headY + 8*s);
+             ctx.quadraticCurveTo(p.x + r, headY + 14*s, p.x + r*0.5, headY + 15*s); // Tip
+
+             // Bottom
+             ctx.quadraticCurveTo(p.x, headY + 13*s, p.x - r*0.5, headY + 15*s); // Left Tip
+
+             // Left side flow
+             ctx.quadraticCurveTo(p.x - r, headY + 14*s, p.x - r*1.1, headY + 8*s);
+             ctx.bezierCurveTo(p.x - r*1.2, headY, p.x - r*0.8, headY - r, p.x, headY - r);
+
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'afro') {
+             // Afro: Smooth Sphere with 3D Shading (No noise)
+             const sizeMult = skinObj.afroSize || 1.2;
+             const r = headRadius * sizeMult;
+
+             // 3D Sphere Gradient
+             // Light source from top-left-front (implied)
+             const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.2, p.x, headY, r);
+             grad.addColorStop(0, adjustColor(hairColor, 40)); // Highlight
+             grad.addColorStop(0.5, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -40)); // Shadow
+
+             ctx.fillStyle = grad;
+
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2);
+             ctx.fill();
              return;
         }
 
         if (style === 'curly' || style === 'short_curly') {
-             // "Bubble" / "Cloud" Hair
-             // Cartoonish: Multiple overlapping circles to create volume.
-             const r = headRadius * 1.2;
-             const bubbleSize = 7*s;
-             const density = 24;
-
-             ctx.fillStyle = hairColor;
-
-             // 1. Draw base silhouette (Darker for depth)
-             ctx.fillStyle = adjustColor(hairColor, -30);
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, r * 0.85, 0, Math.PI*2);
-             ctx.fill();
-
-             // 2. Draw Bubbles
+             // Textured Cap: Smooth gradient volume + soft "clumps" for depth
+             const r = headRadius * 1.05;
              const seed = baseSeed;
 
-             // Helper to draw a bubble
-             const drawBubble = (bx, by, bSize, color) => {
-                 ctx.fillStyle = color;
-                 ctx.beginPath();
-                 ctx.arc(bx, by, bSize, 0, Math.PI*2);
-                 ctx.fill();
-                 // Highlight
-                 ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                 ctx.beginPath();
-                 ctx.arc(bx - bSize*0.3, by - bSize*0.3, bSize*0.3, 0, Math.PI*2);
-                 ctx.fill();
-             };
+             // 1. Base Volume (Darker)
+             const baseGrad = ctx.createRadialGradient(p.x, headY - 3*s, r*0.5, p.x, headY, r);
+             baseGrad.addColorStop(0, hairColor);
+             baseGrad.addColorStop(1, adjustColor(hairColor, -30));
+             ctx.fillStyle = baseGrad;
 
-             // Layer 1: Outer Bubbles (Silhouette)
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0); // Top
+             ctx.lineTo(p.x + r, headY + 4*s);
+             ctx.quadraticCurveTo(p.x, headY + 8*s, p.x - r, headY + 4*s);
+             ctx.lineTo(p.x - r, headY - 2*s);
+             ctx.fill();
+
+             // 2. Soft Clumps (Large circles with gradients to simulate bumps)
+             const clumpSize = 6*s;
+             const density = 12;
+
              for (let i = 0; i < density; i++) {
-                 const angle = (i / density) * Math.PI * 2; // Full circle around head
-                 // Don't go too low on neck
-                 if (angle > Math.PI * 0.2 && angle < Math.PI * 0.8) continue;
+                 const angle = seededRandom(seed + i) * Math.PI * 2;
+                 const dist = seededRandom(seed + i + 100) * r * 0.8;
 
-                 const bx = p.x + Math.cos(angle) * r * 0.9;
-                 const by = (headY - 2*s) + Math.sin(angle) * r * 0.8;
+                 // Clump Gradient (Light to Transparent)
+                 const cx = p.x + Math.cos(angle)*dist;
+                 const cy = (headY - 2*s) + Math.sin(angle)*dist;
 
-                 // Jitter
-                 const jx = (seededRandom(seed + i) - 0.5) * 5 * s;
-                 const jy = (seededRandom(seed + i + 100) - 0.5) * 5 * s;
+                 const clumpGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, clumpSize);
+                 clumpGrad.addColorStop(0, 'rgba(255,255,255,0.1)'); // Highlight center
+                 clumpGrad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade out
 
-                 drawBubble(bx + jx, by + jy, bubbleSize, hairColor);
-             }
-
-             // Layer 2: Inner Bubbles (Volume)
-             for (let i = 0; i < density/2; i++) {
-                 const angle = (seededRandom(seed + i + 200) * Math.PI * 2);
-                 const dist = seededRandom(seed + i + 300) * r * 0.6;
-
-                 const bx = p.x + Math.cos(angle) * dist;
-                 const by = (headY - 4*s) + Math.sin(angle) * dist; // Higher up
-
-                 drawBubble(bx, by, bubbleSize * 1.1, adjustColor(hairColor, 20)); // Slightly lighter
+                 ctx.fillStyle = clumpGrad;
+                 ctx.beginPath();
+                 ctx.arc(cx, cy, clumpSize, 0, Math.PI*2);
+                 ctx.fill();
              }
              return;
         }
@@ -4899,7 +4817,6 @@ var BallRenderer = {
             }
         }
 
-        // BEARD (Drawn before head to "bleed" from sides)
 
         // HEAD AND HAIR
         if (skinObj.headType && skinObj.headType !== 'human') {
