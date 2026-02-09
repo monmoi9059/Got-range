@@ -1,5 +1,3 @@
-        switchLeaderboardTab(pendingHighScore.mode);
-    }
 
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
@@ -1838,20 +1836,10 @@
         draw();
     }
 
-    // --- GAMEPAD CONTROLLER ---
-        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
-        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
 
-        // Center Divider Line (Visual)
-        ctx.beginPath();
-        ctx.moveTo(w/2, 0);
-        ctx.lineTo(w/2, h);
-        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.restore();
-    }
+    // Initial resize call
+    resizeGame();
+    checkStartup();
 
     // Start loop
     requestAnimationFrame(loop);

@@ -366,6 +366,4 @@
     });
 
     // Initial resize call
-    resizeGame();
-    checkStartup();
     // --- SPLITSCREEN & STATE MANAGEMENT ---

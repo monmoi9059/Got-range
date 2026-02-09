@@ -484,6 +484,8 @@ let lastDisplayedContestTime = -1;
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
     var isSplitscreen = false;
 
     // Define the default/initial state factory

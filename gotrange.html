@@ -2849,6 +2849,8 @@ let lastDisplayedContestTime = -1;
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
     var isSplitscreen = false;
 
     // Define the default/initial state factory
@@ -9971,6 +9973,19 @@ let lastDisplayedContestTime = -1;
             }
         };
 
+        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
+        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
+
+        // Center Divider Line (Visual)
+        ctx.beginPath();
+        ctx.moveTo(w/2, 0);
+        ctx.lineTo(w/2, h);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
 
 </script>
 <script>
@@ -10342,14 +10357,10 @@ let lastDisplayedContestTime = -1;
     });
 
     // Initial resize call
-    resizeGame();
-    checkStartup();
     // --- SPLITSCREEN & STATE MANAGEMENT ---
 
 </script>
 <script>
-        switchLeaderboardTab(pendingHighScore.mode);
-    }
 
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
@@ -12188,20 +12199,10 @@ let lastDisplayedContestTime = -1;
         draw();
     }
 
-    // --- GAMEPAD CONTROLLER ---
-        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
-        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
 
-        // Center Divider Line (Visual)
-        ctx.beginPath();
-        ctx.moveTo(w/2, 0);
-        ctx.lineTo(w/2, h);
-        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.restore();
-    }
+    // Initial resize call
+    resizeGame();
+    checkStartup();
 
     // Start loop
     requestAnimationFrame(loop);
