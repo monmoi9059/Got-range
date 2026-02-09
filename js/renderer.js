@@ -3619,6 +3619,57 @@
         return x - Math.floor(x);
     }
 
+    function drawBeard(ctx, p, headY, headRadius, s, skinObj) {
+        if (!skinObj.beard) return;
+
+        const beardColor = skinObj.beardColor || skinObj.hairColor || '#000';
+        const isBig = skinObj.beardBig; // For Harden
+        const seed = stringToSeed(skinObj.id || 'beard');
+
+        // Beard Geometry (Back View)
+        // Visible as a fringe around the lower jaw/cheeks.
+        // It should be wider than the headRadius at the jawline.
+
+        const jawY = headY + headRadius * 0.5; // Approximate jaw level from center
+        // Chin should be lower than head circle bottom
+        let lengthMult = 1.2; // Standard
+        let widthMult = 1.05; // Slightly wider than head
+
+        if (isBig) {
+            widthMult = 1.25;
+            lengthMult = 1.5;
+        }
+
+        const beardW = headRadius * widthMult;
+        const beardLen = headRadius * lengthMult;
+
+        const pts = [];
+        // Left Sideburn area (tucked under hair/ears)
+        pts.push({x: p.x - headRadius * 0.9, y: headY});
+        // Left Jaw flaring out
+        pts.push({x: p.x - beardW, y: jawY});
+        // Chin (Bottom)
+        pts.push({x: p.x, y: headY + beardLen});
+        // Right Jaw
+        pts.push({x: p.x + beardW, y: jawY});
+        // Right Sideburn
+        pts.push({x: p.x + headRadius * 0.9, y: headY});
+
+        // Close top (hidden behind head)
+        pts.push({x: p.x, y: headY});
+
+        // Draw fuzzy mass BEHIND head (Caller ensures layer order)
+        drawFuzzyPath(pts, beardColor, s, true, seed + 500);
+
+        // If big beard, add volume shading
+        if (isBig) {
+             const pts2 = pts.map(pt => ({x: pt.x, y: pt.y + 2*s}));
+             // Darker inner volume
+             const shade = adjustColor(beardColor, -15);
+             drawFuzzyPath(pts2, shade, s, true, seed + 501);
+        }
+    }
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         const style = skinObj.hairStyle;
@@ -4110,6 +4161,99 @@
                  ctx.lineTo(ex, ey);
                  ctx.lineTo(sx + Math.cos(angle-1.5)*6*s, sy + Math.sin(angle-1.5)*6*s);
                  ctx.fill();
+             }
+             return;
+        }
+
+        if (style === 'fade') {
+             // Standard Fade (Similar to short but tighter sides)
+             const r = headRadius * 1.02;
+             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
+             fadeGrad.addColorStop(0, hairColor);
+             fadeGrad.addColorStop(0.4, hairColor);
+             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+             ctx.fillStyle = fadeGrad;
+             ctx.beginPath();
+             // Top
+             const numBumps = 20;
+             for(let i=0; i<=numBumps; i++) {
+                 const angle = Math.PI + (i / numBumps) * Math.PI;
+                 const rnd = seededRandom(baseSeed + i);
+                 const nr = r + (rnd * 0.5 * s);
+                 const cx = p.x + Math.cos(angle) * nr;
+                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
+                 if (i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
+             // Sides (High fade)
+             ctx.lineTo(p.x + r, headY); // Cut in early
+             ctx.quadraticCurveTo(p.x + r * 0.9, headY + 4*s, p.x + r * 0.5, headY + 4*s);
+             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r * 0.5, headY + 4*s);
+             ctx.quadraticCurveTo(p.x - r * 0.9, headY + 4*s, p.x - r, headY);
+             ctx.lineTo(p.x - r, headY - 2*s);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'flat_top') {
+             // Boxy Silhouette
+             const w = headRadius * 1.2;
+             const h = headRadius * 1.0; // Tall
+             const topY = headY - h;
+
+             ctx.fillStyle = createHairGradient(ctx, p.x, headY, w, hairColor);
+             ctx.beginPath();
+             // Flat Top
+             ctx.moveTo(p.x - w*0.8, topY);
+             ctx.lineTo(p.x + w*0.8, topY);
+             // Sides (Vertical)
+             ctx.lineTo(p.x + w*0.9, headY - 2*s);
+             ctx.lineTo(p.x + w*0.7, headY + 4*s); // Taper in at neck
+             // Neck
+             ctx.quadraticCurveTo(p.x, headY + 6*s, p.x - w*0.7, headY + 4*s);
+             ctx.lineTo(p.x - w*0.9, headY - 2*s);
+             ctx.lineTo(p.x - w*0.8, topY);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'dreads') {
+             // Thick hanging strands (Jimmy Butler style)
+             const w = headRadius * 1.1;
+             const len = 15 * s;
+
+             // Base scalp
+             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
+
+             // Draw Strands
+             ctx.lineCap = 'round';
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 4 * s;
+
+             const numDreads = 12;
+             for(let i=0; i<numDreads; i++) {
+                 const t = i / (numDreads-1); // 0 to 1
+                 const angle = Math.PI + t * Math.PI; // Top arc
+                 const sx = p.x + Math.cos(angle) * (w*0.8);
+                 const sy = (headY - 2*s) + Math.sin(angle) * (w*0.8);
+
+                 // Randomize length/direction slightly
+                 const rndLen = len * (0.8 + 0.4 * seededRandom(baseSeed + i));
+                 const curl = (seededRandom(baseSeed + i + 100) - 0.5) * 10 * s;
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 ctx.quadraticCurveTo(sx + curl, sy + rndLen * 0.5, sx, sy + rndLen);
+                 ctx.stroke();
+
+                 // Highlight
+                 ctx.lineWidth = 1 * s;
+                 ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                 ctx.stroke();
+                 ctx.lineWidth = 4 * s; // Reset
+                 ctx.strokeStyle = hairColor;
              }
              return;
         }
@@ -4646,6 +4790,9 @@
                 ctx.moveTo(ttx, tty); ctx.lineTo(ttx - 5*s, tty + 10*s); ctx.lineTo(ttx + 5*s, tty + 10*s); ctx.fill();
             }
         }
+
+        // BEARD (Drawn before head to "bleed" from sides)
+        drawBeard(ctx, p, headY, headRadius, s, skinObj);
 
         // HEAD AND HAIR
         if (skinObj.headType && skinObj.headType !== 'human') {
