@@ -4526,7 +4526,15 @@ var BallRenderer = {
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
     const g_circlePoints = [];
-    for(let i=0; i<CIRCLE_SEGS; i++) { g_circlePoints.push({x: 0, y: 0}); }
+    // Precomputed unit circle for performance (replaces trig in drawFuzzyCircle)
+    const g_circleCos = new Float32Array(CIRCLE_SEGS);
+    const g_circleSin = new Float32Array(CIRCLE_SEGS);
+    for(let i=0; i<CIRCLE_SEGS; i++) {
+        g_circlePoints.push({x: 0, y: 0});
+        const a = (i/CIRCLE_SEGS)*Math.PI*2;
+        g_circleCos[i] = Math.cos(a);
+        g_circleSin[i] = Math.sin(a);
+    }
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
@@ -4554,10 +4562,10 @@ var BallRenderer = {
         }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
-            const a = (i/CIRCLE_SEGS)*Math.PI*2;
+            // Use precomputed lookup (faster than Math.cos/sin)
             const p = g_circlePoints[i];
-            p.x = cx + Math.cos(a)*r;
-            p.y = cy + Math.sin(a)*r;
+            p.x = cx + g_circleCos[i]*r;
+            p.y = cy + g_circleSin[i]*r;
         }
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
