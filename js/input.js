@@ -34,6 +34,8 @@
 
             // Check State Change
             if (this.lastState !== state) {
+                // FORCE CLEAR on state change to prevent stale navigation
+                this.clearFocus();
                 this.refreshFocusList();
                 this.lastState = state;
                 if (window.updateButtonPrompts) window.updateButtonPrompts();
@@ -233,8 +235,9 @@
                 if (state === 'IDLE') {
                     // IDLE might have hidden controls initially? No, usually visible.
                 } else {
-                    // If we think we are in SHOP but #shopUI is hidden, wait.
-                    // Don't clear focus yet, might be transition.
+                    // If target container is hidden, we MUST clear the focus list to prevent
+                    // navigating invisible or stale elements (like the main menu behind it).
+                    this.clearFocus();
                     return;
                 }
             }
@@ -243,6 +246,7 @@
             this.focusableElements = all.filter(el => {
                 const style = window.getComputedStyle(el);
                 // Robust visibility check: display != none, visibility != hidden.
+                // Removed offsetParent check as it can be flaky with fixed/absolute positioning in some contexts.
                 return !el.disabled && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
             });
 
