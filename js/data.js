@@ -857,3 +857,22 @@
             release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Throw down
         }
     };
+
+    var HAIRSTYLES = [
+        { id: 'default', name: 'Par Défaut', cost: 0 },
+        { id: 'bald', name: 'Chauve', cost: 0 },
+        { id: 'short', name: 'Court (Fade)', cost: 500 },
+        { id: 'afro', name: 'Afro', cost: 500 },
+        { id: 'cornrows', name: 'Tresses (Iverson)', cost: 1000 },
+        { id: 'mohawk', name: 'Mohawk', cost: 1000 },
+        { id: 'short_curly', name: 'Bouclé Court', cost: 500 },
+        { id: 'long', name: 'Long', cost: 500 },
+        { id: 'spikes', name: 'Piques', cost: 1000 },
+        { id: 'pompadour', name: 'Pompadour', cost: 1000 },
+        { id: 'flat_top', name: 'Flat Top', cost: 1000 },
+        { id: 'dreads_short', name: 'Dreads Courtes', cost: 1500 },
+        { id: 'braids_back', name: 'Tresses Arrière', cost: 1500 },
+        { id: 'curly_high', name: 'High Top Bouclé', cost: 1500 },
+        { id: 'waves', name: 'Waves (Vagues)', cost: 1000 },
+        { id: 'twisted_fade', name: 'Twists & Fade', cost: 1500 }
+    ];

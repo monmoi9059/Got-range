@@ -6566,6 +6566,8 @@ var BallRenderer = {
              ctx.fill();
         }
 
+        // Hairstyle Support (Universal)
+        drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
 
         // Head Accessories
         let accessoryType = skinObj.headAccessory;

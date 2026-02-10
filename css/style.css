@@ -192,9 +192,10 @@
             display: none;
             position: absolute;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px;
+            right: 5%; /* Moved to right */
+            left: auto; /* Reset left */
+            transform: translateY(-50%); /* Only center vertically */
+            width: 400px; /* Reduced width to fit on side better */
             max-height: 85%;
             overflow-y: auto;
             background: #111;
