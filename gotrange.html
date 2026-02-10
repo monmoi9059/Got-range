@@ -10202,7 +10202,9 @@ let lastDisplayedContestTime = -1;
         focusableElements: [],
         lastButtonStates: {},
         lastState: null,
-        navDelay: 0,
+        navRepeatTimer: 0,
+        lastInputX: 0,
+        lastInputY: 0,
 
         // Mapping (Standard)
         BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
@@ -10211,8 +10213,6 @@ let lastDisplayedContestTime = -1;
         update: function() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
             let anyActive = false;
-
-            if (this.navDelay > 0) this.navDelay--;
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
@@ -10242,7 +10242,6 @@ let lastDisplayedContestTime = -1;
                 if(!gp) continue;
 
                 // Navigation (Any controller can navigate UI if configured or default behavior)
-                // For simplicity, we allow any controller to navigate menus to avoid lockout.
                 this.handleNavigation(gp, i);
 
                 // Actions (Strict Mapping)
@@ -10266,8 +10265,6 @@ let lastDisplayedContestTime = -1;
         },
 
         handleNavigation: function(gp, gpIndex) {
-            if (this.navDelay > 0) return;
-
             // Check D-Pad
             let dx = 0; let dy = 0;
             if (gp.buttons[12] && gp.buttons[12].pressed) dy = -1;
@@ -10280,15 +10277,35 @@ let lastDisplayedContestTime = -1;
             if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
 
             if (dx !== 0 || dy !== 0) {
-                if (state === 'HIGHSCORE_INPUT') {
-                    if(dy < 0) handleHighScoreInput('UP');
-                    if(dy > 0) handleHighScoreInput('DOWN');
-                    if(dx < 0) handleHighScoreInput('LEFT');
-                    if(dx > 0) handleHighScoreInput('RIGHT');
-                } else {
-                    this.moveFocus(dx, dy);
+                // Input Active
+                if (dx !== this.lastInputX || dy !== this.lastInputY) {
+                    // New direction, reset timer to trigger immediately
+                    this.navRepeatTimer = 0;
                 }
-                this.navDelay = 12; // ~200ms debounce
+
+                if (this.navRepeatTimer <= 0) {
+                    if (state === 'HIGHSCORE_INPUT') {
+                        if(dy < 0) handleHighScoreInput('UP');
+                        if(dy > 0) handleHighScoreInput('DOWN');
+                        if(dx < 0) handleHighScoreInput('LEFT');
+                        if(dx > 0) handleHighScoreInput('RIGHT');
+                    } else {
+                        this.moveFocus(dx, dy);
+                    }
+
+                    if (this.navRepeatTimer === 0) this.navRepeatTimer = 20; // Initial Delay
+                    else this.navRepeatTimer = 6; // Repeat Delay
+                } else {
+                    this.navRepeatTimer--;
+                }
+
+                this.lastInputX = dx;
+                this.lastInputY = dy;
+            } else {
+                // No Input
+                this.navRepeatTimer = 0;
+                this.lastInputX = 0;
+                this.lastInputY = 0;
             }
         },
 
@@ -10395,22 +10412,34 @@ let lastDisplayedContestTime = -1;
             }
 
             const container = document.querySelector(containerSelector);
-            if(!container || (container.style.display === 'none' && state !== 'IDLE')) {
-                // If container is hidden but we think we are in that state, something is wrong or transitioning
-                // Just clear focus to be safe
-                // this.clearFocus();
-                // return;
-                // Actually, checking display is tricky because CSS classes might hide it differently.
-                // Trust the 'state' variable.
+            if(!container) {
+                this.clearFocus();
+                return;
+            }
+
+            // Check if container is visible
+            const cStyle = window.getComputedStyle(container);
+            if (cStyle.display === 'none' || cStyle.visibility === 'hidden') {
+                if (state === 'IDLE') {
+                    // IDLE might have hidden controls initially? No, usually visible.
+                } else {
+                    // If we think we are in SHOP but #shopUI is hidden, wait.
+                    // Don't clear focus yet, might be transition.
+                    return;
+                }
             }
 
             const all = Array.from(document.querySelectorAll(`${containerSelector} button, ${containerSelector} .ui-btn, ${containerSelector} input, ${containerSelector} select, ${containerSelector} .broadcast-btn, ${containerSelector} .broadcast-icon-btn`));
             this.focusableElements = all.filter(el => {
                 const style = window.getComputedStyle(el);
-                return el.offsetParent !== null && !el.disabled && style.display !== 'none' && style.visibility !== 'hidden';
+                // Robust visibility check: display != none, visibility != hidden.
+                // Removed offsetParent check as it can be flaky with fixed/absolute positioning in some contexts.
+                return !el.disabled && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
             });
 
             if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
+                // Lost focus (e.g. element removed). Try to recover close match?
+                // For now, simpler: default to first.
                 if (this.focusableElements.length > 0) {
                     this.focusedElement = this.focusableElements[0];
                     this.applyFocus();
@@ -10452,9 +10481,14 @@ let lastDisplayedContestTime = -1;
                         sel.selectedIndex = idx;
                         sel.dispatchEvent(new Event('change'));
                     } else {
+                        // Special handling for Shop Upgrades (UI rebuilds)
+                        // We click, then force refresh
                         this.focusedElement.click();
-                        // Refresh immediately in case the click changed the UI (e.g. opened a new menu)
-                        setTimeout(() => this.refreshFocusList(), 50);
+
+                        // Force refresh next frame/tick
+                        setTimeout(() => {
+                            this.refreshFocusList();
+                        }, 50);
                     }
                 }
             }

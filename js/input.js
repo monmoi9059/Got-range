@@ -4,7 +4,9 @@
         focusableElements: [],
         lastButtonStates: {},
         lastState: null,
-        navDelay: 0,
+        navRepeatTimer: 0,
+        lastInputX: 0,
+        lastInputY: 0,
 
         // Mapping (Standard)
         BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
@@ -13,8 +15,6 @@
         update: function() {
             const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
             let anyActive = false;
-
-            if (this.navDelay > 0) this.navDelay--;
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
@@ -44,7 +44,6 @@
                 if(!gp) continue;
 
                 // Navigation (Any controller can navigate UI if configured or default behavior)
-                // For simplicity, we allow any controller to navigate menus to avoid lockout.
                 this.handleNavigation(gp, i);
 
                 // Actions (Strict Mapping)
@@ -68,8 +67,6 @@
         },
 
         handleNavigation: function(gp, gpIndex) {
-            if (this.navDelay > 0) return;
-
             // Check D-Pad
             let dx = 0; let dy = 0;
             if (gp.buttons[12] && gp.buttons[12].pressed) dy = -1;
@@ -82,15 +79,43 @@
             if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
 
             if (dx !== 0 || dy !== 0) {
-                if (state === 'HIGHSCORE_INPUT') {
-                    if(dy < 0) handleHighScoreInput('UP');
-                    if(dy > 0) handleHighScoreInput('DOWN');
-                    if(dx < 0) handleHighScoreInput('LEFT');
-                    if(dx > 0) handleHighScoreInput('RIGHT');
-                } else {
-                    this.moveFocus(dx, dy);
+                // Input Active
+                if (dx !== this.lastInputX || dy !== this.lastInputY) {
+                    // New direction, reset timer to trigger immediately
+                    this.navRepeatTimer = 0;
                 }
-                this.navDelay = 12; // ~200ms debounce
+
+                if (this.navRepeatTimer > 0) {
+                    this.navRepeatTimer--;
+                    if (this.navRepeatTimer === 0) {
+                        // Repeat Move
+                        this.performMove(dx, dy);
+                        this.navRepeatTimer = 6; // Fast repeat
+                    }
+                } else {
+                    // Initial Move
+                    this.performMove(dx, dy);
+                    this.navRepeatTimer = 20; // Initial delay
+                }
+
+                this.lastInputX = dx;
+                this.lastInputY = dy;
+            } else {
+                // No Input
+                this.navRepeatTimer = 0;
+                this.lastInputX = 0;
+                this.lastInputY = 0;
+            }
+        },
+
+        performMove: function(dx, dy) {
+            if (state === 'HIGHSCORE_INPUT') {
+                if(dy < 0) handleHighScoreInput('UP');
+                if(dy > 0) handleHighScoreInput('DOWN');
+                if(dx < 0) handleHighScoreInput('LEFT');
+                if(dx > 0) handleHighScoreInput('RIGHT');
+            } else {
+                this.moveFocus(dx, dy);
             }
         },
 
@@ -197,22 +222,33 @@
             }
 
             const container = document.querySelector(containerSelector);
-            if(!container || (container.style.display === 'none' && state !== 'IDLE')) {
-                // If container is hidden but we think we are in that state, something is wrong or transitioning
-                // Just clear focus to be safe
-                // this.clearFocus();
-                // return;
-                // Actually, checking display is tricky because CSS classes might hide it differently.
-                // Trust the 'state' variable.
+            if(!container) {
+                this.clearFocus();
+                return;
+            }
+
+            // Check if container is visible
+            const cStyle = window.getComputedStyle(container);
+            if (cStyle.display === 'none' || cStyle.visibility === 'hidden') {
+                if (state === 'IDLE') {
+                    // IDLE might have hidden controls initially? No, usually visible.
+                } else {
+                    // If we think we are in SHOP but #shopUI is hidden, wait.
+                    // Don't clear focus yet, might be transition.
+                    return;
+                }
             }
 
             const all = Array.from(document.querySelectorAll(`${containerSelector} button, ${containerSelector} .ui-btn, ${containerSelector} input, ${containerSelector} select, ${containerSelector} .broadcast-btn, ${containerSelector} .broadcast-icon-btn`));
             this.focusableElements = all.filter(el => {
                 const style = window.getComputedStyle(el);
-                return el.offsetParent !== null && !el.disabled && style.display !== 'none' && style.visibility !== 'hidden';
+                // Robust visibility check: display != none, visibility != hidden.
+                return !el.disabled && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
             });
 
             if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
+                // Lost focus (e.g. element removed). Try to recover close match?
+                // For now, simpler: default to first.
                 if (this.focusableElements.length > 0) {
                     this.focusedElement = this.focusableElements[0];
                     this.applyFocus();
@@ -254,9 +290,14 @@
                         sel.selectedIndex = idx;
                         sel.dispatchEvent(new Event('change'));
                     } else {
+                        // Special handling for Shop Upgrades (UI rebuilds)
+                        // We click, then force refresh
                         this.focusedElement.click();
-                        // Refresh immediately in case the click changed the UI (e.g. opened a new menu)
-                        setTimeout(() => this.refreshFocusList(), 50);
+
+                        // Force refresh next frame/tick
+                        setTimeout(() => {
+                            this.refreshFocusList();
+                        }, 50);
                     }
                 }
             }
@@ -285,183 +326,3 @@
             }
         }
     };
-
-    function handleActionPress() {
-        if (state === 'GAMEOVER') {
-            if (isSplitscreen) resetGame();
-            else openShop();
-        } else if (state === 'IDLE') {
-            startJump();
-        }
-    }
-
-    // Start buttons
-    const mobBtn = document.getElementById('mobileShootBtn');
-    if (mobBtn) {
-        mobBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (isSplitscreen) {
-                doGameAction(game2, 'press');
-            } else {
-                doGameAction(game1, 'press');
-            }
-        }, {passive: false});
-        mobBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (isSplitscreen) {
-                doGameAction(game2, 'release');
-            } else {
-                doGameAction(game1, 'release');
-            }
-        }, {passive: false});
-    }
-
-    const mobBtn2 = document.getElementById('mobileShootBtn2');
-    if (mobBtn2) {
-        mobBtn2.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            doGameAction(game1, 'press');
-        }, {passive: false});
-        mobBtn2.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            doGameAction(game1, 'release');
-        }, {passive: false});
-    }
-
-    function doGameAction(game, type) {
-        loadContext(game);
-        if (type === 'press') {
-            handleActionPress();
-        } else if (type === 'release') {
-            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
-        }
-        saveContext(game);
-    }
-
-    var enterPressed = false;
-
-    window.addEventListener('keydown', (e) => {
-        // High Score / UI Handling
-        if (state === 'HIGHSCORE_INPUT') {
-            loadContext(game1);
-            if (e.code === 'ArrowUp') handleHighScoreInput('UP');
-            if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
-            if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
-            if (e.code === 'ArrowRight') handleHighScoreInput('RIGHT');
-            if (e.code === 'Enter') handleHighScoreInput('SELECT');
-            if (e.code === 'Backspace') handleHighScoreInput('BACK');
-            saveContext(game1);
-            return;
-        }
-
-        // Global UI Toggles (P1 only for simplicity)
-        if(state === 'SHOP') { if(e.code === 'Escape') { loadContext(game1); closeShop(); return; } }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
-        if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
-        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
-
-        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
-        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
-        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
-
-        // P1 Action
-        if (e.code === 'Space' && !spacePressed) {
-            spacePressed = true;
-            doGameAction(game1, 'press');
-        }
-
-        // P2 Action
-        if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
-            enterPressed = true;
-            doGameAction(game2, 'press');
-        }
-    });
-
-    window.addEventListener('keyup', (e) => {
-        if (e.code === 'Space') {
-            spacePressed = false;
-            doGameAction(game1, 'release');
-        }
-        if (isSplitscreen && e.code === 'Enter') {
-            enterPressed = false;
-            doGameAction(game2, 'release');
-        }
-    });
-
-    window.addEventListener('mousedown', (e) => {
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const x = (e.clientX - rect.left) * scaleX;
-
-        // P1 Mouse Control (Default) or P2 if on right side in splitscreen
-        if (isSplitscreen && x > canvas.width / 2) {
-             doGameAction(game2, 'press');
-        } else {
-             // Check mobile flag inside context?
-             loadContext(game1);
-             if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
-             saveContext(game1);
-
-             doGameAction(game1, 'press');
-        }
-    });
-    window.addEventListener('mouseup', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const x = (e.clientX - rect.left) * scaleX;
-
-        if (isSplitscreen && x > canvas.width / 2) {
-             doGameAction(game2, 'release');
-        } else {
-            loadContext(game1);
-            if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
-            saveContext(game1);
-
-            doGameAction(game1, 'release');
-        }
-    });
-
-    // Handle Page Visibility (Mute audio on background)
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            if (AudioSystem.ctx && AudioSystem.ctx.state === 'running') {
-                AudioSystem.ctx.suspend();
-            }
-        } else {
-            // Only resume if user hasn't explicitly muted it
-            if (AudioSystem.ctx && !AudioSystem.isMuted && AudioSystem.ctx.state === 'suspended') {
-                AudioSystem.ctx.resume();
-            }
-        }
-    });
-
-    // Helper to update prompts (Added for new controller requirements)
-    window.updateButtonPrompts = function() {
-        const p = document.getElementById('gamepad-prompts');
-        if (!p) return;
-
-        if (!GamepadController.active) {
-            p.style.display = 'none';
-            return;
-        }
-        p.style.display = 'flex';
-
-        let html = '';
-        if (state === 'IDLE' || state === 'GAMEOVER') {
-            html += `<span><span class="gp-btn">A</span> Select</span>`;
-            if (state === 'IDLE') html += `<span><span class="gp-btn">X</span> Jump</span>`;
-        } else if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD'].includes(state)) {
-            html += `<span><span class="gp-btn">A</span> Select</span>`;
-            html += `<span><span class="gp-btn">B</span> Back</span>`;
-            html += `<span><span class="gp-btn">D-PAD</span> Move</span>`;
-        } else if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'SHOOTING') {
-             html += `<span><span class="gp-btn">X</span> Release</span>`;
-        }
-
-        p.innerHTML = html;
-    };
-
-    // --- SPLITSCREEN & STATE MANAGEMENT ---
