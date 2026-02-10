@@ -10306,6 +10306,12 @@ let lastDisplayedContestTime = -1;
         },
 
         findBestFocusCandidate: function(dx, dy) {
+            // Safety: If focused element is detached (dead), reset focus
+            if (this.focusedElement && !document.body.contains(this.focusedElement)) {
+                this.refreshFocusList(); // Will reset to index 0
+                return this.focusableElements[0];
+            }
+
             if (!this.focusedElement || this.focusableElements.length === 0) {
                 return this.focusableElements.length > 0 ? this.focusableElements[0] : null;
             }
@@ -10322,19 +10328,19 @@ let lastDisplayedContestTime = -1;
                 const r = el.getBoundingClientRect();
                 const c = { x: r.left + r.width/2, y: r.top + r.height/2 };
 
-                // Direction Check
-                if (dx > 0 && c.x <= center.x + 5) return; // Right (with small overlap tolerance)
-                if (dx < 0 && c.x >= center.x - 5) return; // Left
-                if (dy > 0 && c.y <= center.y + 5) return; // Down
-                if (dy < 0 && c.y >= center.y - 5) return; // Up
+                // Direction Check (Relaxed tolerance to 10px)
+                if (dx > 0 && c.x <= center.x + 10) return; // Right
+                if (dx < 0 && c.x >= center.x - 10) return; // Left
+                if (dy > 0 && c.y <= center.y + 10) return; // Down
+                if (dy < 0 && c.y >= center.y - 10) return; // Up
 
                 // Score = Distance + Alignment Penalty
                 const distSq = Math.pow(c.x - center.x, 2) + Math.pow(c.y - center.y, 2);
 
-                // Alignment Penalty
+                // Alignment Penalty (Reduced factor from 3.0 to 2.0)
                 let penalty = 0;
-                if (dy !== 0) penalty = Math.abs(c.x - center.x) * 3.0; // Penalize horizontal offset when moving vertical
-                if (dx !== 0) penalty = Math.abs(c.y - center.y) * 3.0; // Penalize vertical offset when moving horizontal
+                if (dy !== 0) penalty = Math.abs(c.x - center.x) * 2.0;
+                if (dx !== 0) penalty = Math.abs(c.y - center.y) * 2.0;
 
                 const score = distSq + (penalty * penalty);
 
@@ -10400,6 +10406,7 @@ let lastDisplayedContestTime = -1;
                 return el.offsetParent !== null && !el.disabled && el.style.display !== 'none';
             });
 
+            // If focused element is lost or invalid, reset
             if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
                 this.focusIndex = 0;
                 this.applyFocus();
@@ -10571,7 +10578,14 @@ let lastDisplayedContestTime = -1;
     });
 
     // Detect mouse/keyboard usage to hide prompts
-    const deactivateGamepad = () => {
+    let lastMouseX = 0, lastMouseY = 0;
+    const deactivateGamepad = (e) => {
+        // Prevent drift deactivation
+        if (e.type === 'mousemove') {
+            if (Math.abs(e.clientX - lastMouseX) < 10 && Math.abs(e.clientY - lastMouseY) < 10) return;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        }
         if (GamepadController.active) {
             GamepadController.active = false;
             GamepadController.updatePrompts();
@@ -10580,9 +10594,6 @@ let lastDisplayedContestTime = -1;
     };
     window.addEventListener('mousemove', deactivateGamepad);
     window.addEventListener('mousedown', deactivateGamepad);
-    // Note: Keydown also triggers actions but we want mixed input to be seamless.
-    // If user presses a key, we can arguably keep prompts or hide them.
-    // Console convention: Key press switches to KB mode.
     window.addEventListener('keydown', deactivateGamepad);
 
 
