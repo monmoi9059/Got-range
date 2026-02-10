@@ -1,48 +1,182 @@
+    // Virtual Cursor System
+    const VirtualCursor = {
+        element: null,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        visible: false,
+        speed: 15,
+        scrollSpeed: 15,
+
+        init: function() {
+            if (!document.getElementById('gamepad-cursor')) {
+                this.element = document.createElement('div');
+                this.element.id = 'gamepad-cursor';
+                this.element.style.position = 'fixed';
+                this.element.style.width = '20px';
+                this.element.style.height = '20px';
+                this.element.style.borderRadius = '50%';
+                this.element.style.backgroundColor = 'rgba(255, 215, 0, 0.8)'; // Gold
+                this.element.style.border = '2px solid white';
+                this.element.style.boxShadow = '0 0 10px black';
+                this.element.style.pointerEvents = 'none'; // Click-through for elementFromPoint
+                this.element.style.zIndex = '999999';
+                this.element.style.display = 'none';
+                this.element.style.transform = 'translate(-50%, -50%)'; // Center pivot
+
+                // Add a crosshair or simple styling
+                this.element.innerHTML = '<div style="position:absolute; top:50%; left:50%; width:4px; height:4px; background:red; transform:translate(-50%,-50%); border-radius:50%;"></div>';
+
+                document.body.appendChild(this.element);
+            } else {
+                this.element = document.getElementById('gamepad-cursor');
+            }
+        },
+
+        updatePosition: function(dx, dy) {
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+
+            this.visible = true;
+            this.element.style.display = 'block';
+
+            this.x += dx * this.speed;
+            this.y += dy * this.speed;
+
+            // Clamp to screen
+            this.x = Math.max(0, Math.min(window.innerWidth, this.x));
+            this.y = Math.max(0, Math.min(window.innerHeight, this.y));
+
+            this.element.style.left = this.x + 'px';
+            this.element.style.top = this.y + 'px';
+        },
+
+        handleScroll: function(dx, dy) {
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+
+            // Find scrollable target under cursor or active modal
+            // Priority: Hovered element -> Open Modal -> Window
+
+            // 1. Try element under cursor
+            // temporarily hide cursor to get element below
+            this.element.style.display = 'none';
+            let target = document.elementFromPoint(this.x, this.y);
+            this.element.style.display = 'block';
+
+            // Walk up to find scrollable
+            let scrolled = false;
+            while(target) {
+                if (target.scrollHeight > target.clientHeight || target.scrollWidth > target.clientWidth) {
+                    const style = window.getComputedStyle(target);
+                    if (['auto', 'scroll'].includes(style.overflowY) || ['auto', 'scroll'].includes(style.overflowX)) {
+                        target.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
+                        scrolled = true;
+                        break;
+                    }
+                }
+                target = target.parentElement;
+            }
+
+            if (!scrolled) {
+                // Fallback: Check for open visible modal
+                const visibleModal = document.querySelector('.modal[style*="display: block"]');
+                if (visibleModal) {
+                    visibleModal.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
+                } else {
+                    window.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
+                }
+            }
+        },
+
+        click: function() {
+            this.visible = true;
+            this.element.style.display = 'block';
+
+            // Click animation
+            this.element.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            setTimeout(() => this.element.style.transform = 'translate(-50%, -50%) scale(1.0)', 100);
+
+            // Trigger click
+            this.element.style.display = 'none'; // Hide to click through
+            const target = document.elementFromPoint(this.x, this.y);
+            this.element.style.display = 'block';
+
+            if (target) {
+                // Focus input if text
+                if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+                    target.focus();
+                }
+
+                // Dispatch full mouse sequence for compatibility
+                const opts = { bubbles: true, cancelable: true, view: window, clientX: this.x, clientY: this.y };
+                target.dispatchEvent(new MouseEvent('mousedown', opts));
+                target.dispatchEvent(new MouseEvent('mouseup', opts));
+                target.click();
+            }
+        }
+    };
+
     const GamepadController = {
         active: false,
-        focusedElement: null,
-        focusableElements: [],
         lastButtonStates: {},
         lastState: null,
-        navDelay: 0,
 
         // Mapping (Standard)
         BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
-        BTN_UP: 12, BTN_DOWN: 13, BTN_LEFT: 14, BTN_RIGHT: 15,
 
         update: function() {
-            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-            let anyActive = false;
+            // Initialize cursor if needed
+            if (!VirtualCursor.element) VirtualCursor.init();
 
-            if (this.navDelay > 0) this.navDelay--;
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+            // We focus mainly on Player 1 for UI navigation to avoid conflict,
+            // but we could allow any controller to move the cursor.
+            // Let's allow any active controller to drive the cursor (last wins).
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
                 if(!gp) continue;
-                anyActive = true;
 
                 if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
 
-                // Only activate if a button is pressed or previously active
-                if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
-            }
-            if(!this.active) return;
+                // Check Left Stick (Axes 0, 1) -> Cursor
+                const lsX = gp.axes[0] || 0;
+                const lsY = gp.axes[1] || 0;
+                VirtualCursor.updatePosition(lsX, lsY);
 
-            // Check State Change
-            if (this.lastState !== state) {
-                this.refreshFocusList();
-                this.lastState = state;
-            }
+                // Check Right Stick (Axes 2, 3) -> Scroll
+                const rsX = gp.axes[2] || 0;
+                const rsY = gp.axes[3] || 0;
+                VirtualCursor.handleScroll(rsX, rsY);
 
-            for(let i=0; i<4; i++) {
-                const gp = gamepads[i];
-                if(!gp) continue;
+                // Check Actions
 
-                // Navigation (Any controller can navigate UI)
-                this.handleNavigation(gp, i);
+                // A Button (0) -> Click
+                if (this.isPressed(gp, this.BTN_A, i)) {
+                    VirtualCursor.click();
+                }
 
-                // Actions (Strict Mapping)
-                this.handleActions(gp, i);
+                // X Button (2) -> Shoot (Game Action)
+                // We keep this specific logic for gameplay
+                const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
+                const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
+
+                if (i === p1Map) {
+                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game1, 'press');
+                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game1, 'release');
+                }
+
+                if (isSplitscreen && i === p2Map) {
+                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game2, 'press');
+                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game2, 'release');
+                }
+
+                // B Button (1) -> Back / Close Menu
+                if (this.isPressed(gp, this.BTN_B, i)) {
+                    if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
+                    else if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD'].includes(state)) {
+                        window.closeAllMenus();
+                    }
+                }
 
                 // Save state
                 for(let b=0; b<gp.buttons.length; b++) {
@@ -59,235 +193,6 @@
         isReleased: function(gp, btnIndex, gpIndex) {
             const lastState = this.lastButtonStates[gpIndex] || [];
             return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && lastState[btnIndex];
-        },
-
-        handleNavigation: function(gp, gpIndex) {
-            if (this.navDelay > 0) return;
-
-            // Check D-Pad
-            let dx = 0; let dy = 0;
-            if (gp.buttons[12] && gp.buttons[12].pressed) dy = -1;
-            if (gp.buttons[13] && gp.buttons[13].pressed) dy = 1;
-            if (gp.buttons[14] && gp.buttons[14].pressed) dx = -1;
-            if (gp.buttons[15] && gp.buttons[15].pressed) dx = 1;
-
-            // Check Left Stick (Threshold 0.5)
-            if (gp.axes[0] && Math.abs(gp.axes[0]) > 0.5) dx = Math.sign(gp.axes[0]);
-            if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
-
-            if (dx !== 0 || dy !== 0) {
-                if (state === 'HIGHSCORE_INPUT') {
-                    if(dy < 0) handleHighScoreInput('UP');
-                    if(dy > 0) handleHighScoreInput('DOWN');
-                    if(dx < 0) handleHighScoreInput('LEFT');
-                    if(dx > 0) handleHighScoreInput('RIGHT');
-                } else {
-                    this.moveFocus(dx, dy);
-                }
-                this.navDelay = 12; // ~200ms debounce
-            }
-        },
-
-        moveFocus: function(dx, dy) {
-            this.refreshFocusList();
-            if (this.focusableElements.length === 0) return;
-
-            // Slider Handling (Left/Right)
-            if (this.focusedElement && this.focusedElement.tagName === 'INPUT' && this.focusedElement.type === 'range' && dx !== 0) {
-                const step = parseFloat(this.focusedElement.step) || 1;
-                const val = parseFloat(this.focusedElement.value);
-                const min = parseFloat(this.focusedElement.min);
-                const max = parseFloat(this.focusedElement.max);
-
-                let newVal = val;
-                if (dx > 0) newVal = Math.min(max, val + step);
-                if (dx < 0) newVal = Math.max(min, val - step);
-
-                if (newVal !== val) {
-                    this.focusedElement.value = newVal;
-                    this.focusedElement.dispatchEvent(new Event('input'));
-                }
-                return;
-            }
-
-            // Spatial Navigation Logic
-            const current = this.focusedElement;
-            if (!current) {
-                this.focusedElement = this.focusableElements[0];
-                this.applyFocus();
-                return;
-            }
-
-            const rect = current.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-
-            let bestCandidate = null;
-            let minScore = Infinity;
-
-            this.focusableElements.forEach(el => {
-                if (el === current) return;
-
-                const r = el.getBoundingClientRect();
-                const ex = r.left + r.width / 2;
-                const ey = r.top + r.height / 2;
-
-                const distX = ex - cx;
-                const distY = ey - cy;
-
-                // Basic Direction Check
-                let isDirectionCorrect = false;
-                if (dx > 0 && distX > 0) isDirectionCorrect = true; // Right
-                if (dx < 0 && distX < 0) isDirectionCorrect = true; // Left
-                if (dy > 0 && distY > 0) isDirectionCorrect = true; // Down
-                if (dy < 0 && distY < 0) isDirectionCorrect = true; // Up
-
-                // Refined: Must be somewhat in the cone
-                if (isDirectionCorrect) {
-                    // For horizontal movement, vertical distance is penalty
-                    // For vertical movement, horizontal distance is penalty
-                    let primaryDist = 0;
-                    let penaltyDist = 0;
-
-                    if (Math.abs(dx) > 0) { // Moving Horizontally
-                        primaryDist = Math.abs(distX);
-                        penaltyDist = Math.abs(distY);
-                        // Cone check: Don't jump to something almost directly above/below
-                        if (penaltyDist > primaryDist * 2) return;
-                    } else { // Moving Vertically
-                        primaryDist = Math.abs(distY);
-                        penaltyDist = Math.abs(distX);
-                        if (penaltyDist > primaryDist * 2) return;
-                    }
-
-                    // Score: Euclidean distance + heavy penalty for misalignment
-                    // We prefer: Closer elements, and Aligned elements
-                    // Score = Distance + (Penalty * Weight)
-                    const distEuclidean = Math.sqrt(distX*distX + distY*distY);
-                    const score = distEuclidean + (penaltyDist * 2.5);
-
-                    if (score < minScore) {
-                        minScore = score;
-                        bestCandidate = el;
-                    }
-                }
-            });
-
-            if (bestCandidate) {
-                this.focusedElement = bestCandidate;
-                this.applyFocus();
-            }
-        },
-
-        refreshFocusList: function() {
-            let elements = [];
-
-            if (state === 'STARTUP') {
-                elements = Array.from(document.querySelectorAll('#startup-ui button'));
-            } else if (state === 'IDLE') {
-                // Combined Controls + Music + Fullscreen
-                const controls = Array.from(document.querySelectorAll('#controls .broadcast-btn, #controls button'));
-                const music = Array.from(document.querySelectorAll('.broadcast-icon-btn'));
-                const fs = document.getElementById('btn-force-fullscreen');
-
-                elements = [...controls, ...music];
-                if (fs && fs.style.display !== 'none') elements.push(fs);
-            } else if (state === 'SHOP') {
-                elements = Array.from(document.querySelectorAll('#shopUI button, #shopUI input, #shopUI .ui-btn'));
-            } else if (state === 'STATS') {
-                elements = Array.from(document.querySelectorAll('#statsUI button, #statsUI input, #statsUI select'));
-            } else if (state === 'ACHIEVEMENTS') {
-                elements = Array.from(document.querySelectorAll('#achUI button'));
-            } else if (state === 'LEADERBOARD') {
-                elements = Array.from(document.querySelectorAll('#leaderboardUI button'));
-            } else if (state === 'HIGHSCORE_INPUT') {
-                // Handled custom
-                elements = [];
-            }
-
-            // Filter out disabled/hidden/detached
-            this.focusableElements = elements.filter(el => {
-                return el.offsetParent !== null && !el.disabled && el.style.display !== 'none' && el.style.visibility !== 'hidden';
-            });
-
-            // Ensure focus validity
-            if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
-                // Try to find one, or reset
-                if (this.focusableElements.length > 0) {
-                    this.focusedElement = this.focusableElements[0];
-                    this.applyFocus();
-                } else {
-                    this.focusedElement = null;
-                }
-            }
-        },
-
-        applyFocus: function() {
-            document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
-
-            if (this.focusedElement) {
-                this.focusedElement.classList.add('gamepad-focus');
-                this.focusedElement.focus(); // Native focus for events
-                if(this.focusedElement.scrollIntoView) {
-                    this.focusedElement.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-                }
-            }
-        },
-
-        clearFocus: function() {
-            document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
-            if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
-            this.focusedElement = null;
-            this.focusableElements = [];
-        },
-
-        handleActions: function(gp, gpIndex) {
-            // A Button: Select/Click
-            if (this.isPressed(gp, this.BTN_A, gpIndex)) {
-                if (state === 'HIGHSCORE_INPUT') {
-                    handleHighScoreInput('SELECT');
-                } else if (this.focusedElement) {
-                    // Simulate click
-                    // For selects, we might need special handling if 'click' doesn't open dropdown
-                    // Browsers block programmatic open of selects.
-                    // Instead, we treat A as cycling options for Selects?
-                    if(this.focusedElement.tagName === 'SELECT') {
-                        const sel = this.focusedElement;
-                        let idx = sel.selectedIndex + 1;
-                        if(idx >= sel.options.length) idx = 0;
-                        sel.selectedIndex = idx;
-                        sel.dispatchEvent(new Event('change'));
-                        // Visual feedback?
-                    } else {
-                        this.focusedElement.click();
-                        // Delay refresh slightly to allow UI transition
-                        setTimeout(() => this.refreshFocusList(), 50);
-                    }
-                }
-            }
-
-            // B Button: Back
-            if (this.isPressed(gp, this.BTN_B, gpIndex)) {
-                if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
-                else if (state === 'SHOP') closeShop();
-                else if (state === 'STATS') closeStats();
-                else if (state === 'ACHIEVEMENTS') closeAchievements();
-                else if (state === 'LEADERBOARD') closeLeaderboard();
-            }
-
-            // X Button: Shoot (Game Action) - Player Mapped
-            const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
-            const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
-
-            if (gpIndex === p1Map) {
-                if (this.isPressed(gp, this.BTN_X, gpIndex)) doGameAction(game1, 'press');
-                if (this.isReleased(gp, this.BTN_X, gpIndex)) doGameAction(game1, 'release');
-            }
-
-            if (isSplitscreen && gpIndex === p2Map) {
-                if (this.isPressed(gp, this.BTN_X, gpIndex)) doGameAction(game2, 'press');
-                if (this.isReleased(gp, this.BTN_X, gpIndex)) doGameAction(game2, 'release');
-            }
         }
     };
 
@@ -395,6 +300,12 @@
     });
 
     window.addEventListener('mousedown', (e) => {
+        // Hide virtual cursor on real mouse interaction
+        if (typeof VirtualCursor !== 'undefined' && VirtualCursor.element) {
+            VirtualCursor.visible = false;
+            VirtualCursor.element.style.display = 'none';
+        }
+
         if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
 
         const rect = canvas.getBoundingClientRect();
