@@ -9971,6 +9971,105 @@ var BallRenderer = {
         ctx.fill();
     }
 
+    function drawLaporteBridge(ctx, x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+
+        // Piers (Supports in water) - Drawn first (behind)
+        ctx.fillStyle = '#666';
+        ctx.fillRect(-85, 10, 20, 100); // Left Pier
+        ctx.fillRect(65, 10, 20, 100);  // Right Pier
+
+        // Towers
+        ctx.fillStyle = '#555';
+        ctx.fillRect(-80, -60, 10, 80);
+        ctx.fillRect(70, -60, 10, 80);
+
+        // Deck (Above water)
+        ctx.fillStyle = '#444';
+        ctx.fillRect(-150, 0, 300, 10);
+
+        // Main Cable
+        ctx.beginPath();
+        ctx.moveTo(-80, -60);
+        ctx.quadraticCurveTo(0, 10, 70, -60);
+        ctx.stroke();
+
+        // Suspenders
+        ctx.lineWidth = 0.5;
+        for(let i=-70; i<=60; i+=10) {
+            let cableY = -0.01 * i*i - 5;
+            if (cableY < 0) {
+                ctx.beginPath(); ctx.moveTo(i, cableY); ctx.lineTo(i, 0); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawQuebecBridge(ctx, x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+
+        // Piers
+        ctx.fillStyle = '#666';
+        ctx.fillRect(-85, 10, 10, 80);
+        ctx.fillRect(-5, 10, 10, 80);
+        ctx.fillRect(75, 10, 10, 80);
+
+        const drawTruss = (tx) => {
+             ctx.beginPath();
+             ctx.moveTo(tx, 0); ctx.lineTo(tx - 30, -50); ctx.lineTo(tx + 30, -50);
+             ctx.lineTo(tx + 60, 0); ctx.lineTo(tx - 60, 0); ctx.closePath();
+             ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.stroke();
+             ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, -50); ctx.stroke();
+        };
+        drawTruss(-80); drawTruss(0); drawTruss(80);
+        ctx.fillStyle = '#444'; ctx.fillRect(-150, 0, 300, 5);
+        ctx.restore();
+    }
+
+    function drawBoat(ctx, x, y, scale, color) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = color || '#FFF';
+        ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.lineTo(15, -5); ctx.lineTo(-5, -5); ctx.fill();
+        ctx.fillStyle = '#EEE'; ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(0, -20); ctx.lineTo(10, -8); ctx.fill();
+        ctx.restore();
+    }
+
+    function drawRiver(ctx, horizonY, vpW) {
+         if (playerData.graphics === 'LOW') return;
+         const riverH = 120;
+         const riverY = horizonY;
+         const grad = ctx.createLinearGradient(0, riverY, 0, riverY + riverH);
+         grad.addColorStop(0, '#1E3F5A'); grad.addColorStop(1, '#2F4F4F');
+         ctx.fillStyle = grad;
+         ctx.fillRect(0, riverY, vpW, riverH);
+
+         const camX = (g_camCache && g_camCache.x) ? g_camCache.x : 0;
+         const camY = (g_camCache && g_camCache.y) ? g_camCache.y : 0;
+
+         // Match mountain parallax roughly (between 0.02 and 0.1)
+         const parallaxFactor = 0.03;
+         const parallax = (camX + camY) * parallaxFactor;
+
+         // Position bridges higher (horizonY - 20) so they sit over the water
+         const bridgeBaseY = riverY - 10;
+         const bridgeX = 150 - parallax;
+
+         drawLaporteBridge(ctx, bridgeX, bridgeBaseY, 0.6);
+         drawQuebecBridge(ctx, bridgeX - 250, bridgeBaseY, 0.6);
+
+         const time = Date.now() * 0.001;
+         drawBoat(ctx, (bridgeX + 300) % (vpW + 400) - 200, riverY + 30, 0.8, '#FFF');
+         drawBoat(ctx, (bridgeX + 600) % (vpW + 400) - 200, riverY + 40 + Math.sin(time)*2, 0.6, '#DDD');
+    }
+
     function drawBackground(vpX, vpY, vpW, vpH) {
         if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
@@ -10208,6 +10307,7 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
+            drawRiver(ctx, horizonY, vpW);
             const currentDist = 10 + (distanceLevel * 5);
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
