@@ -10238,9 +10238,7 @@ let lastDisplayedContestTime = -1;
             if (gp.buttons[14] && gp.buttons[14].pressed) dx = -1;
             if (gp.buttons[15] && gp.buttons[15].pressed) dx = 1;
 
-            // Check Left Stick (Threshold 0.5)
-            if (gp.axes[0] && Math.abs(gp.axes[0]) > 0.5) dx = Math.sign(gp.axes[0]);
-            if (gp.axes[1] && Math.abs(gp.axes[1]) > 0.5) dy = Math.sign(gp.axes[1]);
+            // Check Left Stick (Disabled)
 
             if (dx !== 0 || dy !== 0) {
                 if (state === 'HIGHSCORE_INPUT') {
