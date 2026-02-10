@@ -10232,9 +10232,14 @@ let lastDisplayedContestTime = -1;
 
             // Check State Change
             if (this.lastState !== state) {
+                this.clearFocus();
                 this.refreshFocusList();
                 this.lastState = state;
                 if (window.updateButtonPrompts) window.updateButtonPrompts();
+            } else if (!this.focusedElement && this.active) {
+                if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'HIGHSCORE_INPUT'].includes(state)) {
+                     this.refreshFocusList();
+                }
             }
 
             for(let i=0; i<4; i++) {
@@ -10425,6 +10430,7 @@ let lastDisplayedContestTime = -1;
                 } else {
                     // If we think we are in SHOP but #shopUI is hidden, wait.
                     // Don't clear focus yet, might be transition.
+                    this.clearFocus();
                     return;
                 }
             }
@@ -11747,6 +11753,7 @@ let lastDisplayedContestTime = -1;
             document.getElementById('shopPlayerToggle').style.display = 'none';
         }
 
+        document.getElementById('controls').style.display = 'none';
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
         updateDifficulty(); updateShopUI();
@@ -11759,6 +11766,7 @@ let lastDisplayedContestTime = -1;
         state = 'ACHIEVEMENTS';
         if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
 
+        document.getElementById('controls').style.display = 'none';
         achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
         saveContext(game1);
     }
@@ -11769,6 +11777,7 @@ let lastDisplayedContestTime = -1;
         state = 'STATS';
         if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
 
+        document.getElementById('controls').style.display = 'none';
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
@@ -11979,6 +11988,7 @@ let lastDisplayedContestTime = -1;
         achUI.style.display = 'none';
         statsUI.style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
 
         // Restore P1 context for main loop
         loadContext(game1);
