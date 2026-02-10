@@ -4331,7 +4331,7 @@ var BallRenderer = {
             if (!close && i === points.length - 1) break;
 
             const dist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
-            const segments = Math.max(2, Math.floor(dist / (4 * scale)));
+            const segments = Math.max(2, Math.floor(dist / (8 * scale)));
 
             if(i===0) ctx.moveTo(p1.x, p1.y);
 
