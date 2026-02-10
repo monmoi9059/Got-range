@@ -7789,20 +7789,6 @@ var BallRenderer = {
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
 
-        // Neck (Layer 1.5)
-        const neckW = 10 * s * sizeMod.w;
-        const neckH = 10 * s;
-        ctx.fillStyle = skinTone;
-        ctx.beginPath();
-        ctx.moveTo(p.x - neckW, torsoY + 8*s);
-        ctx.quadraticCurveTo(p.x - neckW*0.6, torsoY - neckH*0.8, p.x - neckW*0.4, torsoY - neckH);
-        ctx.lineTo(p.x + neckW*0.4, torsoY - neckH);
-        ctx.quadraticCurveTo(p.x + neckW*0.6, torsoY - neckH*0.8, p.x + neckW, torsoY + 8*s);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
-        ctx.beginPath(); ctx.rect(p.x - 1*s, torsoY - neckH + 2*s, 2*s, neckH); ctx.fill();
-
         // Torso & Shorts
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
@@ -7964,6 +7950,20 @@ var BallRenderer = {
             // NEW HAIR LOGIC CALL
             drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
         }
+
+        // Neck (Layer 1.5 - Moved to overlay head base)
+        const neckW = 10 * s * sizeMod.w;
+        const neckH = 10 * s;
+        ctx.fillStyle = skinTone;
+        ctx.beginPath();
+        ctx.moveTo(p.x - neckW, torsoY + 8*s);
+        ctx.quadraticCurveTo(p.x - neckW*0.6, torsoY - neckH*0.8, p.x - neckW*0.4, torsoY - neckH);
+        ctx.lineTo(p.x + neckW*0.4, torsoY - neckH);
+        ctx.quadraticCurveTo(p.x + neckW*0.6, torsoY - neckH*0.8, p.x + neckW, torsoY + 8*s);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.beginPath(); ctx.rect(p.x - 1*s, torsoY - neckH + 2*s, 2*s, neckH); ctx.fill();
 
         // Head Accessories
         let accessoryType = skinObj.headAccessory;
