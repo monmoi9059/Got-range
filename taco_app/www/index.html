@@ -8282,7 +8282,113 @@ var BallRenderer = {
         }
     }
 
+    var g_frameCounter = 0;
+
+    const PlayerRenderCache = {
+        canvas: null,
+        ctx: null,
+        lastFrameTime: -1,
+        data: { scale: 1, cx: 0, cy: 0 },
+
+        init: function() {
+            if (this.canvas) return;
+            this.canvas = document.createElement('canvas');
+            // Initial size, will grow as needed
+            this.canvas.width = 512;
+            this.canvas.height = 512;
+            this.ctx = this.canvas.getContext('2d');
+        },
+
+        get: function(obj, frameTime) {
+            if (this.lastFrameTime !== frameTime) {
+                this.generate(obj, frameTime);
+            }
+            return this.canvas;
+        },
+
+        generate: function(obj, frameTime) {
+            this.init();
+            this.lastFrameTime = frameTime;
+
+            // Re-project player to get "canonical" appearance (main player at current depth)
+            const proj = project(player3D.x, player3D.y, player3D.z, g_camCache);
+            if (!proj) return; // Should not happen if player is visible
+
+            const scale = proj.scale;
+            // Ensure canvas is large enough
+            const w = Math.ceil(250 * scale);
+            const h = Math.ceil(400 * scale);
+
+            if (this.canvas.width < w || this.canvas.height < h) {
+                this.canvas.width = Math.max(this.canvas.width, w);
+                this.canvas.height = Math.max(this.canvas.height, h);
+                // Context is lost on resize? No, usually preserved or we re-get it.
+                // But state might be lost. We only use default state anyway.
+            }
+
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Center in canvas
+            const cx = this.canvas.width / 2;
+            const cy = this.canvas.height * 0.8; // Draw feet near bottom
+
+            this.data.scale = scale;
+            this.data.cx = cx;
+            this.data.cy = cy;
+
+            const proxy = {
+                x: cx,
+                y: cy,
+                scale: scale,
+                type: 'player', // Force 'player' type to enable foreshortening
+                depth: obj.depth
+            };
+
+            // Swap global ctx
+            const oldCtx = ctx;
+            ctx = this.ctx;
+            try {
+                _drawPlayerImpl(proxy);
+            } finally {
+                ctx = oldCtx;
+            }
+        }
+    };
+
     function drawPlayer(p) {
+        if (!p) return;
+
+        // Use cache only for High/Medium settings to optimize double-render (shadow)
+        // Low graphics doesn't use realistic shadow, so no double render issue.
+        // But we can still cache to save redraws if we wanted, but sticking to task scope.
+        if (playerData.graphics === 'LOW') {
+             _drawPlayerImpl(p);
+             return;
+        }
+
+        const cacheCanvas = PlayerRenderCache.get(p, g_frameCounter);
+        const data = PlayerRenderCache.data;
+
+        // Destination: p.x, p.y correspond to data.cx, data.cy
+        // Scale ratio: p.scale / data.scale
+        const ratio = p.scale / data.scale;
+
+        // Source Rect (entire active canvas area?)
+        // We cleared the whole canvas, so we can draw the whole thing.
+        // Optimally we'd track dirty rect, but full drawImage is fast.
+
+        const dstW = cacheCanvas.width * ratio;
+        const dstH = cacheCanvas.height * ratio;
+        const dstX = p.x - (data.cx * ratio);
+        const dstY = p.y - (data.cy * ratio);
+
+        ctx.drawImage(cacheCanvas,
+            0, 0, cacheCanvas.width, cacheCanvas.height,
+            dstX, dstY, dstW, dstH
+        );
+    }
+
+    function _drawPlayerImpl(p) {
         if (!p) return;
         // Debug
         // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
@@ -9954,6 +10060,7 @@ var BallRenderer = {
     function drawBackground(vpX, vpY, vpW, vpH) {
         if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
+        g_frameCounter++;
 
         // Optimization: Per-frame camera calculation
         // Camera Follow Logic
