@@ -10237,49 +10237,8 @@ var BallRenderer = {
         // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
         // We assume a max visible depth of ~15000 pixels.
 
-        let renderDecors = [];
-        if (currentGameMode === 'CLASSIC') {
-            const startDist = Math.max(0, playerDistFromHoop - 15000);
-            let startIndex = 0;
-            if (startDist > 1000) {
-                 startIndex = binarySearchLowerBound(decors, startDist);
-            }
-            for (let i = startIndex; i < decors.length; i++) {
-                const d = decors[i];
-                if (d.dist > cullDist) break;
-                renderDecors.push(d);
-            }
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            // Carnival: Circle of tents around hoop
-            const r = 800;
-            for(let i=0; i<8; i++) {
-                const angle = (i/8) * Math.PI * 2;
-                renderDecors.push({
-                    x: HOOP_POS.x + Math.cos(angle)*r,
-                    y: HOOP_POS.y + Math.sin(angle)*r,
-                    zoneType: 'carnival_tent',
-                    variant: {},
-                    seed: i
-                });
-            }
-        } else if (currentGameMode === 'CONTEST') {
-            // Arena: Bleachers
-            const r = 900;
-            for(let i=0; i<12; i++) {
-                const angle = (i/12) * Math.PI * 2;
-                renderDecors.push({
-                    x: HOOP_POS.x + Math.cos(angle)*r,
-                    y: HOOP_POS.y + Math.sin(angle)*r,
-                    zoneType: 'arena_bleachers',
-                    variant: {},
-                    seed: i
-                });
-            }
-        }
-
-        for (let i = 0; i < renderDecors.length; i++) {
-            const d = renderDecors[i];
-
+        // Optimization: Inline decor processing to avoid intermediate array allocation
+        const processDecor = (d) => {
             // Fast Z-Check
             const dx = d.x - camX;
             const dy = d.y - camY;
@@ -10287,7 +10246,7 @@ var BallRenderer = {
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 550 in project()
             const depth = 550 - ry;
-            if (depth <= 0) continue;
+            if (depth <= 0) return;
 
             // Inline projection
             const rx = dx * camCos - dy * camSin;
@@ -10305,6 +10264,45 @@ var BallRenderer = {
             obj.variant = d.variant;
             obj.seed = d.seed;
             g_renderList.push(obj);
+        };
+
+        if (currentGameMode === 'CLASSIC') {
+            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            let startIndex = 0;
+            if (startDist > 1000) {
+                 startIndex = binarySearchLowerBound(decors, startDist);
+            }
+            for (let i = startIndex; i < decors.length; i++) {
+                const d = decors[i];
+                if (d.dist > cullDist) break;
+                processDecor(d);
+            }
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            // Carnival: Circle of tents around hoop
+            const r = 800;
+            for(let i=0; i<8; i++) {
+                const angle = (i/8) * Math.PI * 2;
+                processDecor({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'carnival_tent',
+                    variant: {},
+                    seed: i
+                });
+            }
+        } else if (currentGameMode === 'CONTEST') {
+            // Arena: Bleachers
+            const r = 900;
+            for(let i=0; i<12; i++) {
+                const angle = (i/12) * Math.PI * 2;
+                processDecor({
+                    x: HOOP_POS.x + Math.cos(angle)*r,
+                    y: HOOP_POS.y + Math.sin(angle)*r,
+                    zoneType: 'arena_bleachers',
+                    variant: {},
+                    seed: i
+                });
+            }
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
