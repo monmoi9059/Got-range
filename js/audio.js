@@ -191,183 +191,140 @@
                             if (step === 0) sys.playChord(time, [root, root*1.5], 'sawtooth', 1000, 0.2); // Final chord
                         }
                     }
-                }
-            ];
-            var _ignoreOld = [
+                },
                 {
-                    name: 'Lo-Fi Chill',
-                    tempo: 0.2, // Seconds per 16th note (approx 75 BPM)
+                    name: 'Seven Nation Taco',
+                    tempo: 0.125,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        if (beat % 16 === 0 || beat % 16 === 10) sys.playKick(time, {freq: 150, decay: 0.5});
-                        if (beat % 16 === 8) sys.playSnare(time, {tone: 250, noise: 1000});
-                        if (beat % 2 === 0) sys.playHiHat(time, {freq: 7000, decay: 0.05, vol: 0.1});
-                        if (beat === 0) sys.playChord(time, [261.6, 311.1, 392.0, 466.2], 'triangle', 800);
-                        if (beat === 16) sys.playChord(time, [174.6, 207.7, 261.6, 311.1], 'triangle', 800);
+                        const step = beat % 16;
+                        if (step % 4 === 0) sys.playKick(time);
+                        if (step % 8 === 4) sys.playSnare(time);
+
+                        const riff = [
+                            {s: 0, n: 82.4}, {s: 3, n: 82.4}, {s: 4, n: 98.0},
+                            {s: 6, n: 82.4}, {s: 8, n: 73.4}, {s: 10, n: 65.4}, {s: 12, n: 61.7}
+                        ];
+                        const note = riff.find(n => n.s === step);
+                        if (note) sys.playTone(time, note.n, 'sawtooth', 0.2);
                     }
                 },
                 {
-                    name: 'Rock Arena',
-                    tempo: 0.15, // Faster (100 BPM)
+                    name: 'Sirius Taco',
+                    tempo: 0.11,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        if (beat % 16 === 0 || beat % 16 === 10 || beat % 16 === 14) sys.playKick(time, {freq: 120, decay: 0.3, type:'square'});
-                        if (beat % 16 === 4 || beat % 16 === 12) sys.playSnare(time, {tone: 200, noise: 800, decay: 0.2, vol: 0.3});
-                        if (beat % 4 === 0) sys.playHiHat(time, {freq: 5000, decay: 0.1, vol: 0.2});
-                        if (beat === 0) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 2000, 0.1); // C3 Power
-                        if (beat === 16) sys.playChord(time, [110.0, 164.8, 220.0], 'sawtooth', 2000, 0.1); // A2 Power
+                        const step = beat % 16;
+                        if (step % 2 === 0) sys.playTone(time, 65.4, 'sawtooth', 0.1);
+                        const arp = [261.6, 311.1, 392.0, 523.2];
+                        sys.playTone(time, arp[step % 4], 'sine', 0.1);
+                        if (step % 8 === 0) sys.playKick(time);
+                    }
+                },
+                {
+                    name: 'Space Taco',
+                    tempo: 0.127,
+                    totalTicks: 1024,
+                    schedule: (beat, time, sys) => {
+                        const step = beat % 16;
+                        if (step % 4 === 0) sys.playKick(time);
+                        if (step % 8 === 4) sys.playSnare(time);
+                        if (step % 2 === 0) sys.playHiHat(time);
+                        if (step === 0) sys.playTone(time, 293.7, 'square', 0.1);
+                        if (step === 2) sys.playTone(time, 349.2, 'square', 0.1);
+                        if (step === 4) sys.playTone(time, 392.0, 'square', 0.1);
+                        if (step === 6) sys.playTone(time, 440.0, 'square', 0.1);
+                    }
+                },
+                {
+                    name: 'Taco Nation',
+                    tempo: 0.107,
+                    totalTicks: 1024,
+                    schedule: (beat, time, sys) => {
+                        const step = beat % 16;
+                        if (step % 4 === 0) sys.playKick(time);
+                        if (step % 4 === 2) sys.playHiHat(time);
+                        const melody = [
+                            {s: 0, n: 493.9}, {s: 2, n: 493.9}, {s: 4, n: 493.9},
+                            {s: 6, n: 587.3}, {s: 8, n: 440.0}, {s: 10, n: 493.9}
+                        ];
+                        const note = melody.find(n => n.s === step);
+                        if (note) sys.playTone(time, note.n, 'sawtooth', 0.15);
+                    }
+                },
+                {
+                    name: 'Final Taco-down',
+                    tempo: 0.127,
+                    totalTicks: 1024,
+                    schedule: (beat, time, sys) => {
+                        const step = beat % 32;
+                        if (step % 4 === 0) sys.playKick(time);
+                        if (step % 8 === 4) sys.playSnare(time);
+                        if (step === 0) sys.playTone(time, 370.0, 'sawtooth', 0.2);
+                        if (step === 2) sys.playTone(time, 329.6, 'sawtooth', 0.2);
+                        if (step === 4) sys.playTone(time, 370.0, 'sawtooth', 0.6);
+                        if (step === 12) sys.playTone(time, 277.2, 'sawtooth', 0.6);
                     }
                 },
                 {
                     name: 'Eye of the Taco',
                     tempo: 0.14,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time);
-                        if (beat % 1 === 0) sys.playHiHat(time, {vol: 0.05});
-                        // Iconic riff: C... C Bb C...
-                        if (beat === 0) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
-                        if (beat === 3) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
-                        if (beat === 4) sys.playChord(time, [116.5, 174.6, 233.1], 'sawtooth', 800, 0.1); // Bb
-                        if (beat === 5) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
+                        const step = beat % 16;
+                        if (step % 4 === 0) sys.playKick(time);
+                        if (step % 4 === 2) sys.playSnare(time);
+                        if (step === 0) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
+                        if (step === 3) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
+                        if (step === 4) sys.playChord(time, [116.5, 174.6, 233.1], 'sawtooth', 800, 0.1);
+                        if (step === 5) sys.playChord(time, [130.8, 196.0, 261.6], 'sawtooth', 800, 0.1);
+                    }
+                },
+                {
+                    name: 'We Will Guac You',
+                    tempo: 0.36,
+                    totalTicks: 1024,
+                    schedule: (beat, time, sys) => {
+                        const step = beat % 8;
+                        if (step === 0) sys.playKick(time, {freq: 80, decay: 0.4, vol: 0.8});
+                        if (step === 2) sys.playKick(time, {freq: 80, decay: 0.4, vol: 0.8});
+                        if (step === 4) sys.playSnare(time, {noise: 1500, decay: 0.3, vol: 0.5});
                     }
                 },
                 {
                     name: 'Beat It (The Taco)',
                     tempo: 0.11,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        // Iconic drum intro
-                        if (beat % 8 === 0) sys.playKick(time, {decay: 0.2, freq: 100});
-                        if (beat % 8 === 4) sys.playSnare(time, {noise: 2000, decay: 0.2});
-                        if (beat % 8 === 2 || beat % 8 === 6) sys.playKick(time, {vol: 0.2});
-
-                        // Riff (Low)
-                        const riff = [146.8, 164.8, 196.0, 146.8]; // E G A E
-                        if (beat % 4 === 0) sys.playTone(time, riff[(beat/4)%4], 'sawtooth', 0.1);
-                    }
-                },
-                {
-                    name: 'We Will Guac You',
-                    tempo: 0.36, // Slow stomp stomp clap
-                    schedule: (beat, time, sys) => {
-                        // Stomp Stomp Clap (on 16th grid? No, beat here is 16th note index usually in the code)
-                        // In code: beat count goes 0 to 31.
-                        // Stomp (0), Stomp (2), Clap (4), Rest (6)
-                        if (beat % 8 === 0) sys.playKick(time, {freq: 80, decay: 0.4, vol: 0.8});
-                        if (beat % 8 === 2) sys.playKick(time, {freq: 80, decay: 0.4, vol: 0.8});
-                        if (beat % 8 === 4) sys.playSnare(time, {noise: 1500, decay: 0.3, vol: 0.5});
-                    }
-                },
-                {
-                    name: 'Taco Style',
-                    tempo: 0.11,
-                    schedule: (beat, time, sys) => {
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time);
-                        if (beat % 1 === 0) sys.playHiHat(time, {decay: 0.03});
-                        // Synth stab
-                        if (beat === 0 || beat === 6 || beat === 12) sys.playChord(time, [293.7, 369.9, 440.0], 'sawtooth', 2000, 0.05);
-                    }
-                },
-                {
-                    name: 'Old Town Taco',
-                    tempo: 0.22,
-                    schedule: (beat, time, sys) => {
-                        if (beat % 16 === 0) sys.playKick(time, {freq: 60, decay: 0.8});
-                        if (beat % 16 === 8) sys.playSnare(time, {tone: 200, decay: 0.1});
-                        if (beat % 2 === 0) sys.playHiHat(time, {vol: 0.1, decay: 0.02});
-                        if (beat % 8 === 0) sys.playHiHat(time, {vol: 0.2, decay: 0.05}); // Accent
-                        // Banjo-ish pluck
-                        if (beat === 0) sys.playTone(time, 196.0, 'triangle', 0.2); // G3
-                        if (beat === 3) sys.playTone(time, 246.9, 'triangle', 0.2); // B3
+                        const step = beat % 8;
+                        if (step === 0) sys.playKick(time, {decay: 0.2, freq: 100});
+                        if (step === 4) sys.playSnare(time, {noise: 2000, decay: 0.2});
+                        if (step === 2 || step === 6) sys.playKick(time, {vol: 0.2});
+                        const riff = [146.8, 164.8, 196.0, 146.8];
+                        if (step % 4 === 0) sys.playTone(time, riff[Math.floor((beat%16)/4)], 'sawtooth', 0.1);
                     }
                 },
                 {
                     name: 'Sweet Taco O\' Mine',
                     tempo: 0.12,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time);
-                        // Riff (High pitch)
-                        const notes = [554.4, 830.6, 659.3, 554.4, 987.8, 554.4, 932.3, 554.4]; // Db major-ish
-                        if (beat % 2 === 0) {
-                            sys.playTone(time, notes[(beat/2)%8], 'square', 0.1);
-                        }
+                        const step = beat % 4;
+                        if (step === 0) sys.playKick(time);
+                        if (step === 2) sys.playSnare(time);
+                        const notes = [554.4, 830.6, 659.3, 554.4, 987.8, 554.4, 932.3, 554.4];
+                        if (beat % 2 === 0) sys.playTone(time, notes[(beat/2)%8], 'square', 0.1);
                     }
                 },
                 {
-                    name: 'Taco Queen',
-                    tempo: 0.15,
+                    name: 'We Are The Tacos',
+                    tempo: 0.16,
+                    totalTicks: 1024,
                     schedule: (beat, time, sys) => {
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time);
-                        if (beat % 1 === 0) sys.playHiHat(time, {vol: 0.05}); // 16th note disco high hat
-                        if (beat % 2 === 1) sys.playHiHat(time, {vol: 0.15, decay: 0.1}); // Open hat on off beat
-                        if (beat === 0) sys.playChord(time, [220, 277, 329], 'sine', 1000, 0.1); // A major
-                        if (beat === 16) sys.playChord(time, [293, 370, 440], 'sine', 1000, 0.1); // D major
-                    }
-                },
-                {
-                    name: 'Billie Taco',
-                    tempo: 0.13,
-                    schedule: (beat, time, sys) => {
-                        // Boom Tish Boom Tish
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time);
-                        if (beat % 2 === 0) sys.playHiHat(time);
-
-                        // Bass line: F# C# E F# E C# B C#
-                        const bass = [185, 138, 164, 185, 164, 138, 123, 138];
-                        if (beat % 4 === 0) {
-                            sys.playTone(time, bass[(beat/4)%8], 'triangle', 0.2);
-                        }
-                    }
-                },
-                {
-                    name: 'Uptown Taco',
-                    tempo: 0.13,
-                    schedule: (beat, time, sys) => {
-                        if (beat % 4 === 0) sys.playKick(time);
-                        if (beat % 4 === 2) sys.playSnare(time, {noise: 2000});
-                        // Funk guitar scratch
-                        if (beat % 2 === 0) sys.playHiHat(time, {freq: 2000, vol: 0.05});
-                        // Horn hits
-                        if (beat === 0) sys.playChord(time, [261, 329, 392, 493], 'sawtooth', 1500, 0.1);
-                        if (beat === 3) sys.playChord(time, [261, 329, 392, 493], 'sawtooth', 1500, 0.1);
-                    }
-                },
-                {
-                    name: 'Despacitaco',
-                    tempo: 0.17,
-                    schedule: (beat, time, sys) => {
-                        // Reggaeton: Kick on 0, Snare on 3, 6, 8, 11, 14...
-                        // Basic: Kick (0), Snare (3), Kick (8), Snare (11) - dembow
-                        // 16 step: K . . S . . . . K . . S . . . .
-                        if (beat % 16 === 0) sys.playKick(time);
-                        if (beat % 16 === 3) sys.playSnare(time);
-                        if (beat % 16 === 8) sys.playKick(time);
-                        if (beat % 16 === 11) sys.playSnare(time);
-
-                        // Guitar melody
-                        if (beat === 0) sys.playTone(time, 293, 'sine', 0.2);
-                        if (beat === 6) sys.playTone(time, 220, 'sine', 0.2);
-                    }
-                },
-                {
-                    name: 'Trap Beat',
-                    tempo: 0.18, // ~83 BPM
-                    schedule: (beat, time, sys) => {
-                        if (beat % 32 === 0 || beat % 32 === 10 || beat % 32 === 22) sys.playKick(time, {freq: 60, decay: 1.0, type: 'sine', vol: 0.8});
-                        if (beat % 16 === 8) sys.playSnare(time, {tone: 400, noise: 2000, decay: 0.15, vol: 0.4});
-                        if (beat % 2 === 0) {
-                             if (beat === 28 || beat === 30) {
-                                 sys.playHiHat(time, {freq: 8000, decay: 0.02, vol: 0.2});
-                                 sys.playHiHat(time + 0.06, {freq: 8000, decay: 0.02, vol: 0.15});
-                                 sys.playHiHat(time + 0.12, {freq: 8000, decay: 0.02, vol: 0.1});
-                             } else {
-                                 sys.playHiHat(time, {freq: 8000, decay: 0.05, vol: 0.25});
-                             }
-                        }
-                        if (beat === 0) sys.playChord(time, [261.6, 311.1, 392.0], 'sine', 400, 0.05);
-                        if (beat === 16) sys.playChord(time, [233.0, 277.1, 349.2], 'sine', 400, 0.05);
+                        const step = beat % 6;
+                        if (step === 0) sys.playKick(time);
+                        if (step === 3) sys.playSnare(time);
+                        if (step === 0) sys.playChord(time, [130.8, 164.8, 196.0], 'triangle', 800, 0.1);
                     }
                 }
             ];

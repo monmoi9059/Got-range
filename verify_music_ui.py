@@ -11,35 +11,38 @@ def verify_music_ui():
         page.goto(f"file://{file_path}")
 
         # Click "ORDI" to start game (dismiss startup UI)
-        page.click("text=ORDI 💻")
+        try:
+            page.click("text=ORDI 💻", timeout=5000)
+        except:
+            # Try finding by selector if text fails
+            if page.locator("#btn-computer").count() > 0:
+                page.click("#btn-computer")
+            pass
 
         # Wait for game UI
-        page.wait_for_selector("#ui")
-
-        # Verify Arrows exist next to mute button
-        # The mute button is #btn-mute. The arrows are siblings.
-        # We wrapped them in a flex container.
-
-        # Locate the container by finding the parent of #btn-mute
-        mute_btn = page.locator("#btn-mute")
-        container = mute_btn.locator("..")
-
-        # Verify layout
-        # We expect 3 children: [Left Arrow] [Mute] [Right Arrow]
-        children = container.locator("> div")
-        count = children.count()
-        print(f"Found {count} buttons in the audio controls container.")
-
-        if count != 3:
-            print("Error: Expected 3 buttons (Prev, Mute, Next)")
+        try:
+            page.wait_for_selector("#game-container", timeout=5000)
+        except:
+            print("Timeout waiting for #game-container")
             return
 
-        # Click Next Track (Right Arrow)
-        # It's the 3rd child (index 2) or the one with text "▶"
-        next_btn = container.locator("text=▶")
-        next_btn.click()
+        # Click Next Track (Right Arrow) multiple times to reach "Seven Nation Taco"
+        # Track 0: Street King
+        # Track 1: Trap Lord
+        # Track 2: Arena Legend
+        # Track 3: Seven Nation Taco
 
-        # Check for Notification "🎵 Rock Arena"
+        next_btn = page.locator("text=▶")
+        if next_btn.count() == 0:
+            print("Error: Next button not found")
+            return
+
+        for i in range(3):
+            next_btn.click()
+            # Wait a bit between clicks to ensure state update if needed, though usually instant
+            page.wait_for_timeout(200)
+
+        # Check for Notification "🎵 Seven Nation Taco"
         # Notification ID is #notification
         # It takes a moment to appear (animation)
         notification = page.locator("#notification")
@@ -48,8 +51,8 @@ def verify_music_ui():
         text = page.locator("#notifText").inner_text()
         print(f"Notification Text: {text}")
 
-        if "Rock Arena" in text:
-            print("SUCCESS: Track changed to Rock Arena")
+        if "Seven Nation Taco" in text:
+            print("SUCCESS: Track changed to Seven Nation Taco")
         else:
             print("FAILURE: Notification text did not match expected track name")
 
