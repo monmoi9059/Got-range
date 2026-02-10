@@ -6665,48 +6665,63 @@ var BallRenderer = {
         const isBig = skinObj.beardBig; // For Harden
         const seed = stringToSeed(skinObj.id || 'beard');
 
-        // Beard Geometry (Back View)
-        // Visible as a fringe around the lower jaw/cheeks.
-        // It should be wider than the headRadius at the jawline.
-
-        const jawY = headY + headRadius * 0.5; // Approximate jaw level from center
-        // Chin should be lower than head circle bottom
-        let lengthMult = 1.2; // Standard
-        let widthMult = 1.05; // Slightly wider than head
+        // Improved Beard Geometry: Smooth, Full, Groomed
+        let lengthMult = 1.3;
+        let widthMult = 1.1;
 
         if (isBig) {
-            widthMult = 1.25;
-            lengthMult = 1.5;
+            widthMult = 1.35;
+            lengthMult = 1.6;
         }
 
         const beardW = headRadius * widthMult;
         const beardLen = headRadius * lengthMult;
+        const jawY = headY + headRadius * 0.6;
 
-        const pts = [];
-        // Left Sideburn area (tucked under hair/ears)
-        pts.push({x: p.x - headRadius * 0.9, y: headY});
-        // Left Jaw flaring out
-        pts.push({x: p.x - beardW, y: jawY});
-        // Chin (Bottom)
-        pts.push({x: p.x, y: headY + beardLen});
-        // Right Jaw
-        pts.push({x: p.x + beardW, y: jawY});
-        // Right Sideburn
-        pts.push({x: p.x + headRadius * 0.9, y: headY});
+        ctx.fillStyle = beardColor;
+        ctx.beginPath();
 
-        // Close top (hidden behind head)
-        pts.push({x: p.x, y: headY});
+        // 1. Left Sideburn (Top)
+        ctx.moveTo(p.x - headRadius * 0.9, headY);
 
-        // Draw fuzzy mass BEHIND head (Caller ensures layer order)
-        drawFuzzyPath(pts, beardColor, s, true, seed + 500);
+        // 2. Left Jaw Curve (Fullness)
+        // Bulge out slightly before curving in
+        ctx.quadraticCurveTo(p.x - beardW, jawY, p.x - beardW * 0.6, headY + beardLen * 0.85);
 
-        // If big beard, add volume shading
-        if (isBig) {
-             const pts2 = pts.map(pt => ({x: pt.x, y: pt.y + 2*s}));
-             // Darker inner volume
-             const shade = adjustColor(beardColor, -15);
-             drawFuzzyPath(pts2, shade, s, true, seed + 501);
+        // 3. Chin (Rounded bottom)
+        ctx.quadraticCurveTo(p.x, headY + beardLen, p.x + beardW * 0.6, headY + beardLen * 0.85);
+
+        // 4. Right Jaw Curve
+        ctx.quadraticCurveTo(p.x + beardW, jawY, p.x + headRadius * 0.9, headY);
+
+        // 5. Close Top (Behind Head)
+        ctx.quadraticCurveTo(p.x, headY - 10*s, p.x - headRadius * 0.9, headY);
+
+        ctx.fill();
+
+        // Internal Texture (Fullness/Noise) - Clipped
+        ctx.save();
+        ctx.clip();
+
+        // Shading Gradient (Bottom darker)
+        const grad = ctx.createLinearGradient(0, headY, 0, headY + beardLen);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Noise Texture
+        ctx.fillStyle = adjustColor(beardColor, 20); // Lighter dots for texture
+        const density = 20;
+        for(let i=0; i<density; i++) {
+            const rx = (seededRandom(seed + i) - 0.5) * beardW * 2;
+            const ry = (seededRandom(seed + i + 100)) * beardLen;
+            // Simple check if inside approx box
+            if (Math.abs(rx) < beardW && ry > 0) {
+                ctx.beginPath(); ctx.arc(p.x + rx, headY + ry, 1*s, 0, Math.PI*2); ctx.fill();
+            }
         }
+        ctx.restore();
     }
 
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
@@ -6795,7 +6810,7 @@ var BallRenderer = {
 
 
         if (style === 'cornrows') {
-             // Tight braids logic
+             // Tight braids logic (Allen Iverson Style - Close to Scalp)
              const r = headRadius * 1.0;
 
              // Base scalp (darkened skin or hair color base)
@@ -6810,21 +6825,29 @@ var BallRenderer = {
                  const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1 (Left to Right)
                  const absT = Math.abs(t);
 
-                 // Top Point (Spread out) - Tapered Height
+                 // Top Point (Spread out) - Rounded Dome Profile
+                 // Start X spread across the top
                  const startX = p.x + t * (r * 0.9);
-                 // Middle (t=0) is higher, sides (t=1) are lower
-                 const startY = (headY - r * 1.1) + (absT * r * 0.4);
+
+                 // Start Y calculated using circular arc to ensure roundness (no triangle)
+                 // x^2 + y^2 = r^2 -> y = sqrt(r^2 - x^2)
+                 // We lift it slightly (1.05) to sit on top of the skull
+                 const xOffset = t * (r * 0.9);
+                 const yDist = Math.sqrt(Math.max(0, (r * 1.05)**2 - xOffset**2));
+                 const startY = headY - yDist;
 
                  // Bottom Point (Converging at nape)
                  const endX = p.x + t * (r * 0.3); // Converge tighter
                  const endY = headY + r * 0.95;
 
-                 // Control Points - follow head sphere
-                 // Side braids curve OUT then in
-                 const cp1x = startX + (t * r * 0.8); // Bulge out
-                 const cp1y = (headY - r * 0.6) + (absT * r * 0.3); // Curve follows startY slope
-                 const cp2x = endX + (t * r * 0.2);
-                 const cp2y = headY + r * 0.5;
+                 // Control Points - follow head sphere closely
+                 // CP1 (Upper Head): Keep tight to skull surface, NO outward flare
+                 const cp1x = p.x + t * (r * 0.95);
+                 const cp1y = headY - r * 0.3; // Upper back of head
+
+                 // CP2 (Lower Head/Nape): Taper in
+                 const cp2x = p.x + t * (r * 0.6);
+                 const cp2y = headY + r * 0.6;
 
                  // Draw Braid Path
                  // Shadow/Gap
