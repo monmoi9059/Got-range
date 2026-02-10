@@ -1614,6 +1614,22 @@
         if (lbl) lbl.innerText = active;
     }
 
+    window.toggleSkinVariant = function() {
+        if (!playerData.skinVariants) playerData.skinVariants = {};
+
+        const currentAnimal = ANIMALS[viewingAnimalIndex];
+        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const skin = animalSkins[viewingSkinIndex];
+
+        if (!skin) return;
+
+        const currentVal = playerData.skinVariants[skin.id] || 0;
+        playerData.skinVariants[skin.id] = (currentVal === 0) ? 1 : 0;
+
+        saveData();
+        updateShopUI();
+    }
+
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
 
@@ -1636,6 +1652,30 @@
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Style Variant Button
+        let btnVar = document.getElementById('btnToggleVariant');
+        if (!btnVar) {
+            btnVar = document.createElement('button');
+            btnVar.id = 'btnToggleVariant';
+            btnVar.className = 'btn';
+            btnVar.style.width = '100%';
+            btnVar.style.marginTop = '5px';
+            btnVar.style.fontSize = '0.9em';
+            btnVar.style.background = '#444';
+            btnVar.onclick = window.toggleSkinVariant;
+            // Insert after equip button
+            btn.parentNode.insertBefore(btnVar, btn.nextSibling);
+        }
+
+        if (skin.hairStyle2) {
+            btnVar.style.display = 'inline-block';
+            const isActive = (playerData.skinVariants && playerData.skinVariants[skin.id] === 1);
+            btnVar.innerText = isActive ? "STYLE: ALT" : "STYLE: ORIGINAL";
+            btnVar.style.background = isActive ? '#4CAF50' : '#444';
+        } else {
+            btnVar.style.display = 'none';
+        }
 
         // Hat UI
         const hat = HATS_DB[viewingHatIndex];

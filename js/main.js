@@ -303,6 +303,7 @@ let lastDisplayedContestTime = -1;
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
             dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
             unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
+            skinVariants: {}, // Stores active variant index/bool for each skin
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             mobileControls: false, platformChosen: false,
@@ -341,6 +342,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
     if(!playerData.currentHat) playerData.currentHat = 'hat_none';
+    if(!playerData.skinVariants) playerData.skinVariants = {};
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
