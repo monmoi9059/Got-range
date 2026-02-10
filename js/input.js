@@ -1,7 +1,6 @@
     const GamepadController = {
         active: false,
         focusedElement: null,
-        focusIndex: 0,
         focusableElements: [],
         lastButtonStates: {},
         lastState: null,
@@ -39,8 +38,7 @@
                 const gp = gamepads[i];
                 if(!gp) continue;
 
-                // Navigation (Any controller can navigate UI if configured or default behavior)
-                // For simplicity, we allow any controller to navigate menus to avoid lockout.
+                // Navigation (Any controller can navigate UI)
                 this.handleNavigation(gp, i);
 
                 // Actions (Strict Mapping)
@@ -112,61 +110,133 @@
                 return;
             }
 
-            let direction = dy !== 0 ? dy : dx;
-
-            if (direction > 0) this.focusIndex++;
-            else if (direction < 0) this.focusIndex--;
-
-            if (this.focusIndex < 0) this.focusIndex = this.focusableElements.length - 1;
-            if (this.focusIndex >= this.focusableElements.length) this.focusIndex = 0;
-
-            this.applyFocus();
-        },
-
-        refreshFocusList: function() {
-            let containerSelector = '';
-            if (state === 'STARTUP') containerSelector = '#startup-ui';
-            else if (state === 'IDLE') containerSelector = '#controls';
-            else if (state === 'SHOP') containerSelector = '#shopUI';
-            else if (state === 'STATS') containerSelector = '#statsUI';
-            else if (state === 'ACHIEVEMENTS') containerSelector = '#achUI';
-            else if (state === 'LEADERBOARD') containerSelector = '#leaderboardUI';
-            else if (state === 'HIGHSCORE_INPUT') containerSelector = '#highScoreUI';
-
-            if (!containerSelector) {
-                this.clearFocus();
+            // Spatial Navigation Logic
+            const current = this.focusedElement;
+            if (!current) {
+                this.focusedElement = this.focusableElements[0];
+                this.applyFocus();
                 return;
             }
 
-            const container = document.querySelector(containerSelector);
-            if(!container) return;
+            const rect = current.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
 
-            const all = Array.from(container.querySelectorAll('button, .ui-btn, input, select'));
-            this.focusableElements = all.filter(el => {
-                return el.offsetParent !== null && !el.disabled && el.style.display !== 'none';
+            let bestCandidate = null;
+            let minScore = Infinity;
+
+            this.focusableElements.forEach(el => {
+                if (el === current) return;
+
+                const r = el.getBoundingClientRect();
+                const ex = r.left + r.width / 2;
+                const ey = r.top + r.height / 2;
+
+                const distX = ex - cx;
+                const distY = ey - cy;
+
+                // Basic Direction Check
+                let isDirectionCorrect = false;
+                if (dx > 0 && distX > 0) isDirectionCorrect = true; // Right
+                if (dx < 0 && distX < 0) isDirectionCorrect = true; // Left
+                if (dy > 0 && distY > 0) isDirectionCorrect = true; // Down
+                if (dy < 0 && distY < 0) isDirectionCorrect = true; // Up
+
+                // Refined: Must be somewhat in the cone
+                if (isDirectionCorrect) {
+                    // For horizontal movement, vertical distance is penalty
+                    // For vertical movement, horizontal distance is penalty
+                    let primaryDist = 0;
+                    let penaltyDist = 0;
+
+                    if (Math.abs(dx) > 0) { // Moving Horizontally
+                        primaryDist = Math.abs(distX);
+                        penaltyDist = Math.abs(distY);
+                        // Cone check: Don't jump to something almost directly above/below
+                        if (penaltyDist > primaryDist * 2) return;
+                    } else { // Moving Vertically
+                        primaryDist = Math.abs(distY);
+                        penaltyDist = Math.abs(distX);
+                        if (penaltyDist > primaryDist * 2) return;
+                    }
+
+                    // Score: Euclidean distance + heavy penalty for misalignment
+                    // We prefer: Closer elements, and Aligned elements
+                    // Score = Distance + (Penalty * Weight)
+                    const distEuclidean = Math.sqrt(distX*distX + distY*distY);
+                    const score = distEuclidean + (penaltyDist * 2.5);
+
+                    if (score < minScore) {
+                        minScore = score;
+                        bestCandidate = el;
+                    }
+                }
             });
 
-            if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
-                this.focusIndex = 0;
+            if (bestCandidate) {
+                this.focusedElement = bestCandidate;
                 this.applyFocus();
-            } else {
-                this.focusIndex = this.focusableElements.indexOf(this.focusedElement);
+            }
+        },
+
+        refreshFocusList: function() {
+            let elements = [];
+
+            if (state === 'STARTUP') {
+                elements = Array.from(document.querySelectorAll('#startup-ui button'));
+            } else if (state === 'IDLE') {
+                // Combined Controls + Music + Fullscreen
+                const controls = Array.from(document.querySelectorAll('#controls .broadcast-btn, #controls button'));
+                const music = Array.from(document.querySelectorAll('.broadcast-icon-btn'));
+                const fs = document.getElementById('btn-force-fullscreen');
+
+                elements = [...controls, ...music];
+                if (fs && fs.style.display !== 'none') elements.push(fs);
+            } else if (state === 'SHOP') {
+                elements = Array.from(document.querySelectorAll('#shopUI button, #shopUI input, #shopUI .ui-btn'));
+            } else if (state === 'STATS') {
+                elements = Array.from(document.querySelectorAll('#statsUI button, #statsUI input, #statsUI select'));
+            } else if (state === 'ACHIEVEMENTS') {
+                elements = Array.from(document.querySelectorAll('#achUI button'));
+            } else if (state === 'LEADERBOARD') {
+                elements = Array.from(document.querySelectorAll('#leaderboardUI button'));
+            } else if (state === 'HIGHSCORE_INPUT') {
+                // Handled custom
+                elements = [];
+            }
+
+            // Filter out disabled/hidden/detached
+            this.focusableElements = elements.filter(el => {
+                return el.offsetParent !== null && !el.disabled && el.style.display !== 'none' && el.style.visibility !== 'hidden';
+            });
+
+            // Ensure focus validity
+            if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
+                // Try to find one, or reset
+                if (this.focusableElements.length > 0) {
+                    this.focusedElement = this.focusableElements[0];
+                    this.applyFocus();
+                } else {
+                    this.focusedElement = null;
+                }
             }
         },
 
         applyFocus: function() {
             document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
-            this.focusedElement = this.focusableElements[this.focusIndex];
+
             if (this.focusedElement) {
                 this.focusedElement.classList.add('gamepad-focus');
+                this.focusedElement.focus(); // Native focus for events
                 if(this.focusedElement.scrollIntoView) {
-                    this.focusedElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+                    this.focusedElement.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
                 }
             }
         },
 
         clearFocus: function() {
             document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
+            if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
             this.focusedElement = null;
             this.focusableElements = [];
         },
@@ -177,15 +247,21 @@
                 if (state === 'HIGHSCORE_INPUT') {
                     handleHighScoreInput('SELECT');
                 } else if (this.focusedElement) {
+                    // Simulate click
+                    // For selects, we might need special handling if 'click' doesn't open dropdown
+                    // Browsers block programmatic open of selects.
+                    // Instead, we treat A as cycling options for Selects?
                     if(this.focusedElement.tagName === 'SELECT') {
                         const sel = this.focusedElement;
                         let idx = sel.selectedIndex + 1;
                         if(idx >= sel.options.length) idx = 0;
                         sel.selectedIndex = idx;
                         sel.dispatchEvent(new Event('change'));
+                        // Visual feedback?
                     } else {
                         this.focusedElement.click();
-                        this.refreshFocusList();
+                        // Delay refresh slightly to allow UI transition
+                        setTimeout(() => this.refreshFocusList(), 50);
                     }
                 }
             }
@@ -199,7 +275,7 @@
                 else if (state === 'LEADERBOARD') closeLeaderboard();
             }
 
-            // X Button: Shoot (Game Action)
+            // X Button: Shoot (Game Action) - Player Mapped
             const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
             const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
 
@@ -226,22 +302,24 @@
 
     // Start buttons
     const mobBtn = document.getElementById('mobileShootBtn');
-    mobBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (isSplitscreen) {
-            doGameAction(game2, 'press');
-        } else {
-            doGameAction(game1, 'press');
-        }
-    }, {passive: false});
-    mobBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if (isSplitscreen) {
-            doGameAction(game2, 'release');
-        } else {
-            doGameAction(game1, 'release');
-        }
-    }, {passive: false});
+    if (mobBtn) {
+        mobBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'press');
+            } else {
+                doGameAction(game1, 'press');
+            }
+        }, {passive: false});
+        mobBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'release');
+            } else {
+                doGameAction(game1, 'release');
+            }
+        }, {passive: false});
+    }
 
     const mobBtn2 = document.getElementById('mobileShootBtn2');
     if (mobBtn2) {
@@ -364,6 +442,3 @@
             }
         }
     });
-
-    // Initial resize call
-    // --- SPLITSCREEN & STATE MANAGEMENT ---
