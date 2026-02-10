@@ -120,7 +120,7 @@
         /* Controls (Bottom Overlay) */
         #controls {
             position: absolute;
-            bottom: 130px; /* Sits above the 120px canvas bar */
+            bottom: 70px; /* Adjusted for 60px HUD + 10px gap */
             left: 0;
             width: 100%;
             text-align: center;
@@ -132,8 +132,8 @@
         }
 
         .broadcast-btn {
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid #444;
+            background: linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.98) 100%);
+            border: 1px solid #666;
             border-bottom: 3px solid var(--broadcast-accent);
             color: #fff;
             padding: 8px 30px;
@@ -144,7 +144,8 @@
             cursor: pointer;
             transition: all 0.2s;
             transform: skewX(-10deg);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+            text-shadow: 1px 1px 0 #000;
         }
 
         .broadcast-btn span {
@@ -153,9 +154,10 @@
         }
 
         .broadcast-btn:hover {
-            background: #333;
+            background: linear-gradient(180deg, rgba(50,50,50,0.95) 0%, rgba(30,30,30,0.98) 100%);
             border-color: #fff;
             border-bottom-color: #fff;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
         }
 
         .broadcast-btn:active {
@@ -305,14 +307,14 @@
 
         #notification {
             position: absolute;
-            bottom: 280px; /* Adjusted for new HUD */
+            bottom: 250px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.9);
-            border-left: 5px solid var(--broadcast-accent);
+            border-left: 4px solid var(--broadcast-accent);
             color: #fff;
-            padding: 15px 40px;
-            font-size: 1.4em;
+            padding: 10px 25px;
+            font-size: 1.0em;
             font-weight: bold;
             display: none;
             z-index: 200;
@@ -323,7 +325,7 @@
         }
         @keyframes slideUp {
             from { bottom: 200px; opacity: 0; }
-            to { bottom: 280px; opacity: 1; }
+            to { bottom: 250px; opacity: 1; }
         }
 
         /* Mobile Controls */

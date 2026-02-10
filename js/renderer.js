@@ -940,7 +940,7 @@ var BallRenderer = {
     const weather = new WeatherSystem();
 
     function drawBroadcastLowerThird() {
-        const h = 120;
+        const h = 60; // Reduced height
         const y = canvas.height - h;
 
         // 1. Background Bar (Glossy Dark)
@@ -955,69 +955,72 @@ var BallRenderer = {
         ctx.fillStyle = '#FFD700';
         ctx.fillRect(0, y, canvas.width, 4);
 
-        // NBA Logo (Bottom Left Corner)
-        // Red/Blue/Silhouette
-        const lX = 20; const lY = canvas.height - 40;
-        const lW = 15; const lH = 30;
+        // NBA Logo (Bottom Left Corner) - Scaled down
+        const lX = 20; const lY = canvas.height - 30;
+        const lW = 10; const lH = 20;
 
         ctx.fillStyle = '#C9082A'; // Red
         ctx.fillRect(lX, lY - lH/2, lW, lH);
         ctx.fillStyle = '#17408B'; // Blue
         ctx.fillRect(lX + lW, lY - lH/2, lW, lH);
-        // Silhouette (Simple curve)
+
+        // Silhouette (Simple curve) - Adjusted for smaller size
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.moveTo(lX + lW + 2, lY + lH/2 - 2);
-        ctx.lineTo(lX + lW - 4, lY - lH/2 + 5);
-        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 5, lY - lH/2 + 5);
-        ctx.lineTo(lX + lW + 2, lY + lH/2 - 2);
+        ctx.moveTo(lX + lW + 1, lY + lH/2 - 1);
+        ctx.lineTo(lX + lW - 2, lY - lH/2 + 3);
+        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3, lY - lH/2 + 3);
+        ctx.lineTo(lX + lW + 1, lY + lH/2 - 1);
         ctx.fill();
-        ctx.beginPath(); ctx.arc(lX + lW + 6, lY - lH/2 + 8, 2, 0, Math.PI*2); ctx.fill(); // Ball
+        ctx.beginPath(); ctx.arc(lX + lW + 4, lY - lH/2 + 5, 1.5, 0, Math.PI*2); ctx.fill(); // Ball
 
         // 2. Content Logic
         const dist = 10 + (distanceLevel * 5);
         const scaleObj = getScaleObject(dist);
 
         // Fonts (using Canvas fonts that match CSS imports)
-        const fontTitle = "bold 14px 'Roboto Condensed', 'Arial Narrow', sans-serif";
-        const fontValue = "bold 36px 'Russo One', 'Impact', sans-serif";
-        const fontIcon = "50px Arial";
+        const fontTitle = "bold 10px 'Roboto Condensed', 'Arial Narrow', sans-serif";
+        const fontValue = "bold 22px 'Russo One', 'Impact', sans-serif";
+        const fontIcon = "28px Arial";
 
         // Center Separator
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 20); ctx.lineTo(canvas.width / 2, canvas.height - 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 10); ctx.lineTo(canvas.width / 2, canvas.height - 10); ctx.stroke();
+
+        const rowTitleY = y + 20;
+        const rowValueY = y + 48;
 
         if (currentGameMode === 'CLASSIC') {
             // LEFT SIDE: Record & Current Distance
             // Record
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("RECORD", canvas.width / 2 - 180, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 250, y + 85);
+            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 180, rowValueY);
 
             // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, rowTitleY);
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(dist + " ft", canvas.width / 2 - 25, y + 85);
+            ctx.fillText(dist + " ft", canvas.width / 2 - 25, rowValueY);
 
             // RIGHT SIDE: Comparison
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCALE EQUIVALENT", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("SCALE EQUIVALENT", canvas.width / 2 + 25, rowTitleY);
 
             // Icon
             ctx.textAlign = "center"; ctx.font = fontIcon;
-            const iconX = canvas.width / 2 + 65;
-            ctx.fillText(scaleObj.icon, iconX, y + 90);
+            const iconX = canvas.width / 2 + 45;
+            ctx.fillText(scaleObj.icon, iconX, rowValueY);
 
             // Name
             ctx.textAlign = "left";
             ctx.fillStyle = "#FFD700"; // Gold
-            ctx.font = "bold 24px 'Roboto Condensed', sans-serif";
-            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 40, y + 85);
+            ctx.font = "bold 18px 'Roboto Condensed', sans-serif";
+            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25, rowValueY - 2);
         }
         else if (currentGameMode === 'CONTEST') {
             const time = Math.ceil(contestData.timer);
@@ -1026,23 +1029,23 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("TIME", canvas.width / 2 - 180, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+            ctx.fillText(time, canvas.width / 2 - 180, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("SCORE", canvas.width / 2 - 25, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(contestData.score, canvas.width / 2 - 25, y + 85);
+            ctx.fillText(contestData.score, canvas.width / 2 - 25, rowValueY);
 
             // RIGHT SIDE: RACK
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RACK", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("RACK", canvas.width / 2 + 25, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, y + 85);
+            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, rowValueY);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
@@ -1051,29 +1054,29 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("TIME", canvas.width / 2 - 180, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+            ctx.fillText(time, canvas.width / 2 - 180, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("SCORE", canvas.width / 2 - 25, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, y + 85);
+            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, rowValueY);
 
             // RIGHT SIDE: RECORD
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("RECORD", canvas.width / 2 + 25, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, y + 85);
+            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, rowValueY);
         }
 
         // Live Indicator
-        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20, y + 20, 8, 8);
-        ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
-        ctx.fillText("LIVE", 35, y + 28);
+        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20, y + 10, 6, 6);
+        ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText("LIVE", 30, y + 16);
     }
 
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
