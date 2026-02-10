@@ -306,6 +306,7 @@ let lastDisplayedContestTime = -1;
             skinVariants: {}, // Stores active variant index/bool for each skin
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
+            unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
             releaseTiming: 3,
@@ -342,6 +343,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
     if(!playerData.currentHat) playerData.currentHat = 'hat_none';
+    if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+    if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
     if(!playerData.skinVariants) playerData.skinVariants = {};
 
     // Migration: purchasedStats
@@ -539,7 +542,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hat: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -584,6 +587,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.viewingIndices = {
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
+            clothing: viewingClothingIndex,
             hat: viewingHatIndex,
             ball: viewingBallIndex,
             style: viewingStyleIndex
@@ -627,6 +631,7 @@ let lastDisplayedContestTime = -1;
         if (ctxObj.viewingIndices) {
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
             viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;

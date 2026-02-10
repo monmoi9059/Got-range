@@ -1241,6 +1241,11 @@
                     playerData.unlockedSkins.push(skin.id);
                 }
             });
+            CLOTHING_DB.forEach(c => {
+                if(!playerData.unlockedClothing.includes(c.id)) {
+                    playerData.unlockedClothing.push(c.id);
+                }
+            });
             checkAchievements('shop');
             saveData();
             updateShopUI();
@@ -1369,6 +1374,31 @@
         else if (playerData.tacos >= skin.cost) {
             playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
             checkAchievements('shop'); checkAchievements('skin');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changeClothing = function(dir) {
+        loadContext(getShopContext());
+        viewingClothingIndex += dir;
+        if(viewingClothingIndex < 0) viewingClothingIndex = CLOTHING_DB.length - 1;
+        if(viewingClothingIndex >= CLOTHING_DB.length) viewingClothingIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipClothing = function() {
+        loadContext(getShopContext());
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+
+        const isUnlocked = playerData.unlockedClothing.includes(clothing.id);
+        if (isUnlocked) {
+            playerData.currentClothing = clothing.id;
+        } else if (playerData.tacos >= clothing.cost) {
+            playerData.tacos -= clothing.cost;
+            playerData.unlockedClothing.push(clothing.id);
+            playerData.currentClothing = clothing.id;
+            checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
@@ -1676,6 +1706,19 @@
         } else {
             btnVar.style.display = 'none';
         }
+
+        // Clothing UI
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        document.getElementById('clothingName').innerText = clothing.name;
+        const btnClothing = document.getElementById('btnEquipClothing');
+        const statusClothing = document.getElementById('clothingStatus');
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+        const isUnlockedClothing = playerData.unlockedClothing.includes(clothing.id);
+        const isEquippedClothing = playerData.currentClothing === clothing.id;
+
+        if (isEquippedClothing) { statusClothing.innerText = "Équipé"; btnClothing.style.display = 'none'; }
+        else if (isUnlockedClothing) { statusClothing.innerText = "Possédé"; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Équiper"; btnClothing.disabled = false; }
+        else { statusClothing.innerText = `Coût: ${clothing.cost} Tacos`; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Acheter"; btnClothing.disabled = playerData.tacos < clothing.cost; }
 
         // Hat UI
         const hat = HATS_DB[viewingHatIndex];
