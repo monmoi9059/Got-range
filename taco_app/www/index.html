@@ -9971,6 +9971,231 @@ var BallRenderer = {
         ctx.fill();
     }
 
+    function drawLaporteBridge(ctx, x, y, scale, angle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.scale(scale, scale);
+
+        const pierColor = '#5A5A5A';
+        const deckColor = '#333';
+        const cableColor = '#222';
+
+        // 1. Piers (Concrete)
+        ctx.fillStyle = pierColor;
+        ctx.fillRect(-160, 20, 20, 300); // Left Tower Pier
+        ctx.fillRect(140, 20, 20, 300);  // Right Tower Pier
+
+        // 2. Towers (Steel H-Frame)
+        ctx.fillStyle = '#444';
+        const towerH = 140;
+        // Left Tower
+        ctx.fillRect(-160, -towerH, 20, towerH + 20);
+        ctx.fillRect(-160, -towerH + 10, 20, 10); // Cross brace top
+        ctx.fillRect(-160, -towerH + 60, 20, 10); // Cross brace mid
+        // Right Tower
+        ctx.fillRect(140, -towerH, 20, towerH + 20);
+        ctx.fillRect(140, -towerH + 10, 20, 10);
+        ctx.fillRect(140, -towerH + 60, 20, 10);
+
+        // 3. Deck (Roadway) - Extended
+        ctx.fillStyle = deckColor;
+        ctx.fillRect(-600, 0, 1200, 10);
+        // Trusses under deck
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-600, 10); ctx.lineTo(600, 10); ctx.stroke();
+
+        // 4. Main Cables
+        ctx.beginPath();
+        ctx.strokeStyle = cableColor; ctx.lineWidth = 3;
+        // Left span
+        ctx.moveTo(-600, -40); ctx.quadraticCurveTo(-380, 0, -150, -towerH);
+        // Center span (catenary approx)
+        ctx.bezierCurveTo( -50, 40, 50, 40, 150, -towerH);
+        // Right span
+        ctx.quadraticCurveTo(380, 0, 600, -40);
+        ctx.stroke();
+
+        // 5. Suspenders (Verticals)
+        ctx.lineWidth = 0.5; ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        const startX = -140; const endX = 140;
+        for(let tx = startX; tx <= endX; tx+=15) {
+            // Parabola height at x
+            const normX = tx / 150;
+            const cableY = (normX * normX) * (towerH + 40) - towerH;
+            if (cableY < 0) {
+                ctx.beginPath(); ctx.moveTo(tx, cableY); ctx.lineTo(tx, 0); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawQuebecBridge(ctx, x, y, scale, angle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.scale(scale, scale);
+
+        const steelColor = '#2F2F2F'; // Dark steel
+        const pierColor = '#666';
+
+        // Piers
+        ctx.fillStyle = pierColor;
+        ctx.fillRect(-220, 20, 30, 200); // Main Pier 1
+        ctx.fillRect(190, 20, 30, 200); // Main Pier 2
+
+        // Helper for Truss Sections (Cantilever Shape)
+        ctx.strokeStyle = steelColor;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+
+        // Function to draw a Cantilever Arm
+        // p1: top tip, p2: pier top, p3: pier base, p4: shore base
+        const drawArm = (offset, flip) => {
+            const f = flip ? -1 : 1;
+            ctx.save();
+            ctx.translate(offset, 0);
+            if(flip) ctx.scale(-1, 1);
+
+            ctx.beginPath();
+            // Main structure outline
+            ctx.moveTo(0, 0); // Deck level center-ish
+            ctx.lineTo(100, -80); // Peak at pier
+            ctx.lineTo(200, 0); // Anchor arm end
+
+            // Bottom chord
+            ctx.moveTo(0, 0); ctx.lineTo(200, 0);
+
+            // Internal webbing (X pattern)
+            for(let i=0; i<=4; i++) {
+                const step = 40;
+                const h1 = -80 * (1 - (i*step)/200); // Slope down? No, peak is at 0 local (relative to pier?)
+                // Actually let's draw relative to Pier Peak (0, -80)
+                // Left side of pier (Cantilever arm)
+            }
+            ctx.stroke();
+
+            // Simplified Cantilever geometry:
+            // Peak at (0, -80) (relative to pier center).
+            // Slopes down to (100, 0) (Suspended span connection)
+            // Slopes down to (-150, 0) (Anchor arm)
+
+            ctx.beginPath();
+            // Main chords
+            ctx.moveTo(0, -80); ctx.lineTo(90, 0); // Cantilever arm top
+            ctx.moveTo(0, -80); ctx.lineTo(-150, 0); // Anchor arm top
+            ctx.moveTo(-150, 0); ctx.lineTo(90, 0); // Deck level
+
+            // Verticals
+            ctx.moveTo(0, -80); ctx.lineTo(0, 0); // Pier vertical
+            ctx.moveTo(45, -40); ctx.lineTo(45, 0);
+            ctx.moveTo(-75, -40); ctx.lineTo(-75, 0);
+
+            // Diagonals
+            ctx.moveTo(0, -80); ctx.lineTo(45, 0); ctx.lineTo(90, -10); // K-truss approx
+            ctx.moveTo(0, -80); ctx.lineTo(-75, 0); ctx.lineTo(-150, -10);
+
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        // Draw Left Cantilever (Pier at -205)
+        drawArm(-205, false); // Anchor left, arm right?
+        // Actually flip logic:
+        // Left Pier: Anchor to left (-), Arm to right (+)
+        ctx.save(); ctx.translate(-205, 0);
+        ctx.beginPath();
+        ctx.strokeStyle = steelColor; ctx.lineWidth = 3;
+        // Peak
+        ctx.moveTo(0, 0); ctx.lineTo(0, -90);
+        // Anchor Arm (Left)
+        ctx.lineTo(-160, 0); ctx.lineTo(0, 0);
+        ctx.moveTo(0, -90); ctx.lineTo(-80, 0); // Diagonal
+        // Cantilever Arm (Right)
+        ctx.moveTo(0, -90); ctx.lineTo(110, 0);
+        ctx.moveTo(0, 0); ctx.lineTo(110, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw Right Cantilever (Pier at 205)
+        ctx.save(); ctx.translate(205, 0);
+        ctx.beginPath();
+        ctx.strokeStyle = steelColor; ctx.lineWidth = 3;
+        // Peak
+        ctx.moveTo(0, 0); ctx.lineTo(0, -90);
+        // Anchor Arm (Right)
+        ctx.lineTo(160, 0); ctx.lineTo(0, 0);
+        ctx.moveTo(0, -90); ctx.lineTo(80, 0);
+        // Cantilever Arm (Left)
+        ctx.moveTo(0, -90); ctx.lineTo(-110, 0);
+        ctx.moveTo(0, 0); ctx.lineTo(-110, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        // Suspended Span (Center)
+        ctx.fillStyle = steelColor;
+        ctx.fillRect(-95, 0, 190, 10); // Deck
+        ctx.strokeStyle = steelColor; ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(-95, 0); ctx.lineTo(-45, -30); ctx.lineTo(45, -30); ctx.lineTo(95, 0);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawRiver(ctx, horizonY, vpW, vpH) {
+         if (playerData.graphics === 'LOW') return;
+         const riverY = horizonY;
+
+         // 1. Draw River ONLY on the left side (fading out)
+         // Max width 40% of screen to leave ground visible
+         const riverW = vpW * 0.45;
+
+         const grad = ctx.createLinearGradient(0, 0, riverW, 0);
+         grad.addColorStop(0, 'rgba(30, 63, 90, 1.0)');   // Deep Blue
+         grad.addColorStop(0.6, 'rgba(47, 79, 79, 0.9)'); // Dark Slate
+         grad.addColorStop(1, 'rgba(47, 79, 79, 0.0)');   // Transparent
+
+         ctx.save();
+         ctx.translate(0, riverY);
+         ctx.fillStyle = grad;
+         ctx.fillRect(0, 0, riverW, vpH - riverY);
+
+         // Add some waves/sparkles only in the visible river area
+         ctx.fillStyle = 'rgba(255,255,255,0.1)';
+         const time = Date.now() * 0.001;
+         for(let i=0; i<10; i++) {
+             let wx = (i * 50 + time * 20) % riverW;
+             let wy = Math.random() * (vpH - riverY);
+             if (wx < riverW * 0.8) { // Fade sparkles too
+                 ctx.fillRect(wx, wy, 10, 2);
+             }
+         }
+         ctx.restore();
+
+         const camX = (g_camCache && g_camCache.x) ? g_camCache.x : 0;
+         const camY = (g_camCache && g_camCache.y) ? g_camCache.y : 0;
+
+         const parallaxFactor = 0.03;
+         const parallax = (camX + camY) * parallaxFactor;
+
+         // Draw Bridges anchored to the left
+         const bridgeBaseY = riverY - 10;
+         const bridgeX = 100 - parallax;
+         const angle = -0.15; // Flatter angle for perspective
+
+         // Only draw if within reasonable bounds (optimization)
+         if (bridgeX > -800 && bridgeX < vpW) {
+             // Laporte (Front)
+             drawLaporteBridge(ctx, bridgeX, bridgeBaseY, 0.5, angle);
+             // Quebec (Back)
+             drawQuebecBridge(ctx, bridgeX - 300, bridgeBaseY - 40, 0.45, angle);
+
+             // Boats
+             drawBoat(ctx, (bridgeX + 300) % (vpW/2), riverY + 30, 0.8, '#FFF');
+         }
+    }
+
     function drawBackground(vpX, vpY, vpW, vpH) {
         if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
@@ -10208,6 +10433,7 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
+            drawRiver(ctx, horizonY, vpW, vpH);
             const currentDist = 10 + (distanceLevel * 5);
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
