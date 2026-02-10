@@ -9976,31 +9976,34 @@ var BallRenderer = {
         ctx.fill();
     }
 
-    function drawLaporteBridge(ctx, x, y, scale) {
+    function drawLaporteBridge(ctx, x, y, scale, angle) {
         ctx.save();
         ctx.translate(x, y);
+        ctx.rotate(angle);
         ctx.scale(scale, scale);
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 2;
 
-        // Piers (Supports in water) - Drawn first (behind)
+        // Piers (Supports in water)
         ctx.fillStyle = '#666';
-        ctx.fillRect(-85, 10, 20, 100); // Left Pier
-        ctx.fillRect(65, 10, 20, 100);  // Right Pier
+        ctx.fillRect(-85, 20, 20, 200); // Extended down
+        ctx.fillRect(65, 20, 20, 200);
 
         // Towers
         ctx.fillStyle = '#555';
         ctx.fillRect(-80, -60, 10, 80);
         ctx.fillRect(70, -60, 10, 80);
 
-        // Deck (Above water)
+        // Deck (Extended for shore connection)
         ctx.fillStyle = '#444';
-        ctx.fillRect(-150, 0, 300, 10);
+        ctx.fillRect(-400, 0, 800, 15);
 
         // Main Cable
         ctx.beginPath();
-        ctx.moveTo(-80, -60);
+        ctx.moveTo(-400, -20); // Cable extends off
+        ctx.lineTo(-80, -60);
         ctx.quadraticCurveTo(0, 10, 70, -60);
+        ctx.lineTo(400, -20);
         ctx.stroke();
 
         // Suspenders
@@ -10014,16 +10017,20 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    function drawQuebecBridge(ctx, x, y, scale) {
+    function drawQuebecBridge(ctx, x, y, scale, angle) {
         ctx.save();
         ctx.translate(x, y);
+        ctx.rotate(angle);
         ctx.scale(scale, scale);
 
         // Piers
         ctx.fillStyle = '#666';
-        ctx.fillRect(-85, 10, 10, 80);
-        ctx.fillRect(-5, 10, 10, 80);
-        ctx.fillRect(75, 10, 10, 80);
+        ctx.fillRect(-85, 20, 10, 200);
+        ctx.fillRect(-5, 20, 10, 200);
+        ctx.fillRect(75, 20, 10, 200);
+
+        // Deck
+        ctx.fillStyle = '#444'; ctx.fillRect(-400, 0, 800, 15);
 
         const drawTruss = (tx) => {
              ctx.beginPath();
@@ -10033,7 +10040,7 @@ var BallRenderer = {
              ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, -50); ctx.stroke();
         };
         drawTruss(-80); drawTruss(0); drawTruss(80);
-        ctx.fillStyle = '#444'; ctx.fillRect(-150, 0, 300, 5);
+
         ctx.restore();
     }
 
@@ -10047,28 +10054,30 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    function drawRiver(ctx, horizonY, vpW) {
+    function drawRiver(ctx, horizonY, vpW, vpH) {
          if (playerData.graphics === 'LOW') return;
-         const riverH = 120;
          const riverY = horizonY;
-         const grad = ctx.createLinearGradient(0, riverY, 0, riverY + riverH);
+         // Fill entire bottom to prevent gaps
+         const grad = ctx.createLinearGradient(0, riverY, 0, vpH);
          grad.addColorStop(0, '#1E3F5A'); grad.addColorStop(1, '#2F4F4F');
          ctx.fillStyle = grad;
-         ctx.fillRect(0, riverY, vpW, riverH);
+         ctx.fillRect(0, riverY, vpW, vpH - riverY);
 
          const camX = (g_camCache && g_camCache.x) ? g_camCache.x : 0;
          const camY = (g_camCache && g_camCache.y) ? g_camCache.y : 0;
 
-         // Match mountain parallax roughly (between 0.02 and 0.1)
          const parallaxFactor = 0.03;
          const parallax = (camX + camY) * parallaxFactor;
 
-         // Position bridges higher (horizonY - 20) so they sit over the water
-         const bridgeBaseY = riverY - 10;
-         const bridgeX = 150 - parallax;
+         // Angle bridges to connect "Near Left" to "Far Center"
+         // Pivot point on the left side
+         const bridgeX = 100 - parallax;
+         const bridgeY = riverY + 50;
+         const angle = -0.3; // Diagonal up-right
 
-         drawLaporteBridge(ctx, bridgeX, bridgeBaseY, 0.6);
-         drawQuebecBridge(ctx, bridgeX - 250, bridgeBaseY, 0.6);
+         drawLaporteBridge(ctx, bridgeX, bridgeY, 0.6, angle);
+         // Quebec bridge behind and further left
+         drawQuebecBridge(ctx, bridgeX - 200, bridgeY - 30, 0.5, angle);
 
          const time = Date.now() * 0.001;
          drawBoat(ctx, (bridgeX + 300) % (vpW + 400) - 200, riverY + 30, 0.8, '#FFF');
@@ -10312,7 +10321,7 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
-            drawRiver(ctx, horizonY, vpW);
+            drawRiver(ctx, horizonY, vpW, vpH);
             const currentDist = 10 + (distanceLevel * 5);
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
