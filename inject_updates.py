@@ -7,14 +7,21 @@ JS_DIR = 'js'
 CSS_DIR = 'css'
 
 # Order matters for JS execution
+# geometry: Base types
+# data: Constants
+# audio: System
+# main: Environment/Globals (HOOP_POS)
+# renderer: Drawing
+# input: Controller
+# game: Logic/Loop/Entry
 JS_ORDER = [
     'geometry.js',
     'data.js',
     'audio.js',
+    'main.js',
     'renderer.js',
-    'game.js',
     'input.js',
-    'main.js'
+    'game.js'
 ]
 
 def read_file(path):
@@ -61,20 +68,12 @@ def inject():
         html = read_file(html_file)
 
         # Inject CSS
-        # Look for markers first
         if '<!-- INJECT_CSS_START -->' in html and '<!-- INJECT_CSS_END -->' in html:
             pattern = re.compile(r'<!-- INJECT_CSS_START -->.*?<!-- INJECT_CSS_END -->', re.DOTALL)
             replacement = f'<!-- INJECT_CSS_START -->\n<style>\n{css_content}\n</style>\n<!-- INJECT_CSS_END -->'
             html = pattern.sub(replacement, html)
         else:
-            # Fallback: Replace first <style> block
-            print("  Markers not found, using fallback for CSS...")
-            # Ideally we want to replace the main style block.
-            # But since we are going to add markers in step 2 of the plan, 
-            # this script will mostly rely on markers. 
-            # However, for the very first run (if I ran it now), it would fail or do nothing.
-            # I will ensure I add markers in step 2.
-            pass
+            print("  Markers not found for CSS...")
 
         # Inject JS
         if '<!-- INJECT_JS_START -->' in html and '<!-- INJECT_JS_END -->' in html:
@@ -82,8 +81,7 @@ def inject():
             replacement = f'<!-- INJECT_JS_START -->\n<script>\n{js_content}\n</script>\n<!-- INJECT_JS_END -->'
             html = pattern.sub(replacement, html)
         else:
-            print("  Markers not found, using fallback for JS...")
-            pass
+            print("  Markers not found for JS...")
 
         write_file(html_file, html)
         print(f"Updated {html_file}")
