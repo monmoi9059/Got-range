@@ -6213,75 +6213,157 @@ var BallRenderer = {
 
 
         // Head Accessories
-        if (skinObj.headAccessory === 'sombrero') {
-            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
+        let accessoryType = skinObj.headAccessory;
+        let accessoryColor = skinObj.hatColor;
+
+        if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
+             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             if (hat) {
+                 accessoryType = hat.type;
+                 if (hat.color) accessoryColor = hat.color;
+             }
+        }
+
+        if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'party_hat') {
+             ctx.fillStyle = accessoryColor || '#FF00FF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 8*s, headY - 8*s);
+             ctx.lineTo(p.x + 8*s, headY - 8*s);
+             ctx.lineTo(p.x, headY - 35*s); // Cone tip
+             ctx.fill();
+        }
+        else if (accessoryType === 'propeller_cap') {
+             ctx.fillStyle = '#FF0000';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI, Math.PI*1.5); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI*1.5, 0); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#FFFF00';
+             ctx.beginPath(); ctx.arc(p.x, headY - 17*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FFD700';
+             ctx.fillRect(p.x - 10*s, headY - 19*s, 20*s, 2*s);
+             ctx.fillRect(p.x - 2*s, headY - 19*s, 4*s, 4*s);
+        }
+        else if (accessoryType === 'bucket_hat') {
+             ctx.fillStyle = accessoryColor || '#FFFF00';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, headRadius * 0.9, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillRect(p.x - headRadius * 0.9, headY - 12*s, headRadius * 1.8, 8*s);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 1.4, headY + 2*s);
+             ctx.lineTo(p.x - headRadius * 1.4, headY + 2*s);
+             ctx.fill();
+        }
+        else if (accessoryType === 'santa_hat') {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.2, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FF0000';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - 30*s, p.x + 20*s, headY - 15*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x + 20*s, headY - 15*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'viking_helmet') {
+             ctx.fillStyle = accessoryColor || '#AAA';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x - 20*s, headY - 20*s, p.x - 25*s, headY - 30*s); ctx.lineTo(p.x - 12*s, headY - 12*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x + 20*s, headY - 20*s, p.x + 25*s, headY - 30*s); ctx.lineTo(p.x + 12*s, headY - 12*s); ctx.fill();
+        }
+        else if (accessoryType === 'pirate_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 20*s, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - 10*s, headY - 20*s, p.x, headY - 10*s);
+             ctx.quadraticCurveTo(p.x + 10*s, headY - 20*s, p.x + 20*s, headY - 5*s);
+             ctx.lineTo(p.x, headY - 15*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'sombrero') {
+            ctx.fillStyle = accessoryColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'crown') {
+        else if (accessoryType === 'crown') {
             ctx.fillStyle = '#FFD700';
             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s);
             ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            ctx.fillStyle = skinObj.hatColor || '#000080';
+        else if (accessoryType === 'wizard_hat') {
+            ctx.fillStyle = accessoryColor || '#000080';
             ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'chef_hat') {
+        else if (accessoryType === 'chef_hat') {
              ctx.fillStyle = '#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'helmet') {
-             ctx.strokeStyle = skinObj.hatColor || '#87CEEB'; ctx.lineWidth=2*s;
+        else if (accessoryType === 'helmet') {
+             ctx.strokeStyle = accessoryColor || '#87CEEB'; ctx.lineWidth=2*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke();
-             if(skinObj.hatColor === '#FFF') { // Hockey mask fill
+             if(accessoryColor === '#FFF') { // Hockey mask fill
                  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
              }
         }
-        else if (skinObj.headAccessory === 'horns') {
+        else if (accessoryType === 'horns') {
              ctx.fillStyle = 'red';
              ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'halo') {
+        else if (accessoryType === 'halo') {
              ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'beanie') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
+        else if (accessoryType === 'beanie') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-             const col = skinObj.hatColor || '#FFF';
+        else if (accessoryType === 'ear_muffs') {
+             const col = accessoryColor || '#FFF';
              ctx.fillStyle = col;
              ctx.beginPath(); ctx.arc(p.x - headRadius - 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x + headRadius + 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = col; ctx.lineWidth = 3*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 4*s, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'collar') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'collar') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.fillRect(p.x - headRadius, headY + headRadius - 2*s, headRadius * 2, 4*s);
              ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 3*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.strokeStyle = skinObj.hatColor || '#00008B'; ctx.lineWidth = 6*s;
+        else if (accessoryType === 'scarf') {
+             ctx.strokeStyle = accessoryColor || '#00008B'; ctx.lineWidth = 6*s;
              ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 6*s, 0, Math.PI, false); ctx.stroke();
              // Dangling part
-             ctx.fillStyle = skinObj.hatColor || '#00008B';
+             ctx.fillStyle = accessoryColor || '#00008B';
              ctx.fillRect(p.x + 4*s, headY + headRadius, 6*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'fez') {
+        else if (accessoryType === 'fez') {
              ctx.fillStyle = '#8B0000';
              ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
              ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'bow') {
-             ctx.fillStyle = skinObj.hatColor || '#FFC0CB';
+        else if (accessoryType === 'bow') {
+             ctx.fillStyle = accessoryColor || '#FFC0CB';
              ctx.beginPath();
              ctx.ellipse(p.x - 6*s, headY - 8*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath();
              ctx.ellipse(p.x + 6*s, headY - 8*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 8*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'flower') {
+        else if (accessoryType === 'flower') {
              ctx.fillStyle = '#FF69B4';
              const fx = p.x + headRadius; const fy = headY - 5*s;
              for(let i=0; i<5; i++) {
@@ -6290,19 +6372,19 @@ var BallRenderer = {
              }
              ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(fx, fy, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'algae') {
+        else if (accessoryType === 'algae') {
              ctx.fillStyle = '#2E8B57';
              drawFuzzyPath([{x:p.x-5*s,y:headY-10*s},{x:p.x+5*s,y:headY-12*s},{x:p.x+8*s,y:headY-5*s},{x:p.x-8*s,y:headY-4*s}], '#2E8B57', s, true, 200);
         }
-        else if (skinObj.headAccessory === 'hat') {
-             ctx.fillStyle = skinObj.hatColor || '#5D4037';
+        else if (accessoryType === 'hat') {
+             ctx.fillStyle = accessoryColor || '#5D4037';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'floppy_cap') {
-             const capColor = skinObj.hatColor || '#00A000';
+        else if (accessoryType === 'floppy_cap') {
+             const capColor = accessoryColor || '#00A000';
              ctx.fillStyle = capColor;
              // Base (Headband part)
              ctx.beginPath();
@@ -6321,25 +6403,25 @@ var BallRenderer = {
              ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
              ctx.fill();
         }
-        else if (skinObj.headAccessory === 'top_hat') {
-             ctx.fillStyle = '#111';
+        else if (accessoryType === 'top_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.5, 3*s, 0, 0, Math.PI*2); ctx.fill();
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
-        else if (skinObj.headAccessory === 'headband') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; // Default red
-             if(skinObj.hatColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
+        else if (accessoryType === 'headband') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
+             if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
              ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
              // Knot/Tails
              ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = '#FF0000';
+        else if (accessoryType === 'bandana_neck') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'feathers') {
+        else if (accessoryType === 'feathers') {
              ctx.fillStyle = '#FFF';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 4*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();

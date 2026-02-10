@@ -257,6 +257,7 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingHatIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
     let currentGameMode = 'CLASSIC';
@@ -303,6 +304,7 @@ let lastDisplayedContestTime = -1;
             dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
             unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
+            unlockedHats: ['hat_none'], currentHat: 'hat_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
             releaseTiming: 3,
@@ -337,6 +339,8 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+    if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+    if(!playerData.currentHat) playerData.currentHat = 'hat_none';
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -518,7 +522,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -563,6 +567,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.viewingIndices = {
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
+            hat: viewingHatIndex,
             ball: viewingBallIndex,
             style: viewingStyleIndex
         };
@@ -605,6 +610,7 @@ let lastDisplayedContestTime = -1;
         if (ctxObj.viewingIndices) {
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
         }

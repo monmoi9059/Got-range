@@ -532,6 +532,41 @@
 
     ];
 
+    var HATS_DB = [
+        { id: 'hat_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+        { id: 'hat_cap_red', name: 'Casquette Rouge', cost: 500, type: 'cap', color: '#FF0000' },
+        { id: 'hat_cap_blue', name: 'Casquette Bleue', cost: 500, type: 'cap', color: '#0000FF' },
+        { id: 'hat_cap_black', name: 'Casquette Noire', cost: 500, type: 'cap', color: '#111' },
+        { id: 'hat_cap_white', name: 'Casquette Blanche', cost: 500, type: 'cap', color: '#FFF' },
+        { id: 'hat_cap_green', name: 'Casquette Verte', cost: 500, type: 'cap', color: '#008000' },
+        { id: 'hat_beanie_red', name: 'Tuque Rouge', cost: 750, type: 'beanie', color: '#FF0000' },
+        { id: 'hat_beanie_black', name: 'Tuque Noire', cost: 750, type: 'beanie', color: '#111' },
+        { id: 'hat_beanie_orange', name: 'Tuque Orange', cost: 750, type: 'beanie', color: '#FFA500' },
+        { id: 'hat_headband_red', name: 'Bandeau Rouge', cost: 1000, type: 'headband', color: '#FF0000' },
+        { id: 'hat_headband_blue', name: 'Bandeau Bleu', cost: 1000, type: 'headband', color: '#0000FF' },
+        { id: 'hat_headband_white', name: 'Bandeau Blanc', cost: 1000, type: 'headband', color: '#FFF' },
+        { id: 'hat_tophat', name: 'Haut-de-forme', cost: 2000, type: 'top_hat', color: '#111' },
+        { id: 'hat_cowboy', name: 'Cowboy', cost: 2500, type: 'hat', color: '#8B4513' },
+        { id: 'hat_panama', name: 'Panama', cost: 2000, type: 'hat', color: '#F5F5DC' },
+        { id: 'hat_sombrero', name: 'Sombrero', cost: 3000, type: 'sombrero', color: '#1a1a1a' },
+        { id: 'hat_fez', name: 'Fez', cost: 2500, type: 'fez', color: '#8B0000' },
+        { id: 'hat_crown', name: 'Couronne', cost: 5000, type: 'crown' },
+        { id: 'hat_halo', name: 'Auréole', cost: 5000, type: 'halo' },
+        { id: 'hat_horns', name: 'Cornes', cost: 4000, type: 'horns' },
+        { id: 'hat_wizard', name: 'Sorcier', cost: 4500, type: 'wizard_hat', color: '#000080' },
+        { id: 'hat_chef', name: 'Chef', cost: 1500, type: 'chef_hat' },
+        { id: 'hat_helmet_astro', name: 'Astronaute', cost: 5000, type: 'helmet', color: '#EEE' },
+        { id: 'hat_helmet_army', name: 'Militaire', cost: 3000, type: 'helmet', color: '#556B2F' },
+        { id: 'hat_bow_pink', name: 'Boucle Rose', cost: 1000, type: 'bow', color: '#FFC0CB' },
+        { id: 'hat_flower', name: 'Fleur', cost: 1000, type: 'flower' },
+        { id: 'hat_party', name: 'Fête', cost: 1500, type: 'party_hat', color: '#FF00FF' },
+        { id: 'hat_propeller', name: 'Hélice', cost: 2000, type: 'propeller_cap', color: '#FFD700' },
+        { id: 'hat_bucket', name: 'Bucket Hat', cost: 2000, type: 'bucket_hat', color: '#FFFF00' },
+        { id: 'hat_santa', name: 'Père Noël', cost: 3000, type: 'santa_hat', color: '#FF0000' },
+        { id: 'hat_viking', name: 'Viking', cost: 4000, type: 'viking_helmet', color: '#AAA' },
+        { id: 'hat_pirate', name: 'Pirate', cost: 3500, type: 'pirate_hat', color: '#111' }
+    ];
+
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
