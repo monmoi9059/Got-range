@@ -1,7 +1,6 @@
     const GamepadController = {
         active: false,
         focusedElement: null,
-        focusIndex: 0,
         focusableElements: [],
         lastButtonStates: {},
         lastState: null,
@@ -25,7 +24,11 @@
                 if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
 
                 // Only activate if a button is pressed or previously active
-                if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
+                if (!this.active && gp.buttons.some(b => b.pressed)) {
+                    this.active = true;
+                    document.body.classList.add('gamepad-active');
+                    if (window.updateButtonPrompts) window.updateButtonPrompts();
+                }
             }
             if(!this.active) return;
 
@@ -33,6 +36,7 @@
             if (this.lastState !== state) {
                 this.refreshFocusList();
                 this.lastState = state;
+                if (window.updateButtonPrompts) window.updateButtonPrompts();
             }
 
             for(let i=0; i<4; i++) {
@@ -96,31 +100,84 @@
 
             // Slider Handling (Left/Right)
             if (this.focusedElement && this.focusedElement.tagName === 'INPUT' && this.focusedElement.type === 'range' && dx !== 0) {
-                const step = parseFloat(this.focusedElement.step) || 1;
-                const val = parseFloat(this.focusedElement.value);
-                const min = parseFloat(this.focusedElement.min);
-                const max = parseFloat(this.focusedElement.max);
+                // If moving purely horizontally, adjust slider. If vertical component exists, allow escape.
+                if (dy === 0) {
+                    const step = parseFloat(this.focusedElement.step) || 1;
+                    const val = parseFloat(this.focusedElement.value);
+                    const min = parseFloat(this.focusedElement.min);
+                    const max = parseFloat(this.focusedElement.max);
 
-                let newVal = val;
-                if (dx > 0) newVal = Math.min(max, val + step);
-                if (dx < 0) newVal = Math.max(min, val - step);
+                    let newVal = val;
+                    if (dx > 0) newVal = Math.min(max, val + step);
+                    if (dx < 0) newVal = Math.max(min, val - step);
 
-                if (newVal !== val) {
-                    this.focusedElement.value = newVal;
-                    this.focusedElement.dispatchEvent(new Event('input'));
+                    if (newVal !== val) {
+                        this.focusedElement.value = newVal;
+                        this.focusedElement.dispatchEvent(new Event('input'));
+                    }
+                    return;
                 }
+            }
+
+            if (!this.focusedElement) {
+                this.focusedElement = this.focusableElements[0];
+                this.applyFocus();
                 return;
             }
 
-            let direction = dy !== 0 ? dy : dx;
+            const currentRect = this.focusedElement.getBoundingClientRect();
+            const bestCandidate = this.findBestFocusCandidate(currentRect, dx, dy);
 
-            if (direction > 0) this.focusIndex++;
-            else if (direction < 0) this.focusIndex--;
+            if (bestCandidate) {
+                this.focusedElement = bestCandidate;
+                this.applyFocus();
+            }
+        },
 
-            if (this.focusIndex < 0) this.focusIndex = this.focusableElements.length - 1;
-            if (this.focusIndex >= this.focusableElements.length) this.focusIndex = 0;
+        findBestFocusCandidate: function(currentRect, dx, dy) {
+            let bestCandidate = null;
+            let bestDistance = Infinity;
 
-            this.applyFocus();
+            const cx = currentRect.left + currentRect.width / 2;
+            const cy = currentRect.top + currentRect.height / 2;
+
+            for (const el of this.focusableElements) {
+                if (el === this.focusedElement) continue;
+
+                const rect = el.getBoundingClientRect();
+                const ex = rect.left + rect.width / 2;
+                const ey = rect.top + rect.height / 2;
+
+                let isValid = false;
+                // Allow some fuzziness (10px) to handle slight misalignments
+                if (dy < 0) { // UP
+                    if (rect.bottom <= currentRect.top + 10) isValid = true;
+                } else if (dy > 0) { // DOWN
+                    if (rect.top >= currentRect.bottom - 10) isValid = true;
+                } else if (dx < 0) { // LEFT
+                    if (rect.right <= currentRect.left + 10) isValid = true;
+                } else if (dx > 0) { // RIGHT
+                    if (rect.left >= currentRect.right - 10) isValid = true;
+                }
+
+                if (isValid) {
+                    const dist = Math.sqrt(Math.pow(ex - cx, 2) + Math.pow(ey - cy, 2));
+
+                    // Alignment heuristic: prefer elements orthogonally aligned
+                    let alignmentOffset = 0;
+                    if (dy !== 0) alignmentOffset = Math.abs(ex - cx); // Vertical move: minimize horizontal offset
+                    else alignmentOffset = Math.abs(ey - cy); // Horizontal move: minimize vertical offset
+
+                    // Weighted score: Distance + (Alignment * 2.0)
+                    const score = dist + alignmentOffset * 2.0;
+
+                    if (score < bestDistance) {
+                        bestDistance = score;
+                        bestCandidate = el;
+                    }
+                }
+            }
+            return bestCandidate;
         },
 
         refreshFocusList: function() {
@@ -132,6 +189,7 @@
             else if (state === 'ACHIEVEMENTS') containerSelector = '#achUI';
             else if (state === 'LEADERBOARD') containerSelector = '#leaderboardUI';
             else if (state === 'HIGHSCORE_INPUT') containerSelector = '#highScoreUI';
+            else if (state === 'GAMEOVER') containerSelector = '#controls'; // Partial nav
 
             if (!containerSelector) {
                 this.clearFocus();
@@ -139,24 +197,36 @@
             }
 
             const container = document.querySelector(containerSelector);
-            if(!container) return;
+            if(!container || (container.style.display === 'none' && state !== 'IDLE')) {
+                // If container is hidden but we think we are in that state, something is wrong or transitioning
+                // Just clear focus to be safe
+                // this.clearFocus();
+                // return;
+                // Actually, checking display is tricky because CSS classes might hide it differently.
+                // Trust the 'state' variable.
+            }
 
-            const all = Array.from(container.querySelectorAll('button, .ui-btn, input, select'));
+            const all = Array.from(document.querySelectorAll(`${containerSelector} button, ${containerSelector} .ui-btn, ${containerSelector} input, ${containerSelector} select, ${containerSelector} .broadcast-btn, ${containerSelector} .broadcast-icon-btn`));
             this.focusableElements = all.filter(el => {
-                return el.offsetParent !== null && !el.disabled && el.style.display !== 'none';
+                const style = window.getComputedStyle(el);
+                return el.offsetParent !== null && !el.disabled && style.display !== 'none' && style.visibility !== 'hidden';
             });
 
             if (!this.focusedElement || !this.focusableElements.includes(this.focusedElement)) {
-                this.focusIndex = 0;
-                this.applyFocus();
+                if (this.focusableElements.length > 0) {
+                    this.focusedElement = this.focusableElements[0];
+                    this.applyFocus();
+                } else {
+                    this.focusedElement = null;
+                }
             } else {
-                this.focusIndex = this.focusableElements.indexOf(this.focusedElement);
+                // Ensure focus index is mostly irrelevant now but we keep it sync if needed?
+                // No, we use object reference.
             }
         },
 
         applyFocus: function() {
             document.querySelectorAll('.gamepad-focus').forEach(el => el.classList.remove('gamepad-focus'));
-            this.focusedElement = this.focusableElements[this.focusIndex];
             if (this.focusedElement) {
                 this.focusedElement.classList.add('gamepad-focus');
                 if(this.focusedElement.scrollIntoView) {
@@ -185,7 +255,8 @@
                         sel.dispatchEvent(new Event('change'));
                     } else {
                         this.focusedElement.click();
-                        this.refreshFocusList();
+                        // Refresh immediately in case the click changed the UI (e.g. opened a new menu)
+                        setTimeout(() => this.refreshFocusList(), 50);
                     }
                 }
             }
@@ -193,10 +264,10 @@
             // B Button: Back
             if (this.isPressed(gp, this.BTN_B, gpIndex)) {
                 if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
-                else if (state === 'SHOP') closeShop();
-                else if (state === 'STATS') closeStats();
-                else if (state === 'ACHIEVEMENTS') closeAchievements();
-                else if (state === 'LEADERBOARD') closeLeaderboard();
+                else if (state === 'SHOP') { if (window.closeShop) window.closeShop(); }
+                else if (state === 'STATS') { if (window.closeStats) window.closeStats(); }
+                else if (state === 'ACHIEVEMENTS') { if (window.closeAchievements) window.closeAchievements(); }
+                else if (state === 'LEADERBOARD') { if (window.closeLeaderboard) window.closeLeaderboard(); }
             }
 
             // X Button: Shoot (Game Action)
@@ -226,22 +297,24 @@
 
     // Start buttons
     const mobBtn = document.getElementById('mobileShootBtn');
-    mobBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (isSplitscreen) {
-            doGameAction(game2, 'press');
-        } else {
-            doGameAction(game1, 'press');
-        }
-    }, {passive: false});
-    mobBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if (isSplitscreen) {
-            doGameAction(game2, 'release');
-        } else {
-            doGameAction(game1, 'release');
-        }
-    }, {passive: false});
+    if (mobBtn) {
+        mobBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'press');
+            } else {
+                doGameAction(game1, 'press');
+            }
+        }, {passive: false});
+        mobBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'release');
+            } else {
+                doGameAction(game1, 'release');
+            }
+        }, {passive: false});
+    }
 
     const mobBtn2 = document.getElementById('mobileShootBtn2');
     if (mobBtn2) {
@@ -365,5 +438,30 @@
         }
     });
 
-    // Initial resize call
+    // Helper to update prompts (Added for new controller requirements)
+    window.updateButtonPrompts = function() {
+        const p = document.getElementById('gamepad-prompts');
+        if (!p) return;
+
+        if (!GamepadController.active) {
+            p.style.display = 'none';
+            return;
+        }
+        p.style.display = 'flex';
+
+        let html = '';
+        if (state === 'IDLE' || state === 'GAMEOVER') {
+            html += `<span><span class="gp-btn">A</span> Select</span>`;
+            if (state === 'IDLE') html += `<span><span class="gp-btn">X</span> Jump</span>`;
+        } else if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD'].includes(state)) {
+            html += `<span><span class="gp-btn">A</span> Select</span>`;
+            html += `<span><span class="gp-btn">B</span> Back</span>`;
+            html += `<span><span class="gp-btn">D-PAD</span> Move</span>`;
+        } else if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'SHOOTING') {
+             html += `<span><span class="gp-btn">X</span> Release</span>`;
+        }
+
+        p.innerHTML = html;
+    };
+
     // --- SPLITSCREEN & STATE MANAGEMENT ---
