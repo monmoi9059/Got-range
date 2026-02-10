@@ -4630,7 +4630,10 @@ var BallRenderer = {
         const skinTone = skinObj.skinTone || '#8d5524';
 
         // Body Dimensions
-        const bodyW = 20 * s * sizeMod.w;
+        let widthMult = 1.0;
+        if (skinObj.jerseyType === 'none') widthMult = 2.0;
+
+        const bodyW = 20 * s * sizeMod.w * widthMult;
         const bodyH = 40 * s * sizeMod.h;
         let legLen = 30 * s * sizeMod.h;
 
@@ -4701,7 +4704,7 @@ var BallRenderer = {
         }
         let shoulderY = torsoY + (2*s);
         let armY = torsoY + (5*s);
-        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s;
+        let leftShoulderX = p.x - 16*s * widthMult; let rightShoulderX = p.x + 16*s * widthMult;
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
