@@ -1833,6 +1833,9 @@
              c.x += c.speed * dt;
              if(c.x > canvas.width + 200) c.x = -200;
         });
+        if (typeof boatSystem !== 'undefined') {
+            boatSystem.update(dt);
+        }
     }
 
     function loop(timestamp) {
