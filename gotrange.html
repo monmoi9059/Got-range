@@ -2776,7 +2776,22 @@ let lastDisplayedContestTime = -1;
     initDailyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
-    function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+    var saveTimer = null;
+    function forceSave() {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        localStorage.setItem('tacoSaveData', JSON.stringify(playerData));
+    }
+
+    function saveData() {
+        if (saveTimer) return; // Coalesce: A save is already pending
+        saveTimer = setTimeout(forceSave, 1000);
+    }
+
+    // Ensure data is saved when closing or hiding
+    window.addEventListener('beforeunload', forceSave);
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) forceSave();
+    });
 
     function initDailyChallenge() {
         const today = new Date().toDateString();
