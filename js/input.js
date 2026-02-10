@@ -251,6 +251,18 @@
     var enterPressed = false;
 
     window.addEventListener('keydown', (e) => {
+        // General Keyboard Accessibility for Custom Buttons
+        if (e.code === 'Enter' || e.code === 'Space') {
+            const active = document.activeElement;
+            if (active && (active.classList.contains('broadcast-btn') || active.classList.contains('broadcast-icon-btn'))) {
+                if (e.code === 'Space') e.preventDefault(); // Prevent scroll
+                active.click();
+                active.classList.add('active-key');
+                setTimeout(() => active.classList.remove('active-key'), 100);
+                return;
+            }
+        }
+
         // High Score / UI Handling
         if (state === 'HIGHSCORE_INPUT') {
             loadContext(game1);

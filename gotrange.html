@@ -174,7 +174,7 @@
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
         }
 
-        .broadcast-btn:active {
+        .broadcast-btn:active, .broadcast-btn.active-key {
             transform: skewX(-10deg) translateY(2px);
             box-shadow: none;
         }
@@ -195,6 +195,10 @@
             border-color: var(--broadcast-accent);
             color: var(--broadcast-accent);
             background: #222;
+        }
+        .broadcast-icon-btn:active, .broadcast-icon-btn.active-key {
+            transform: scale(0.95);
+            background: #444;
         }
 
         /* Modals Remaster */
@@ -537,17 +541,17 @@
     </div>
 
     <div id="controls">
-        <div class="broadcast-btn" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
-        <div class="broadcast-btn" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
-        <div class="broadcast-btn" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
-        <div class="broadcast-btn" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
-        <div class="broadcast-btn" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
-        <div class="broadcast-btn" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
+        <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
+        <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
+        <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
+        <div class="broadcast-btn" role="button" aria-label="Ouvrir les trophées" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
+        <div class="broadcast-btn" role="button" aria-label="Ouvrir le classement" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
+        <div class="broadcast-btn" role="button" aria-label="Ouvrir les statistiques" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
     </div>
     <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
-        <div class="broadcast-icon-btn" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
-        <div id="btn-mute" class="broadcast-icon-btn" tabindex="0" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
-        <div class="broadcast-icon-btn" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
+        <div class="broadcast-icon-btn" role="button" aria-label="Piste précédente" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
+        <div id="btn-mute" class="broadcast-icon-btn" role="button" aria-label="Couper le son" tabindex="0" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
+        <div class="broadcast-icon-btn" role="button" aria-label="Piste suivante" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
     </div>
     <div id="notification">
         <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
@@ -10954,6 +10958,18 @@ var BallRenderer = {
     var enterPressed = false;
 
     window.addEventListener('keydown', (e) => {
+        // General Keyboard Accessibility for Custom Buttons
+        if (e.code === 'Enter' || e.code === 'Space') {
+            const active = document.activeElement;
+            if (active && (active.classList.contains('broadcast-btn') || active.classList.contains('broadcast-icon-btn'))) {
+                if (e.code === 'Space') e.preventDefault(); // Prevent scroll
+                active.click();
+                active.classList.add('active-key');
+                setTimeout(() => active.classList.remove('active-key'), 100);
+                return;
+            }
+        }
+
         // High Score / UI Handling
         if (state === 'HIGHSCORE_INPUT') {
             loadContext(game1);
