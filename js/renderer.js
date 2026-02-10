@@ -2646,9 +2646,10 @@ var BallRenderer = {
     function getShadowKey(type, obj) {
         if (type === 'player') {
             var skin = playerData.currentSkin;
+            var variant = (playerData.skinVariants && playerData.skinVariants[skin]) ? playerData.skinVariants[skin] : 0;
             var anim = g_animState;
             var q = 20; // Quantization factor
-            var key = 'p_' + skin + '_' + (playerData.isLefty ? 'L' : 'R') + '_' +
+            var key = 'p_' + skin + '_v' + variant + '_' + (playerData.isLefty ? 'L' : 'R') + '_' +
                 Math.round(anim.la * q) + '_' + Math.round(anim.ra * q) + '_' +
                 Math.round(anim.lfa * q) + '_' + Math.round(anim.rfa * q) + '_' +
                 Math.round(anim.w * q) + '_' + Math.round(anim.la_z * q) + '_' +
@@ -4377,11 +4378,79 @@ var BallRenderer = {
              return;
         }
 
+        if (style === 'braids_back') {
+             // Harden/Butler style: Straight rows going back
+             const r = headRadius * 1.0;
+             // Scalp base
+             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
 
+             const numRows = 6;
+             const braidW = 3 * s;
+             ctx.lineCap = 'round';
 
+             for(let i=0; i<numRows; i++) {
+                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1
+                 const xOff = t * (r * 0.8);
+                 const yTop = headY - Math.sqrt(r*r - xOff*xOff) * 0.9;
+                 const yBot = headY + r * 0.8;
 
+                 ctx.lineWidth = braidW + 1*s;
+                 ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                 ctx.beginPath(); ctx.moveTo(p.x + xOff, yTop); ctx.lineTo(p.x + xOff * 0.8, yBot); ctx.stroke();
 
+                 ctx.lineWidth = braidW;
+                 ctx.strokeStyle = hairColor;
+                 ctx.beginPath(); ctx.moveTo(p.x + xOff, yTop); ctx.lineTo(p.x + xOff * 0.8, yBot); ctx.stroke();
 
+                 // Texture (Segments)
+                 ctx.fillStyle = adjustColor(hairColor, 20);
+                 const len = yBot - yTop;
+                 const segs = 8;
+                 for(let j=0; j<segs; j++) {
+                     const segT = j/segs;
+                     const sx = p.x + xOff * (1 - segT*0.2); // Taper x in slightly
+                     const sy = yTop + len * segT;
+                     ctx.beginPath(); ctx.arc(sx, sy, 1.2*s, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             return;
+        }
+
+        if (style === 'short_afro') {
+             // Tighter, smaller afro (Rookie Kobe/AI)
+             // Reuse Afro logic but forced small params
+             const w = headRadius * 1.15; // Smaller than normal afro (1.3+)
+             const h = headRadius * 1.15;
+
+             const grad = ctx.createRadialGradient(p.x, headY - 2*s, w*0.5, p.x, headY - 2*s, w);
+             grad.addColorStop(0, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -10));
+             ctx.fillStyle = grad;
+
+             // Circular shape with fuzz
+             ctx.beginPath();
+             const numBumps = 24;
+             for(let i=0; i<=numBumps; i++) {
+                 const angle = (i / numBumps) * Math.PI * 2;
+                 const rnd = seededRandom(baseSeed + i);
+                 const rOffset = (rnd * 2 * s);
+                 const cx = p.x + Math.cos(angle) * (w - rOffset);
+                 const cy = (headY - 2*s) + Math.sin(angle) * (h - rOffset);
+                 if(i===0) ctx.moveTo(cx, cy);
+                 else ctx.lineTo(cx, cy);
+             }
+             ctx.fill();
+
+             // Texture dots
+             ctx.fillStyle = 'rgba(0,0,0,0.3)';
+             for(let i=0; i<30; i++) {
+                 const rndR = seededRandom(baseSeed + 500 + i) * w * 0.8;
+                 const rndA = seededRandom(baseSeed + 600 + i) * Math.PI * 2;
+                 ctx.beginPath(); ctx.arc(p.x + Math.cos(rndA)*rndR, (headY - 2*s) + Math.sin(rndA)*rndR, 1.5*s, 0, Math.PI*2); ctx.fill();
+             }
+             return;
+        }
 
         // Fallback: Generic Hair (Pompadour style mostly)
 
@@ -5324,6 +5393,18 @@ var BallRenderer = {
             if(!skinObj) skinObj = SKINS_DB[0];
             g_cachedSkinId = skin;
             g_cachedSkinObj = skinObj;
+        }
+
+        // Apply Variant Overrides (Style 2)
+        if (playerData.skinVariants && playerData.skinVariants[skin] === 1) {
+             // Create shallow copy to avoid mutating global cache
+             skinObj = Object.assign({}, skinObj);
+             if (skinObj.hairStyle2) skinObj.hairStyle = skinObj.hairStyle2;
+             if (skinObj.hairColor2) skinObj.hairColor = skinObj.hairColor2;
+             if (skinObj.afroSize2) skinObj.afroSize = skinObj.afroSize2;
+             if (skinObj.beard2 !== undefined) skinObj.beard = skinObj.beard2;
+             if (skinObj.headbandColor2 !== undefined) skinObj.headbandColor = skinObj.headbandColor2;
+             if (skinObj.pattern2) skinObj.pattern = skinObj.pattern2;
         }
 
         const isMechanical = isMechanicalSkin(skinObj.id);
