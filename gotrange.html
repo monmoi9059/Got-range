@@ -5594,6 +5594,56 @@ var BallRenderer = {
         }
     }
 
+    var ShadowCache = {
+        entries: {},
+        keys: [],
+        MAX_ENTRIES: 128,
+        get: function(key) {
+            var entry = this.entries[key];
+            if (entry) {
+                // Move to end of keys for LRU-ish behavior
+                var idx = this.keys.indexOf(key);
+                if (idx > -1) {
+                    this.keys.splice(idx, 1);
+                    this.keys.push(key);
+                }
+                return entry;
+            }
+            return null;
+        },
+        set: function(key, canvas) {
+            if (this.entries[key]) return;
+            if (this.keys.length >= this.MAX_ENTRIES) {
+                var oldKey = this.keys.shift();
+                delete this.entries[oldKey];
+            }
+            this.entries[key] = canvas;
+            this.keys.push(key);
+        }
+    };
+
+    function getShadowKey(type, obj) {
+        if (type === 'player') {
+            var skin = playerData.currentSkin;
+            var anim = g_animState;
+            var q = 20; // Quantization factor
+            var key = 'p_' + skin + '_' + (playerData.isLefty ? 'L' : 'R') + '_' +
+                Math.round(anim.la * q) + '_' + Math.round(anim.ra * q) + '_' +
+                Math.round(anim.lfa * q) + '_' + Math.round(anim.rfa * q) + '_' +
+                Math.round(anim.w * q) + '_' + Math.round(anim.la_z * q) + '_' +
+                Math.round(anim.ra_z * q) + '_' + Math.round(anim.lfa_z * q) + '_' +
+                Math.round(anim.rfa_z * q) + '_' + Math.round(obj.scale * 50);
+            return key;
+        } else if (type === 'ball') {
+            var targetBall = obj.ballRef || ball;
+            var ballId = targetBall.id || 'classic';
+            var rot = targetBall.rotationX || 0;
+            var key = 'b_' + ballId + '_' + Math.round(rot * 10) + '_' + Math.round(obj.scale * 50);
+            return key;
+        }
+        return null;
+    }
+
     var ShadowSystem = {
         canvas: null,
         ctx: null,
@@ -5604,7 +5654,12 @@ var BallRenderer = {
             this.canvas.height = 512;
             this.ctx = this.canvas.getContext('2d');
         },
-        render: function(drawFn, x, y) {
+        render: function(drawFn, x, y, cacheKey) {
+            if (cacheKey) {
+                var cached = ShadowCache.get(cacheKey);
+                if (cached) return cached;
+            }
+
             this.init();
 
             // Clear
@@ -5637,6 +5692,15 @@ var BallRenderer = {
             this.ctx.fillRect(0, 0, 512, 512);
             this.ctx.globalCompositeOperation = 'source-over';
 
+            if (cacheKey) {
+                var cachedCanvas = document.createElement('canvas');
+                cachedCanvas.width = 512;
+                cachedCanvas.height = 512;
+                cachedCanvas.getContext('2d').drawImage(this.canvas, 0, 0);
+                ShadowCache.set(cacheKey, cachedCanvas);
+                return cachedCanvas;
+            }
+
             return this.canvas;
         }
     };
@@ -5663,13 +5727,14 @@ var BallRenderer = {
         var blur = Math.min(10, 2 + (z / 50));
 
         // Render Silhouette
+        var cacheKey = getShadowKey(type, obj);
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
                 drawPlayer(obj);
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
             }
-        }, obj.x, obj.y);
+        }, obj.x, obj.y, cacheKey);
 
         ctx.save();
         ctx.translate(obj.x, obj.y);
