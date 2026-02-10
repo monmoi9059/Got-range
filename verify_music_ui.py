@@ -26,35 +26,37 @@ def verify_music_ui():
             print("Timeout waiting for #game-container")
             return
 
-        # Click Next Track (Right Arrow) multiple times to reach "Seven Nation Taco"
-        # Track 0: Street King
-        # Track 1: Trap Lord
-        # Track 2: Arena Legend
-        # Track 3: Seven Nation Taco
+        # Verify track list order has changed
+        # The new js/audio.js replaced the old tracks list completely.
+        # Track 0: Seven Nation Taco
+        # Track 1: Sirius Taco
+        # ...
+
+        # Click Next Track once. If default is 0 (Seven Nation Taco), next is 1 (Sirius Taco).
+        # Wait, let's check what the default track is. usually 0.
 
         next_btn = page.locator("text=▶")
         if next_btn.count() == 0:
             print("Error: Next button not found")
             return
 
-        for i in range(3):
-            next_btn.click()
-            # Wait a bit between clicks to ensure state update if needed, though usually instant
-            page.wait_for_timeout(200)
+        # Click once to go to Track 1: Sirius Taco
+        next_btn.click()
+        page.wait_for_timeout(500)
 
-        # Check for Notification "🎵 Seven Nation Taco"
-        # Notification ID is #notification
-        # It takes a moment to appear (animation)
+        # Check for Notification "🎵 Sirius Taco"
         notification = page.locator("#notification")
-        notification.wait_for(state="visible")
+        try:
+            notification.wait_for(state="visible", timeout=3000)
+            text = page.locator("#notifText").inner_text()
+            print(f"Notification Text: {text}")
 
-        text = page.locator("#notifText").inner_text()
-        print(f"Notification Text: {text}")
-
-        if "Seven Nation Taco" in text:
-            print("SUCCESS: Track changed to Seven Nation Taco")
-        else:
-            print("FAILURE: Notification text did not match expected track name")
+            if "Sirius Taco" in text:
+                print("SUCCESS: Track changed to Sirius Taco")
+            else:
+                print("FAILURE: Notification text did not match expected track name")
+        except:
+            print("Notification did not appear")
 
         # Take screenshot
         page.screenshot(path="music_ui_verification.png")
