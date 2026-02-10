@@ -1686,6 +1686,37 @@
         AudioSystem.changeTrack(1);
     }
 
+    window.updateButtonPrompts = function() {
+        const container = document.getElementById('gamepad-prompts');
+        if (!container) return;
+
+        // Ensure active state matches controller usage
+        if (typeof GamepadController !== 'undefined' && !GamepadController.active) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'flex';
+        let html = '';
+        const k = (txt) => `<span class="prompt-key">${txt}</span>`;
+
+        if (state === 'IDLE') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} SÉLECTIONNER &nbsp;&nbsp; ${k('X')} TIRER`;
+        } else if (state === 'SHOP') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} CHOISIR &nbsp;&nbsp; ${k('B')} RETOUR`;
+        } else if (state === 'STATS' || state === 'ACHIEVEMENTS' || state === 'LEADERBOARD') {
+            html = `${k('B')} RETOUR`;
+        } else if (state === 'HIGHSCORE_INPUT') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} CHOISIR &nbsp;&nbsp; ${k('B')} EFFACER`;
+        } else if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'SHOOTING') {
+             html = `${k('X')} (LÂCHER) TIRER`;
+        } else if (state === 'GAMEOVER') {
+             html = `${k('X')} REJOUER &nbsp;&nbsp; ${k('B')} BOUTIQUE`;
+        }
+
+        container.innerHTML = html;
+    };
+
     // --- GAME LOOP ---
     function drawStartupScene() {
         // Dark Background

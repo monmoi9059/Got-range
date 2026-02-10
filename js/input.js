@@ -20,36 +20,47 @@
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
                 if(!gp) continue;
-                anyActive = true;
 
                 if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
 
-                // Only activate if a button is pressed or previously active
-                if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
+                // Activate on press
+                if (!this.active && gp.buttons.some(b => b.pressed)) {
+                    this.active = true;
+                    this.updatePrompts();
+                }
+
+                if (gp.buttons.some(b => b.pressed)) anyActive = true;
             }
+
             if(!this.active) return;
 
             // Check State Change
             if (this.lastState !== state) {
                 this.refreshFocusList();
                 this.lastState = state;
+                this.updatePrompts();
             }
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
                 if(!gp) continue;
 
-                // Navigation (Any controller can navigate UI if configured or default behavior)
-                // For simplicity, we allow any controller to navigate menus to avoid lockout.
+                // Navigation
                 this.handleNavigation(gp, i);
 
-                // Actions (Strict Mapping)
+                // Actions
                 this.handleActions(gp, i);
 
                 // Save state
                 for(let b=0; b<gp.buttons.length; b++) {
                     this.lastButtonStates[i][b] = gp.buttons[b].pressed;
                 }
+            }
+        },
+
+        updatePrompts: function() {
+            if (typeof updateButtonPrompts === 'function') {
+                updateButtonPrompts();
             }
         },
 
@@ -90,6 +101,48 @@
             }
         },
 
+        findBestFocusCandidate: function(dx, dy) {
+            if (!this.focusedElement || this.focusableElements.length === 0) {
+                return this.focusableElements.length > 0 ? this.focusableElements[0] : null;
+            }
+
+            const rect = this.focusedElement.getBoundingClientRect();
+            const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+
+            let best = null;
+            let minScore = Infinity;
+
+            this.focusableElements.forEach(el => {
+                if (el === this.focusedElement) return;
+
+                const r = el.getBoundingClientRect();
+                const c = { x: r.left + r.width/2, y: r.top + r.height/2 };
+
+                // Direction Check
+                if (dx > 0 && c.x <= center.x + 5) return; // Right (with small overlap tolerance)
+                if (dx < 0 && c.x >= center.x - 5) return; // Left
+                if (dy > 0 && c.y <= center.y + 5) return; // Down
+                if (dy < 0 && c.y >= center.y - 5) return; // Up
+
+                // Score = Distance + Alignment Penalty
+                const distSq = Math.pow(c.x - center.x, 2) + Math.pow(c.y - center.y, 2);
+
+                // Alignment Penalty
+                let penalty = 0;
+                if (dy !== 0) penalty = Math.abs(c.x - center.x) * 3.0; // Penalize horizontal offset when moving vertical
+                if (dx !== 0) penalty = Math.abs(c.y - center.y) * 3.0; // Penalize vertical offset when moving horizontal
+
+                const score = distSq + (penalty * penalty);
+
+                if (score < minScore) {
+                    minScore = score;
+                    best = el;
+                }
+            });
+
+            return best;
+        },
+
         moveFocus: function(dx, dy) {
             this.refreshFocusList();
             if (this.focusableElements.length === 0) return;
@@ -112,15 +165,12 @@
                 return;
             }
 
-            let direction = dy !== 0 ? dy : dx;
-
-            if (direction > 0) this.focusIndex++;
-            else if (direction < 0) this.focusIndex--;
-
-            if (this.focusIndex < 0) this.focusIndex = this.focusableElements.length - 1;
-            if (this.focusIndex >= this.focusableElements.length) this.focusIndex = 0;
-
-            this.applyFocus();
+            // Spatial Nav
+            const best = this.findBestFocusCandidate(dx, dy);
+            if (best) {
+                this.focusIndex = this.focusableElements.indexOf(best);
+                this.applyFocus();
+            }
         },
 
         refreshFocusList: function() {
@@ -315,6 +365,22 @@
             doGameAction(game2, 'release');
         }
     });
+
+    // Detect mouse/keyboard usage to hide prompts
+    const deactivateGamepad = () => {
+        if (GamepadController.active) {
+            GamepadController.active = false;
+            GamepadController.updatePrompts();
+            GamepadController.clearFocus();
+        }
+    };
+    window.addEventListener('mousemove', deactivateGamepad);
+    window.addEventListener('mousedown', deactivateGamepad);
+    // Note: Keydown also triggers actions but we want mixed input to be seamless.
+    // If user presses a key, we can arguably keep prompts or hide them.
+    // Console convention: Key press switches to KB mode.
+    window.addEventListener('keydown', deactivateGamepad);
+
 
     window.addEventListener('mousedown', (e) => {
         if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;

@@ -482,7 +482,46 @@
         .key.action.confirm { background: #006400; grid-column: span 3; }
         .key.action.back { background: #8B0000; grid-column: span 2; }
 
+        #gamepad-prompts {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            color: white;
+            font-family: var(--broadcast-font-title);
+            font-size: 1.2em;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 9999;
+            padding-bottom: 5px;
+        }
+
+        .prompt-key {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            background: #222;
+            border: 2px solid #FFF;
+            border-radius: 50%;
+            color: #FFD700;
+            font-size: 0.8em;
+            font-weight: 900;
+            margin-right: 8px;
+            box-shadow: 0 3px 0 #000;
+            transform: translateY(-2px);
+        }
+
 </style>
+    <script src="cordova.js"></script>
 </head>
 <body>
 
@@ -10185,36 +10224,47 @@ let lastDisplayedContestTime = -1;
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
                 if(!gp) continue;
-                anyActive = true;
 
                 if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
 
-                // Only activate if a button is pressed or previously active
-                if (!this.active && gp.buttons.some(b => b.pressed)) this.active = true;
+                // Activate on press
+                if (!this.active && gp.buttons.some(b => b.pressed)) {
+                    this.active = true;
+                    this.updatePrompts();
+                }
+
+                if (gp.buttons.some(b => b.pressed)) anyActive = true;
             }
+
             if(!this.active) return;
 
             // Check State Change
             if (this.lastState !== state) {
                 this.refreshFocusList();
                 this.lastState = state;
+                this.updatePrompts();
             }
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
                 if(!gp) continue;
 
-                // Navigation (Any controller can navigate UI if configured or default behavior)
-                // For simplicity, we allow any controller to navigate menus to avoid lockout.
+                // Navigation
                 this.handleNavigation(gp, i);
 
-                // Actions (Strict Mapping)
+                // Actions
                 this.handleActions(gp, i);
 
                 // Save state
                 for(let b=0; b<gp.buttons.length; b++) {
                     this.lastButtonStates[i][b] = gp.buttons[b].pressed;
                 }
+            }
+        },
+
+        updatePrompts: function() {
+            if (typeof updateButtonPrompts === 'function') {
+                updateButtonPrompts();
             }
         },
 
@@ -10255,6 +10305,48 @@ let lastDisplayedContestTime = -1;
             }
         },
 
+        findBestFocusCandidate: function(dx, dy) {
+            if (!this.focusedElement || this.focusableElements.length === 0) {
+                return this.focusableElements.length > 0 ? this.focusableElements[0] : null;
+            }
+
+            const rect = this.focusedElement.getBoundingClientRect();
+            const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+
+            let best = null;
+            let minScore = Infinity;
+
+            this.focusableElements.forEach(el => {
+                if (el === this.focusedElement) return;
+
+                const r = el.getBoundingClientRect();
+                const c = { x: r.left + r.width/2, y: r.top + r.height/2 };
+
+                // Direction Check
+                if (dx > 0 && c.x <= center.x + 5) return; // Right (with small overlap tolerance)
+                if (dx < 0 && c.x >= center.x - 5) return; // Left
+                if (dy > 0 && c.y <= center.y + 5) return; // Down
+                if (dy < 0 && c.y >= center.y - 5) return; // Up
+
+                // Score = Distance + Alignment Penalty
+                const distSq = Math.pow(c.x - center.x, 2) + Math.pow(c.y - center.y, 2);
+
+                // Alignment Penalty
+                let penalty = 0;
+                if (dy !== 0) penalty = Math.abs(c.x - center.x) * 3.0; // Penalize horizontal offset when moving vertical
+                if (dx !== 0) penalty = Math.abs(c.y - center.y) * 3.0; // Penalize vertical offset when moving horizontal
+
+                const score = distSq + (penalty * penalty);
+
+                if (score < minScore) {
+                    minScore = score;
+                    best = el;
+                }
+            });
+
+            return best;
+        },
+
         moveFocus: function(dx, dy) {
             this.refreshFocusList();
             if (this.focusableElements.length === 0) return;
@@ -10277,15 +10369,12 @@ let lastDisplayedContestTime = -1;
                 return;
             }
 
-            let direction = dy !== 0 ? dy : dx;
-
-            if (direction > 0) this.focusIndex++;
-            else if (direction < 0) this.focusIndex--;
-
-            if (this.focusIndex < 0) this.focusIndex = this.focusableElements.length - 1;
-            if (this.focusIndex >= this.focusableElements.length) this.focusIndex = 0;
-
-            this.applyFocus();
+            // Spatial Nav
+            const best = this.findBestFocusCandidate(dx, dy);
+            if (best) {
+                this.focusIndex = this.focusableElements.indexOf(best);
+                this.applyFocus();
+            }
         },
 
         refreshFocusList: function() {
@@ -10480,6 +10569,22 @@ let lastDisplayedContestTime = -1;
             doGameAction(game2, 'release');
         }
     });
+
+    // Detect mouse/keyboard usage to hide prompts
+    const deactivateGamepad = () => {
+        if (GamepadController.active) {
+            GamepadController.active = false;
+            GamepadController.updatePrompts();
+            GamepadController.clearFocus();
+        }
+    };
+    window.addEventListener('mousemove', deactivateGamepad);
+    window.addEventListener('mousedown', deactivateGamepad);
+    // Note: Keydown also triggers actions but we want mixed input to be seamless.
+    // If user presses a key, we can arguably keep prompts or hide them.
+    // Console convention: Key press switches to KB mode.
+    window.addEventListener('keydown', deactivateGamepad);
+
 
     window.addEventListener('mousedown', (e) => {
         if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
@@ -12223,6 +12328,37 @@ let lastDisplayedContestTime = -1;
         AudioSystem.changeTrack(1);
     }
 
+    window.updateButtonPrompts = function() {
+        const container = document.getElementById('gamepad-prompts');
+        if (!container) return;
+
+        // Ensure active state matches controller usage
+        if (typeof GamepadController !== 'undefined' && !GamepadController.active) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'flex';
+        let html = '';
+        const k = (txt) => `<span class="prompt-key">${txt}</span>`;
+
+        if (state === 'IDLE') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} SÉLECTIONNER &nbsp;&nbsp; ${k('X')} TIRER`;
+        } else if (state === 'SHOP') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} CHOISIR &nbsp;&nbsp; ${k('B')} RETOUR`;
+        } else if (state === 'STATS' || state === 'ACHIEVEMENTS' || state === 'LEADERBOARD') {
+            html = `${k('B')} RETOUR`;
+        } else if (state === 'HIGHSCORE_INPUT') {
+            html = `${k('D-PAD')} NAVIGUER &nbsp;&nbsp; ${k('A')} CHOISIR &nbsp;&nbsp; ${k('B')} EFFACER`;
+        } else if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'SHOOTING') {
+             html = `${k('X')} (LÂCHER) TIRER`;
+        } else if (state === 'GAMEOVER') {
+             html = `${k('X')} REJOUER &nbsp;&nbsp; ${k('B')} BOUTIQUE`;
+        }
+
+        container.innerHTML = html;
+    };
+
     // --- GAME LOOP ---
     function drawStartupScene() {
         // Dark Background
@@ -12381,6 +12517,16 @@ let lastDisplayedContestTime = -1;
     // Start loop
     requestAnimationFrame(loop);
 
+</script>
+<div id="gamepad-prompts"></div>
+
+<script>
+document.addEventListener('deviceready', function() {
+    if (window.playerData && !window.playerData.platformChosen) {
+        console.log("Cordova detected: Auto-selecting mobile.");
+        window.choosePlatform('mobile');
+    }
+}, false);
 </script>
 </body>
 </html>
