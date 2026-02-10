@@ -669,6 +669,11 @@
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
+            <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
+
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
             <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
             <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
@@ -1419,6 +1424,41 @@
         { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000', hairStyle: 'short_curly', hairColor: '#000' },
         { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
 
+    ];
+
+    var HATS_DB = [
+        { id: 'hat_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+        { id: 'hat_cap_red', name: 'Casquette Rouge', cost: 500, type: 'cap', color: '#FF0000' },
+        { id: 'hat_cap_blue', name: 'Casquette Bleue', cost: 500, type: 'cap', color: '#0000FF' },
+        { id: 'hat_cap_black', name: 'Casquette Noire', cost: 500, type: 'cap', color: '#111' },
+        { id: 'hat_cap_white', name: 'Casquette Blanche', cost: 500, type: 'cap', color: '#FFF' },
+        { id: 'hat_cap_green', name: 'Casquette Verte', cost: 500, type: 'cap', color: '#008000' },
+        { id: 'hat_beanie_red', name: 'Tuque Rouge', cost: 750, type: 'beanie', color: '#FF0000' },
+        { id: 'hat_beanie_black', name: 'Tuque Noire', cost: 750, type: 'beanie', color: '#111' },
+        { id: 'hat_beanie_orange', name: 'Tuque Orange', cost: 750, type: 'beanie', color: '#FFA500' },
+        { id: 'hat_headband_red', name: 'Bandeau Rouge', cost: 1000, type: 'headband', color: '#FF0000' },
+        { id: 'hat_headband_blue', name: 'Bandeau Bleu', cost: 1000, type: 'headband', color: '#0000FF' },
+        { id: 'hat_headband_white', name: 'Bandeau Blanc', cost: 1000, type: 'headband', color: '#FFF' },
+        { id: 'hat_tophat', name: 'Haut-de-forme', cost: 2000, type: 'top_hat', color: '#111' },
+        { id: 'hat_cowboy', name: 'Cowboy', cost: 2500, type: 'hat', color: '#8B4513' },
+        { id: 'hat_panama', name: 'Panama', cost: 2000, type: 'hat', color: '#F5F5DC' },
+        { id: 'hat_sombrero', name: 'Sombrero', cost: 3000, type: 'sombrero', color: '#1a1a1a' },
+        { id: 'hat_fez', name: 'Fez', cost: 2500, type: 'fez', color: '#8B0000' },
+        { id: 'hat_crown', name: 'Couronne', cost: 5000, type: 'crown' },
+        { id: 'hat_halo', name: 'Auréole', cost: 5000, type: 'halo' },
+        { id: 'hat_horns', name: 'Cornes', cost: 4000, type: 'horns' },
+        { id: 'hat_wizard', name: 'Sorcier', cost: 4500, type: 'wizard_hat', color: '#000080' },
+        { id: 'hat_chef', name: 'Chef', cost: 1500, type: 'chef_hat' },
+        { id: 'hat_helmet_astro', name: 'Astronaute', cost: 5000, type: 'helmet', color: '#EEE' },
+        { id: 'hat_helmet_army', name: 'Militaire', cost: 3000, type: 'helmet', color: '#556B2F' },
+        { id: 'hat_bow_pink', name: 'Boucle Rose', cost: 1000, type: 'bow', color: '#FFC0CB' },
+        { id: 'hat_flower', name: 'Fleur', cost: 1000, type: 'flower' },
+        { id: 'hat_party', name: 'Fête', cost: 1500, type: 'party_hat', color: '#FF00FF' },
+        { id: 'hat_propeller', name: 'Hélice', cost: 2000, type: 'propeller_cap', color: '#FFD700' },
+        { id: 'hat_bucket', name: 'Bucket Hat', cost: 2000, type: 'bucket_hat', color: '#FFFF00' },
+        { id: 'hat_santa', name: 'Père Noël', cost: 3000, type: 'santa_hat', color: '#FF0000' },
+        { id: 'hat_viking', name: 'Viking', cost: 4000, type: 'viking_helmet', color: '#AAA' },
+        { id: 'hat_pirate', name: 'Pirate', cost: 3500, type: 'pirate_hat', color: '#111' }
     ];
 
     var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
@@ -2633,6 +2673,7 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingHatIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
     let currentGameMode = 'CLASSIC';
@@ -2679,6 +2720,7 @@ let lastDisplayedContestTime = -1;
             dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
             unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
+            unlockedHats: ['hat_none'], currentHat: 'hat_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
             releaseTiming: 3,
@@ -2713,6 +2755,8 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+    if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+    if(!playerData.currentHat) playerData.currentHat = 'hat_none';
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -2894,7 +2938,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -2939,6 +2983,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.viewingIndices = {
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
+            hat: viewingHatIndex,
             ball: viewingBallIndex,
             style: viewingStyleIndex
         };
@@ -2981,6 +3026,7 @@ let lastDisplayedContestTime = -1;
         if (ctxObj.viewingIndices) {
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
         }
@@ -7748,7 +7794,48 @@ var BallRenderer = {
         drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
         drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
 
-        // Neck (Layer 1.5)
+        // HEAD BASE
+        if (skinObj.headType && skinObj.headType !== 'human') {
+            drawHybridHead(p, headY, headRadius, s, skinObj.headType, skinObj);
+        } else {
+            // Standard Human Head - Back View
+            ctx.fillStyle = skinTone;
+            // Ears
+            ctx.beginPath(); ctx.ellipse(p.x - headRadius*0.95, headY, 3.5*s, 6*s, -0.1, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.95, headY, 3.5*s, 6*s, 0.1, 0, Math.PI*2); ctx.fill();
+
+            if(skinObj.ears === 'elf') {
+                 ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.6, headY-10*s); ctx.lineTo(p.x - headRadius*0.9, headY+2*s); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.6, headY-10*s); ctx.lineTo(p.x + headRadius*0.9, headY+2*s); ctx.fill();
+            }
+
+            // Skull
+            ctx.beginPath();
+            ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
+
+            if (playerData.graphics === 'HIGH') {
+                 const r = headRadius;
+                 ctx.fillStyle = skinTone;
+                 ctx.fill();
+                 const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
+                 shade.addColorStop(0, 'rgba(255,255,255,0.1)');
+                 shade.addColorStop(0.5, 'rgba(0,0,0,0)');
+                 shade.addColorStop(1, 'rgba(0,0,0,0.4)');
+                 ctx.fillStyle = shade;
+                 ctx.fill();
+                 const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.9, 0, p.x, headY + r*0.9, r*0.7);
+                 neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
+                 neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
+                 ctx.fillStyle = neckShadow;
+                 ctx.beginPath(); ctx.ellipse(p.x, headY + r*0.7, r*0.5, r*0.3, 0, 0, Math.PI*2); ctx.fill();
+            } else {
+                 ctx.fill();
+                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                 ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // NECK
         const neckW = 10 * s * sizeMod.w;
         const neckH = 10 * s;
         ctx.fillStyle = skinTone;
@@ -7879,94 +7966,148 @@ var BallRenderer = {
             }
         }
 
-
-        // HEAD AND HAIR
-        if (skinObj.headType && skinObj.headType !== 'human') {
-            drawHybridHead(p, headY, headRadius, s, skinObj.headType, skinObj);
-        } else {
-            // Standard Human Head - Back View
-            ctx.fillStyle = skinTone;
-            // Ears
-            ctx.beginPath(); ctx.ellipse(p.x - headRadius*0.95, headY, 3.5*s, 6*s, -0.1, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.95, headY, 3.5*s, 6*s, 0.1, 0, Math.PI*2); ctx.fill();
-
-            if(skinObj.ears === 'elf') {
-                 ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.6, headY-10*s); ctx.lineTo(p.x - headRadius*0.9, headY+2*s); ctx.fill();
-                 ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.6, headY-10*s); ctx.lineTo(p.x + headRadius*0.9, headY+2*s); ctx.fill();
-            }
-
-            // Skull
-            ctx.beginPath();
-            ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
-
-            if (playerData.graphics === 'HIGH') {
-                 const r = headRadius;
-                 ctx.fillStyle = skinTone;
-                 ctx.fill();
-                 const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
-                 shade.addColorStop(0, 'rgba(255,255,255,0.1)');
-                 shade.addColorStop(0.5, 'rgba(0,0,0,0)');
-                 shade.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = shade;
-                 ctx.fill();
-                 const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.9, 0, p.x, headY + r*0.9, r*0.7);
-                 neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
-                 neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
-                 ctx.fillStyle = neckShadow;
-                 ctx.beginPath(); ctx.ellipse(p.x, headY + r*0.7, r*0.5, r*0.3, 0, 0, Math.PI*2); ctx.fill();
-            } else {
-                 ctx.fill();
-                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                 ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2); ctx.fill();
-            }
-
-            // NEW HAIR LOGIC CALL
+        // HAIR
+        if (!skinObj.headType || skinObj.headType === 'human') {
             drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
         }
 
-        // Accessories
-        if (skinObj.headAccessory === 'sombrero') {
-            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
+        // Head Accessories
+        let accessoryType = skinObj.headAccessory;
+        let accessoryColor = skinObj.hatColor;
+
+        if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
+             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             if (hat) {
+                 accessoryType = hat.type;
+                 if (hat.color) accessoryColor = hat.color;
+             }
+        }
+
+        if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'party_hat') {
+             ctx.fillStyle = accessoryColor || '#FF00FF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 8*s, headY - 8*s);
+             ctx.lineTo(p.x + 8*s, headY - 8*s);
+             ctx.lineTo(p.x, headY - 35*s); // Cone tip
+             ctx.fill();
+        }
+        else if (accessoryType === 'propeller_cap') {
+             ctx.fillStyle = '#FF0000';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI, Math.PI*1.5); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI*1.5, 0); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#FFFF00';
+             ctx.beginPath(); ctx.arc(p.x, headY - 17*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FFD700';
+             ctx.fillRect(p.x - 10*s, headY - 19*s, 20*s, 2*s);
+             ctx.fillRect(p.x - 2*s, headY - 19*s, 4*s, 4*s);
+        }
+        else if (accessoryType === 'bucket_hat') {
+             ctx.fillStyle = accessoryColor || '#FFFF00';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, headRadius * 0.9, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillRect(p.x - headRadius * 0.9, headY - 12*s, headRadius * 1.8, 8*s);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 1.4, headY + 2*s);
+             ctx.lineTo(p.x - headRadius * 1.4, headY + 2*s);
+             ctx.fill();
+        }
+        else if (accessoryType === 'santa_hat') {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.2, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FF0000';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - 30*s, p.x + 20*s, headY - 15*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x + 20*s, headY - 15*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'viking_helmet') {
+             ctx.fillStyle = accessoryColor || '#AAA';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x - 20*s, headY - 20*s, p.x - 25*s, headY - 30*s); ctx.lineTo(p.x - 12*s, headY - 12*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x + 20*s, headY - 20*s, p.x + 25*s, headY - 30*s); ctx.lineTo(p.x + 12*s, headY - 12*s); ctx.fill();
+        }
+        else if (accessoryType === 'pirate_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 20*s, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - 10*s, headY - 20*s, p.x, headY - 10*s);
+             ctx.quadraticCurveTo(p.x + 10*s, headY - 20*s, p.x + 20*s, headY - 5*s);
+             ctx.lineTo(p.x, headY - 15*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'sombrero') {
+            ctx.fillStyle = accessoryColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'crown') {
+        else if (accessoryType === 'hat') {
+             ctx.fillStyle = accessoryColor || '#5D4037';
+             // Brim
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             // Top
+             ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'fez') {
+             ctx.fillStyle = '#8B0000';
+             ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
+             ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
+        }
+        else if (accessoryType === 'crown') {
             ctx.fillStyle = '#FFD700'; ctx.strokeStyle='#DAA520'; ctx.lineWidth=2*s;
             ctx.beginPath(); ctx.moveTo(p.x - 12*s, headY - 5*s); ctx.lineTo(p.x + 12*s, headY - 5*s); ctx.lineTo(p.x + 15*s, headY - 15*s); ctx.lineTo(p.x + 5*s, headY - 10*s); ctx.lineTo(p.x, headY - 20*s); ctx.lineTo(p.x - 5*s, headY - 10*s); ctx.lineTo(p.x - 15*s, headY - 15*s); ctx.closePath();
             ctx.fill(); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'halo') {
+        else if (accessoryType === 'halo') {
             ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3*s;
             ctx.beginPath(); ctx.ellipse(p.x, headY - 25*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'horns') {
+        else if (accessoryType === 'horns') {
             ctx.fillStyle = '#8B0000';
             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 5*s); ctx.quadraticCurveTo(p.x - 15*s, headY - 15*s, p.x - 5*s, headY - 20*s); ctx.lineTo(p.x - 8*s, headY - 5*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 5*s); ctx.quadraticCurveTo(p.x + 15*s, headY - 15*s, p.x + 5*s, headY - 20*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            ctx.fillStyle = skinObj.hatColor || '#000080';
+        else if (accessoryType === 'wizard_hat') {
+            ctx.fillStyle = accessoryColor || '#000080';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 10*s, 20*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 5*s, headY - 25*s); ctx.lineTo(p.x - 20*s, headY - 35*s); ctx.fill(); // Crooked tip
         }
-        else if (skinObj.headAccessory === 'chef_hat') {
+        else if (accessoryType === 'chef_hat') {
             ctx.fillStyle = '#FFF'; ctx.strokeStyle='#EEE'; ctx.lineWidth=1*s;
             ctx.fillRect(p.x-10*s, headY-15*s, 20*s, 10*s);
             ctx.beginPath(); ctx.arc(p.x, headY-20*s, 12*s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'helmet') {
-            const hColor = skinObj.hatColor || '#AAA';
+        else if (accessoryType === 'helmet') {
+            const hColor = accessoryColor || '#AAA';
             ctx.fillStyle = hColor;
             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.3, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.fillRect(p.x - 12*s, headY, 24*s, 5*s); // Visor area
         }
-        else if (skinObj.headAccessory === 'top_hat') {
+        else if (accessoryType === 'top_hat') {
             ctx.fillStyle = '#111';
             ctx.fillRect(p.x - 15*s, headY - 10*s, 30*s, 4*s); // Brim
             ctx.fillRect(p.x - 10*s, headY - 25*s, 20*s, 15*s); // Cylinder
         }
-        else if (skinObj.headAccessory === 'flower') {
+        else if (accessoryType === 'flower') {
             ctx.fillStyle = '#FF69B4';
             for(let i=0; i<5; i++) {
                 const angle = (i/5)*Math.PI*2;
@@ -7974,41 +8115,41 @@ var BallRenderer = {
             }
             ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 10*s, 4*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bow') {
-            ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'bow') {
+            ctx.fillStyle = accessoryColor || '#FF0000';
             ctx.beginPath(); ctx.moveTo(p.x, headY - 15*s); ctx.lineTo(p.x - 10*s, headY - 20*s); ctx.lineTo(p.x - 10*s, headY - 10*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x, headY - 15*s); ctx.lineTo(p.x + 10*s, headY - 20*s); ctx.lineTo(p.x + 10*s, headY - 10*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'beanie') {
-            ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'beanie') {
+            ctx.fillStyle = accessoryColor || '#FF0000';
             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.lineTo(p.x + headRadius*1.1, headY); ctx.lineTo(p.x - headRadius*1.1, headY); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 3*s, 0, Math.PI*2); ctx.fill(); // Pom
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-            ctx.fillStyle = skinObj.hatColor || '#FFF';
+        else if (accessoryType === 'ear_muffs') {
+            ctx.fillStyle = accessoryColor || '#FFF';
             ctx.beginPath(); ctx.arc(p.x - 12*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x + 12*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s;
             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 12*s, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'headband' && skinObj.hairStyle !== 'headband') {
+        else if (accessoryType === 'headband' && skinObj.hairStyle !== 'headband') {
              // Standalone headband (e.g. Ninja)
-             const bandColor = skinObj.hatColor || '#FF0000';
+             const bandColor = accessoryColor || '#FF0000';
              ctx.fillStyle = bandColor;
              ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
              ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'bandana_neck') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.fillStyle = skinObj.hatColor || '#8B0000';
-             ctx.lineWidth = 6*s; ctx.strokeStyle = skinObj.hatColor || '#8B0000';
+        else if (accessoryType === 'scarf') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             ctx.lineWidth = 6*s; ctx.strokeStyle = accessoryColor || '#8B0000';
              ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 10*s, 0, Math.PI*2); ctx.stroke();
              ctx.fillRect(p.x + 5*s, headY + 5*s, 6*s, 15*s); // Hanging part
         }
-        else if (skinObj.headAccessory === 'gold_bands') {
+        else if (accessoryType === 'gold_bands') {
              ctx.fillStyle = '#FFD700';
              ctx.fillRect(p.x - 15*s, headY - 15*s, 30*s, 5*s);
              ctx.fillRect(p.x - 15*s, headY + 5*s, 30*s, 5*s);
@@ -9252,75 +9393,157 @@ var BallRenderer = {
 
 
         // Head Accessories
-        if (skinObj.headAccessory === 'sombrero') {
-            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
+        let accessoryType = skinObj.headAccessory;
+        let accessoryColor = skinObj.hatColor;
+
+        if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
+             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             if (hat) {
+                 accessoryType = hat.type;
+                 if (hat.color) accessoryColor = hat.color;
+             }
+        }
+
+        if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'party_hat') {
+             ctx.fillStyle = accessoryColor || '#FF00FF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 8*s, headY - 8*s);
+             ctx.lineTo(p.x + 8*s, headY - 8*s);
+             ctx.lineTo(p.x, headY - 35*s); // Cone tip
+             ctx.fill();
+        }
+        else if (accessoryType === 'propeller_cap') {
+             ctx.fillStyle = '#FF0000';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI, Math.PI*1.5); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI*1.5, 0); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#FFFF00';
+             ctx.beginPath(); ctx.arc(p.x, headY - 17*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FFD700';
+             ctx.fillRect(p.x - 10*s, headY - 19*s, 20*s, 2*s);
+             ctx.fillRect(p.x - 2*s, headY - 19*s, 4*s, 4*s);
+        }
+        else if (accessoryType === 'bucket_hat') {
+             ctx.fillStyle = accessoryColor || '#FFFF00';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, headRadius * 0.9, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillRect(p.x - headRadius * 0.9, headY - 12*s, headRadius * 1.8, 8*s);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 1.4, headY + 2*s);
+             ctx.lineTo(p.x - headRadius * 1.4, headY + 2*s);
+             ctx.fill();
+        }
+        else if (accessoryType === 'santa_hat') {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.2, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FF0000';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - 30*s, p.x + 20*s, headY - 15*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x + 20*s, headY - 15*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'viking_helmet') {
+             ctx.fillStyle = accessoryColor || '#AAA';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x - 20*s, headY - 20*s, p.x - 25*s, headY - 30*s); ctx.lineTo(p.x - 12*s, headY - 12*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x + 20*s, headY - 20*s, p.x + 25*s, headY - 30*s); ctx.lineTo(p.x + 12*s, headY - 12*s); ctx.fill();
+        }
+        else if (accessoryType === 'pirate_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 20*s, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - 10*s, headY - 20*s, p.x, headY - 10*s);
+             ctx.quadraticCurveTo(p.x + 10*s, headY - 20*s, p.x + 20*s, headY - 5*s);
+             ctx.lineTo(p.x, headY - 15*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'sombrero') {
+            ctx.fillStyle = accessoryColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'crown') {
+        else if (accessoryType === 'crown') {
             ctx.fillStyle = '#FFD700';
             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s);
             ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            ctx.fillStyle = skinObj.hatColor || '#000080';
+        else if (accessoryType === 'wizard_hat') {
+            ctx.fillStyle = accessoryColor || '#000080';
             ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'chef_hat') {
+        else if (accessoryType === 'chef_hat') {
              ctx.fillStyle = '#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'helmet') {
-             ctx.strokeStyle = skinObj.hatColor || '#87CEEB'; ctx.lineWidth=2*s;
+        else if (accessoryType === 'helmet') {
+             ctx.strokeStyle = accessoryColor || '#87CEEB'; ctx.lineWidth=2*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke();
-             if(skinObj.hatColor === '#FFF') { // Hockey mask fill
+             if(accessoryColor === '#FFF') { // Hockey mask fill
                  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
              }
         }
-        else if (skinObj.headAccessory === 'horns') {
+        else if (accessoryType === 'horns') {
              ctx.fillStyle = 'red';
              ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'halo') {
+        else if (accessoryType === 'halo') {
              ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'beanie') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
+        else if (accessoryType === 'beanie') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-             const col = skinObj.hatColor || '#FFF';
+        else if (accessoryType === 'ear_muffs') {
+             const col = accessoryColor || '#FFF';
              ctx.fillStyle = col;
              ctx.beginPath(); ctx.arc(p.x - headRadius - 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x + headRadius + 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = col; ctx.lineWidth = 3*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 4*s, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'collar') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'collar') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.fillRect(p.x - headRadius, headY + headRadius - 2*s, headRadius * 2, 4*s);
              ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 3*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.strokeStyle = skinObj.hatColor || '#00008B'; ctx.lineWidth = 6*s;
+        else if (accessoryType === 'scarf') {
+             ctx.strokeStyle = accessoryColor || '#00008B'; ctx.lineWidth = 6*s;
              ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 6*s, 0, Math.PI, false); ctx.stroke();
              // Dangling part
-             ctx.fillStyle = skinObj.hatColor || '#00008B';
+             ctx.fillStyle = accessoryColor || '#00008B';
              ctx.fillRect(p.x + 4*s, headY + headRadius, 6*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'fez') {
+        else if (accessoryType === 'fez') {
              ctx.fillStyle = '#8B0000';
              ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
              ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'bow') {
-             ctx.fillStyle = skinObj.hatColor || '#FFC0CB';
+        else if (accessoryType === 'bow') {
+             ctx.fillStyle = accessoryColor || '#FFC0CB';
              ctx.beginPath();
              ctx.ellipse(p.x - 6*s, headY - 8*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath();
              ctx.ellipse(p.x + 6*s, headY - 8*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 8*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'flower') {
+        else if (accessoryType === 'flower') {
              ctx.fillStyle = '#FF69B4';
              const fx = p.x + headRadius; const fy = headY - 5*s;
              for(let i=0; i<5; i++) {
@@ -9329,19 +9552,19 @@ var BallRenderer = {
              }
              ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(fx, fy, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'algae') {
+        else if (accessoryType === 'algae') {
              ctx.fillStyle = '#2E8B57';
              drawFuzzyPath([{x:p.x-5*s,y:headY-10*s},{x:p.x+5*s,y:headY-12*s},{x:p.x+8*s,y:headY-5*s},{x:p.x-8*s,y:headY-4*s}], '#2E8B57', s, true, 200);
         }
-        else if (skinObj.headAccessory === 'hat') {
-             ctx.fillStyle = skinObj.hatColor || '#5D4037';
+        else if (accessoryType === 'hat') {
+             ctx.fillStyle = accessoryColor || '#5D4037';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'floppy_cap') {
-             const capColor = skinObj.hatColor || '#00A000';
+        else if (accessoryType === 'floppy_cap') {
+             const capColor = accessoryColor || '#00A000';
              ctx.fillStyle = capColor;
              // Base (Headband part)
              ctx.beginPath();
@@ -9360,25 +9583,25 @@ var BallRenderer = {
              ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
              ctx.fill();
         }
-        else if (skinObj.headAccessory === 'top_hat') {
-             ctx.fillStyle = '#111';
+        else if (accessoryType === 'top_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.5, 3*s, 0, 0, Math.PI*2); ctx.fill();
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
-        else if (skinObj.headAccessory === 'headband') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; // Default red
-             if(skinObj.hatColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
+        else if (accessoryType === 'headband') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
+             if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
              ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
              // Knot/Tails
              ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = '#FF0000';
+        else if (accessoryType === 'bandana_neck') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'feathers') {
+        else if (accessoryType === 'feathers') {
              ctx.fillStyle = '#FFF';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 4*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
@@ -11928,6 +12151,31 @@ var BallRenderer = {
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changeHat = function(dir) {
+        loadContext(getShopContext());
+        viewingHatIndex += dir;
+        if(viewingHatIndex < 0) viewingHatIndex = HATS_DB.length - 1;
+        if(viewingHatIndex >= HATS_DB.length) viewingHatIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipHat = function() {
+        loadContext(getShopContext());
+        const hat = HATS_DB[viewingHatIndex];
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+
+        const isUnlocked = playerData.unlockedHats.includes(hat.id);
+        if (isUnlocked) {
+            playerData.currentHat = hat.id;
+        } else if (playerData.tacos >= hat.cost) {
+            playerData.tacos -= hat.cost;
+            playerData.unlockedHats.push(hat.id);
+            playerData.currentHat = hat.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -12166,6 +12414,19 @@ var BallRenderer = {
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Hat UI
+        const hat = HATS_DB[viewingHatIndex];
+        document.getElementById('hatName').innerText = hat.name;
+        const btnHat = document.getElementById('btnEquipHat');
+        const statusHat = document.getElementById('hatStatus');
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+        const isUnlockedHat = playerData.unlockedHats.includes(hat.id);
+        const isEquippedHat = playerData.currentHat === hat.id;
+
+        if (isEquippedHat) { statusHat.innerText = "Équipé"; btnHat.style.display = 'none'; }
+        else if (isUnlockedHat) { statusHat.innerText = "Possédé"; btnHat.style.display = 'inline-block'; btnHat.innerText = "Équiper"; btnHat.disabled = false; }
+        else { statusHat.innerText = `Coût: ${hat.cost} Tacos`; btnHat.style.display = 'inline-block'; btnHat.innerText = "Acheter"; btnHat.disabled = playerData.tacos < hat.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];

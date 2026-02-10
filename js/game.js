@@ -1373,6 +1373,31 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changeHat = function(dir) {
+        loadContext(getShopContext());
+        viewingHatIndex += dir;
+        if(viewingHatIndex < 0) viewingHatIndex = HATS_DB.length - 1;
+        if(viewingHatIndex >= HATS_DB.length) viewingHatIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipHat = function() {
+        loadContext(getShopContext());
+        const hat = HATS_DB[viewingHatIndex];
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+
+        const isUnlocked = playerData.unlockedHats.includes(hat.id);
+        if (isUnlocked) {
+            playerData.currentHat = hat.id;
+        } else if (playerData.tacos >= hat.cost) {
+            playerData.tacos -= hat.cost;
+            playerData.unlockedHats.push(hat.id);
+            playerData.currentHat = hat.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -1611,6 +1636,19 @@
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Hat UI
+        const hat = HATS_DB[viewingHatIndex];
+        document.getElementById('hatName').innerText = hat.name;
+        const btnHat = document.getElementById('btnEquipHat');
+        const statusHat = document.getElementById('hatStatus');
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+        const isUnlockedHat = playerData.unlockedHats.includes(hat.id);
+        const isEquippedHat = playerData.currentHat === hat.id;
+
+        if (isEquippedHat) { statusHat.innerText = "Équipé"; btnHat.style.display = 'none'; }
+        else if (isUnlockedHat) { statusHat.innerText = "Possédé"; btnHat.style.display = 'inline-block'; btnHat.innerText = "Équiper"; btnHat.disabled = false; }
+        else { statusHat.innerText = `Coût: ${hat.cost} Tacos`; btnHat.style.display = 'inline-block'; btnHat.innerText = "Acheter"; btnHat.disabled = playerData.tacos < hat.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];
