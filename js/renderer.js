@@ -939,6 +939,109 @@ var BallRenderer = {
 
     const weather = new WeatherSystem();
 
+    // Boat System
+    class BoatSystem {
+        constructor() {
+            this.boats = [];
+            this.timer = 0;
+            // Pre-populate
+            for(let i=0; i<5; i++) this.spawnBoat(true);
+        }
+
+        spawnBoat(randomX = false) {
+            const isLeft = Math.random() > 0.5;
+            const u = randomX ? Math.random() : (isLeft ? -0.1 : 1.1);
+            const v = Math.random(); // 0 (horizon) to 1 (pole)
+            const speed = (0.05 + Math.random() * 0.05) * (isLeft ? 1 : -1);
+
+            const types = ['sailboat', 'canoe', 'duck'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            this.boats.push({
+                u: u,
+                v: v,
+                speed: speed,
+                type: type,
+                wobbleOffset: Math.random() * Math.PI * 2
+            });
+        }
+
+        update(dt) {
+            this.timer += dt;
+            if (this.timer > 120) {
+                if (Math.random() < 0.3) this.spawnBoat();
+                this.timer = 0;
+            }
+
+            for (let i = this.boats.length - 1; i >= 0; i--) {
+                let b = this.boats[i];
+                b.u += b.speed * 0.005 * dt;
+                if (b.u < -0.2 || b.u > 1.2) {
+                    this.boats.splice(i, 1);
+                }
+            }
+        }
+
+        draw(ctx, horizonY, riverBottomY, vpW) {
+            const riverH = riverBottomY - horizonY;
+            if (riverH <= 0) return;
+
+            // Draw River Base
+            const grad = ctx.createLinearGradient(0, horizonY, 0, riverBottomY);
+            grad.addColorStop(0, '#87CEEB');
+            grad.addColorStop(1, '#1E90FF');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, horizonY, vpW, riverH);
+
+            // Sparkles
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            for(let i=0; i<10; i++) {
+                const time = Date.now() * 0.001;
+                const x = (Math.sin(i * 132 + time) * 0.5 + 0.5) * vpW;
+                const y = horizonY + (Math.cos(i * 54 + time) * 0.5 + 0.5) * riverH;
+                if (Math.random() > 0.95) ctx.fillRect(x, y, 2, 2);
+            }
+
+            const sorted = this.boats.slice().sort(function(a,b){ return a.v - b.v; });
+
+            sorted.forEach(function(b) {
+                const y = horizonY + b.v * riverH;
+                const x = b.u * vpW;
+                const scale = 0.3 + b.v * 0.7;
+                const size = 30 * scale;
+                const wobble = Math.sin(Date.now() * 0.005 + b.wobbleOffset) * 2 * scale;
+                const by = y + wobble;
+
+                ctx.save();
+                ctx.translate(x, by);
+                if (b.speed < 0) ctx.scale(-1, 1);
+
+                if (b.type === 'sailboat') {
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.quadraticCurveTo(0, size/2, size/2, 0); ctx.fill();
+                    ctx.fillStyle = '#EEE';
+                    ctx.beginPath(); ctx.moveTo(0, -size/4); ctx.lineTo(0, -size); ctx.lineTo(size/2, -size/3); ctx.fill();
+                    ctx.strokeStyle = '#555'; ctx.lineWidth = 1*scale;
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -size); ctx.stroke();
+                } else if (b.type === 'canoe') {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.beginPath(); ctx.ellipse(0, 0, size/2, size/6, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath(); ctx.arc(0, -size/6, size/8, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath(); ctx.ellipse(0, 0, size/3, size/5, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(size/4, -size/6, size/6, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'orange';
+                    ctx.beginPath(); ctx.moveTo(size/3, -size/6); ctx.lineTo(size/2, -size/6); ctx.stroke(); // Beak
+                }
+                ctx.restore();
+            });
+        }
+    }
+
+    const boatSystem = new BoatSystem();
+
     function drawBroadcastLowerThird() {
         const h = 60; // Reduced height
         const y = canvas.height - h;
@@ -7108,6 +7211,13 @@ var BallRenderer = {
              ctx.drawImage(bgCache.floorImage, 0, horizonY);
         } else {
              ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, vpW, vpH - horizonY);
+        }
+
+        // River Injection
+        const poleProj = project(HOOP_POS.x, HOOP_POS.y, 0);
+        if (poleProj) {
+            const riverBottomY = poleProj.y;
+            boatSystem.draw(ctx, horizonY, riverBottomY, vpW);
         }
 
         if (currentGameMode === 'CLASSIC') {
