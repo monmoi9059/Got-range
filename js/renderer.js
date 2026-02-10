@@ -3756,7 +3756,7 @@ var BallRenderer = {
 
 
         if (style === 'cornrows') {
-             // Tight braids logic
+             // Tight braids logic (Allen Iverson Style - Close to Scalp)
              const r = headRadius * 1.0;
 
              // Base scalp (darkened skin or hair color base)
@@ -3771,21 +3771,29 @@ var BallRenderer = {
                  const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1 (Left to Right)
                  const absT = Math.abs(t);
 
-                 // Top Point (Spread out) - Tapered Height
+                 // Top Point (Spread out) - Rounded Dome Profile
+                 // Start X spread across the top
                  const startX = p.x + t * (r * 0.9);
-                 // Middle (t=0) is higher, sides (t=1) are lower
-                 const startY = (headY - r * 1.1) + (absT * r * 0.4);
+
+                 // Start Y calculated using circular arc to ensure roundness (no triangle)
+                 // x^2 + y^2 = r^2 -> y = sqrt(r^2 - x^2)
+                 // We lift it slightly (1.05) to sit on top of the skull
+                 const xOffset = t * (r * 0.9);
+                 const yDist = Math.sqrt(Math.max(0, (r * 1.05)**2 - xOffset**2));
+                 const startY = headY - yDist;
 
                  // Bottom Point (Converging at nape)
                  const endX = p.x + t * (r * 0.3); // Converge tighter
                  const endY = headY + r * 0.95;
 
-                 // Control Points - follow head sphere
-                 // Side braids curve OUT then in
-                 const cp1x = startX + (t * r * 0.8); // Bulge out
-                 const cp1y = (headY - r * 0.6) + (absT * r * 0.3); // Curve follows startY slope
-                 const cp2x = endX + (t * r * 0.2);
-                 const cp2y = headY + r * 0.5;
+                 // Control Points - follow head sphere closely
+                 // CP1 (Upper Head): Keep tight to skull surface, NO outward flare
+                 const cp1x = p.x + t * (r * 0.95);
+                 const cp1y = headY - r * 0.3; // Upper back of head
+
+                 // CP2 (Lower Head/Nape): Taper in
+                 const cp2x = p.x + t * (r * 0.6);
+                 const cp2y = headY + r * 0.6;
 
                  // Draw Braid Path
                  // Shadow/Gap
