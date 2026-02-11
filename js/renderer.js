@@ -3868,6 +3868,7 @@ var BallRenderer = {
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         let hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle;
+        const hairScale = skinObj.hairScale || 1.0;
 
         // Custom Hairstyle Override (Gameplay)
         if (typeof playerData !== 'undefined' && playerData.customHairstyle && playerData.customHairstyle !== 'default') {
@@ -3883,10 +3884,10 @@ var BallRenderer = {
         }
 
         // Derive a stable seed from the skin ID and render position (optional, but skin ID is best for static texture)
-        // If we use 'p.x', it might change slightly if camera pans? No, 'p' is screen coords.
-        // If the player moves, 'p' changes. If we seed on 'p', texture swims.
-        // We MUST seed on something stable like skinObj.id + sub-index.
         let baseSeed = stringToSeed(skinObj.id || 'default');
+
+        // Apply Hair Size Modifier to rendering radius
+        const modRadius = headRadius * hairScale;
 
         // Common base for most styles (scalp coverage)
         // Note: 'p.x' is center X. 'headY' is center Y of skull.
@@ -3911,7 +3912,7 @@ var BallRenderer = {
 
         if (style === 'short') {
              // Modern Fade: Sharp top, faded sides/back
-             const r = headRadius * 1.02;
+             const r = modRadius * 1.02;
              // Vertical Gradient for fade
              const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
              fadeGrad.addColorStop(0, hairColor);
@@ -3965,7 +3966,8 @@ var BallRenderer = {
 
         if (style === 'cornrows') {
              // Tight braids logic (Allen Iverson Style - Close to Scalp)
-             const r = headRadius * 1.0;
+             // Cornrows don't scale much outwards, but we can scale pattern
+             const r = modRadius * 1.0;
 
              // Base scalp (darkened skin or hair color base)
              ctx.fillStyle = adjustColor(hairColor, -10);
@@ -5695,6 +5697,12 @@ var BallRenderer = {
 
              if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
                  skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
+             }
+             if (typeof HAIR_COLORS !== 'undefined' && HAIR_COLORS[cs.hairColorIndex]) {
+                 skinObj.hairColor = HAIR_COLORS[cs.hairColorIndex];
+             }
+             if (cs.hairSize !== undefined) {
+                 skinObj.hairScale = cs.hairSize;
              }
         }
 

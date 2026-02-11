@@ -623,6 +623,36 @@
         '#87CEEB', // Ice Blue
         '#FF69B4'  // Pink
     ];
+
+    var HAIR_COLORS = [
+        '#000000', // Black (Default)
+        '#2C2C2C', // Dark Grey
+        '#4B3621', // Dark Brown
+        '#5D4037', // Brown
+        '#8B4513', // Saddle Brown
+        '#A0522D', // Sienna
+        '#CD853F', // Light Brown
+        '#D2B48C', // Tan
+        '#E6BE8A', // Dirty Blonde
+        '#FFD700', // Gold/Blonde
+        '#FFFFE0', // Platinum Blonde
+        '#A52A2A', // Auburn
+        '#800000', // Maroon
+        '#FF0000', // Red
+        '#FF4500', // Orange Red
+        '#FFA500', // Orange
+        '#FFFF00', // Yellow
+        '#00FF00', // Green
+        '#008000', // Dark Green
+        '#00FFFF', // Cyan
+        '#0000FF', // Blue
+        '#000080', // Navy
+        '#800080', // Purple
+        '#FF00FF', // Magenta
+        '#FF69B4', // Pink
+        '#FFFFFF', // White
+        '#808080'  // Grey
+    ];
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     // --- BALL GEOMETRY & RENDERER ---

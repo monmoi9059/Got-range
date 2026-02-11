@@ -1631,6 +1631,27 @@
         saveContext(getShopContext());
     }
 
+    window.updateCustomHairColor = function() {
+        loadContext(getShopContext());
+        const val = parseInt(document.getElementById('sldCustomHairColor').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.hairColorIndex = val;
+        const color = HAIR_COLORS[val];
+        document.getElementById('previewHairColor').style.background = color;
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomHairSize = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomHairSize').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.hairSize = val;
+        document.getElementById('lblCustomHairSize').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
     window.toggleHandedness = function() {
         loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
@@ -1848,6 +1869,15 @@
             document.getElementById('sldCustomSkinTone').value = playerData.customSkinSettings.skinToneIndex;
             const color = SKIN_TONES[playerData.customSkinSettings.skinToneIndex];
             document.getElementById('previewSkinTone').style.background = color;
+
+            if (playerData.customSkinSettings.hairColorIndex === undefined) playerData.customSkinSettings.hairColorIndex = 0;
+            document.getElementById('sldCustomHairColor').value = playerData.customSkinSettings.hairColorIndex;
+            const hairColor = HAIR_COLORS[playerData.customSkinSettings.hairColorIndex];
+            document.getElementById('previewHairColor').style.background = hairColor;
+
+            if (playerData.customSkinSettings.hairSize === undefined) playerData.customSkinSettings.hairSize = 1.0;
+            document.getElementById('sldCustomHairSize').value = playerData.customSkinSettings.hairSize;
+            document.getElementById('lblCustomHairSize').innerText = Math.round(playerData.customSkinSettings.hairSize * 100) + "%";
         } else {
             customControls.style.display = 'none';
         }
