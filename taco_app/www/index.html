@@ -676,19 +676,10 @@
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">COIFFURE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
-            <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
             <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
             <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
-            <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
 
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
             <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
@@ -13593,18 +13584,5 @@ var BallRenderer = {
 
 </script>
 <!-- INJECT_JS_END -->
-
-<script>
-window.addEventListener('load', function() {
-    // Check if running in Capacitor Native
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        console.log("Capacitor detected: Auto-selecting mobile.");
-        if (window.playerData && !window.playerData.platformChosen) {
-             window.choosePlatform('mobile');
-        }
-    }
-});
-</script>
-
 </body>
 </html>
