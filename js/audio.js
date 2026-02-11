@@ -377,6 +377,7 @@
                 if(this.currentTrackIndex >= this.tracks.length) this.currentTrackIndex = 0;
             }
             this.startMusic();
+            Announcer.init();
         },
 
         toggleMute: function() {
@@ -651,5 +652,65 @@
         stopMusic: function() {
             this.isPlayingMusic = false;
             window.clearTimeout(this.timerID);
+        }
+    };
+
+    var Announcer = {
+        phrases: {
+            welcome: ["Welcome to Taco Basketball!", "Let's play some hoops!", "It's Taco Time!"],
+            start: ["Ready... Go!", "Tip off!", "Let's get it started!", "Game on!"],
+            score: ["Swish!", "Buckets!", "Nothing but net!", "Splash!", "Got it!", "Nice shot!", "Bingo!", "Yes sir!"],
+            score_long: ["From downtown!", "Deep!", "Parking lot!", "Way back!", "Three points!", "From another zip code!"],
+            streak: ["He's heating up!", "On fire!", "Unstoppable!", "Can't miss!", "Is it the shoes?", "He's cooking!"],
+            miss: ["Brick!", "Off the mark.", "Denied!", "Nope.", "Clank!", "Not even close."],
+            airball: ["Airball!", "Where was that going?", "Short!", "Whoops!"],
+            game_over: ["Game Over!", "Time's up!", "That's all folks!"],
+            new_record: ["New Record!", "High Score!", "You are a legend!", "Unbelievable!"]
+        },
+        voices: [],
+        selectedVoice: null,
+
+        init: function() {
+            if ('speechSynthesis' in window) {
+                // Voices load asynchronously
+                window.speechSynthesis.onvoiceschanged = () => {
+                    this.voices = window.speechSynthesis.getVoices();
+                    // Prefer "Google US English" or "Microsoft David" or generic English
+                    this.selectedVoice = this.voices.find(v => v.name.includes("Google US English")) ||
+                                         this.voices.find(v => v.name.includes("David")) ||
+                                         this.voices.find(v => v.lang.startsWith("en"));
+                };
+                // Try immediate load
+                this.voices = window.speechSynthesis.getVoices();
+                if(this.voices.length > 0) {
+                     this.selectedVoice = this.voices.find(v => v.name.includes("Google US English")) ||
+                                          this.voices.find(v => v.name.includes("David")) ||
+                                          this.voices.find(v => v.lang.startsWith("en"));
+                }
+            }
+        },
+
+        speak: function(key) {
+            if (!playerData.announcerEnabled) return;
+            if (!('speechSynthesis' in window)) return;
+
+            const list = this.phrases[key];
+            if (!list || list.length === 0) return;
+
+            const text = list[Math.floor(Math.random() * list.length)];
+
+            // Cancel previous speech to avoid queue buildup?
+            // Usually announcers overlap or cut off. Let's cut off.
+            window.speechSynthesis.cancel();
+
+            const utter = new SpeechSynthesisUtterance(text);
+            if (this.selectedVoice) utter.voice = this.selectedVoice;
+
+            // Arcade Style: Slightly faster, pitch variation
+            utter.rate = 1.1 + (Math.random() * 0.2);
+            utter.pitch = 1.0 + (Math.random() * 0.1);
+            utter.volume = 1.0;
+
+            window.speechSynthesis.speak(utter);
         }
     };

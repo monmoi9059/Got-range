@@ -649,6 +649,7 @@
         <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
         <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
+        <button id="btnToggleAnnouncer" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleAnnouncer()">COMMENTARY: ON</button>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
@@ -2233,6 +2234,7 @@
                 if(this.currentTrackIndex >= this.tracks.length) this.currentTrackIndex = 0;
             }
             this.startMusic();
+            Announcer.init();
         },
 
         toggleMute: function() {
@@ -2507,6 +2509,66 @@
         stopMusic: function() {
             this.isPlayingMusic = false;
             window.clearTimeout(this.timerID);
+        }
+    };
+
+    var Announcer = {
+        phrases: {
+            welcome: ["Welcome to Taco Basketball!", "Let's play some hoops!", "It's Taco Time!"],
+            start: ["Ready... Go!", "Tip off!", "Let's get it started!", "Game on!"],
+            score: ["Swish!", "Buckets!", "Nothing but net!", "Splash!", "Got it!", "Nice shot!", "Bingo!", "Yes sir!"],
+            score_long: ["From downtown!", "Deep!", "Parking lot!", "Way back!", "Three points!", "From another zip code!"],
+            streak: ["He's heating up!", "On fire!", "Unstoppable!", "Can't miss!", "Is it the shoes?", "He's cooking!"],
+            miss: ["Brick!", "Off the mark.", "Denied!", "Nope.", "Clank!", "Not even close."],
+            airball: ["Airball!", "Where was that going?", "Short!", "Whoops!"],
+            game_over: ["Game Over!", "Time's up!", "That's all folks!"],
+            new_record: ["New Record!", "High Score!", "You are a legend!", "Unbelievable!"]
+        },
+        voices: [],
+        selectedVoice: null,
+
+        init: function() {
+            if ('speechSynthesis' in window) {
+                // Voices load asynchronously
+                window.speechSynthesis.onvoiceschanged = () => {
+                    this.voices = window.speechSynthesis.getVoices();
+                    // Prefer "Google US English" or "Microsoft David" or generic English
+                    this.selectedVoice = this.voices.find(v => v.name.includes("Google US English")) ||
+                                         this.voices.find(v => v.name.includes("David")) ||
+                                         this.voices.find(v => v.lang.startsWith("en"));
+                };
+                // Try immediate load
+                this.voices = window.speechSynthesis.getVoices();
+                if(this.voices.length > 0) {
+                     this.selectedVoice = this.voices.find(v => v.name.includes("Google US English")) ||
+                                          this.voices.find(v => v.name.includes("David")) ||
+                                          this.voices.find(v => v.lang.startsWith("en"));
+                }
+            }
+        },
+
+        speak: function(key) {
+            if (!playerData.announcerEnabled) return;
+            if (!('speechSynthesis' in window)) return;
+
+            const list = this.phrases[key];
+            if (!list || list.length === 0) return;
+
+            const text = list[Math.floor(Math.random() * list.length)];
+
+            // Cancel previous speech to avoid queue buildup?
+            // Usually announcers overlap or cut off. Let's cut off.
+            window.speechSynthesis.cancel();
+
+            const utter = new SpeechSynthesisUtterance(text);
+            if (this.selectedVoice) utter.voice = this.selectedVoice;
+
+            // Arcade Style: Slightly faster, pitch variation
+            utter.rate = 1.1 + (Math.random() * 0.2);
+            utter.pitch = 1.0 + (Math.random() * 0.1);
+            utter.volume = 1.0;
+
+            window.speechSynthesis.speak(utter);
         }
     };
 
@@ -2828,6 +2890,7 @@ let lastDisplayedContestTime = -1;
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            announcerEnabled: true, // Announcer Toggle
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
@@ -2855,6 +2918,7 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
     if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
+    if(typeof playerData.announcerEnabled === 'undefined') playerData.announcerEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
@@ -11503,7 +11567,6 @@ var BallRenderer = {
 // --- END input.js ---
 
 // --- START game.js ---
-
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
     var highScoreName = ["A", "A", "A"];
@@ -11597,11 +11660,13 @@ var BallRenderer = {
         if(isSplitscreen) return;
         // Update Game Over State Logic
         if (isHighScore(mode, score)) {
+            Announcer.speak('new_record');
             pendingHighScore = { mode: mode, score: score };
             highScoreUI.style.display = 'block';
             state = 'HIGHSCORE_INPUT';
             initHighScoreUI();
         } else {
+            Announcer.speak('game_over');
             openShop();
         }
     }
@@ -11940,6 +12005,11 @@ var BallRenderer = {
         AudioSystem.playSwish();
         targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
 
+        // Announcer Hooks
+        if(currentStreak >= 3) Announcer.speak('streak');
+        else if (distanceLevel >= 15) Announcer.speak('score_long');
+        else Announcer.speak('score');
+
         // Daily Challenge Hooks
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
@@ -11969,17 +12039,26 @@ var BallRenderer = {
         AudioSystem.playFloorHit();
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
+
+        // Determine announcer feedback before logic
+        let wasAirball = (feedback === "AIRBALL");
+
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
+            Announcer.speak('miss');
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
+             Announcer.speak('miss');
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
                 feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
+                Announcer.speak('game_over');
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
+                if(wasAirball) Announcer.speak('airball');
+                else Announcer.speak('miss');
             }
         }
     }
@@ -12384,6 +12463,7 @@ var BallRenderer = {
         checkDailyProgress('play_contest', 1);
 
         checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
+        Announcer.speak('game_over');
     }
 
     function startTimeAttack() {
@@ -12401,6 +12481,7 @@ var BallRenderer = {
         updateContestUI();
 
         invalidateBackgroundCache();
+        Announcer.speak('start');
     }
 
     function endTimeAttack() {
@@ -12423,8 +12504,10 @@ var BallRenderer = {
 
         if (isRecord) {
             feedback = `NOUVEAU RECORD: ${timeAttackData.score}!`;
+            Announcer.speak('new_record');
         } else {
             feedback = `SCORE: ${timeAttackData.score} (RECORD: ${playerData.timeAttackHighScore})`;
+            Announcer.speak('game_over');
         }
 
         feedbackTimer = 180;
@@ -12482,6 +12565,7 @@ var BallRenderer = {
         updateUI();
         updateContestUI();
         playerData.lifetimeStats.contests++;
+        Announcer.speak('start');
     }
 
     function resetGame() {
@@ -12497,6 +12581,7 @@ var BallRenderer = {
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
+            Announcer.speak('start');
         }
     }
 
@@ -12626,6 +12711,12 @@ var BallRenderer = {
             sld.value = sc;
             document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
         }
+
+        // Announcer Toggle
+        const btnAnnouncer = document.getElementById('btnToggleAnnouncer');
+        if(btnAnnouncer) {
+            btnAnnouncer.innerText = playerData.announcerEnabled ? "COMMENTARY: ON" : "COMMENTARY: OFF";
+        }
     }
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
@@ -12646,6 +12737,13 @@ var BallRenderer = {
         playerData.meterScale = val;
         document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
         saveData();
+        saveContext(game1);
+    }
+    window.toggleAnnouncer = function() {
+        playerData.announcerEnabled = !playerData.announcerEnabled;
+        saveData();
+        openStats();
+        if(playerData.announcerEnabled) Announcer.speak('welcome');
         saveContext(game1);
     }
 

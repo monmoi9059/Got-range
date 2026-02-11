@@ -1,4 +1,3 @@
-
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
     var highScoreName = ["A", "A", "A"];
@@ -92,11 +91,13 @@
         if(isSplitscreen) return;
         // Update Game Over State Logic
         if (isHighScore(mode, score)) {
+            Announcer.speak('new_record');
             pendingHighScore = { mode: mode, score: score };
             highScoreUI.style.display = 'block';
             state = 'HIGHSCORE_INPUT';
             initHighScoreUI();
         } else {
+            Announcer.speak('game_over');
             openShop();
         }
     }
@@ -435,6 +436,11 @@
         AudioSystem.playSwish();
         targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
 
+        // Announcer Hooks
+        if(currentStreak >= 3) Announcer.speak('streak');
+        else if (distanceLevel >= 15) Announcer.speak('score_long');
+        else Announcer.speak('score');
+
         // Daily Challenge Hooks
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
@@ -464,17 +470,26 @@
         AudioSystem.playFloorHit();
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
+
+        // Determine announcer feedback before logic
+        let wasAirball = (feedback === "AIRBALL");
+
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
+            Announcer.speak('miss');
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
+             Announcer.speak('miss');
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
                 feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
+                Announcer.speak('game_over');
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
+                if(wasAirball) Announcer.speak('airball');
+                else Announcer.speak('miss');
             }
         }
     }
@@ -879,6 +894,7 @@
         checkDailyProgress('play_contest', 1);
 
         checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
+        Announcer.speak('game_over');
     }
 
     function startTimeAttack() {
@@ -896,6 +912,7 @@
         updateContestUI();
 
         invalidateBackgroundCache();
+        Announcer.speak('start');
     }
 
     function endTimeAttack() {
@@ -918,8 +935,10 @@
 
         if (isRecord) {
             feedback = `NOUVEAU RECORD: ${timeAttackData.score}!`;
+            Announcer.speak('new_record');
         } else {
             feedback = `SCORE: ${timeAttackData.score} (RECORD: ${playerData.timeAttackHighScore})`;
+            Announcer.speak('game_over');
         }
 
         feedbackTimer = 180;
@@ -977,6 +996,7 @@
         updateUI();
         updateContestUI();
         playerData.lifetimeStats.contests++;
+        Announcer.speak('start');
     }
 
     function resetGame() {
@@ -992,6 +1012,7 @@
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
+            Announcer.speak('start');
         }
     }
 
@@ -1121,6 +1142,12 @@
             sld.value = sc;
             document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
         }
+
+        // Announcer Toggle
+        const btnAnnouncer = document.getElementById('btnToggleAnnouncer');
+        if(btnAnnouncer) {
+            btnAnnouncer.innerText = playerData.announcerEnabled ? "COMMENTARY: ON" : "COMMENTARY: OFF";
+        }
     }
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
@@ -1141,6 +1168,13 @@
         playerData.meterScale = val;
         document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
         saveData();
+        saveContext(game1);
+    }
+    window.toggleAnnouncer = function() {
+        playerData.announcerEnabled = !playerData.announcerEnabled;
+        saveData();
+        openStats();
+        if(playerData.announcerEnabled) Announcer.speak('welcome');
         saveContext(game1);
     }
 

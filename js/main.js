@@ -313,6 +313,7 @@ let lastDisplayedContestTime = -1;
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            announcerEnabled: true, // Announcer Toggle
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
@@ -340,6 +341,7 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
     if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
+    if(typeof playerData.announcerEnabled === 'undefined') playerData.announcerEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
