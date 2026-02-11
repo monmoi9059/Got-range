@@ -548,8 +548,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, hat: 0, ball: 0, style: 0 } // UI state
-            viewingIndices: { animal: 0, skin: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
 
