@@ -5036,7 +5036,7 @@ var BallRenderer = {
         }
         let shoulderY = torsoY + (2*s);
         let armY = torsoY + (5*s);
-        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s;
+        let leftShoulderX = p.x - 16*s * sizeMod.w; let rightShoulderX = p.x + 16*s * sizeMod.w;
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
@@ -5097,7 +5097,7 @@ var BallRenderer = {
                  headY = torsoY - (10 * s * sizeMod.head);
                  shoulderY = torsoY + (2*s);
                  armY = torsoY + (5*s);
-                 leftShoulderX = p.x - 16*s; rightShoulderX = p.x + 16*s;
+                 leftShoulderX = p.x - 16*s * sizeMod.w; rightShoulderX = p.x + 16*s * sizeMod.w;
              }
         }
 
@@ -5209,11 +5209,12 @@ var BallRenderer = {
         drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
-        drawJoint(p.x - 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
-        drawJoint(p.x + 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        const hipOffsetX = 7 * s * sizeMod.w;
+        drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
-        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
-        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
 
         // HEAD BASE
         if (skinObj.headType && skinObj.headType !== 'human') {
@@ -5281,7 +5282,7 @@ var BallRenderer = {
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - 7*s, y: p.y - legLen}, right: {x: p.x + 7*s, y: p.y - legLen} }
+            hips: { left: {x: p.x - 7*s * sizeMod.w, y: p.y - legLen}, right: {x: p.x + 7*s * sizeMod.w, y: p.y - legLen} }
         };
 
         if (skinObj.jerseyType === 'none') {
