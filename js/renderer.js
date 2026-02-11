@@ -5603,19 +5603,6 @@ var BallRenderer = {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
         }
-        if (skinObj.backAccessory === 'hoodie_hood') {
-             ctx.fillStyle = skinObj.backColor || '#555';
-             // Draw hood down shape on upper back
-             ctx.beginPath();
-             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
-             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
-             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
-             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
-             ctx.fill();
-             // Hood crease/shadow
-             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
-        }
         drawMeterCommon(p, s, sizeMod);
     }
 
@@ -5684,41 +5671,6 @@ var BallRenderer = {
              if (skinObj.beard2 !== undefined) skinObj.beard = skinObj.beard2;
              if (skinObj.headbandColor2 !== undefined) skinObj.headbandColor = skinObj.headbandColor2;
              if (skinObj.pattern2) skinObj.pattern = skinObj.pattern2;
-        }
-
-        // Apply Clothing Overrides
-        if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-             // Ensure we are working on a copy
-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-
-             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
-             if (clothing) {
-                 skinObj.clothing = clothing; // Tag for later use
-                 skinObj.jerseyColor = clothing.color;
-
-                 if (clothing.type === 'tshirt') {
-                     skinObj.jerseyType = 'tshirt';
-                     skinObj.sleeveColor = null;
-                 } else if (clothing.sleeveColor) {
-                     skinObj.sleeveColor = clothing.sleeveColor;
-                 }
-
-                 if (clothing.pattern) skinObj.pattern = clothing.pattern;
-                 if (clothing.decal) skinObj.decal = clothing.decal;
-
-                 // Override back props if hoodie
-                 if (clothing.type === 'hoodie') {
-                     skinObj.backAccessory = 'hoodie_hood';
-                     skinObj.backColor = clothing.hoodColor || clothing.color;
-                 }
-
-                 // Remove conflicting built-in details
-                 if (['track', 'hoodie', 'sweatshirt'].includes(clothing.type)) {
-                     skinObj.clothingDetail = null; // Hide suspenders etc.
-                     // Track suits often have stripes
-                     if(clothing.stripeColor) skinObj.chestStripeColor = clothing.stripeColor;
-                 }
-             }
         }
 
         const isMechanical = isMechanicalSkin(skinObj.id);
@@ -7123,19 +7075,6 @@ var BallRenderer = {
         if (skinObj.backAccessory === 'backpack') {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
-        }
-        if (skinObj.backAccessory === 'hoodie_hood') {
-             ctx.fillStyle = skinObj.backColor || '#555';
-             // Draw hood down shape on upper back
-             ctx.beginPath();
-             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
-             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
-             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
-             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
-             ctx.fill();
-             // Hood crease/shadow
-             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
         }
         if (skinObj.backAccessory === 'shell') {
              const shellW = bodyW * 1.4;
