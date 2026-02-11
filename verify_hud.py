@@ -2,6 +2,10 @@ import os
 from playwright.sync_api import sync_playwright
 
 def verify_hud(page):
+    # Capture console messages
+    page.on("console", lambda msg: print(f"CONSOLE: {msg.text}"))
+    page.on("pageerror", lambda exc: print(f"PAGE ERROR: {exc}"))
+
     # Load the page
     page.goto(f"file://{os.getcwd()}/gotrange.html")
 

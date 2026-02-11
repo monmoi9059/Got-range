@@ -1439,6 +1439,11 @@
             playerData.tacos -= hair.cost;
             playerData.unlockedHairstyles.push(hair.id);
             playerData.customHairstyle = hair.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
     window.changeClothing = function(dir) {
         loadContext(getShopContext());
         viewingClothingIndex += dir;
