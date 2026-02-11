@@ -4718,8 +4718,12 @@ var BallRenderer = {
                 const len = 6*s + seededRandom(baseSeed + i + 200) * 4*s;
                 const sx = p.x + Math.cos(angle)*dist;
                 const sy = (headY - 2*s) + Math.sin(angle)*dist;
+
+                const c1 = (seededRandom(baseSeed + i + 300) - 0.5) * 5 * s;
+                const c2 = (seededRandom(baseSeed + i + 400) - 0.5) * 8 * s;
+
                 ctx.beginPath(); ctx.moveTo(sx, sy);
-                ctx.quadraticCurveTo(sx + (Math.random()-0.5)*5*s, sy - len*0.5, sx + (Math.random()-0.5)*8*s, sy - len);
+                ctx.quadraticCurveTo(sx + c1, sy - len*0.5, sx + c2, sy - len);
                 ctx.stroke();
             }
         }
