@@ -3870,8 +3870,8 @@ var BallRenderer = {
         let style = skinObj.hairStyle;
         const hairScale = skinObj.hairScale || 1.0;
 
-        // Lift hair by 10% of head radius
-        headY -= headRadius * 0.1;
+        // Lift hair by 20% of head radius
+        headY -= headRadius * 0.2;
 
         // Custom Hairstyle Override (Gameplay)
         if (typeof playerData !== 'undefined' && playerData.customHairstyle && playerData.customHairstyle !== 'default') {
