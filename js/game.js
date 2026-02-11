@@ -1346,29 +1346,70 @@
             saveContext(getShopContext());
         }
     }
+    // Helper to group skins
+    function getSkinGroups(animal) {
+        const skins = SKINS_DB.filter(s => s.animal === animal);
+        const groups = {};
+        const groupList = [];
+
+        skins.forEach(s => {
+            // Regex to find base: letters_letters/digits (e.g. human_lebron) ignoring _alt etc
+            // But human_kobe8 and human_kobe24 should be separate.
+            // Pattern: ^([a-z]+_[a-z0-9]+)
+            const match = s.id.match(/^([a-z]+_[a-z0-9]+)/);
+            const baseId = match ? match[1] : s.id;
+
+            if (!groups[baseId]) {
+                groups[baseId] = [];
+                groupList.push(groups[baseId]);
+            }
+            groups[baseId].push(s);
+        });
+        return groupList;
+    }
+
     window.changeAnimal = function(dir) {
         loadContext(getShopContext());
         viewingAnimalIndex += dir;
         if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
         if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
-        viewingSkinIndex = 0; updateShopUI();
+        viewingSkinIndex = 0;
+        viewingVariantIndex = 0;
+        updateShopUI();
         saveContext(getShopContext());
     }
     window.changeSkin = function(dir) {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const groups = getSkinGroups(currentAnimal);
+
         viewingSkinIndex += dir;
-        if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
-        if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
+        if(viewingSkinIndex < 0) viewingSkinIndex = groups.length - 1;
+        if(viewingSkinIndex >= groups.length) viewingSkinIndex = 0;
+
+        viewingVariantIndex = 0; // Reset variant when changing base skin
         updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.cycleSkinVariant = function() {
+        loadContext(getShopContext());
+        const currentAnimal = ANIMALS[viewingAnimalIndex];
+        const groups = getSkinGroups(currentAnimal);
+        const group = groups[viewingSkinIndex];
+
+        if (group && group.length > 1) {
+            viewingVariantIndex = (viewingVariantIndex + 1) % group.length;
+            updateShopUI();
+        }
         saveContext(getShopContext());
     }
     window.buyOrEquipSkin = function() {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
+        const groups = getSkinGroups(currentAnimal);
+        const group = groups[viewingSkinIndex];
+        const skin = group[viewingVariantIndex];
+
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
         if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); }
         else if (playerData.tacos >= skin.cost) {
@@ -1378,6 +1419,26 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changeHairstyle = function(dir) {
+        loadContext(getShopContext());
+        viewingHairstyleIndex += dir;
+        if(viewingHairstyleIndex < 0) viewingHairstyleIndex = HAIRSTYLES.length - 1;
+        if(viewingHairstyleIndex >= HAIRSTYLES.length) viewingHairstyleIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipHairstyle = function() {
+        loadContext(getShopContext());
+        const hair = HAIRSTYLES[viewingHairstyleIndex];
+        if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+
+        const isUnlocked = playerData.unlockedHairstyles.includes(hair.id);
+        if (isUnlocked) {
+            playerData.customHairstyle = hair.id;
+        } else if (playerData.tacos >= hair.cost) {
+            playerData.tacos -= hair.cost;
+            playerData.unlockedHairstyles.push(hair.id);
+            playerData.customHairstyle = hair.id;
     window.changeClothing = function(dir) {
         loadContext(getShopContext());
         viewingClothingIndex += dir;
@@ -1671,19 +1732,27 @@
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
+        const groups = getSkinGroups(currentAnimal);
+        // Safety check if index out of bounds (e.g. after changing animal filter)
+        if (viewingSkinIndex >= groups.length) viewingSkinIndex = 0;
+
+        const group = groups[viewingSkinIndex];
+        if (viewingVariantIndex >= group.length) viewingVariantIndex = 0;
+        const skin = group[viewingVariantIndex];
+
         document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
         document.getElementById('skinName').innerText = skin.name;
         const btn = document.getElementById('btnEquipSkin');
         const status = document.getElementById('skinStatus');
+
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
         const isEquipped = playerData.currentSkin === skin.id;
+
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
 
-        // Style Variant Button
+        // Variant Button (Cycle Skins)
         let btnVar = document.getElementById('btnToggleVariant');
         if (!btnVar) {
             btnVar = document.createElement('button');
@@ -1693,18 +1762,60 @@
             btnVar.style.marginTop = '5px';
             btnVar.style.fontSize = '0.9em';
             btnVar.style.background = '#444';
-            btnVar.onclick = window.toggleSkinVariant;
             // Insert after equip button
             btn.parentNode.insertBefore(btnVar, btn.nextSibling);
         }
 
-        if (skin.hairStyle2) {
+        // Repurpose button for cycling skin variants
+        btnVar.onclick = window.cycleSkinVariant;
+
+        if (group.length > 1) {
             btnVar.style.display = 'inline-block';
-            const isActive = (playerData.skinVariants && playerData.skinVariants[skin.id] === 1);
-            btnVar.innerText = isActive ? "STYLE: ALT" : "STYLE: ORIGINAL";
-            btnVar.style.background = isActive ? '#4CAF50' : '#444';
+            btnVar.innerText = `VERSION: ${viewingVariantIndex + 1} / ${group.length}`;
+            btnVar.style.background = '#0047AB'; // Blue for info/action
         } else {
-            btnVar.style.display = 'none';
+            // Fallback for hair variants (Style 2) - KEEP legacy support if single skin has internal variant
+            if (skin.hairStyle2) {
+                btnVar.style.display = 'inline-block';
+                btnVar.onclick = window.toggleSkinVariant;
+                const isActive = (playerData.skinVariants && playerData.skinVariants[skin.id] === 1);
+                btnVar.innerText = isActive ? "COIFFURE: ALT" : "COIFFURE: ORIG";
+                btnVar.style.background = isActive ? '#4CAF50' : '#444';
+            } else {
+                btnVar.style.display = 'none';
+            }
+        }
+
+        // Hairstyle UI
+        if (typeof HAIRSTYLES !== 'undefined') {
+            const hair = HAIRSTYLES[viewingHairstyleIndex];
+            document.getElementById('hairName').innerText = hair.name;
+            const btnHair = document.getElementById('btnEquipHair');
+            const statusHair = document.getElementById('hairStatus');
+
+            if (!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default'];
+            const isUnlockedHair = playerData.unlockedHairstyles.includes(hair.id);
+            const isEquippedHair = (playerData.customHairstyle === hair.id) || (hair.id === 'default' && (!playerData.customHairstyle || playerData.customHairstyle === 'default'));
+
+            if (isEquippedHair) {
+                statusHair.innerText = "Équipé";
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'none';
+            } else if (isUnlockedHair) {
+                statusHair.innerText = "Possédé";
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'inline-block';
+                btnHair.innerText = "Équiper";
+                btnHair.disabled = false;
+                btnHair.onclick = window.buyOrEquipHairstyle;
+            } else {
+                statusHair.innerText = `Coût: ${hair.cost} Tacos`;
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'inline-block';
+                btnHair.innerText = "Acheter";
+                btnHair.disabled = playerData.tacos < hair.cost;
+                btnHair.onclick = window.buyOrEquipHairstyle;
+            }
         }
 
         // Clothing UI

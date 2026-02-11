@@ -257,6 +257,8 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingVariantIndex = 0;
+    let viewingHairstyleIndex = 0;
     let viewingClothingIndex = 0;
     let viewingHatIndex = 0;
     let viewingStyleIndex = 0;
@@ -305,6 +307,7 @@ let lastDisplayedContestTime = -1;
             dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
             unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
             skinVariants: {}, // Stores active variant index/bool for each skin
+            customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -347,6 +350,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
     if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
     if(!playerData.skinVariants) playerData.skinVariants = {};
+    if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
+    if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -543,6 +548,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
+            viewingIndices: { animal: 0, skin: 0, hair: 0, hat: 0, ball: 0, style: 0 } // UI state
             viewingIndices: { animal: 0, skin: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
@@ -588,6 +594,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.viewingIndices = {
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
+            hair: viewingHairstyleIndex,
             clothing: viewingClothingIndex,
             hat: viewingHatIndex,
             ball: viewingBallIndex,
@@ -632,6 +639,7 @@ let lastDisplayedContestTime = -1;
         if (ctxObj.viewingIndices) {
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
             viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
             viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
