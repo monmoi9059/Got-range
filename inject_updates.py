@@ -2,7 +2,7 @@ import os
 import re
 
 # Configuration
-HTML_FILES = ['gotrange.html', 'taco_app/www/index.html', 'windows_app/index.html']
+HTML_FILES = ['gotrange.html', 'taco_app/www/index.html']
 JS_DIR = 'js'
 CSS_DIR = 'css'
 
