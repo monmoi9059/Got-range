@@ -13593,18 +13593,5 @@ var BallRenderer = {
 
 </script>
 <!-- INJECT_JS_END -->
-
-<script>
-window.addEventListener('load', function() {
-    // Check if running in Capacitor Native
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        console.log("Capacitor detected: Auto-selecting mobile.");
-        if (window.playerData && !window.playerData.platformChosen) {
-             window.choosePlatform('mobile');
-        }
-    }
-});
-</script>
-
 </body>
 </html>
