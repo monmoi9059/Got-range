@@ -305,7 +305,8 @@ let lastDisplayedContestTime = -1;
             purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
             dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
-            unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
+            unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
+            customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
@@ -352,6 +353,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.skinVariants) playerData.skinVariants = {};
     if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+    if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+    if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {

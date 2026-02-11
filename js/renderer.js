@@ -3868,6 +3868,10 @@ var BallRenderer = {
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         let hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle;
+        const hairScale = skinObj.hairScale || 1.0;
+
+        // Lift hair by 20% of head radius
+        headY -= headRadius * 0.2;
 
         // Custom Hairstyle Override (Gameplay)
         if (typeof playerData !== 'undefined' && playerData.customHairstyle && playerData.customHairstyle !== 'default') {
@@ -3883,10 +3887,10 @@ var BallRenderer = {
         }
 
         // Derive a stable seed from the skin ID and render position (optional, but skin ID is best for static texture)
-        // If we use 'p.x', it might change slightly if camera pans? No, 'p' is screen coords.
-        // If the player moves, 'p' changes. If we seed on 'p', texture swims.
-        // We MUST seed on something stable like skinObj.id + sub-index.
         let baseSeed = stringToSeed(skinObj.id || 'default');
+
+        // Apply Hair Size Modifier to rendering radius
+        const modRadius = headRadius * hairScale;
 
         // Common base for most styles (scalp coverage)
         // Note: 'p.x' is center X. 'headY' is center Y of skull.
@@ -3911,7 +3915,7 @@ var BallRenderer = {
 
         if (style === 'short') {
              // Modern Fade: Sharp top, faded sides/back
-             const r = headRadius * 1.02;
+             const r = modRadius * 1.02;
              // Vertical Gradient for fade
              const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
              fadeGrad.addColorStop(0, hairColor);
@@ -3965,7 +3969,8 @@ var BallRenderer = {
 
         if (style === 'cornrows') {
              // Tight braids logic (Allen Iverson Style - Close to Scalp)
-             const r = headRadius * 1.0;
+             // Cornrows don't scale much outwards, but we can scale pattern
+             const r = modRadius * 1.0;
 
              // Base scalp (darkened skin or hair color base)
              ctx.fillStyle = adjustColor(hairColor, -10);
@@ -5036,7 +5041,7 @@ var BallRenderer = {
         }
         let shoulderY = torsoY + (2*s);
         let armY = torsoY + (5*s);
-        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s;
+        let leftShoulderX = p.x - 16*s * sizeMod.w; let rightShoulderX = p.x + 16*s * sizeMod.w;
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
@@ -5097,7 +5102,7 @@ var BallRenderer = {
                  headY = torsoY - (10 * s * sizeMod.head);
                  shoulderY = torsoY + (2*s);
                  armY = torsoY + (5*s);
-                 leftShoulderX = p.x - 16*s; rightShoulderX = p.x + 16*s;
+                 leftShoulderX = p.x - 16*s * sizeMod.w; rightShoulderX = p.x + 16*s * sizeMod.w;
              }
         }
 
@@ -5209,11 +5214,12 @@ var BallRenderer = {
         drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
-        drawJoint(p.x - 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
-        drawJoint(p.x + 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        const hipOffsetX = 7 * s * sizeMod.w;
+        drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
-        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
-        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
 
         // HEAD BASE
         if (skinObj.headType && skinObj.headType !== 'human') {
@@ -5281,7 +5287,7 @@ var BallRenderer = {
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - 7*s, y: p.y - legLen}, right: {x: p.x + 7*s, y: p.y - legLen} }
+            hips: { left: {x: p.x - 7*s * sizeMod.w, y: p.y - legLen}, right: {x: p.x + 7*s * sizeMod.w, y: p.y - legLen} }
         };
 
         if (skinObj.jerseyType === 'none') {
@@ -5672,6 +5678,35 @@ var BallRenderer = {
             if(!skinObj) skinObj = SKINS_DB[0];
             g_cachedSkinId = skin;
             g_cachedSkinObj = skinObj;
+        }
+
+        // Apply Custom Human Settings
+        if (skin === 'human_custom') {
+             // Create shallow copy
+             skinObj = Object.assign({}, skinObj);
+
+             if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+             const cs = playerData.customSkinSettings;
+
+             // Base human is ~1.06 height (Anchor). Range 0.5 to 1.5 -> 0.53 to 1.59
+             skinObj.heightScale = 1.06 * cs.height;
+             skinObj.widthScale = 1.0 * cs.width;
+
+             // Arm/Leg width should scale with width?
+             // Renderer defaults armWidth/legWidth to widthScale if not set.
+             // But let's explicitly scale them to keep proportions or let it fallback.
+             // Fallback logic: if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
+             // This works fine.
+
+             if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
+                 skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
+             }
+             if (typeof HAIR_COLORS !== 'undefined' && HAIR_COLORS[cs.hairColorIndex]) {
+                 skinObj.hairColor = HAIR_COLORS[cs.hairColorIndex];
+             }
+             if (cs.hairSize !== undefined) {
+                 skinObj.hairScale = cs.hairSize;
+             }
         }
 
         // Apply Variant Overrides (Style 2)
