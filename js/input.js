@@ -318,7 +318,7 @@
             VirtualCursor.element.style.display = 'none';
         }
 
-        if(e.target.closest('.modal') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
+        if(e.target.closest('.modal') || e.target.closest('#startup-ui') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
 
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;

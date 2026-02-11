@@ -1035,6 +1035,8 @@
         // If force is true (e.g. from Game Over logic), ignore state check
         if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
 
+        syncShopToEquipped();
+
         state = 'SHOP';
         if(isSplitscreen) {
             loadContext(game2); state = 'SHOP'; saveContext(game2);
@@ -1544,6 +1546,91 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+
+    function syncShopToEquipped() {
+        // Animal
+        const skinId = playerData.currentSkin;
+        const skinObj = SKINS_DB.find(s => s.id === skinId);
+        if (skinObj) {
+            const animal = skinObj.animal;
+            viewingAnimalIndex = ANIMALS.indexOf(animal);
+            if(viewingAnimalIndex < 0) viewingAnimalIndex = 0;
+
+            // Skin Index
+            const groups = getSkinGroups(animal);
+            for(let i=0; i<groups.length; i++) {
+                const group = groups[i];
+                const variantIdx = group.findIndex(s => s.id === skinId);
+                if(variantIdx !== -1) {
+                    viewingSkinIndex = i;
+                    viewingVariantIndex = variantIdx;
+                    break;
+                }
+            }
+        }
+
+        // Hair
+        if(playerData.customHairstyle) {
+            viewingHairstyleIndex = HAIRSTYLES.findIndex(h => h.id === playerData.customHairstyle);
+            if(viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+        }
+
+        // Clothes
+        if(playerData.currentClothing) {
+            viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
+            if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+        }
+
+        // Hat
+        if(playerData.currentHat) {
+            viewingHatIndex = HATS_DB.findIndex(h => h.id === playerData.currentHat);
+            if(viewingHatIndex < 0) viewingHatIndex = 0;
+        }
+
+        // Ball
+        if(playerData.currentBall) {
+            viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
+            if(viewingBallIndex < 0) viewingBallIndex = 0;
+        }
+
+        // Style
+        if(playerData.currentStyle) {
+            viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
+            if(viewingStyleIndex < 0) viewingStyleIndex = 0;
+        }
+    }
+
+    window.updateCustomHeight = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomHeight').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.height = val;
+        document.getElementById('lblCustomHeight').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomWidth = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomWidth').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.width = val;
+        document.getElementById('lblCustomWidth').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomSkinTone = function() {
+        loadContext(getShopContext());
+        const val = parseInt(document.getElementById('sldCustomSkinTone').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.skinToneIndex = val;
+        const color = SKIN_TONES[val];
+        document.getElementById('previewSkinTone').style.background = color;
+        saveData();
+        saveContext(getShopContext());
+    }
+
     window.toggleHandedness = function() {
         loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
@@ -1744,6 +1831,26 @@
         const group = groups[viewingSkinIndex];
         if (viewingVariantIndex >= group.length) viewingVariantIndex = 0;
         const skin = group[viewingVariantIndex];
+
+        // Customization UI Logic
+        const customControls = document.getElementById('customizationControls');
+        if (skin.id === 'human_custom') {
+            customControls.style.display = 'block';
+
+            if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+
+            document.getElementById('sldCustomHeight').value = playerData.customSkinSettings.height;
+            document.getElementById('lblCustomHeight').innerText = Math.round(playerData.customSkinSettings.height * 100) + "%";
+
+            document.getElementById('sldCustomWidth').value = playerData.customSkinSettings.width;
+            document.getElementById('lblCustomWidth').innerText = Math.round(playerData.customSkinSettings.width * 100) + "%";
+
+            document.getElementById('sldCustomSkinTone').value = playerData.customSkinSettings.skinToneIndex;
+            const color = SKIN_TONES[playerData.customSkinSettings.skinToneIndex];
+            document.getElementById('previewSkinTone').style.background = color;
+        } else {
+            customControls.style.display = 'none';
+        }
 
         document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
         document.getElementById('skinName').innerText = skin.name;

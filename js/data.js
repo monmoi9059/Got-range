@@ -196,6 +196,9 @@
     ];
 
     var SKINS_DB = [
+        // HUMANS (CUSTOM)
+        { id: 'human_custom', animal: 'human', name: 'Personnalisé', cost: 0, heightScale: 1.0, widthScale: 1.0, jerseyColor: '#FFF', shortsColor: '#000', skinTone: '#8d5524', hairStyle: 'short', hairColor: '#000', shoesColor: '#FFF' },
+
         // RATS
         { id: 'rat_classic', animal: 'rat', name: 'Classique', cost: 250, bodyShape: 'oval' },
         { id: 'rat_lumberjack', animal: 'rat', name: 'Bûcheron', cost: 500, jerseyColor: '#b30000', shortsColor: '#00008b', legType: 'pants', shoesColor: '#8B4513', pattern: 'plaid', headAccessory: 'beanie', hatColor: '#FF0000', backProp: 'axe', clothingDetail: 'suspenders' },
@@ -489,7 +492,7 @@
         { id: 'fake_zeus', animal: 'human', name: 'Dieu Tonnerre', cost: 20000, heightScale: 1.2, widthScale: 1.1, jerseyColor: '#FFF', shortsColor: '#FFF', number: '', numberColor: '#FFD700', skinTone: '#dcb98a', hairStyle: 'curly_long', hairColor: '#FFF', headAccessory: 'bandana_neck', hatColor: '#FFD700', shoesColor: '#FFD700' },
 
         // THE ANCHOR (Ron Burgundy Parody)
-        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 0, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
+        { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 500, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'pompadour', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
 
         // MYTHICAL CREATURES (HYBRIDS)
         { id: 'hybrid_minotaur', animal: 'human', name: 'Minotaure', cost: 25000, headType: 'bull', heightScale: 1.3, widthScale: 1.2, jerseyType: 'none', shortsColor: '#5D4037', skinTone: '#8B4513', furColor: '#8B4513', tailType: 'bull' },
@@ -601,7 +604,25 @@
         { id: 'hat_pirate', name: 'Pirate', cost: 3500, type: 'pirate_hat', color: '#111' }
     ];
 
-    var ANIMALS = ['rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'human'];
+    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];
+
+    var SKIN_TONES = [
+        '#f0d5be', // Light
+        '#e0ac69',
+        '#dcb98a',
+        '#d2b48c',
+        '#8d5524', // Medium (Default)
+        '#c68642',
+        '#5c3a21',
+        '#4a3020',
+        '#3e271a',
+        '#2e1e16', // Dark
+        '#FFD700', // Gold
+        '#C0C0C0', // Silver
+        '#32CD32', // Alien Green
+        '#87CEEB', // Ice Blue
+        '#FF69B4'  // Pink
+    ];
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     // --- BALL GEOMETRY & RENDERER ---

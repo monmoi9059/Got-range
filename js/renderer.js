@@ -5674,6 +5674,29 @@ var BallRenderer = {
             g_cachedSkinObj = skinObj;
         }
 
+        // Apply Custom Human Settings
+        if (skin === 'human_custom') {
+             // Create shallow copy
+             skinObj = Object.assign({}, skinObj);
+
+             if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+             const cs = playerData.customSkinSettings;
+
+             // Base human is ~1.06 height (Anchor). Range 0.5 to 1.5 -> 0.53 to 1.59
+             skinObj.heightScale = 1.06 * cs.height;
+             skinObj.widthScale = 1.0 * cs.width;
+
+             // Arm/Leg width should scale with width?
+             // Renderer defaults armWidth/legWidth to widthScale if not set.
+             // But let's explicitly scale them to keep proportions or let it fallback.
+             // Fallback logic: if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
+             // This works fine.
+
+             if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
+                 skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
+             }
+        }
+
         // Apply Variant Overrides (Style 2)
         if (playerData.skinVariants && playerData.skinVariants[skin] === 1) {
              // Create shallow copy to avoid mutating global cache
