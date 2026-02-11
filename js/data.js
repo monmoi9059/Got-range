@@ -532,6 +532,40 @@
 
     ];
 
+    var CLOTHING_DB = [
+        { id: 'clothes_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+
+        // TRACK SUITS (Manches longues, col montant)
+        { id: 'track_red', name: 'Track Rouge', cost: 500, type: 'track', color: '#FF0000', sleeveColor: '#FF0000', stripeColor: '#FFF' },
+        { id: 'track_blue', name: 'Track Bleu', cost: 500, type: 'track', color: '#0000FF', sleeveColor: '#0000FF', stripeColor: '#FFF' },
+        { id: 'track_black', name: 'Track Noir', cost: 750, type: 'track', color: '#1a1a1a', sleeveColor: '#1a1a1a', stripeColor: '#FFF' },
+        { id: 'track_green', name: 'Track Vert', cost: 500, type: 'track', color: '#008000', sleeveColor: '#008000', stripeColor: '#FFF' },
+        { id: 'track_adidas', name: 'Slav King', cost: 2000, type: 'track', color: '#000', sleeveColor: '#000', stripeColor: '#FFF', pattern: 'stripes_side' },
+
+        // HOODIES (Capuchon dans le dos)
+        { id: 'hoodie_grey', name: 'Hoodie Gris', cost: 1000, type: 'hoodie', color: '#808080', sleeveColor: '#808080', hoodColor: '#707070' },
+        { id: 'hoodie_black', name: 'Hoodie Noir', cost: 1500, type: 'hoodie', color: '#111', sleeveColor: '#111', hoodColor: '#000' },
+        { id: 'hoodie_orange', name: 'Kenny', cost: 2000, type: 'hoodie', color: '#FF4500', sleeveColor: '#FF4500', hoodColor: '#CD3700' },
+        { id: 'hoodie_tie_dye', name: 'Hippie', cost: 2500, type: 'hoodie', color: '#FF00FF', sleeveColor: '#00FFFF', hoodColor: '#FFFF00', pattern: 'tie_dye' },
+        { id: 'hoodie_camo', name: 'Camouflage', cost: 3000, type: 'hoodie', color: '#556B2F', sleeveColor: '#556B2F', hoodColor: '#4b5e29', pattern: 'camo' },
+
+        // SWEATSHIRTS (Simple, manches longues)
+        { id: 'sweat_white', name: 'Sweat Blanc', cost: 750, type: 'sweatshirt', color: '#FFF', sleeveColor: '#FFF' },
+        { id: 'sweat_navy', name: 'Sweat Marine', cost: 750, type: 'sweatshirt', color: '#000080', sleeveColor: '#000080' },
+        { id: 'sweat_nasa', name: 'Espace', cost: 2000, type: 'sweatshirt', color: '#FFF', sleeveColor: '#FFF', decal: 'nasa' },
+
+        // T-SHIRTS (Manches courtes)
+        { id: 'tshirt_tiedye', name: 'T-Shirt Fun', cost: 1000, type: 'tshirt', color: '#FFD700', sleeveColor: '#FFD700', pattern: 'tie_dye' },
+        { id: 'tshirt_rock', name: 'Groupe Rock', cost: 1500, type: 'tshirt', color: '#111', sleeveColor: '#111', decal: 'skull' },
+
+        // JERSEYS (Over-top layer)
+        { id: 'jersey_bulls', name: 'Chicago Red', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000' },
+        { id: 'jersey_lakers', name: 'LA Gold', cost: 5000, type: 'jersey', color: '#FDB927', sleeveColor: 'none', trimColor: '#552583' },
+        { id: 'jersey_celtics', name: 'Boston Green', cost: 5000, type: 'jersey', color: '#007A33', sleeveColor: 'none', trimColor: '#FFF' },
+        { id: 'jersey_miami', name: 'Vice City', cost: 5000, type: 'jersey', color: '#000', sleeveColor: 'none', trimColor: '#FF69B4', pattern: 'gradient_blue_pink' },
+        { id: 'jersey_raptors', name: 'We The North', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000', chevron: true }
+    ];
+
     var HATS_DB = [
         { id: 'hat_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
         { id: 'hat_cap_red', name: 'Casquette Rouge', cost: 500, type: 'cap', color: '#FF0000' },

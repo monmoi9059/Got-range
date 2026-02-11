@@ -676,6 +676,11 @@
             <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
+            <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
+            <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
+
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
             <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
             <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
@@ -1426,6 +1431,40 @@
         { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000', hairStyle: 'short_curly', hairColor: '#000' },
         { id: 'human_storm', animal: 'human', name: 'Soldat Blanc', cost: 15000, jerseyColor: '#FFF', shortsColor: '#FFF', legType: 'pants', sleeveColor: '#000', skinTone: '#000', headAccessory: 'helmet', hatColor: '#FFF', pattern: 'armor', shoesColor: '#FFF' }
 
+    ];
+
+    var CLOTHING_DB = [
+        { id: 'clothes_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+
+        // TRACK SUITS (Manches longues, col montant)
+        { id: 'track_red', name: 'Track Rouge', cost: 500, type: 'track', color: '#FF0000', sleeveColor: '#FF0000', stripeColor: '#FFF' },
+        { id: 'track_blue', name: 'Track Bleu', cost: 500, type: 'track', color: '#0000FF', sleeveColor: '#0000FF', stripeColor: '#FFF' },
+        { id: 'track_black', name: 'Track Noir', cost: 750, type: 'track', color: '#1a1a1a', sleeveColor: '#1a1a1a', stripeColor: '#FFF' },
+        { id: 'track_green', name: 'Track Vert', cost: 500, type: 'track', color: '#008000', sleeveColor: '#008000', stripeColor: '#FFF' },
+        { id: 'track_adidas', name: 'Slav King', cost: 2000, type: 'track', color: '#000', sleeveColor: '#000', stripeColor: '#FFF', pattern: 'stripes_side' },
+
+        // HOODIES (Capuchon dans le dos)
+        { id: 'hoodie_grey', name: 'Hoodie Gris', cost: 1000, type: 'hoodie', color: '#808080', sleeveColor: '#808080', hoodColor: '#707070' },
+        { id: 'hoodie_black', name: 'Hoodie Noir', cost: 1500, type: 'hoodie', color: '#111', sleeveColor: '#111', hoodColor: '#000' },
+        { id: 'hoodie_orange', name: 'Kenny', cost: 2000, type: 'hoodie', color: '#FF4500', sleeveColor: '#FF4500', hoodColor: '#CD3700' },
+        { id: 'hoodie_tie_dye', name: 'Hippie', cost: 2500, type: 'hoodie', color: '#FF00FF', sleeveColor: '#00FFFF', hoodColor: '#FFFF00', pattern: 'tie_dye' },
+        { id: 'hoodie_camo', name: 'Camouflage', cost: 3000, type: 'hoodie', color: '#556B2F', sleeveColor: '#556B2F', hoodColor: '#4b5e29', pattern: 'camo' },
+
+        // SWEATSHIRTS (Simple, manches longues)
+        { id: 'sweat_white', name: 'Sweat Blanc', cost: 750, type: 'sweatshirt', color: '#FFF', sleeveColor: '#FFF' },
+        { id: 'sweat_navy', name: 'Sweat Marine', cost: 750, type: 'sweatshirt', color: '#000080', sleeveColor: '#000080' },
+        { id: 'sweat_nasa', name: 'Espace', cost: 2000, type: 'sweatshirt', color: '#FFF', sleeveColor: '#FFF', decal: 'nasa' },
+
+        // T-SHIRTS (Manches courtes)
+        { id: 'tshirt_tiedye', name: 'T-Shirt Fun', cost: 1000, type: 'tshirt', color: '#FFD700', sleeveColor: '#FFD700', pattern: 'tie_dye' },
+        { id: 'tshirt_rock', name: 'Groupe Rock', cost: 1500, type: 'tshirt', color: '#111', sleeveColor: '#111', decal: 'skull' },
+
+        // JERSEYS (Over-top layer)
+        { id: 'jersey_bulls', name: 'Chicago Red', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000' },
+        { id: 'jersey_lakers', name: 'LA Gold', cost: 5000, type: 'jersey', color: '#FDB927', sleeveColor: 'none', trimColor: '#552583' },
+        { id: 'jersey_celtics', name: 'Boston Green', cost: 5000, type: 'jersey', color: '#007A33', sleeveColor: 'none', trimColor: '#FFF' },
+        { id: 'jersey_miami', name: 'Vice City', cost: 5000, type: 'jersey', color: '#000', sleeveColor: 'none', trimColor: '#FF69B4', pattern: 'gradient_blue_pink' },
+        { id: 'jersey_raptors', name: 'We The North', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000', chevron: true }
     ];
 
     var HATS_DB = [
@@ -2726,6 +2765,7 @@
     let viewingSkinIndex = 0;
     let viewingVariantIndex = 0;
     let viewingHairstyleIndex = 0;
+    let viewingClothingIndex = 0;
     let viewingHatIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
@@ -2776,6 +2816,7 @@ let lastDisplayedContestTime = -1;
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
+            unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
             releaseTiming: 3,
@@ -2812,6 +2853,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
     if(!playerData.currentHat) playerData.currentHat = 'hat_none';
+    if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+    if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
     if(!playerData.skinVariants) playerData.skinVariants = {};
     if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
@@ -3012,6 +3055,7 @@ let lastDisplayedContestTime = -1;
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
             viewingIndices: { animal: 0, skin: 0, hair: 0, hat: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -3057,6 +3101,7 @@ let lastDisplayedContestTime = -1;
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
             hair: viewingHairstyleIndex,
+            clothing: viewingClothingIndex,
             hat: viewingHatIndex,
             ball: viewingBallIndex,
             style: viewingStyleIndex
@@ -3101,6 +3146,7 @@ let lastDisplayedContestTime = -1;
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
             viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
+            viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
             viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
@@ -8763,6 +8809,19 @@ var BallRenderer = {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
         }
+        if (skinObj.backAccessory === 'hoodie_hood') {
+             ctx.fillStyle = skinObj.backColor || '#555';
+             // Draw hood down shape on upper back
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
+             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
+             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
+             ctx.fill();
+             // Hood crease/shadow
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
+        }
         drawMeterCommon(p, s, sizeMod);
     }
 
@@ -8831,6 +8890,41 @@ var BallRenderer = {
              if (skinObj.beard2 !== undefined) skinObj.beard = skinObj.beard2;
              if (skinObj.headbandColor2 !== undefined) skinObj.headbandColor = skinObj.headbandColor2;
              if (skinObj.pattern2) skinObj.pattern = skinObj.pattern2;
+        }
+
+        // Apply Clothing Overrides
+        if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+             // Ensure we are working on a copy
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+
+             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             if (clothing) {
+                 skinObj.clothing = clothing; // Tag for later use
+                 skinObj.jerseyColor = clothing.color;
+
+                 if (clothing.type === 'tshirt') {
+                     skinObj.jerseyType = 'tshirt';
+                     skinObj.sleeveColor = null;
+                 } else if (clothing.sleeveColor) {
+                     skinObj.sleeveColor = clothing.sleeveColor;
+                 }
+
+                 if (clothing.pattern) skinObj.pattern = clothing.pattern;
+                 if (clothing.decal) skinObj.decal = clothing.decal;
+
+                 // Override back props if hoodie
+                 if (clothing.type === 'hoodie') {
+                     skinObj.backAccessory = 'hoodie_hood';
+                     skinObj.backColor = clothing.hoodColor || clothing.color;
+                 }
+
+                 // Remove conflicting built-in details
+                 if (['track', 'hoodie', 'sweatshirt'].includes(clothing.type)) {
+                     skinObj.clothingDetail = null; // Hide suspenders etc.
+                     // Track suits often have stripes
+                     if(clothing.stripeColor) skinObj.chestStripeColor = clothing.stripeColor;
+                 }
+             }
         }
 
         const isMechanical = isMechanicalSkin(skinObj.id);
@@ -10235,6 +10329,19 @@ var BallRenderer = {
         if (skinObj.backAccessory === 'backpack') {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
+        }
+        if (skinObj.backAccessory === 'hoodie_hood') {
+             ctx.fillStyle = skinObj.backColor || '#555';
+             // Draw hood down shape on upper back
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
+             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
+             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
+             ctx.fill();
+             // Hood crease/shadow
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
         }
         if (skinObj.backAccessory === 'shell') {
              const shellW = bodyW * 1.4;
@@ -12631,6 +12738,11 @@ var BallRenderer = {
                     playerData.unlockedSkins.push(skin.id);
                 }
             });
+            CLOTHING_DB.forEach(c => {
+                if(!playerData.unlockedClothing.includes(c.id)) {
+                    playerData.unlockedClothing.push(c.id);
+                }
+            });
             checkAchievements('shop');
             saveData();
             updateShopUI();
@@ -12824,6 +12936,26 @@ var BallRenderer = {
             playerData.tacos -= hair.cost;
             playerData.unlockedHairstyles.push(hair.id);
             playerData.customHairstyle = hair.id;
+    window.changeClothing = function(dir) {
+        loadContext(getShopContext());
+        viewingClothingIndex += dir;
+        if(viewingClothingIndex < 0) viewingClothingIndex = CLOTHING_DB.length - 1;
+        if(viewingClothingIndex >= CLOTHING_DB.length) viewingClothingIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipClothing = function() {
+        loadContext(getShopContext());
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+
+        const isUnlocked = playerData.unlockedClothing.includes(clothing.id);
+        if (isUnlocked) {
+            playerData.currentClothing = clothing.id;
+        } else if (playerData.tacos >= clothing.cost) {
+            playerData.tacos -= clothing.cost;
+            playerData.unlockedClothing.push(clothing.id);
+            playerData.currentClothing = clothing.id;
             checkAchievements('shop');
         }
         saveData(); updateShopUI(); updateUI();
@@ -13182,6 +13314,19 @@ var BallRenderer = {
                 btnHair.onclick = window.buyOrEquipHairstyle;
             }
         }
+
+        // Clothing UI
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        document.getElementById('clothingName').innerText = clothing.name;
+        const btnClothing = document.getElementById('btnEquipClothing');
+        const statusClothing = document.getElementById('clothingStatus');
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+        const isUnlockedClothing = playerData.unlockedClothing.includes(clothing.id);
+        const isEquippedClothing = playerData.currentClothing === clothing.id;
+
+        if (isEquippedClothing) { statusClothing.innerText = "Équipé"; btnClothing.style.display = 'none'; }
+        else if (isUnlockedClothing) { statusClothing.innerText = "Possédé"; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Équiper"; btnClothing.disabled = false; }
+        else { statusClothing.innerText = `Coût: ${clothing.cost} Tacos`; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Acheter"; btnClothing.disabled = playerData.tacos < clothing.cost; }
 
         // Hat UI
         const hat = HATS_DB[viewingHatIndex];
