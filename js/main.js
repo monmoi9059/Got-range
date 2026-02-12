@@ -431,18 +431,26 @@ let lastDisplayedContestTime = -1;
              delete playerData.dailyChallenge;
         }
 
-        if (!playerData.dailyChallenges || playerData.dailyChallenges.length === 0 || playerData.dailyChallenges[0].date !== today) {
+        // Reset if new day
+        if (!playerData.dailyChallenges || playerData.dailyChallenges.length > 0 && playerData.dailyChallenges[0].date !== today) {
+            playerData.dailyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.dailyChallenges.length < 5) {
             const pool = [...DAILY_CHALLENGES];
-            const newChallenges = [];
-            // Pick 5 unique
-            for(let i=0; i<5; i++) {
-                if(pool.length === 0) break;
+            // Remove existing
+            playerData.dailyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+            });
+
+            while(playerData.dailyChallenges.length < 5 && pool.length > 0) {
                 const r = Math.floor(Math.random() * pool.length);
                 const c = pool[r];
                 pool.splice(r, 1);
-                newChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
+                playerData.dailyChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
             }
-            playerData.dailyChallenges = newChallenges;
             saveData();
         }
     }
@@ -453,17 +461,25 @@ let lastDisplayedContestTime = -1;
         const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
         const weekId = `W${week}-${now.getFullYear()}`;
 
-        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length === 0 || playerData.weeklyChallenges[0].weekId !== weekId) {
+        // Reset if new week
+        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length > 0 && playerData.weeklyChallenges[0].weekId !== weekId) {
+             playerData.weeklyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.weeklyChallenges.length < 5) {
              const pool = [...WEEKLY_CHALLENGES];
-             const newChallenges = [];
-             for(let i=0; i<5; i++) {
-                 if(pool.length === 0) break;
+             playerData.weeklyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+             });
+
+             while(playerData.weeklyChallenges.length < 5 && pool.length > 0) {
                  const r = Math.floor(Math.random() * pool.length);
                  const c = pool[r];
                  pool.splice(r, 1);
-                 newChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
+                 playerData.weeklyChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
              }
-             playerData.weeklyChallenges = newChallenges;
              saveData();
         }
     }
@@ -583,7 +599,10 @@ let lastDisplayedContestTime = -1;
         switchLeaderboardTab(pendingHighScore.mode);
     }
 
-    function checkDailyProgress(type, amount) {
+    // Expose for game.js to call
+    window.processAllChallenges = processAllChallenges;
+
+    function processAllChallenges(type, amount) {
         if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
         if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
     }
@@ -683,7 +702,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.state = state;
         ctxObj.preJumpTimer = preJumpTimer;
         ctxObj.feedback = feedback;
-        ctxObj.feedbackTimer = ctxObj.feedbackTimer;
+        ctxObj.feedbackTimer = feedbackTimer;
         // Deep copy player3D to avoid reference issues if replaced?
         // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
         // But the global 'player3D' variable holds the reference.

@@ -101,40 +101,11 @@
         }
     }
 
+    // Wrapper for challenge updates
     function checkDailyProgress(type, amount) {
-        const dc = playerData.dailyChallenge;
-        if (dc.claimed) return;
-
-        const challengeDef = DAILY_CHALLENGES.find(c => c.id === dc.id);
-        if (!challengeDef) return;
-
-        // If the active challenge type matches the event
-        if (challengeDef.type === type) {
-            if (type === 'streak') {
-                // Streak is "reach X", not cumulative
-                if (amount >= challengeDef.target) {
-                    completeDailyChallenge(challengeDef);
-                }
-            } else {
-                // Cumulative
-                dc.progress += amount;
-                if (dc.progress >= challengeDef.target) {
-                    dc.progress = challengeDef.target;
-                    completeDailyChallenge(challengeDef);
-                } else {
-                    saveData();
-                }
-            }
-        }
-    }
-
-    function completeDailyChallenge(def) {
-        if(playerData.dailyChallenge.claimed) return;
-        playerData.dailyChallenge.claimed = true;
-        playerData.tacos += def.reward;
-        saveData();
-        showNotification("DÉFI COMPLÉTÉ !", def.reward);
-        // Visual flair could go here
+         if (window.processAllChallenges) {
+             window.processAllChallenges(type, amount);
+         }
     }
 
     function calculateShotThreshold() {
@@ -1083,6 +1054,8 @@
         }
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
         // Reset to first tab
@@ -1099,7 +1072,10 @@
         state = 'ACHIEVEMENTS';
         if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
 
-        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        renderAchievements();
         saveContext(game1);
     }
     window.openStats = function() {
@@ -1113,6 +1089,8 @@
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         populateInputSelects();
         const ls = playerData.lifetimeStats;
         document.getElementById('statShots').innerText = ls.shots;
@@ -1125,27 +1103,7 @@
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
 
-        // Daily Challenge UI Update
-        const dc = playerData.dailyChallenge;
-        if (dc && dc.id) {
-            const def = DAILY_CHALLENGES.find(c => c.id === dc.id);
-            if (def) {
-                document.getElementById('dailyDesc').innerText = def.desc;
-                let pct = (dc.progress / def.target) * 100;
-                if (pct > 100) pct = 100;
-                document.getElementById('dailyBar').style.width = pct + "%";
-
-                let statusText = dc.progress + " / " + def.target;
-                if (dc.claimed) {
-                    statusText = "COMPLÉTÉ !";
-                    document.getElementById('dailyBar').style.background = "#FFD700";
-                } else {
-                    document.getElementById('dailyBar').style.background = "#00FF00";
-                }
-                document.getElementById('dailyProgressText').innerText = statusText;
-                document.getElementById('dailyRewardText').innerText = "+" + def.reward + " Tacos";
-            }
-        }
+        // Daily Challenge UI Update - Removed (Now in dedicated menu)
 
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
@@ -1316,7 +1274,7 @@
 
         const resetState = (ctx) => {
             loadContext(ctx);
-            if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD'].includes(state)) {
+            if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD', 'CHALLENGES'].includes(state)) {
                 state = 'IDLE';
                 // Only reset game if we are in a game over state that requires it
                 // Includes "RECORD" for Time Attack high scores
@@ -1333,6 +1291,7 @@
         achUI.style.display = 'none';
         statsUI.style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
 
         // Restore P1 context for main loop
         loadContext(game1);
