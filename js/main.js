@@ -616,6 +616,7 @@ let lastDisplayedContestTime = -1;
             hair: viewingHairstyleIndex,
             clothing: viewingClothingIndex,
             hat: viewingHatIndex,
+            shoe: viewingShoeIndex,
             ball: viewingBallIndex,
             style: viewingStyleIndex
         };
