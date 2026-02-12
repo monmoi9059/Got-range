@@ -125,7 +125,46 @@
         { id: 'time_60', type: 'time_attack_score', desc: 'Marquer 60 pts (Time Attack)', target: 60, reward: 1500 },
         { id: 'distance_500', type: 'distance', desc: 'Parcourir 500 pieds', target: 500, reward: 500 },
         { id: 'play_contest_3', type: 'play_contest', desc: 'Jouer 3 Concours', target: 3, reward: 500 },
-        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
+        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 },
+        // New Additions for Variety
+        { id: 'makes_25', type: 'makes', desc: 'Marquer 25 Paniers', target: 25, reward: 250 },
+        { id: 'streak_3', type: 'streak', desc: 'Faire une série de 3', target: 3, reward: 150 },
+        { id: 'distance_250', type: 'distance', desc: 'Parcourir 250 pieds', target: 250, reward: 250 },
+        { id: 'play_contest_1', type: 'play_contest', desc: 'Jouer 1 Concours', target: 1, reward: 200 },
+        { id: 'play_time_1', type: 'play_time_attack', desc: 'Jouer 1 Time Attack', target: 1, reward: 200 }
+    ];
+
+    var WEEKLY_CHALLENGES = [
+        { id: 'wk_makes_500', type: 'makes', desc: 'Marquer 500 Paniers', target: 500, reward: 5000 },
+        { id: 'wk_makes_1000', type: 'makes', desc: 'Marquer 1000 Paniers', target: 1000, reward: 10000 },
+        { id: 'wk_streak_20', type: 'streak', desc: 'Série de 20 paniers', target: 20, reward: 5000 },
+        { id: 'wk_streak_30', type: 'streak', desc: 'Série de 30 paniers', target: 30, reward: 8000 },
+        { id: 'wk_contest_100', type: 'contest_score', desc: 'Score 100 en Concours', target: 100, reward: 5000 },
+        { id: 'wk_time_200', type: 'time_attack_score', desc: 'Score 200 en Time Attack', target: 200, reward: 5000 },
+        { id: 'wk_dist_5000', type: 'distance', desc: 'Parcourir 5000 pieds', target: 5000, reward: 5000 },
+        { id: 'wk_play_cont_50', type: 'play_contest', desc: 'Jouer 50 Concours', target: 50, reward: 5000 },
+        { id: 'wk_play_time_50', type: 'play_time_attack', desc: 'Jouer 50 Time Attack', target: 50, reward: 5000 },
+        { id: 'wk_swish_50', type: 'swish', desc: 'Marquer 50 Swish', target: 50, reward: 3000 },
+        { id: 'wk_lucky_20', type: 'lucky', desc: '20 Paniers Chanceux', target: 20, reward: 4000 },
+        { id: 'wk_makes_hard_100', type: 'makes_hard', desc: '100 Paniers (Difficile)', target: 100, reward: 5000 },
+        { id: 'wk_makes_legend_50', type: 'makes_legend', desc: '50 Paniers (Lévis Legend)', target: 50, reward: 10000 },
+        { id: 'wk_dist_classic_2000', type: 'distance_classic', desc: 'Atteindre 2000 pi (Une partie)', target: 2000, reward: 7500 },
+        { id: 'wk_bank_100', type: 'bank_shot', desc: '100 Tirs avec la planche', target: 100, reward: 3000 },
+        { id: 'wk_streak10_5', type: 'streak_10_count', desc: 'Faire 5 séries de 10', target: 5, reward: 4000 },
+        { id: 'wk_makes_long_50', type: 'makes_long', desc: '50 Paniers > 100 pieds', target: 50, reward: 6000 },
+        { id: 'wk_makes_super_20', type: 'makes_super', desc: '20 Paniers > 200 pieds', target: 20, reward: 8000 },
+        { id: 'wk_total_cont_500', type: 'total_contest_score', desc: '500 pts Cumulés (Concours)', target: 500, reward: 7000 },
+        { id: 'wk_total_time_1000', type: 'total_time_score', desc: '1000 pts Cumulés (Time)', target: 1000, reward: 7000 },
+        { id: 'wk_streak15_3', type: 'streak_15_count', desc: 'Faire 3 séries de 15', target: 3, reward: 5000 },
+        { id: 'wk_level10_10', type: 'level_10_count', desc: 'Atteindre Niv 10 (10 fois)', target: 10, reward: 5000 },
+        { id: 'wk_sur_ligne_250', type: 'sur_la_ligne', desc: '250 Paniers "Sur la ligne"', target: 250, reward: 6000 },
+        { id: 'wk_miss_100', type: 'misses', desc: 'Rater 100 tirs', target: 100, reward: 1000 },
+        { id: 'wk_makes_animal_300', type: 'makes_animal', desc: '300 Paniers (Skin Animal)', target: 300, reward: 4000 },
+        { id: 'wk_makes_human_300', type: 'makes_human', desc: '300 Paniers (Skin Humain)', target: 300, reward: 4000 },
+        { id: 'wk_tacos_5000', type: 'earn_tacos', desc: 'Gagner 5000 Tacos', target: 5000, reward: 2500 },
+        { id: 'wk_dist_10000', type: 'distance', desc: 'Parcourir 10000 pieds', target: 10000, reward: 8000 },
+        { id: 'wk_play_all_10', type: 'play_all_modes', desc: 'Jouer 10 parties de chaque mode', target: 10, reward: 6000 },
+        { id: 'wk_perfect_contest', type: 'perfect_rack', desc: 'Réussir un Rack Parfait (5/5)', target: 1, reward: 5000 }
     ];
 
     var COURT_THEMES = {

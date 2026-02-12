@@ -605,6 +605,36 @@
     transform: scale(1.1);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
+/* Challenge UI Styles */
+.challenge-row {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.challenge-progress-bg {
+    background: #000;
+    height: 10px;
+    width: 100%;
+    border: 1px solid #555;
+    margin: 5px 0;
+}
+
+.challenge-progress-bar {
+    background: #00FF00;
+    height: 100%;
+    transition: width 0.5s;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 255, 0, 0.7); }
+    50% { transform: scale(1.05); box-shadow: 0 0 10px rgba(0, 255, 0, 0.7); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 255, 0, 0.7); }
+}
 
 /* --- END style.css --- */
 
@@ -666,6 +696,7 @@
                 <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
                 <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les défis" tabindex="0" onclick="openChallenges()"><span>DÉFIS [C]</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir les trophées" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir le classement" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir les statistiques" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
@@ -707,20 +738,6 @@
     <div id="statsUI" class="modal">
         <button class="modal-close-btn" onclick="closeStats()">✕</button>
         <div class="modal-header">STATISTIQUES À VIE</div>
-
-        <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
-             <div style="transform: skewX(5deg);">
-                 <h3 style="margin:0 0 10px 0; color:#FFD700; text-transform:uppercase; font-family: var(--broadcast-font-title);">📅 DÉFI DU JOUR</h3>
-                 <div id="dailyDesc" style="color:#FFF; font-size:1.1em; margin-bottom:8px; font-weight:bold;">Chargement...</div>
-                 <div style="background:#000; height:12px; width:100%; border:1px solid #555;">
-                     <div id="dailyBar" style="background:#00FF00; height:100%; width:0%; transition: width 0.5s;"></div>
-                 </div>
-                 <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:0.9em; color:#aaa; font-family: var(--broadcast-font-body);">
-                     <span id="dailyProgressText" style="color:#FFF;">0 / 0</span>
-                     <span id="dailyRewardText" style="color:#FFD700;">+500 Tacos</span>
-                 </div>
-             </div>
-        </div>
 
         <div style="text-align:left; padding: 10px; font-size: 1.2em;">
             <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
@@ -929,6 +946,20 @@
             <div id="lbList" class="lb-list">
                 <!-- Rows injected via JS -->
                 <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="challengesUI" class="modal">
+        <button class="modal-close-btn" onclick="closeChallenges()">✕</button>
+        <div class="modal-header">DÉFIS</div>
+        <div class="modal-content-wrapper">
+            <div class="lb-tab-container">
+                <button id="btnChalDaily" class="lb-tab active" onclick="switchChallengeTab('daily')">QUOTIDIEN</button>
+                <button id="btnChalWeekly" class="lb-tab" onclick="switchChallengeTab('weekly')">HEBDOMADAIRE</button>
+            </div>
+            <div id="challengeList" class="lb-list" style="text-align:left;">
+                <!-- Rows injected via JS -->
             </div>
         </div>
     </div>
@@ -1241,7 +1272,46 @@
         { id: 'time_60', type: 'time_attack_score', desc: 'Marquer 60 pts (Time Attack)', target: 60, reward: 1500 },
         { id: 'distance_500', type: 'distance', desc: 'Parcourir 500 pieds', target: 500, reward: 500 },
         { id: 'play_contest_3', type: 'play_contest', desc: 'Jouer 3 Concours', target: 3, reward: 500 },
-        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 }
+        { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 },
+        // New Additions for Variety
+        { id: 'makes_25', type: 'makes', desc: 'Marquer 25 Paniers', target: 25, reward: 250 },
+        { id: 'streak_3', type: 'streak', desc: 'Faire une série de 3', target: 3, reward: 150 },
+        { id: 'distance_250', type: 'distance', desc: 'Parcourir 250 pieds', target: 250, reward: 250 },
+        { id: 'play_contest_1', type: 'play_contest', desc: 'Jouer 1 Concours', target: 1, reward: 200 },
+        { id: 'play_time_1', type: 'play_time_attack', desc: 'Jouer 1 Time Attack', target: 1, reward: 200 }
+    ];
+
+    var WEEKLY_CHALLENGES = [
+        { id: 'wk_makes_500', type: 'makes', desc: 'Marquer 500 Paniers', target: 500, reward: 5000 },
+        { id: 'wk_makes_1000', type: 'makes', desc: 'Marquer 1000 Paniers', target: 1000, reward: 10000 },
+        { id: 'wk_streak_20', type: 'streak', desc: 'Série de 20 paniers', target: 20, reward: 5000 },
+        { id: 'wk_streak_30', type: 'streak', desc: 'Série de 30 paniers', target: 30, reward: 8000 },
+        { id: 'wk_contest_100', type: 'contest_score', desc: 'Score 100 en Concours', target: 100, reward: 5000 },
+        { id: 'wk_time_200', type: 'time_attack_score', desc: 'Score 200 en Time Attack', target: 200, reward: 5000 },
+        { id: 'wk_dist_5000', type: 'distance', desc: 'Parcourir 5000 pieds', target: 5000, reward: 5000 },
+        { id: 'wk_play_cont_50', type: 'play_contest', desc: 'Jouer 50 Concours', target: 50, reward: 5000 },
+        { id: 'wk_play_time_50', type: 'play_time_attack', desc: 'Jouer 50 Time Attack', target: 50, reward: 5000 },
+        { id: 'wk_swish_50', type: 'swish', desc: 'Marquer 50 Swish', target: 50, reward: 3000 },
+        { id: 'wk_lucky_20', type: 'lucky', desc: '20 Paniers Chanceux', target: 20, reward: 4000 },
+        { id: 'wk_makes_hard_100', type: 'makes_hard', desc: '100 Paniers (Difficile)', target: 100, reward: 5000 },
+        { id: 'wk_makes_legend_50', type: 'makes_legend', desc: '50 Paniers (Lévis Legend)', target: 50, reward: 10000 },
+        { id: 'wk_dist_classic_2000', type: 'distance_classic', desc: 'Atteindre 2000 pi (Une partie)', target: 2000, reward: 7500 },
+        { id: 'wk_bank_100', type: 'bank_shot', desc: '100 Tirs avec la planche', target: 100, reward: 3000 },
+        { id: 'wk_streak10_5', type: 'streak_10_count', desc: 'Faire 5 séries de 10', target: 5, reward: 4000 },
+        { id: 'wk_makes_long_50', type: 'makes_long', desc: '50 Paniers > 100 pieds', target: 50, reward: 6000 },
+        { id: 'wk_makes_super_20', type: 'makes_super', desc: '20 Paniers > 200 pieds', target: 20, reward: 8000 },
+        { id: 'wk_total_cont_500', type: 'total_contest_score', desc: '500 pts Cumulés (Concours)', target: 500, reward: 7000 },
+        { id: 'wk_total_time_1000', type: 'total_time_score', desc: '1000 pts Cumulés (Time)', target: 1000, reward: 7000 },
+        { id: 'wk_streak15_3', type: 'streak_15_count', desc: 'Faire 3 séries de 15', target: 3, reward: 5000 },
+        { id: 'wk_level10_10', type: 'level_10_count', desc: 'Atteindre Niv 10 (10 fois)', target: 10, reward: 5000 },
+        { id: 'wk_sur_ligne_250', type: 'sur_la_ligne', desc: '250 Paniers "Sur la ligne"', target: 250, reward: 6000 },
+        { id: 'wk_miss_100', type: 'misses', desc: 'Rater 100 tirs', target: 100, reward: 1000 },
+        { id: 'wk_makes_animal_300', type: 'makes_animal', desc: '300 Paniers (Skin Animal)', target: 300, reward: 4000 },
+        { id: 'wk_makes_human_300', type: 'makes_human', desc: '300 Paniers (Skin Humain)', target: 300, reward: 4000 },
+        { id: 'wk_tacos_5000', type: 'earn_tacos', desc: 'Gagner 5000 Tacos', target: 5000, reward: 2500 },
+        { id: 'wk_dist_10000', type: 'distance', desc: 'Parcourir 10000 pieds', target: 10000, reward: 8000 },
+        { id: 'wk_play_all_10', type: 'play_all_modes', desc: 'Jouer 10 parties de chaque mode', target: 10, reward: 6000 },
+        { id: 'wk_perfect_contest', type: 'perfect_rack', desc: 'Réussir un Rack Parfait (5/5)', target: 1, reward: 5000 }
     ];
 
     var COURT_THEMES = {
@@ -3365,7 +3435,7 @@ let lastDisplayedContestTime = -1;
             stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
             purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-            dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
+            dailyChallenges: [], weeklyChallenges: [],
             unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
@@ -3403,7 +3473,12 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
-    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
+    if(!playerData.dailyChallenges) playerData.dailyChallenges = [];
+    if(!playerData.weeklyChallenges) playerData.weeklyChallenges = [];
+    if(playerData.dailyChallenge) { // Migration
+         if(playerData.dailyChallenge.id) playerData.dailyChallenges.push(playerData.dailyChallenge);
+         delete playerData.dailyChallenge;
+    }
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
@@ -3450,8 +3525,9 @@ let lastDisplayedContestTime = -1;
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
-    // Initialize Daily Challenge
+    // Initialize Challenges
     initDailyChallenge();
+    initWeeklyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
     var saveTimer = null;
@@ -3473,17 +3549,51 @@ let lastDisplayedContestTime = -1;
 
     function initDailyChallenge() {
         const today = new Date().toDateString();
-        // Reset if date changed or if data is missing/corrupt
-        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
-            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
-            const challenge = DAILY_CHALLENGES[randomIndex];
-            playerData.dailyChallenge = {
-                date: today,
-                id: challenge.id,
-                progress: 0,
-                claimed: false
-            };
+
+        // MIGRATION check (Safety)
+        if (playerData.dailyChallenge) {
+             if(playerData.dailyChallenge.date === today && playerData.dailyChallenge.id) {
+                 playerData.dailyChallenges = [playerData.dailyChallenge];
+             } else {
+                 playerData.dailyChallenges = [];
+             }
+             delete playerData.dailyChallenge;
+        }
+
+        if (!playerData.dailyChallenges || playerData.dailyChallenges.length === 0 || playerData.dailyChallenges[0].date !== today) {
+            const pool = [...DAILY_CHALLENGES];
+            const newChallenges = [];
+            // Pick 5 unique
+            for(let i=0; i<5; i++) {
+                if(pool.length === 0) break;
+                const r = Math.floor(Math.random() * pool.length);
+                const c = pool[r];
+                pool.splice(r, 1);
+                newChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
+            }
+            playerData.dailyChallenges = newChallenges;
             saveData();
+        }
+    }
+
+    function initWeeklyChallenge() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+        const weekId = `W${week}-${now.getFullYear()}`;
+
+        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length === 0 || playerData.weeklyChallenges[0].weekId !== weekId) {
+             const pool = [...WEEKLY_CHALLENGES];
+             const newChallenges = [];
+             for(let i=0; i<5; i++) {
+                 if(pool.length === 0) break;
+                 const r = Math.floor(Math.random() * pool.length);
+                 const c = pool[r];
+                 pool.splice(r, 1);
+                 newChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
+             }
+             playerData.weeklyChallenges = newChallenges;
+             saveData();
         }
     }
 
@@ -3528,6 +3638,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('shopUI').style.display = 'none';
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
         saveContext(game1);
     }
@@ -3600,6 +3711,60 @@ let lastDisplayedContestTime = -1;
         // Force the tab to the relevant mode
         switchLeaderboardTab(pendingHighScore.mode);
     }
+
+    function checkDailyProgress(type, amount) {
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+    }
+
+    function updateChallenge(userC, type, amount, db) {
+        if(userC.claimed) return;
+        const def = db.find(d => d.id === userC.id);
+        if(!def) return;
+
+        if(def.type === type) {
+            let completed = false;
+            if(type.includes('streak') || type.includes('score') || type === 'sur_la_ligne' || type.includes('makes')) {
+                 if(type === 'streak') {
+                     if(amount >= def.target) { userC.progress = def.target; completed = true; }
+                 } else {
+                     userC.progress += amount;
+                     if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                     else saveData();
+                 }
+            } else {
+                 userC.progress += amount;
+                 if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                 else saveData();
+            }
+
+            if(completed && !userC.completedNotified) {
+                 userC.completedNotified = true;
+                 saveData();
+                 showNotification("DÉFI TERMINÉ !", 0);
+            }
+        }
+    }
+
+    window.claimChallenge = function(index, isWeekly) {
+        loadContext(game1);
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const c = list[index];
+        const def = db.find(d => d.id === c.id);
+
+        if(c && !c.claimed && c.progress >= def.target) {
+            c.claimed = true;
+            playerData.tacos += def.reward;
+            saveData();
+            updateUI();
+            AudioSystem.playSwish();
+            showNotification("RÉCOMPENSE !", def.reward);
+            renderChallenges(isWeekly ? 'weekly' : 'daily');
+        }
+        saveContext(game1);
+    }
+
     var isSplitscreen = false;
 
     // Define the default/initial state factory
@@ -3647,7 +3812,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.state = state;
         ctxObj.preJumpTimer = preJumpTimer;
         ctxObj.feedback = feedback;
-        ctxObj.feedbackTimer = feedbackTimer;
+        ctxObj.feedbackTimer = ctxObj.feedbackTimer;
         // Deep copy player3D to avoid reference issues if replaced?
         // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
         // But the global 'player3D' variable holds the reference.
@@ -3739,6 +3904,71 @@ let lastDisplayedContestTime = -1;
 
     // Initialize Game 1 with current globals immediately
     saveContext(game1);
+
+    window.closeChallenges = function() { window.closeAllMenus(); }
+
+    window.openChallenges = function() {
+        if(window.closeControlsMenu) window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'CHALLENGES';
+        if(isSplitscreen) { loadContext(game2); state = 'CHALLENGES'; saveContext(game2); loadContext(game1); }
+
+        document.getElementById('challengesUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+
+        switchChallengeTab('daily');
+        saveContext(game1);
+    }
+
+    window.switchChallengeTab = function(tab) {
+        document.getElementById('btnChalDaily').className = tab === 'daily' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnChalWeekly').className = tab === 'weekly' ? 'lb-tab active' : 'lb-tab';
+        renderChallenges(tab);
+    }
+
+    window.renderChallenges = function(tab) {
+        const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const container = document.getElementById('challengeList');
+        container.innerHTML = '';
+
+        if(!list || list.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Aucun défi.</div>';
+            return;
+        }
+
+        list.forEach((c, idx) => {
+            const def = db.find(d => d.id === c.id);
+            if(!def) return;
+            const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
+            const isDone = c.progress >= def.target;
+
+            const div = document.createElement('div');
+            div.className = 'challenge-row';
+            div.innerHTML = `
+                <div style="flex-grow:1; text-align:left;">
+                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
+                    <div class="challenge-progress-bg">
+                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
+                    </div>
+                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
+                </div>
+                <div style="text-align:right; margin-left:10px; min-width:80px;">
+                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
+                    ${c.claimed ?
+                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
+                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
+                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
 
     // P2 Setup (Separate Profile)
     game2.playerData = createDefaultData();
@@ -11985,11 +12215,13 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
         if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
         if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
+        if(state === 'CHALLENGES') { if(e.code === 'Escape') { loadContext(game1); window.closeAllMenus(); return; } }
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
         if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
+        if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
         // P1 Action
         if (e.code === 'Space' && !spacePressed) {

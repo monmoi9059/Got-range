@@ -306,7 +306,7 @@ let lastDisplayedContestTime = -1;
             stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
             purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-            dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
+            dailyChallenges: [], weeklyChallenges: [],
             unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
@@ -344,7 +344,12 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
-    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
+    if(!playerData.dailyChallenges) playerData.dailyChallenges = [];
+    if(!playerData.weeklyChallenges) playerData.weeklyChallenges = [];
+    if(playerData.dailyChallenge) { // Migration
+         if(playerData.dailyChallenge.id) playerData.dailyChallenges.push(playerData.dailyChallenge);
+         delete playerData.dailyChallenge;
+    }
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
@@ -391,8 +396,9 @@ let lastDisplayedContestTime = -1;
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
-    // Initialize Daily Challenge
+    // Initialize Challenges
     initDailyChallenge();
+    initWeeklyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
     var saveTimer = null;
@@ -414,17 +420,51 @@ let lastDisplayedContestTime = -1;
 
     function initDailyChallenge() {
         const today = new Date().toDateString();
-        // Reset if date changed or if data is missing/corrupt
-        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
-            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
-            const challenge = DAILY_CHALLENGES[randomIndex];
-            playerData.dailyChallenge = {
-                date: today,
-                id: challenge.id,
-                progress: 0,
-                claimed: false
-            };
+
+        // MIGRATION check (Safety)
+        if (playerData.dailyChallenge) {
+             if(playerData.dailyChallenge.date === today && playerData.dailyChallenge.id) {
+                 playerData.dailyChallenges = [playerData.dailyChallenge];
+             } else {
+                 playerData.dailyChallenges = [];
+             }
+             delete playerData.dailyChallenge;
+        }
+
+        if (!playerData.dailyChallenges || playerData.dailyChallenges.length === 0 || playerData.dailyChallenges[0].date !== today) {
+            const pool = [...DAILY_CHALLENGES];
+            const newChallenges = [];
+            // Pick 5 unique
+            for(let i=0; i<5; i++) {
+                if(pool.length === 0) break;
+                const r = Math.floor(Math.random() * pool.length);
+                const c = pool[r];
+                pool.splice(r, 1);
+                newChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
+            }
+            playerData.dailyChallenges = newChallenges;
             saveData();
+        }
+    }
+
+    function initWeeklyChallenge() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+        const weekId = `W${week}-${now.getFullYear()}`;
+
+        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length === 0 || playerData.weeklyChallenges[0].weekId !== weekId) {
+             const pool = [...WEEKLY_CHALLENGES];
+             const newChallenges = [];
+             for(let i=0; i<5; i++) {
+                 if(pool.length === 0) break;
+                 const r = Math.floor(Math.random() * pool.length);
+                 const c = pool[r];
+                 pool.splice(r, 1);
+                 newChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
+             }
+             playerData.weeklyChallenges = newChallenges;
+             saveData();
         }
     }
 
@@ -469,6 +509,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('shopUI').style.display = 'none';
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
         saveContext(game1);
     }
@@ -541,6 +582,60 @@ let lastDisplayedContestTime = -1;
         // Force the tab to the relevant mode
         switchLeaderboardTab(pendingHighScore.mode);
     }
+
+    function checkDailyProgress(type, amount) {
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+    }
+
+    function updateChallenge(userC, type, amount, db) {
+        if(userC.claimed) return;
+        const def = db.find(d => d.id === userC.id);
+        if(!def) return;
+
+        if(def.type === type) {
+            let completed = false;
+            if(type.includes('streak') || type.includes('score') || type === 'sur_la_ligne' || type.includes('makes')) {
+                 if(type === 'streak') {
+                     if(amount >= def.target) { userC.progress = def.target; completed = true; }
+                 } else {
+                     userC.progress += amount;
+                     if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                     else saveData();
+                 }
+            } else {
+                 userC.progress += amount;
+                 if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                 else saveData();
+            }
+
+            if(completed && !userC.completedNotified) {
+                 userC.completedNotified = true;
+                 saveData();
+                 showNotification("DÉFI TERMINÉ !", 0);
+            }
+        }
+    }
+
+    window.claimChallenge = function(index, isWeekly) {
+        loadContext(game1);
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const c = list[index];
+        const def = db.find(d => d.id === c.id);
+
+        if(c && !c.claimed && c.progress >= def.target) {
+            c.claimed = true;
+            playerData.tacos += def.reward;
+            saveData();
+            updateUI();
+            AudioSystem.playSwish();
+            showNotification("RÉCOMPENSE !", def.reward);
+            renderChallenges(isWeekly ? 'weekly' : 'daily');
+        }
+        saveContext(game1);
+    }
+
     var isSplitscreen = false;
 
     // Define the default/initial state factory
@@ -588,7 +683,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.state = state;
         ctxObj.preJumpTimer = preJumpTimer;
         ctxObj.feedback = feedback;
-        ctxObj.feedbackTimer = feedbackTimer;
+        ctxObj.feedbackTimer = ctxObj.feedbackTimer;
         // Deep copy player3D to avoid reference issues if replaced?
         // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
         // But the global 'player3D' variable holds the reference.
@@ -680,6 +775,71 @@ let lastDisplayedContestTime = -1;
 
     // Initialize Game 1 with current globals immediately
     saveContext(game1);
+
+    window.closeChallenges = function() { window.closeAllMenus(); }
+
+    window.openChallenges = function() {
+        if(window.closeControlsMenu) window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'CHALLENGES';
+        if(isSplitscreen) { loadContext(game2); state = 'CHALLENGES'; saveContext(game2); loadContext(game1); }
+
+        document.getElementById('challengesUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+
+        switchChallengeTab('daily');
+        saveContext(game1);
+    }
+
+    window.switchChallengeTab = function(tab) {
+        document.getElementById('btnChalDaily').className = tab === 'daily' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnChalWeekly').className = tab === 'weekly' ? 'lb-tab active' : 'lb-tab';
+        renderChallenges(tab);
+    }
+
+    window.renderChallenges = function(tab) {
+        const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const container = document.getElementById('challengeList');
+        container.innerHTML = '';
+
+        if(!list || list.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Aucun défi.</div>';
+            return;
+        }
+
+        list.forEach((c, idx) => {
+            const def = db.find(d => d.id === c.id);
+            if(!def) return;
+            const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
+            const isDone = c.progress >= def.target;
+
+            const div = document.createElement('div');
+            div.className = 'challenge-row';
+            div.innerHTML = `
+                <div style="flex-grow:1; text-align:left;">
+                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
+                    <div class="challenge-progress-bg">
+                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
+                    </div>
+                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
+                </div>
+                <div style="text-align:right; margin-left:10px; min-width:80px;">
+                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
+                    ${c.claimed ?
+                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
+                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
+                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
 
     // P2 Setup (Separate Profile)
     game2.playerData = createDefaultData();
