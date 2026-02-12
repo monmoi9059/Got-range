@@ -4968,6 +4968,9 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
             if (activeSleeveColor) {
                 fColor = activeSleeveColor;
+                if (skinObj.sleeveColor && uColor === skinTone) {
+                     uColor = activeSleeveColor;
+                }
             }
 
             let uZ = angle1_z || 0;
