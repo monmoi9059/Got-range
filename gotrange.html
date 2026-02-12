@@ -730,6 +730,11 @@
             <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
             <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
 
+            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">PANTALONS</h3>
+            <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
+            <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+            <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
+
             <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
             <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
             <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
@@ -1585,6 +1590,25 @@
         { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
         { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
         { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+    ];
+
+    var PANTS_DB = [
+        { id: 'pants_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+        { id: 'pants_jeans', name: 'Jeans Bleus', cost: 500, type: 'long', color: '#000080' },
+        { id: 'pants_jeans_black', name: 'Jeans Noirs', cost: 500, type: 'long', color: '#111' },
+        { id: 'pants_khaki', name: 'Chinos', cost: 750, type: 'long', color: '#F0E68C' },
+        { id: 'pants_camo', name: 'Treillis Camo', cost: 1000, type: 'long', color: '#556B2F' },
+        { id: 'pants_joggers_grey', name: 'Joggers Gris', cost: 750, type: 'long', color: '#808080' },
+        { id: 'pants_joggers_red', name: 'Joggers Rouges', cost: 750, type: 'long', color: '#FF0000' },
+        { id: 'pants_track_blue', name: 'Survêt Bleu', cost: 1000, type: 'long', color: '#0000FF' },
+        { id: 'pants_shorts_denim', name: 'Shorts Jeans', cost: 500, type: 'short', color: '#000080' },
+        { id: 'pants_shorts_white', name: 'Shorts Blancs', cost: 500, type: 'short', color: '#FFF' },
+        { id: 'pants_shorts_black', name: 'Shorts Noirs', cost: 500, type: 'short', color: '#000' },
+        { id: 'pants_shorts_red', name: 'Shorts Rouges', cost: 500, type: 'short', color: '#FF0000' },
+        { id: 'pants_shorts_camo', name: 'Shorts Camo', cost: 750, type: 'short', color: '#556B2F' },
+        { id: 'pants_leggings', name: 'Leggings', cost: 1000, type: 'tights', color: '#000' },
+        { id: 'pants_skirt_plaid', name: 'Kilt Écossais', cost: 1500, type: 'short', color: '#CC0000' }, // Treated as short pants for rendering logic
+        { id: 'pants_gold', name: 'Pantalons Or', cost: 5000, type: 'long', color: '#FFD700' }
     ];
 
     var SHOES_DB = [
@@ -2922,6 +2946,7 @@
     let viewingHairstyleIndex = 0;
     let viewingClothingIndex = 0;
     let viewingHatIndex = 0;
+    let viewingPantsIndex = 0;
     let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
@@ -2974,6 +2999,7 @@ let lastDisplayedContestTime = -1;
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
+            unlockedPants: ['pants_none'], currentPants: 'pants_none',
             unlockedShoes: ['shoe_none'], currentShoes: 'shoe_none',
             customHairColorIndex: 0, customHairLength: 1.0,
             mobileControls: false, platformChosen: false,
@@ -3014,6 +3040,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.currentHat) playerData.currentHat = 'hat_none';
     if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
     if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
+    if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+    if(!playerData.currentPants) playerData.currentPants = 'pants_none';
     if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
     if(!playerData.currentShoes) playerData.currentShoes = 'shoe_none';
     if(typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
@@ -3229,7 +3257,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, hat: 0, shoe: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -3276,6 +3304,7 @@ let lastDisplayedContestTime = -1;
             skin: viewingSkinIndex,
             hair: viewingHairstyleIndex,
             clothing: viewingClothingIndex,
+            pants: viewingPantsIndex,
             hat: viewingHatIndex,
             shoe: viewingShoeIndex,
             ball: viewingBallIndex,
@@ -3322,6 +3351,7 @@ let lastDisplayedContestTime = -1;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
             viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
             viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
+            viewingPantsIndex = ctxObj.viewingIndices.pants || 0;
             viewingHatIndex = ctxObj.viewingIndices.hat || 0;
             viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
@@ -5893,6 +5923,20 @@ var BallRenderer = {
                      // Emoji
                      const emojiIndex = Math.floor(rand * CROWD_EMOJIS.length);
                      ctx.fillText(CROWD_EMOJIS[emojiIndex], hx, hy);
+                 }
+             }
+        }
+
+        // Apply Pants Overrides
+        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             if (pants) {
+                 skinObj.shortsColor = pants.color;
+                 if (pants.type === 'long' || pants.type === 'tights') {
+                     skinObj.legType = pants.type === 'long' ? 'pants' : 'tights';
+                 } else {
+                     skinObj.legType = 'shorts'; // Default
                  }
              }
         }
@@ -9473,9 +9517,10 @@ var BallRenderer = {
 
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
+        const widthFactor = (sizeMod.w || 1.0); // Factor for dynamic leg spacing
 
         // Dynamic Shoulder Width (Scaling with Body Width)
-        const shoulderScale = (sizeMod.w || 1.0) * (sizeMod.shoulderWidth || 1.0);
+        const shoulderScale = widthFactor * (sizeMod.shoulderWidth || 1.0);
         let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
 
         // Extra Broad for Hulk/Strong types (Shirtless = Broad)
@@ -9716,27 +9761,28 @@ var BallRenderer = {
         drawSegmentedArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
         // 2. Legs (Base implementation)
+        // Apply widthFactor to knees/feet to ensure stance scales with body width
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
 
         if (isSitting) {
              // Sitting Pose: Knees wide, Feet forward/central
-             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
-             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
-             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
-             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
+             lKneeX = p.x - 20*s*stanceMod*widthFactor; lKneeY = p.y - 5*s;
+             rKneeX = p.x + 20*s*stanceMod*widthFactor; rKneeY = p.y - 5*s;
+             lFootX = p.x - 12*s*widthFactor; lFootY = p.y + 5*s;
+             rFootX = p.x + 12*s*widthFactor; rFootY = p.y + 5*s;
         } else if (isCrouching) {
              // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 15*s*stanceMod*widthFactor; lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + 15*s*stanceMod*widthFactor; rKneeY = p.y - legLen * 0.3;
+             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
         } else {
              // Standing
              const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 9*s*stanceMod*widthFactor; lKneeY = baseKneeY;
+             rKneeX = p.x + 9*s*stanceMod*widthFactor; rKneeY = baseKneeY;
+             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
         }
 
         // Dirk Kick Logic
@@ -13263,6 +13309,31 @@ var BallRenderer = {
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changePants = function(dir) {
+        loadContext(getShopContext());
+        viewingPantsIndex += dir;
+        if(viewingPantsIndex < 0) viewingPantsIndex = PANTS_DB.length - 1;
+        if(viewingPantsIndex >= PANTS_DB.length) viewingPantsIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipPants = function() {
+        loadContext(getShopContext());
+        const pants = PANTS_DB[viewingPantsIndex];
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+
+        const isUnlocked = playerData.unlockedPants.includes(pants.id);
+        if (isUnlocked) {
+            playerData.currentPants = pants.id;
+        } else if (playerData.tacos >= pants.cost) {
+            playerData.tacos -= pants.cost;
+            playerData.unlockedPants.push(pants.id);
+            playerData.currentPants = pants.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
     window.changeHairstyle = function(dir) {
         loadContext(getShopContext());
         viewingHairstyleIndex += dir;
@@ -13421,6 +13492,12 @@ var BallRenderer = {
         if(playerData.currentClothing) {
             viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
             if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+        }
+
+        // Pants
+        if(playerData.currentPants) {
+            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
+            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
         }
 
         // Hat
@@ -13844,6 +13921,19 @@ var BallRenderer = {
         if (isEquippedClothing) { statusClothing.innerText = "Équipé"; btnClothing.style.display = 'none'; }
         else if (isUnlockedClothing) { statusClothing.innerText = "Possédé"; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Équiper"; btnClothing.disabled = false; }
         else { statusClothing.innerText = `Coût: ${clothing.cost} Tacos`; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Acheter"; btnClothing.disabled = playerData.tacos < clothing.cost; }
+
+        // Pants UI
+        const pants = PANTS_DB[viewingPantsIndex];
+        document.getElementById('pantsName').innerText = pants.name;
+        const btnPants = document.getElementById('btnEquipPants');
+        const statusPants = document.getElementById('pantsStatus');
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+        const isUnlockedPants = playerData.unlockedPants.includes(pants.id);
+        const isEquippedPants = playerData.currentPants === pants.id;
+
+        if (isEquippedPants) { statusPants.innerText = "Équipé"; btnPants.style.display = 'none'; }
+        else if (isUnlockedPants) { statusPants.innerText = "Possédé"; btnPants.style.display = 'inline-block'; btnPants.innerText = "Équiper"; btnPants.disabled = false; }
+        else { statusPants.innerText = `Coût: ${pants.cost} Tacos`; btnPants.style.display = 'inline-block'; btnPants.innerText = "Acheter"; btnPants.disabled = playerData.tacos < pants.cost; }
 
         // Hat UI
         const hat = HATS_DB[viewingHatIndex];

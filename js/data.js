@@ -627,6 +627,25 @@
         { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
     ];
 
+    var PANTS_DB = [
+        { id: 'pants_none', name: 'Aucun (Défaut)', cost: 0, type: 'none' },
+        { id: 'pants_jeans', name: 'Jeans Bleus', cost: 500, type: 'long', color: '#000080' },
+        { id: 'pants_jeans_black', name: 'Jeans Noirs', cost: 500, type: 'long', color: '#111' },
+        { id: 'pants_khaki', name: 'Chinos', cost: 750, type: 'long', color: '#F0E68C' },
+        { id: 'pants_camo', name: 'Treillis Camo', cost: 1000, type: 'long', color: '#556B2F' },
+        { id: 'pants_joggers_grey', name: 'Joggers Gris', cost: 750, type: 'long', color: '#808080' },
+        { id: 'pants_joggers_red', name: 'Joggers Rouges', cost: 750, type: 'long', color: '#FF0000' },
+        { id: 'pants_track_blue', name: 'Survêt Bleu', cost: 1000, type: 'long', color: '#0000FF' },
+        { id: 'pants_shorts_denim', name: 'Shorts Jeans', cost: 500, type: 'short', color: '#000080' },
+        { id: 'pants_shorts_white', name: 'Shorts Blancs', cost: 500, type: 'short', color: '#FFF' },
+        { id: 'pants_shorts_black', name: 'Shorts Noirs', cost: 500, type: 'short', color: '#000' },
+        { id: 'pants_shorts_red', name: 'Shorts Rouges', cost: 500, type: 'short', color: '#FF0000' },
+        { id: 'pants_shorts_camo', name: 'Shorts Camo', cost: 750, type: 'short', color: '#556B2F' },
+        { id: 'pants_leggings', name: 'Leggings', cost: 1000, type: 'tights', color: '#000' },
+        { id: 'pants_skirt_plaid', name: 'Kilt Écossais', cost: 1500, type: 'short', color: '#CC0000' }, // Treated as short pants for rendering logic
+        { id: 'pants_gold', name: 'Pantalons Or', cost: 5000, type: 'long', color: '#FFD700' }
+    ];
+
     var SHOES_DB = [
         { id: 'shoe_none', name: 'Aucun (Pieds nus)', cost: 0, type: 'none' },
         { id: 'shoe_sneakers_white', name: 'Baskets Blanches', cost: 500, type: 'sneakers', color: '#FFF' },

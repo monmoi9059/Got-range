@@ -2515,6 +2515,20 @@ var BallRenderer = {
              }
         }
 
+        // Apply Pants Overrides
+        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             if (pants) {
+                 skinObj.shortsColor = pants.color;
+                 if (pants.type === 'long' || pants.type === 'tights') {
+                     skinObj.legType = pants.type === 'long' ? 'pants' : 'tights';
+                 } else {
+                     skinObj.legType = 'shorts'; // Default
+                 }
+             }
+        }
+
         else if (type.startsWith('landmark_')) {
              const s = p.scale;
              const color = variant.color || '#888';
@@ -6091,9 +6105,10 @@ var BallRenderer = {
 
         // Stance modifier for shoulder width and hip width
         const stanceMod = sizeMod.stance || 1.0;
+        const widthFactor = (sizeMod.w || 1.0); // Factor for dynamic leg spacing
 
         // Dynamic Shoulder Width (Scaling with Body Width)
-        const shoulderScale = (sizeMod.w || 1.0) * (sizeMod.shoulderWidth || 1.0);
+        const shoulderScale = widthFactor * (sizeMod.shoulderWidth || 1.0);
         let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
 
         // Extra Broad for Hulk/Strong types (Shirtless = Broad)
@@ -6334,27 +6349,28 @@ var BallRenderer = {
         drawSegmentedArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
         // 2. Legs (Base implementation)
+        // Apply widthFactor to knees/feet to ensure stance scales with body width
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
 
         if (isSitting) {
              // Sitting Pose: Knees wide, Feet forward/central
-             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
-             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
-             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
-             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
+             lKneeX = p.x - 20*s*stanceMod*widthFactor; lKneeY = p.y - 5*s;
+             rKneeX = p.x + 20*s*stanceMod*widthFactor; rKneeY = p.y - 5*s;
+             lFootX = p.x - 12*s*widthFactor; lFootY = p.y + 5*s;
+             rFootX = p.x + 12*s*widthFactor; rFootY = p.y + 5*s;
         } else if (isCrouching) {
              // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 15*s*stanceMod*widthFactor; lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + 15*s*stanceMod*widthFactor; rKneeY = p.y - legLen * 0.3;
+             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
         } else {
              // Standing
              const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 9*s*stanceMod*widthFactor; lKneeY = baseKneeY;
+             rKneeX = p.x + 9*s*stanceMod*widthFactor; rKneeY = baseKneeY;
+             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
+             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
         }
 
         // Dirk Kick Logic

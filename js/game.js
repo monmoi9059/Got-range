@@ -1421,6 +1421,31 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changePants = function(dir) {
+        loadContext(getShopContext());
+        viewingPantsIndex += dir;
+        if(viewingPantsIndex < 0) viewingPantsIndex = PANTS_DB.length - 1;
+        if(viewingPantsIndex >= PANTS_DB.length) viewingPantsIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipPants = function() {
+        loadContext(getShopContext());
+        const pants = PANTS_DB[viewingPantsIndex];
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+
+        const isUnlocked = playerData.unlockedPants.includes(pants.id);
+        if (isUnlocked) {
+            playerData.currentPants = pants.id;
+        } else if (playerData.tacos >= pants.cost) {
+            playerData.tacos -= pants.cost;
+            playerData.unlockedPants.push(pants.id);
+            playerData.currentPants = pants.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
     window.changeHairstyle = function(dir) {
         loadContext(getShopContext());
         viewingHairstyleIndex += dir;
@@ -1579,6 +1604,12 @@
         if(playerData.currentClothing) {
             viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
             if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+        }
+
+        // Pants
+        if(playerData.currentPants) {
+            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
+            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
         }
 
         // Hat
@@ -2002,6 +2033,19 @@
         if (isEquippedClothing) { statusClothing.innerText = "Équipé"; btnClothing.style.display = 'none'; }
         else if (isUnlockedClothing) { statusClothing.innerText = "Possédé"; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Équiper"; btnClothing.disabled = false; }
         else { statusClothing.innerText = `Coût: ${clothing.cost} Tacos`; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Acheter"; btnClothing.disabled = playerData.tacos < clothing.cost; }
+
+        // Pants UI
+        const pants = PANTS_DB[viewingPantsIndex];
+        document.getElementById('pantsName').innerText = pants.name;
+        const btnPants = document.getElementById('btnEquipPants');
+        const statusPants = document.getElementById('pantsStatus');
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+        const isUnlockedPants = playerData.unlockedPants.includes(pants.id);
+        const isEquippedPants = playerData.currentPants === pants.id;
+
+        if (isEquippedPants) { statusPants.innerText = "Équipé"; btnPants.style.display = 'none'; }
+        else if (isUnlockedPants) { statusPants.innerText = "Possédé"; btnPants.style.display = 'inline-block'; btnPants.innerText = "Équiper"; btnPants.disabled = false; }
+        else { statusPants.innerText = `Coût: ${pants.cost} Tacos`; btnPants.style.display = 'inline-block'; btnPants.innerText = "Acheter"; btnPants.disabled = playerData.tacos < pants.cost; }
 
         // Hat UI
         const hat = HATS_DB[viewingHatIndex];
