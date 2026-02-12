@@ -6358,7 +6358,7 @@ var BallRenderer = {
         // Updated: Offsets now scale with widthFactor to preserve leg angle (stance) for wider characters.
 
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
-        const spreadScale = Math.max(1.0, widthFactor);
+        const spreadScale = widthFactor;
 
         if (isSitting) {
              // Sitting Pose: Knees wide, Feet forward/central
