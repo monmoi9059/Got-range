@@ -15,6 +15,11 @@ def verify_hud(page):
     # Wait for game to initialize (IDLE state)
     page.wait_for_timeout(1000)
 
+    # Open Menu if hidden
+    if page.is_visible(".controls-menu-toggle"):
+        page.click(".controls-menu-toggle")
+        page.wait_for_timeout(500)
+
     # By default it's CLASSIC mode.
     # Take a screenshot of Classic for reference
     page.screenshot(path="verification_classic.png")

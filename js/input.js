@@ -281,11 +281,13 @@
         if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
         if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
         if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
+        if(state === 'CHALLENGES') { if(e.code === 'Escape') { loadContext(game1); window.closeAllMenus(); return; } }
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
         if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
+        if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
         // P1 Action
         if (e.code === 'Space' && !spacePressed) {
