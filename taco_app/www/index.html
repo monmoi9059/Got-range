@@ -8366,6 +8366,9 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
             if (activeSleeveColor) {
                 fColor = activeSleeveColor;
+                if (skinObj.sleeveColor) {
+                     uColor = activeSleeveColor;
+                }
             }
 
             let uZ = angle1_z || 0;
@@ -8375,11 +8378,25 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
+            // Force sleeve color for long-sleeved types (Double-check overwrite)
+            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
+
+            // Draw Base Joint (Skin or Sleeve)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, effUpper, angle1);
             const upperTattoos = skinObj.tattoos && !activeSleeveColor;
+
+            // Draw Upper Arm (Base)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
+
+            // FORCE SLEEVE LAYER (If long sleeve is detected, draw OVER the arm)
+            if (isLongSleeveItem && activeSleeveColor) {
+                 // Draw Sleeve Joint
+                 drawJoint(sx, sy, 4.2*s*sizeMod.armWidth, activeSleeveColor, false);
+                 // Draw Sleeve Limb (slightly wider to cover skin)
+                 drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
+            }
 
             if (activeSleeveColor) {
                  const midX = (sx + elbow.x) / 2;
@@ -9291,30 +9308,48 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const isShadow = (p.type === 'player_shadow');
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
-            const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
             const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
 
+            // 1. Determine Base Colors based on Clothing
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
-            let activeSleeveColor = null;
+            let upperIsCovered = false; // By clothing
+            let foreIsCovered = false;  // By clothing
 
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+            if (skinObj.clothing) {
+                const c = skinObj.clothing;
+                if (c.type === 'tshirt') {
+                    thisUpperColor = c.color; // T-Shirt covers upper arm
+                    thisForeColor = furColor; // Forearm exposed
+                    upperIsCovered = true;
+                } else if (['track', 'hoodie', 'sweatshirt'].includes(c.type)) {
+                    // Long sleeves cover both
+                    const sColor = c.sleeveColor || c.color;
+                    thisUpperColor = sColor;
+                    thisForeColor = sColor;
+                    upperIsCovered = true;
+                    foreIsCovered = true;
+                }
+            } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
                 thisUpperColor = torsoColor;
+                upperIsCovered = true;
             }
 
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                activeSleeveColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                activeSleeveColor = skinObj.sleeveLeft;
-            }
+            // 2. Accessory Overrides (Compression Sleeves)
+            let activeSleeveColor = null;
+            if(isRight && skinObj.sleeveRight) activeSleeveColor = skinObj.sleeveRight;
+            if(!isRight && skinObj.sleeveLeft) activeSleeveColor = skinObj.sleeveLeft;
 
             if (activeSleeveColor) {
                 thisForeColor = activeSleeveColor;
+                foreIsCovered = true;
             }
+
+            // 3. Determine Fuzziness per segment
+            const upperFurry = isFurry && !upperIsCovered && (thisUpperColor === furColor);
+            const foreFurry = isFurry && !foreIsCovered && (thisForeColor === furColor);
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
@@ -9329,14 +9364,6 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
             // Shadow Logic: Show full length (projected to ground) to imply depth
             if (isShadow) {
-                // If shadow, we ignore the Z-shortening because the shadow
-                // of a forward-reaching arm (parallel to ground) is full length.
-                // However, our Z-angle is "angle from screen plane".
-                // If Z=90, arm is pointing at camera (horizontal). Shadow is full length.
-                // If Z=0, arm is parallel to screen (horizontal). Shadow is full length.
-                // What if arm is pointing UP? That's controlled by angle1 (X/Y).
-                // If angle1 is -PI/2 (UP), and Z=0, arm is vertical. Shadow is short (blob).
-                // So, we should use uFactor = 1.0 for shadow pass?
                 uFactor = 1.0;
                 fFactor = 1.0;
             }
@@ -9347,13 +9374,13 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             let elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
 
             // Shoulder Joint (Radius = Half Width for seamless look)
-            if(!armFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
+            if(!upperFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
             else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
 
             // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, upperFurry, seedBase, upperEndW);
 
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
+            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow) - ACCESORY OVERLAY
             if (activeSleeveColor) {
                 const midX = (sx + elbow.x) / 2;
                 const midY = (sy + elbow.y) / 2;
@@ -9365,26 +9392,30 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
 
             // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, foreFurry, seedBase + 1, foreEndW);
 
             // Elbow Joint (Radius = Half Width)
             let elbowColor = thisUpperColor;
             if (activeSleeveColor) {
                 elbowColor = activeSleeveColor;
-            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
-                elbowColor = thisUpperColor; // Sleeve covers elbow
-            } else if (thisUpperColor === furColor) {
+            } else if (upperIsCovered && !foreIsCovered) {
+                // T-Shirt Case: Elbow should probably match shirt to look like sleeve end?
+                // Or skin if it ends higher. Let's stick to shirt color for continuity.
+                elbowColor = thisUpperColor;
+            } else if (upperIsCovered && foreIsCovered) {
+                elbowColor = thisUpperColor;
+            } else {
                 elbowColor = furColor;
             }
 
-            const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
+            const isElbowCovered = upperIsCovered || foreIsCovered || activeSleeveColor;
+            if(isElbowCovered || !isFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
             else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
             // Paw / Hand
-            if (armFurry && !activeSleeveColor) {
+            if (foreFurry) {
                  // Fuzzy Paw
                  const pawColor = thisForeColor;
                  drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
