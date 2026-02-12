@@ -187,65 +187,74 @@
             background: #444;
         }
 
-        /* Modals Remaster */
+        /* Modals Remaster - Compact Side Panel */
         .modal {
             display: none;
             position: absolute;
-            top: 50%;
-            right: 5%; /* Moved to right */
-            left: auto; /* Reset left */
-            transform: translateY(-50%); /* Only center vertically */
-            width: 400px; /* Reduced width to fit on side better */
-            max-height: 85%;
-            overflow-y: auto;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: auto;
+            transform: none;
+            width: 45%; /* Default width */
+            max-width: 500px;
+            height: 100%;
+            overflow: hidden; /* NEVER SCROLL CONTAINER */
             background: #111;
-            border: 2px solid var(--broadcast-accent);
-            padding: 0; /* Removing padding to use header fully */
+            border: none;
+            border-left: 3px solid var(--broadcast-accent);
+            padding: 0;
             color: white;
             text-align: center;
             z-index: 100;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9);
-            border-radius: 0; /* Sharp corners */
+            box-shadow: -10px 0 50px rgba(0,0,0,0.9);
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-content-wrapper {
-            padding: 25px;
+            padding: 10px;
+            flex: 1;
+            overflow: hidden; /* No scrolling in wrapper either, handle specific lists */
+            display: flex;
+            flex-direction: column;
         }
-
-        .modal::-webkit-scrollbar { width: 8px; }
-        .modal::-webkit-scrollbar-track { background: #222; }
-        .modal::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
 
         .modal-header {
             background: linear-gradient(90deg, #222, #111);
             color: var(--broadcast-accent);
-            padding: 15px;
-            font-size: 2.5em;
+            padding: 10px;
+            font-size: 1.8em; /* Smaller header */
             font-family: var(--broadcast-font-title);
             text-transform: uppercase;
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            flex-shrink: 0;
         }
 
+        /* Compact Elements */
         .upgrade-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #1a1a1a;
-            margin: 10px 0;
-            padding: 15px;
+            margin: 5px 0;
+            padding: 8px; /* Tighter padding */
             border: 1px solid #333;
             border-left: 4px solid #555;
+            font-size: 0.9em;
         }
         .difficulty-row {
             background: #1a1a1a;
             border: 1px solid var(--broadcast-accent);
-            margin: 15px 0;
-            padding: 15px;
+            margin: 10px 0;
+            padding: 10px;
             text-align: left;
+            font-size: 0.9em;
         }
-        input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: var(--broadcast-accent); }
+        input[type=range] { width: 100%; margin: 8px 0; cursor: pointer; accent-color: var(--broadcast-accent); height: 10px; }
 
         .ach-row {
             display: flex;
@@ -253,19 +262,20 @@
             align-items: center;
             background: #1a1a1a;
             border: 1px solid #333;
-            margin: 8px 0;
-            padding: 12px;
+            margin: 4px 0;
+            padding: 6px;
             opacity: 0.7;
             transition: 0.3s;
+            font-size: 0.8em; /* Small text */
         }
         .ach-row.unlocked {
             border-color: var(--broadcast-accent);
             background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
             opacity: 1;
-            border-left: 4px solid var(--broadcast-accent);
+            border-left: 3px solid var(--broadcast-accent);
         }
-        .ach-icon { font-size: 28px; margin-right: 15px; }
-        .ach-info h4 { margin: 0; color: #fff; font-family: var(--broadcast-font-body); font-size: 1.2em; text-transform: uppercase; }
+        .ach-icon { font-size: 20px; margin-right: 10px; }
+        .ach-info h4 { margin: 0; color: #fff; font-family: var(--broadcast-font-body); font-size: 1.1em; text-transform: uppercase; }
         .ach-row.unlocked .ach-info h4 { color: var(--broadcast-accent); }
         .ach-info span { font-size: 0.9em; color: #aaa; }
 
@@ -273,11 +283,11 @@
             background: #222;
             color: white;
             border: 1px solid #555;
-            padding: 8px 20px;
+            padding: 6px 12px; /* Compact buttons */
             cursor: pointer;
             font-family: var(--broadcast-font-body);
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px;
             text-transform: uppercase;
             transition: all 0.2s;
         }
@@ -288,27 +298,59 @@
             background: var(--broadcast-red);
             border: none;
             width: 100%;
-            padding: 15px;
-            font-size: 1.4em;
-            margin-top: 20px;
+            padding: 12px;
+            font-size: 1.2em;
+            margin-top: auto; /* Push to bottom */
+            flex-shrink: 0;
         }
         .btn-close:hover { background: #b71c1c; }
 
         .skin-viewer {
-            margin-top: 20px;
+            margin-top: 5px;
             border-top: 1px solid #333;
-            padding-top: 15px;
+            padding-top: 5px;
             background: #151515;
-            padding: 15px;
+            padding: 5px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Internal scroll if absolutely necessary, but minimized */
         }
         .skin-nav {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
-            margin: 10px 0;
+            gap: 8px;
+            margin: 4px 0;
         }
-        .selector-label { width: 180px; font-size: 1.4em; color: var(--broadcast-accent); font-weight: bold; text-transform: uppercase; font-family: var(--broadcast-font-title); }
+        .selector-label {
+            width: 140px;
+            font-size: 1.0em;
+            color: var(--broadcast-accent);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: var(--broadcast-font-title);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Pagination Controls */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: #111;
+            border-top: 1px solid #333;
+            margin-top: auto;
+        }
+        .page-indicator {
+            font-family: var(--broadcast-font-title);
+            color: #888;
+            font-size: 1.2em;
+        }
 
         #notification {
             position: absolute;

@@ -7402,6 +7402,19 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             }
         }
 
+        // UI Camera Offset (Shift player to left when menu is open)
+        if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS' || state === 'LEADERBOARD') {
+             const dx = HOOP_POS.x - player3D.x;
+             const dy = HOOP_POS.y - player3D.y;
+             const len = Math.sqrt(dx*dx + dy*dy) || 1;
+             // Right Vector: (dy, -dx)
+             const nx = dy / len;
+             const ny = -dx / len;
+             const offsetDist = 200; // Shift camera right, putting player left
+             targetX += nx * offsetDist;
+             targetY += ny * offsetDist;
+        }
+
         // Smooth Interpolation
         const lerp = 0.1;
         window.g_camSmooth.x += (targetX - window.g_camSmooth.x) * lerp;

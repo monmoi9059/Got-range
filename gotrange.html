@@ -201,65 +201,74 @@
             background: #444;
         }
 
-        /* Modals Remaster */
+        /* Modals Remaster - Compact Side Panel */
         .modal {
             display: none;
             position: absolute;
-            top: 50%;
-            right: 5%; /* Moved to right */
-            left: auto; /* Reset left */
-            transform: translateY(-50%); /* Only center vertically */
-            width: 400px; /* Reduced width to fit on side better */
-            max-height: 85%;
-            overflow-y: auto;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: auto;
+            transform: none;
+            width: 45%; /* Default width */
+            max-width: 500px;
+            height: 100%;
+            overflow: hidden; /* NEVER SCROLL CONTAINER */
             background: #111;
-            border: 2px solid var(--broadcast-accent);
-            padding: 0; /* Removing padding to use header fully */
+            border: none;
+            border-left: 3px solid var(--broadcast-accent);
+            padding: 0;
             color: white;
             text-align: center;
             z-index: 100;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9);
-            border-radius: 0; /* Sharp corners */
+            box-shadow: -10px 0 50px rgba(0,0,0,0.9);
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-content-wrapper {
-            padding: 25px;
+            padding: 10px;
+            flex: 1;
+            overflow: hidden; /* No scrolling in wrapper either, handle specific lists */
+            display: flex;
+            flex-direction: column;
         }
-
-        .modal::-webkit-scrollbar { width: 8px; }
-        .modal::-webkit-scrollbar-track { background: #222; }
-        .modal::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
 
         .modal-header {
             background: linear-gradient(90deg, #222, #111);
             color: var(--broadcast-accent);
-            padding: 15px;
-            font-size: 2.5em;
+            padding: 10px;
+            font-size: 1.8em; /* Smaller header */
             font-family: var(--broadcast-font-title);
             text-transform: uppercase;
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            flex-shrink: 0;
         }
 
+        /* Compact Elements */
         .upgrade-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #1a1a1a;
-            margin: 10px 0;
-            padding: 15px;
+            margin: 5px 0;
+            padding: 8px; /* Tighter padding */
             border: 1px solid #333;
             border-left: 4px solid #555;
+            font-size: 0.9em;
         }
         .difficulty-row {
             background: #1a1a1a;
             border: 1px solid var(--broadcast-accent);
-            margin: 15px 0;
-            padding: 15px;
+            margin: 10px 0;
+            padding: 10px;
             text-align: left;
+            font-size: 0.9em;
         }
-        input[type=range] { width: 100%; margin: 15px 0; cursor: pointer; accent-color: var(--broadcast-accent); }
+        input[type=range] { width: 100%; margin: 8px 0; cursor: pointer; accent-color: var(--broadcast-accent); height: 10px; }
 
         .ach-row {
             display: flex;
@@ -267,19 +276,20 @@
             align-items: center;
             background: #1a1a1a;
             border: 1px solid #333;
-            margin: 8px 0;
-            padding: 12px;
+            margin: 4px 0;
+            padding: 6px;
             opacity: 0.7;
             transition: 0.3s;
+            font-size: 0.8em; /* Small text */
         }
         .ach-row.unlocked {
             border-color: var(--broadcast-accent);
             background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
             opacity: 1;
-            border-left: 4px solid var(--broadcast-accent);
+            border-left: 3px solid var(--broadcast-accent);
         }
-        .ach-icon { font-size: 28px; margin-right: 15px; }
-        .ach-info h4 { margin: 0; color: #fff; font-family: var(--broadcast-font-body); font-size: 1.2em; text-transform: uppercase; }
+        .ach-icon { font-size: 20px; margin-right: 10px; }
+        .ach-info h4 { margin: 0; color: #fff; font-family: var(--broadcast-font-body); font-size: 1.1em; text-transform: uppercase; }
         .ach-row.unlocked .ach-info h4 { color: var(--broadcast-accent); }
         .ach-info span { font-size: 0.9em; color: #aaa; }
 
@@ -287,11 +297,11 @@
             background: #222;
             color: white;
             border: 1px solid #555;
-            padding: 8px 20px;
+            padding: 6px 12px; /* Compact buttons */
             cursor: pointer;
             font-family: var(--broadcast-font-body);
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px;
             text-transform: uppercase;
             transition: all 0.2s;
         }
@@ -302,27 +312,59 @@
             background: var(--broadcast-red);
             border: none;
             width: 100%;
-            padding: 15px;
-            font-size: 1.4em;
-            margin-top: 20px;
+            padding: 12px;
+            font-size: 1.2em;
+            margin-top: auto; /* Push to bottom */
+            flex-shrink: 0;
         }
         .btn-close:hover { background: #b71c1c; }
 
         .skin-viewer {
-            margin-top: 20px;
+            margin-top: 5px;
             border-top: 1px solid #333;
-            padding-top: 15px;
+            padding-top: 5px;
             background: #151515;
-            padding: 15px;
+            padding: 5px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Internal scroll if absolutely necessary, but minimized */
         }
         .skin-nav {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
-            margin: 10px 0;
+            gap: 8px;
+            margin: 4px 0;
         }
-        .selector-label { width: 180px; font-size: 1.4em; color: var(--broadcast-accent); font-weight: bold; text-transform: uppercase; font-family: var(--broadcast-font-title); }
+        .selector-label {
+            width: 140px;
+            font-size: 1.0em;
+            color: var(--broadcast-accent);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: var(--broadcast-font-title);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Pagination Controls */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            background: #111;
+            border-top: 1px solid #333;
+            margin-top: auto;
+        }
+        .page-indicator {
+            font-family: var(--broadcast-font-title);
+            color: #888;
+            font-size: 1.2em;
+        }
 
         #notification {
             position: absolute;
@@ -694,15 +736,14 @@
              </div>
         </div>
 
-        <div style="text-align:left; padding: 10px; font-size: 1.2em;">
-            <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
-            <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
-            <p style="overflow:hidden;">Ratés: <span id="statMisses" style="color:#FF0000; float:right">0</span></p>
-            <p style="overflow:hidden;">Précision: <span id="statAccuracy" style="color:#FFD700; float:right">0%</span></p>
-            <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
-            <hr style="border-color:#555; margin:15px 0;">
-            <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
-            <p style="overflow:hidden;">Record Time Attack: <span id="statTimeAttack" style="color:#FF4500; float:right">0</span></p>
+        <div style="text-align:left; padding: 5px; font-size: 0.9em; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            <div>Tirs: <span id="statShots" style="color:#FFF;">0</span></div>
+            <div>Paniers: <span id="statMakes" style="color:#00FF00;">0</span></div>
+            <div>Ratés: <span id="statMisses" style="color:#FF0000;">0</span></div>
+            <div>Précision: <span id="statAccuracy" style="color:#FFD700;">0%</span></div>
+            <div>Concours: <span id="statContests" style="color:#00FFFF;">0</span></div>
+            <div>Best: <span id="statBestDist" style="color:#FFD700;">0 pi</span></div>
+            <div style="grid-column: span 2;">Time Atk: <span id="statTimeAttack" style="color:#FF4500;">0</span></div>
         </div>
 
         <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
@@ -739,12 +780,14 @@
             </div>
         </div>
 
-        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
-        <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
-        <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
-        <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
-        <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px;">
+            <button id="btnReset" class="btn" style="background: #8B0000; border: 1px solid #ff4444; font-size: 0.8em;" onclick="attemptReset()">RESET</button>
+            <button id="btnUnlock" class="btn" style="background: #4B0082; border: 1px solid #9370DB; font-size: 0.8em;" onclick="unlockAllSkins()">UNLOCK ALL</button>
+            <button id="btnToggleMobile" class="btn" style="background: #006400; border: 1px solid #00FF00; font-size: 0.8em;" onclick="toggleMobileControls()">TOUCH: OFF</button>
+            <button id="btnToggleGraphics" class="btn" style="background: #006400; border: 1px solid #00FF00; font-size: 0.8em;" onclick="toggleGraphics()">QUAL: HAUTE</button>
+            <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; border: 1px solid #00CED1; font-size: 0.8em;" onclick="toggleMeter()">VISÉE: OUI</button>
+            <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; border: 1px solid #00CED1; font-size: 0.8em;" onclick="cycleMeterShape()">FORME: ARC</button>
+        </div>
         <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
@@ -818,48 +861,66 @@
         <!-- TAB: STYLE (Clothing/Hair) -->
         <div id="tab-style" class="shop-section">
             <div class="skin-viewer" style="margin-top:0;">
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">COIFFURE</h3>
-                <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
 
-                <!-- Global Hair Controls -->
-                <div style="background:#111; padding:10px; margin:10px 0; border:1px solid #333;">
-                    <div style="margin-bottom:5px;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                            <span>COULEUR</span>
-                        </div>
-                        <input type="range" id="sldCustomHairColor" min="0" max="26" step="1" value="0" oninput="updateCustomHairColor()">
-                        <div id="previewHairColor" style="width:100%; height:15px; background:#000000; border:1px solid #555; margin-top:5px;"></div>
-                    </div>
-                    <div style="margin-bottom:0px;">
-                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                            <span>LONGUEUR</span> <span id="lblCustomHairSize">100%</span>
-                        </div>
-                        <input type="range" id="sldCustomHairSize" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateCustomHairSize()">
-                    </div>
+                <!-- Category Navigation -->
+                <div class="style-cat-nav" style="display:flex; justify-content:center; align-items:center; margin-bottom:10px; background:#222; padding:5px;">
+                    <button class="btn" onclick="cycleStyleCategory(-1)">&lt;</button>
+                    <span id="styleCategoryLabel" class="selector-label" style="width:200px;">COIFFURE</span>
+                    <button class="btn" onclick="cycleStyleCategory(1)">&gt;</button>
                 </div>
 
-                <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-                <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
+                <!-- CAT: HAIR -->
+                <div id="cat-hair" class="style-category-content">
+                    <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
 
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
-                <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
-                <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-                <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
+                    <!-- Global Hair Controls -->
+                    <div style="background:#111; padding:5px; margin:5px 0; border:1px solid #333;">
+                        <div style="margin-bottom:5px;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                                <span>COULEUR</span>
+                            </div>
+                            <input type="range" id="sldCustomHairColor" min="0" max="26" step="1" value="0" oninput="updateCustomHairColor()">
+                            <div id="previewHairColor" style="width:100%; height:15px; background:#000000; border:1px solid #555; margin-top:5px;"></div>
+                        </div>
+                        <div style="margin-bottom:0px;">
+                            <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                                <span>LONGUEUR</span> <span id="lblCustomHairSize">100%</span>
+                            </div>
+                            <input type="range" id="sldCustomHairSize" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateCustomHairSize()">
+                        </div>
+                    </div>
 
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">PANTALONS</h3>
-                <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
-                <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-                <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
+                    <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                    <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
+                </div>
 
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
-                <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
-                <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-                <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
+                <!-- CAT: CLOTHING -->
+                <div id="cat-clothing" class="style-category-content" style="display:none;">
+                    <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
+                    <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                    <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
+                </div>
 
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAUSSURES</h3>
-                <div class="skin-nav"><button class="btn" onclick="changeShoes(-1)">&lt;</button><span id="shoeName" class="selector-label">Aucun</span><button class="btn" onclick="changeShoes(1)">&gt;</button></div>
-                <div id="shoeStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-                <button id="btnEquipShoe" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShoes()">Équiper</button>
+                <!-- CAT: PANTS -->
+                <div id="cat-pants" class="style-category-content" style="display:none;">
+                    <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
+                    <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                    <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
+                </div>
+
+                <!-- CAT: HATS -->
+                <div id="cat-hats" class="style-category-content" style="display:none;">
+                    <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
+                    <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                    <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
+                </div>
+
+                <!-- CAT: SHOES -->
+                <div id="cat-shoes" class="style-category-content" style="display:none;">
+                    <div class="skin-nav"><button class="btn" onclick="changeShoes(-1)">&lt;</button><span id="shoeName" class="selector-label">Aucun</span><button class="btn" onclick="changeShoes(1)">&gt;</button></div>
+                    <div id="shoeStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                    <button id="btnEquipShoe" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShoes()">Équiper</button>
+                </div>
             </div>
         </div>
 
@@ -886,8 +947,15 @@
 
     <div id="achUI" class="modal">
         <div class="modal-header">SALLE DES TROPHÉES</div>
-        <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
+        <div class="modal-content-wrapper">
+            <div id="achList" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;"></div>
+            <div class="pagination-controls">
+                <button class="btn" onclick="changeAchPage(-1)">&lt;</button>
+                <span id="achPageIndicator" class="page-indicator">1 / 1</span>
+                <button class="btn" onclick="changeAchPage(1)">&gt;</button>
+            </div>
+            <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
+        </div>
     </div>
 
     <div id="leaderboardUI" class="modal">
@@ -898,9 +966,14 @@
                 <button id="btnTabContest" class="lb-tab" onclick="switchLeaderboardTab('contest')">CONCOURS</button>
                 <button id="btnTabTime" class="lb-tab" onclick="switchLeaderboardTab('time_attack')">TIME ATK</button>
             </div>
-            <div id="lbList" class="lb-list">
+            <div id="lbList" class="lb-list" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
                 <!-- Rows injected via JS -->
                 <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
+            </div>
+            <div class="pagination-controls">
+                <button class="btn" onclick="changeLbPage(-1)">&lt;</button>
+                <span id="lbPageIndicator" class="page-indicator">1 / 1</span>
+                <button class="btn" onclick="changeLbPage(1)">&gt;</button>
             </div>
             <button class="btn btn-close" onclick="closeLeaderboard()">FERMER</button>
         </div>
@@ -11161,6 +11234,19 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             }
         }
 
+        // UI Camera Offset (Shift player to left when menu is open)
+        if (state === 'SHOP' || state === 'ACHIEVEMENTS' || state === 'STATS' || state === 'LEADERBOARD') {
+             const dx = HOOP_POS.x - player3D.x;
+             const dy = HOOP_POS.y - player3D.y;
+             const len = Math.sqrt(dx*dx + dy*dy) || 1;
+             // Right Vector: (dy, -dx)
+             const nx = dy / len;
+             const ny = -dx / len;
+             const offsetDist = 200; // Shift camera right, putting player left
+             targetX += nx * offsetDist;
+             targetY += ny * offsetDist;
+        }
+
         // Smooth Interpolation
         const lerp = 0.1;
         window.g_camSmooth.x += (targetX - window.g_camSmooth.x) * lerp;
@@ -12327,16 +12413,36 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         notif.style.display = 'block'; setTimeout(() => { notif.style.display = 'none'; }, 3000);
     }
 
+    window.changeAchPage = function(delta) {
+        loadContext(game1);
+        const total = ACHIEVEMENTS.length;
+        const maxPage = Math.ceil(total / PAGE_SIZE) - 1;
+        achPage += delta;
+        if (achPage < 0) achPage = 0;
+        if (achPage > maxPage) achPage = maxPage;
+        renderAchievements();
+        saveContext(game1);
+    }
+
     function renderAchievements() {
         const list = document.getElementById('achList');
         list.innerHTML = '';
-        ACHIEVEMENTS.forEach(ach => {
+
+        const start = achPage * PAGE_SIZE;
+        const end = Math.min(start + PAGE_SIZE, ACHIEVEMENTS.length);
+        const pageItems = ACHIEVEMENTS.slice(start, end);
+
+        pageItems.forEach(ach => {
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
             div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
             list.appendChild(div);
         });
+
+        const ind = document.getElementById('achPageIndicator');
+        const maxPage = Math.ceil(ACHIEVEMENTS.length / PAGE_SIZE);
+        if(ind) ind.innerText = (achPage + 1) + " / " + maxPage;
     }
 
     // --- GAME ACTIONS ---
@@ -13119,10 +13225,13 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         }
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
         // Reset to first tab
         window.switchShopTab('upgrades');
+        styleCategoryIndex = 0;
+        updateStyleCategoryUI();
 
         updateDifficulty(); updateShopUI();
         saveContext(game1);
@@ -13134,9 +13243,64 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         state = 'ACHIEVEMENTS';
         if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
 
-        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+        achUI.style.display = 'block'; shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none'; statsUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none'; renderAchievements();
         saveContext(game1);
     }
+
+    window.changeLbPage = function(delta) {
+        loadContext(game1);
+        let mode = 'classic';
+        if (document.getElementById('btnTabContest').classList.contains('active')) mode = 'contest';
+        if (document.getElementById('btnTabTime').classList.contains('active')) mode = 'time_attack';
+
+        const list = getLeaderboard(mode);
+        const total = list.length;
+        const maxPage = Math.ceil(total / PAGE_SIZE) - 1;
+        lbPage += delta;
+        if (lbPage < 0) lbPage = 0;
+        if (lbPage > maxPage) lbPage = maxPage;
+
+        switchLeaderboardTab(mode);
+        saveContext(game1);
+    }
+
+    function switchLeaderboardTab(mode) {
+        const currentActive = document.querySelector('.lb-tab.active');
+        const currentMode = currentActive ? (currentActive.id === 'btnTabClassic' ? 'classic' : (currentActive.id === 'btnTabContest' ? 'contest' : 'time_attack')) : null;
+
+        if (mode !== currentMode) {
+            lbPage = 0;
+        }
+
+        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
+
+        const list = getLeaderboard(mode);
+        const container = document.getElementById('lbList');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
+            return;
+        }
+
+        const start = lbPage * PAGE_SIZE;
+        const end = Math.min(start + PAGE_SIZE, list.length);
+        const pageItems = list.slice(start, end);
+
+        pageItems.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            div.innerHTML = `<span class="lb-rank">${start + index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+            container.appendChild(div);
+        });
+
+        const ind = document.getElementById('lbPageIndicator');
+        const maxPage = Math.ceil(list.length / PAGE_SIZE);
+        if(ind) ind.innerText = (list.length > 0 ? lbPage + 1 : 0) + " / " + (maxPage || 1);
+    }
+
     window.openStats = function() {
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
@@ -13144,7 +13308,7 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         state = 'STATS';
         if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
 
-        shopUI.style.display = 'none';
+        shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
         populateInputSelects();
@@ -13363,7 +13527,7 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         resetState(game1);
         if(isSplitscreen) resetState(game2);
 
-        shopUI.style.display = 'none';
+        shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
@@ -13637,6 +13801,28 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
         updateShopUI();
         saveContext(getShopContext());
+    }
+
+    window.cycleStyleCategory = function(delta) {
+        loadContext(getShopContext());
+        styleCategoryIndex += delta;
+        if (styleCategoryIndex < 0) styleCategoryIndex = STYLE_CATEGORIES.length - 1;
+        if (styleCategoryIndex >= STYLE_CATEGORIES.length) styleCategoryIndex = 0;
+        updateStyleCategoryUI();
+        saveContext(getShopContext());
+    }
+
+    window.updateStyleCategoryUI = function() {
+        STYLE_CATEGORIES.forEach(cat => {
+            const el = document.getElementById('cat-' + cat);
+            if(el) el.style.display = 'none';
+        });
+        const active = STYLE_CATEGORIES[styleCategoryIndex];
+        const el = document.getElementById('cat-' + active);
+        if(el) el.style.display = 'block';
+
+        const lbl = document.getElementById('styleCategoryLabel');
+        if(lbl) lbl.innerText = STYLE_LABELS[styleCategoryIndex];
     }
     window.buyOrEquipShootingStyle = function() {
         loadContext(getShopContext());
@@ -14390,6 +14576,7 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
     // Start loop
     requestAnimationFrame(loop);
+
 
 // --- END game.js ---
 

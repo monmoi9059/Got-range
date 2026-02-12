@@ -281,16 +281,36 @@
         notif.style.display = 'block'; setTimeout(() => { notif.style.display = 'none'; }, 3000);
     }
 
+    window.changeAchPage = function(delta) {
+        loadContext(game1);
+        const total = ACHIEVEMENTS.length;
+        const maxPage = Math.ceil(total / PAGE_SIZE) - 1;
+        achPage += delta;
+        if (achPage < 0) achPage = 0;
+        if (achPage > maxPage) achPage = maxPage;
+        renderAchievements();
+        saveContext(game1);
+    }
+
     function renderAchievements() {
         const list = document.getElementById('achList');
         list.innerHTML = '';
-        ACHIEVEMENTS.forEach(ach => {
+
+        const start = achPage * PAGE_SIZE;
+        const end = Math.min(start + PAGE_SIZE, ACHIEVEMENTS.length);
+        const pageItems = ACHIEVEMENTS.slice(start, end);
+
+        pageItems.forEach(ach => {
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
             div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
             list.appendChild(div);
         });
+
+        const ind = document.getElementById('achPageIndicator');
+        const maxPage = Math.ceil(ACHIEVEMENTS.length / PAGE_SIZE);
+        if(ind) ind.innerText = (achPage + 1) + " / " + maxPage;
     }
 
     // --- GAME ACTIONS ---
@@ -1073,10 +1093,13 @@
         }
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
         // Reset to first tab
         window.switchShopTab('upgrades');
+        styleCategoryIndex = 0;
+        updateStyleCategoryUI();
 
         updateDifficulty(); updateShopUI();
         saveContext(game1);
@@ -1088,9 +1111,64 @@
         state = 'ACHIEVEMENTS';
         if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
 
-        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+        achUI.style.display = 'block'; shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none'; statsUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none'; renderAchievements();
         saveContext(game1);
     }
+
+    window.changeLbPage = function(delta) {
+        loadContext(game1);
+        let mode = 'classic';
+        if (document.getElementById('btnTabContest').classList.contains('active')) mode = 'contest';
+        if (document.getElementById('btnTabTime').classList.contains('active')) mode = 'time_attack';
+
+        const list = getLeaderboard(mode);
+        const total = list.length;
+        const maxPage = Math.ceil(total / PAGE_SIZE) - 1;
+        lbPage += delta;
+        if (lbPage < 0) lbPage = 0;
+        if (lbPage > maxPage) lbPage = maxPage;
+
+        switchLeaderboardTab(mode);
+        saveContext(game1);
+    }
+
+    function switchLeaderboardTab(mode) {
+        const currentActive = document.querySelector('.lb-tab.active');
+        const currentMode = currentActive ? (currentActive.id === 'btnTabClassic' ? 'classic' : (currentActive.id === 'btnTabContest' ? 'contest' : 'time_attack')) : null;
+
+        if (mode !== currentMode) {
+            lbPage = 0;
+        }
+
+        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
+
+        const list = getLeaderboard(mode);
+        const container = document.getElementById('lbList');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
+            return;
+        }
+
+        const start = lbPage * PAGE_SIZE;
+        const end = Math.min(start + PAGE_SIZE, list.length);
+        const pageItems = list.slice(start, end);
+
+        pageItems.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            div.innerHTML = `<span class="lb-rank">${start + index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+            container.appendChild(div);
+        });
+
+        const ind = document.getElementById('lbPageIndicator');
+        const maxPage = Math.ceil(list.length / PAGE_SIZE);
+        if(ind) ind.innerText = (list.length > 0 ? lbPage + 1 : 0) + " / " + (maxPage || 1);
+    }
+
     window.openStats = function() {
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
@@ -1098,7 +1176,7 @@
         state = 'STATS';
         if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
 
-        shopUI.style.display = 'none';
+        shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
         populateInputSelects();
@@ -1317,7 +1395,7 @@
         resetState(game1);
         if(isSplitscreen) resetState(game2);
 
-        shopUI.style.display = 'none';
+        shopUI.style.display = 'none'; document.getElementById('leaderboardUI').style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
@@ -1591,6 +1669,28 @@
         if(viewingStyleIndex >= SHOOTING_STYLES.length) viewingStyleIndex = 0;
         updateShopUI();
         saveContext(getShopContext());
+    }
+
+    window.cycleStyleCategory = function(delta) {
+        loadContext(getShopContext());
+        styleCategoryIndex += delta;
+        if (styleCategoryIndex < 0) styleCategoryIndex = STYLE_CATEGORIES.length - 1;
+        if (styleCategoryIndex >= STYLE_CATEGORIES.length) styleCategoryIndex = 0;
+        updateStyleCategoryUI();
+        saveContext(getShopContext());
+    }
+
+    window.updateStyleCategoryUI = function() {
+        STYLE_CATEGORIES.forEach(cat => {
+            const el = document.getElementById('cat-' + cat);
+            if(el) el.style.display = 'none';
+        });
+        const active = STYLE_CATEGORIES[styleCategoryIndex];
+        const el = document.getElementById('cat-' + active);
+        if(el) el.style.display = 'block';
+
+        const lbl = document.getElementById('styleCategoryLabel');
+        if(lbl) lbl.innerText = STYLE_LABELS[styleCategoryIndex];
     }
     window.buyOrEquipShootingStyle = function() {
         loadContext(getShopContext());
