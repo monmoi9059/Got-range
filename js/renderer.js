@@ -1879,16 +1879,37 @@ var BallRenderer = {
                  }
              }
              else if (pat === 'stripes_side') {
-                 const sc = options.chestStripeColor || '#FFF';
-                 ctx.fillStyle = sc;
-                 // Adidas style 3 stripes
+                 const sc = options.sideStripesColor || options.chestStripeColor || '#FFF';
                  const lw = 1.5*s;
                  const gap = 2*s;
-                 for(let k=0; k<3; k++) {
-                     // Left Side
-                     ctx.fillRect(cx - w/2 + 2*s + k*(lw+gap), topY, lw, h);
-                     // Right Side
-                     ctx.fillRect(cx + w/2 - 2*s - (k+1)*(lw+gap), topY, lw, h);
+
+                 ctx.strokeStyle = sc;
+                 ctx.lineWidth = lw;
+                 ctx.lineCap = 'butt';
+
+                 if (points && points.length >= 6 && (!options.bodyShape || options.bodyShape === 'human')) {
+                     for(let k=0; k<3; k++) {
+                         const offset = 2*s + k*(lw+gap);
+                         // Left Stripe (P0 -> P5 -> P4)
+                         ctx.beginPath();
+                         ctx.moveTo(points[0].x + offset, points[0].y);
+                         ctx.lineTo(points[5].x + offset, points[5].y);
+                         ctx.lineTo(points[4].x + offset, points[4].y);
+                         ctx.stroke();
+
+                         // Right Stripe (P1 -> P2 -> P3)
+                         ctx.beginPath();
+                         ctx.moveTo(points[1].x - offset, points[1].y);
+                         ctx.lineTo(points[2].x - offset, points[2].y);
+                         ctx.lineTo(points[3].x - offset, points[3].y);
+                         ctx.stroke();
+                     }
+                 } else {
+                     ctx.fillStyle = sc;
+                     for(let k=0; k<3; k++) {
+                         ctx.fillRect(cx - w/2 + 2*s + k*(lw+gap), topY, lw, h);
+                         ctx.fillRect(cx + w/2 - 2*s - (k+1)*(lw+gap), topY, lw, h);
+                     }
                  }
              }
              else if (pat === 'galaxy') {
@@ -5642,7 +5663,13 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
                  if (['track', 'hoodie', 'sweatshirt'].includes(clothing.type)) {
                      skinObj.clothingDetail = null; // Hide suspenders etc.
                      // Track suits often have stripes
-                     if(clothing.stripeColor) skinObj.chestStripeColor = clothing.stripeColor;
+                     if(clothing.stripeColor) {
+                         if (clothing.pattern === 'stripes_side') {
+                             skinObj.sideStripesColor = clothing.stripeColor;
+                         } else {
+                             skinObj.chestStripeColor = clothing.stripeColor;
+                         }
+                     }
                  }
              }
         }
@@ -6308,6 +6335,8 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         bodyOptions.hasSpots = hasSpots;
         bodyOptions.spotColor = skinObj.spotColor;
         bodyOptions.isTabby = skin.includes('tabby');
+        bodyOptions.chestStripeColor = skinObj.chestStripeColor;
+        bodyOptions.sideStripesColor = skinObj.sideStripesColor;
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
