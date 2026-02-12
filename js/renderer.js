@@ -6349,28 +6349,38 @@ var BallRenderer = {
         drawSegmentedArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
         // 2. Legs (Base implementation)
-        // Apply widthFactor to knees/feet to ensure stance scales with body width
+        // Calculate Hip Width (Start of Leg)
+        const hipScale = (sizeMod.legWidth || sizeMod.w || 1.0);
+        const hipX = 8 * s * stanceMod * hipScale;
+
+        // Define base Stance offsets relative to hips, ensuring they scale with width
+        // A wider character pushes hips out. Stance is Hip + Offset.
+        // We want feet to be slightly wider than hips generally, or aligned.
+
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
 
         if (isSitting) {
              // Sitting Pose: Knees wide, Feet forward/central
-             lKneeX = p.x - 20*s*stanceMod*widthFactor; lKneeY = p.y - 5*s;
-             rKneeX = p.x + 20*s*stanceMod*widthFactor; rKneeY = p.y - 5*s;
+             lKneeX = p.x - (hipX + 12*s*stanceMod); lKneeY = p.y - 5*s;
+             rKneeX = p.x + (hipX + 12*s*stanceMod); rKneeY = p.y - 5*s;
              lFootX = p.x - 12*s*widthFactor; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s*widthFactor; rFootY = p.y + 5*s;
         } else if (isCrouching) {
-             // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod*widthFactor; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod*widthFactor; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
+             // Crouch Pose: Knees bent outward relative to hips
+             lKneeX = p.x - (hipX + 7*s*stanceMod); lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + (hipX + 7*s*stanceMod); rKneeY = p.y - legLen * 0.3;
+             // Feet slightly wider than hips
+             lFootX = p.x - (hipX + 2*s*stanceMod); lFootY = p.y;
+             rFootX = p.x + (hipX + 2*s*stanceMod); rFootY = p.y;
         } else {
              // Standing
              const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod*widthFactor; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod*widthFactor; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod*widthFactor; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod*widthFactor; rFootY = p.y;
+             // Knees aligned with hips generally, slightly out
+             lKneeX = p.x - (hipX + 1*s*stanceMod); lKneeY = baseKneeY;
+             rKneeX = p.x + (hipX + 1*s*stanceMod); rKneeY = baseKneeY;
+             // Feet: ensure they scale
+             lFootX = p.x - (hipX + 2*s*stanceMod); lFootY = p.y;
+             rFootX = p.x + (hipX + 2*s*stanceMod); rFootY = p.y;
         }
 
         // Dirk Kick Logic
@@ -6390,10 +6400,7 @@ var BallRenderer = {
 
         const legFurry = isFurry && (legColor === furColor);
 
-        // Scale Hip Width with Body/Leg Width (Fixes narrow hips on wide chars)
-        const hipScale = (sizeMod.legWidth || sizeMod.w || 1.0);
-        const hipX = 8 * s * stanceMod * hipScale;
-
+        // Hip Y calculated previously
         let hipY = p.y - legLen;
         if (isSitting) hipY = p.y - 10 * s;
 
