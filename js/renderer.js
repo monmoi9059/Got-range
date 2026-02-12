@@ -1204,17 +1204,29 @@ var BallRenderer = {
 
         BallRenderer.draw(ctx, x, y, scale * 0.32, rotation, ballObj, phys);
 
-        // Fire Effect Glow (Overlay)
+        // NBA Jam Fire Effect (Fireball)
         if (isFire) {
             ctx.save();
             ctx.translate(x, y);
-            var r = 8 * scale; // Match visual radius
-            var glow = ctx.createRadialGradient(0, 0, r, 0, 0, r * 2.0);
+            var r = 8 * scale;
             var hue = (typeof getStreakFireHue === 'function') ? getStreakFireHue(currentStreak || 10) : 30;
-            glow.addColorStop(0, 'hsla('+hue+', 100%, 50%, 0.6)');
-            glow.addColorStop(1, 'hsla('+hue+', 100%, 50%, 0)');
-            ctx.fillStyle = glow;
+
+            // 1. Intense Core Glow
+            var coreGlow = ctx.createRadialGradient(0, 0, r*0.5, 0, 0, r * 2.0);
+            coreGlow.addColorStop(0, '#FFF');
+            coreGlow.addColorStop(0.3, `hsl(${hue}, 100%, 70%)`);
+            coreGlow.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+            ctx.fillStyle = coreGlow;
             ctx.beginPath(); ctx.arc(0, 0, r * 2.0, 0, Math.PI*2); ctx.fill();
+
+            // 2. Random Flame Tongues (Visual Noise)
+            ctx.fillStyle = `hsla(${hue}, 100%, 60%, 0.6)`;
+            for(let k=0; k<8; k++) {
+                let ang = Math.random() * Math.PI * 2;
+                let dist = r * (1.0 + Math.random() * 0.8);
+                let size = r * (0.5 + Math.random() * 0.5);
+                ctx.beginPath(); ctx.arc(Math.cos(ang)*dist, Math.sin(ang)*dist, size, 0, Math.PI*2); ctx.fill();
+            }
             ctx.restore();
         }
     }
@@ -1223,42 +1235,35 @@ var BallRenderer = {
         if (!p) return;
         const targetBall = ballRef || ball; // Fallback for safety
 
-        // Draw Trail (High Graphics)
+        // Draw Trail (NBA Jam Style - Smoke/Fire Puffs)
         if (targetBall.isFire && targetBall.trail && targetBall.trail.length > 1 && playerData.graphics === 'HIGH') {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            for (let i = 0; i < targetBall.trail.length - 1; i++) {
-                const pt1 = targetBall.trail[i];
-                const pt2 = targetBall.trail[i+1];
+            for (let i = 0; i < targetBall.trail.length; i++) {
+                const pt = targetBall.trail[i];
+                const proj = project(pt.x, pt.y, pt.z, g_camCache);
 
-                // Project both points
-                const proj1 = project(pt1.x, pt1.y, pt1.z, g_camCache);
-                const proj2 = project(pt2.x, pt2.y, pt2.z, g_camCache);
-
-                if (proj1 && proj2) {
+                if (proj) {
                     const ratio = i / targetBall.trail.length; // 0 (oldest) to 1 (newest)
-                    const alpha = ratio * 0.6;
-                    ctx.lineWidth = (5 + 15 * ratio) * proj1.scale;
+                    const size = (25 - 15 * ratio) * proj.scale; // Old = big smoke, New = small fire
 
-                    // Fire Gradient color
-                    // Newest: Yellow/White, Middle: Orange, Oldest: Red/Trans
-                    let r = 255;
-                    let g = Math.floor(ratio * 200); // 0 to 200
-                    let b = 0;
-                    if(ratio > 0.8) { g = 255; b = Math.floor((ratio-0.8)*5 * 255); } // White hot tip
+                    // Color Logic: New=White/Yellow, Mid=Orange/Red, Old=Grey Smoke
+                    let color;
+                    if (ratio > 0.8) {
+                        // Core (Newest)
+                        color = `rgba(255, 255, ${Math.floor((ratio-0.8)*5*255)}, 0.9)`;
+                    } else if (ratio > 0.4) {
+                        // Fire (Mid)
+                        const green = Math.floor((ratio-0.4)*2.5 * 255);
+                        color = `rgba(255, ${green}, 0, 0.7)`;
+                    } else {
+                        // Smoke (Old)
+                        const grey = 50 + Math.floor(ratio*200);
+                        color = `rgba(${grey}, ${grey}, ${grey}, ${ratio * 0.5})`;
+                    }
 
-                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-
-                    // Add glow to trail
-                    ctx.shadowColor = `rgba(${r}, ${Math.floor(g/2)}, 0, 1)`;
-                    ctx.shadowBlur = 10 * proj1.scale;
-
+                    ctx.fillStyle = color;
                     ctx.beginPath();
-                    ctx.moveTo(proj1.x, proj1.y);
-                    ctx.lineTo(proj2.x, proj2.y);
-                    ctx.stroke();
-
-                    ctx.shadowBlur = 0;
+                    ctx.arc(proj.x, proj.y, size, 0, Math.PI*2);
+                    ctx.fill();
                 }
             }
         }
@@ -2172,22 +2177,31 @@ var BallRenderer = {
     }
 
     function drawJoint(x, y, radius, color, isMechanical) {
-        if (!isMechanical) return;
+        // Always draw joint to prevent gaps (especially shoulders)
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI*2);
         ctx.fillStyle = color;
         ctx.fill();
 
-        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
-        grad.addColorStop(0, 'rgba(255,255,255,0.2)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Slight Outline
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        // Shading
+        if (isMechanical) {
+            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+            grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // Mechanical Outline
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } else {
+            // Softer shading for organic/cloth
+            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+            grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
     }
 
     function drawRoundedRect(x, y, w, h, r, color) {
@@ -4954,6 +4968,9 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
             if (activeSleeveColor) {
                 fColor = activeSleeveColor;
+                if (skinObj.sleeveColor) {
+                     uColor = activeSleeveColor;
+                }
             }
 
             let uZ = angle1_z || 0;
@@ -4963,11 +4980,25 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
+            // Force sleeve color for long-sleeved types (Double-check overwrite)
+            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
+
+            // Draw Base Joint (Skin or Sleeve)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, effUpper, angle1);
             const upperTattoos = skinObj.tattoos && !activeSleeveColor;
+
+            // Draw Upper Arm (Base)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
+
+            // FORCE SLEEVE LAYER (If long sleeve is detected, draw OVER the arm)
+            if (isLongSleeveItem && activeSleeveColor) {
+                 // Draw Sleeve Joint
+                 drawJoint(sx, sy, 4.2*s*sizeMod.armWidth, activeSleeveColor, false);
+                 // Draw Sleeve Limb (slightly wider to cover skin)
+                 drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
+            }
 
             if (activeSleeveColor) {
                  const midX = (sx + elbow.x) / 2;
@@ -5766,23 +5797,22 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
 
-        // Super Saiyan Aura
+        // NBA Jam "He's On Fire" Smoke & Turbo Effect
         if (currentStreak >= 10) {
              const hue = getStreakFireHue(currentStreak);
+             // Turbo Smoke Rising
              ctx.save();
-             // Outer Glow
-             ctx.shadowBlur = 30 * s;
-             ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
-             ctx.fill();
-             // Inner Core
-             ctx.shadowBlur = 15 * s;
-             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
-             ctx.fill();
+             for(let k=0; k<8; k++) {
+                 // Random puffs rising from body area
+                 let px = p.x + (Math.random() - 0.5) * bodyW * 2.5;
+                 let py = torsoY + bodyH - (Math.random() * bodyH * 1.5);
+                 let size = (20 + Math.random() * 15) * s;
+                 ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.4)`;
+                 ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+             }
+             // Ground Scorch
+             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.3)`;
+             ctx.beginPath(); ctx.ellipse(p.x, p.y, bodyW * 1.5, 10*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.restore();
         }
 
@@ -5880,30 +5910,48 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const isShadow = (p.type === 'player_shadow');
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
-            const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
             const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
 
+            // 1. Determine Base Colors based on Clothing
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
-            let activeSleeveColor = null;
+            let upperIsCovered = false; // By clothing
+            let foreIsCovered = false;  // By clothing
 
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+            if (skinObj.clothing) {
+                const c = skinObj.clothing;
+                if (c.type === 'tshirt') {
+                    thisUpperColor = c.color; // T-Shirt covers upper arm
+                    thisForeColor = furColor; // Forearm exposed
+                    upperIsCovered = true;
+                } else if (['track', 'hoodie', 'sweatshirt'].includes(c.type)) {
+                    // Long sleeves cover both
+                    const sColor = c.sleeveColor || c.color;
+                    thisUpperColor = sColor;
+                    thisForeColor = sColor;
+                    upperIsCovered = true;
+                    foreIsCovered = true;
+                }
+            } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
                 thisUpperColor = torsoColor;
+                upperIsCovered = true;
             }
 
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                activeSleeveColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                activeSleeveColor = skinObj.sleeveLeft;
-            }
+            // 2. Accessory Overrides (Compression Sleeves)
+            let activeSleeveColor = null;
+            if(isRight && skinObj.sleeveRight) activeSleeveColor = skinObj.sleeveRight;
+            if(!isRight && skinObj.sleeveLeft) activeSleeveColor = skinObj.sleeveLeft;
 
             if (activeSleeveColor) {
                 thisForeColor = activeSleeveColor;
+                foreIsCovered = true;
             }
+
+            // 3. Determine Fuzziness per segment
+            const upperFurry = isFurry && !upperIsCovered && (thisUpperColor === furColor);
+            const foreFurry = isFurry && !foreIsCovered && (thisForeColor === furColor);
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
@@ -5918,14 +5966,6 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
             // Shadow Logic: Show full length (projected to ground) to imply depth
             if (isShadow) {
-                // If shadow, we ignore the Z-shortening because the shadow
-                // of a forward-reaching arm (parallel to ground) is full length.
-                // However, our Z-angle is "angle from screen plane".
-                // If Z=90, arm is pointing at camera (horizontal). Shadow is full length.
-                // If Z=0, arm is parallel to screen (horizontal). Shadow is full length.
-                // What if arm is pointing UP? That's controlled by angle1 (X/Y).
-                // If angle1 is -PI/2 (UP), and Z=0, arm is vertical. Shadow is short (blob).
-                // So, we should use uFactor = 1.0 for shadow pass?
                 uFactor = 1.0;
                 fFactor = 1.0;
             }
@@ -5936,13 +5976,13 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             let elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
 
             // Shoulder Joint (Radius = Half Width for seamless look)
-            if(!armFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
+            if(!upperFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
             else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
 
             // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW);
+            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, upperFurry, seedBase, upperEndW);
 
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
+            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow) - ACCESORY OVERLAY
             if (activeSleeveColor) {
                 const midX = (sx + elbow.x) / 2;
                 const midY = (sy + elbow.y) / 2;
@@ -5954,26 +5994,30 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             let wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
 
             // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW);
+            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, foreFurry, seedBase + 1, foreEndW);
 
             // Elbow Joint (Radius = Half Width)
             let elbowColor = thisUpperColor;
             if (activeSleeveColor) {
                 elbowColor = activeSleeveColor;
-            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
-                elbowColor = thisUpperColor; // Sleeve covers elbow
-            } else if (thisUpperColor === furColor) {
+            } else if (upperIsCovered && !foreIsCovered) {
+                // T-Shirt Case: Elbow should probably match shirt to look like sleeve end?
+                // Or skin if it ends higher. Let's stick to shirt color for continuity.
+                elbowColor = thisUpperColor;
+            } else if (upperIsCovered && foreIsCovered) {
+                elbowColor = thisUpperColor;
+            } else {
                 elbowColor = furColor;
             }
 
-            const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
+            const isElbowCovered = upperIsCovered || foreIsCovered || activeSleeveColor;
+            if(isElbowCovered || !isFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
             else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
             // Paw / Hand
-            if (armFurry && !activeSleeveColor) {
+            if (foreFurry) {
                  // Fuzzy Paw
                  const pawColor = thisForeColor;
                  drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
