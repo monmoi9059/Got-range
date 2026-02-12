@@ -5926,21 +5926,6 @@ var BallRenderer = {
                  }
              }
         }
-
-        // Apply Pants Overrides
-        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
-             if (pants) {
-                 skinObj.shortsColor = pants.color;
-                 if (pants.type === 'long' || pants.type === 'tights') {
-                     skinObj.legType = pants.type === 'long' ? 'pants' : 'tights';
-                 } else {
-                     skinObj.legType = 'shorts'; // Default
-                 }
-             }
-        }
-
         else if (type.startsWith('landmark_')) {
              const s = p.scale;
              const color = variant.color || '#888';
@@ -9294,6 +9279,20 @@ var BallRenderer = {
              }
         }
 
+        // Apply Pants Overrides
+        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             if (pants) {
+                 skinObj.shortsColor = pants.color;
+                 if (pants.type === 'long' || pants.type === 'tights') {
+                     skinObj.legType = pants.type === 'long' ? 'pants' : 'tights';
+                 } else {
+                     skinObj.legType = 'shorts'; // Default
+                 }
+             }
+        }
+
         const isMechanical = isMechanicalSkin(skinObj.id);
         const currentAnimal = skinObj.animal;
 
@@ -9768,31 +9767,33 @@ var BallRenderer = {
         // Define base Stance offsets relative to hips, ensuring they scale with width
         // A wider character pushes hips out. Stance is Hip + Offset.
         // We want feet to be slightly wider than hips generally, or aligned.
+        // Updated: Offsets now scale with widthFactor to preserve leg angle (stance) for wider characters.
 
         let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
+        const spreadScale = Math.max(1.0, widthFactor);
 
         if (isSitting) {
              // Sitting Pose: Knees wide, Feet forward/central
-             lKneeX = p.x - (hipX + 12*s*stanceMod); lKneeY = p.y - 5*s;
-             rKneeX = p.x + (hipX + 12*s*stanceMod); rKneeY = p.y - 5*s;
+             lKneeX = p.x - (hipX + 12*s*stanceMod*spreadScale); lKneeY = p.y - 5*s;
+             rKneeX = p.x + (hipX + 12*s*stanceMod*spreadScale); rKneeY = p.y - 5*s;
              lFootX = p.x - 12*s*widthFactor; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s*widthFactor; rFootY = p.y + 5*s;
         } else if (isCrouching) {
              // Crouch Pose: Knees bent outward relative to hips
-             lKneeX = p.x - (hipX + 7*s*stanceMod); lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + (hipX + 7*s*stanceMod); rKneeY = p.y - legLen * 0.3;
+             lKneeX = p.x - (hipX + 7*s*stanceMod*spreadScale); lKneeY = p.y - legLen * 0.3;
+             rKneeX = p.x + (hipX + 7*s*stanceMod*spreadScale); rKneeY = p.y - legLen * 0.3;
              // Feet slightly wider than hips
-             lFootX = p.x - (hipX + 2*s*stanceMod); lFootY = p.y;
-             rFootX = p.x + (hipX + 2*s*stanceMod); rFootY = p.y;
+             lFootX = p.x - (hipX + 2*s*stanceMod*spreadScale); lFootY = p.y;
+             rFootX = p.x + (hipX + 2*s*stanceMod*spreadScale); rFootY = p.y;
         } else {
              // Standing
              const baseKneeY = p.y - (legLen * 0.5);
              // Knees aligned with hips generally, slightly out
-             lKneeX = p.x - (hipX + 1*s*stanceMod); lKneeY = baseKneeY;
-             rKneeX = p.x + (hipX + 1*s*stanceMod); rKneeY = baseKneeY;
+             lKneeX = p.x - (hipX + 1*s*stanceMod*spreadScale); lKneeY = baseKneeY;
+             rKneeX = p.x + (hipX + 1*s*stanceMod*spreadScale); rKneeY = baseKneeY;
              // Feet: ensure they scale
-             lFootX = p.x - (hipX + 2*s*stanceMod); lFootY = p.y;
-             rFootX = p.x + (hipX + 2*s*stanceMod); rFootY = p.y;
+             lFootX = p.x - (hipX + 2*s*stanceMod*spreadScale); lFootY = p.y;
+             rFootX = p.x + (hipX + 2*s*stanceMod*spreadScale); rFootY = p.y;
         }
 
         // Dirk Kick Logic
