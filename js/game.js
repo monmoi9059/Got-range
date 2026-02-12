@@ -997,6 +997,31 @@
 
     // --- UI FUNCTIONS ---
     var g_shopTargetPlayer = 1; // 1 or 2
+    var currentShopTab = 'upgrades';
+
+    window.switchShopTab = function(tabName) {
+        currentShopTab = tabName;
+        // Update Tabs
+        const tabs = document.querySelectorAll('.shop-tab-btn');
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTabBtn = Array.from(tabs).find(t => t.getAttribute('onclick').includes(tabName));
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+
+        // Update Sections
+        const sections = document.querySelectorAll('.shop-section');
+        sections.forEach(s => s.classList.remove('active'));
+        const activeSection = document.getElementById('tab-' + tabName);
+        if (activeSection) activeSection.classList.add('active');
+    }
+
+    window.toggleControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems) {
+            const isOpen = menuItems.classList.toggle('open');
+            if (btn) btn.innerText = isOpen ? "FERMER ✕" : "MENU ☰";
+        }
+    }
 
     function getShopContext() {
         if (!isSplitscreen) return game1;
@@ -1049,6 +1074,10 @@
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
+
+        // Reset to first tab
+        window.switchShopTab('upgrades');
+
         updateDifficulty(); updateShopUI();
         saveContext(game1);
     }
@@ -1264,6 +1293,14 @@
         resetStage = 0;
         const btn = document.getElementById('btnReset');
         if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
+
+        // Close expandable HUD menu
+        const menuItems = document.getElementById('controls-items');
+        if (menuItems) {
+            menuItems.classList.remove('open');
+            const btnToggle = document.querySelector('.controls-menu-toggle span');
+            if(btnToggle) btnToggle.innerText = "MENU ☰";
+        }
 
         const resetState = (ctx) => {
             loadContext(ctx);

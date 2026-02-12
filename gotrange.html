@@ -492,6 +492,93 @@
         .key.action.confirm { background: #006400; grid-column: span 3; }
         .key.action.back { background: #8B0000; grid-column: span 2; }
 
+/* --- HUD OPTIMIZATION --- */
+
+/* Expandable Menu */
+.controls-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse; /* Menu button at bottom, items expand up */
+    align-items: center;
+    gap: 10px;
+    /* Ensure the menu doesn't overflow if too tall */
+    max-height: 80vh;
+}
+
+.controls-menu-toggle {
+    z-index: 21;
+    width: auto;
+    min-width: 120px;
+}
+
+.controls-menu-items {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+    animation: slideUpMenu 0.2s ease-out;
+}
+
+.controls-menu-items.open {
+    display: flex;
+}
+
+@keyframes slideUpMenu {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shop Tabs */
+.shop-tabs {
+    display: flex;
+    justify-content: space-around;
+    background: #111;
+    border-bottom: 2px solid #333;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.shop-tab-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 12px 5px;
+    font-family: var(--broadcast-font-title);
+    font-size: 1.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-grow: 1;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.shop-tab-btn:hover {
+    color: #fff;
+    background: #222;
+}
+
+.shop-tab-btn.active {
+    color: var(--broadcast-accent);
+    border-bottom: 3px solid var(--broadcast-accent);
+    background: linear-gradient(to top, rgba(255, 215, 0, 0.1), transparent);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.shop-section {
+    display: none;
+    animation: fadeInTab 0.3s ease-out;
+    padding: 0 10px;
+}
+
+.shop-section.active {
+    display: block;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
 /* --- END style.css --- */
 
 </style>
@@ -542,12 +629,21 @@
     </div>
 
     <div id="controls">
-        <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
-        <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
-        <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
-        <div class="broadcast-btn" role="button" aria-label="Ouvrir les trophées" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
-        <div class="broadcast-btn" role="button" aria-label="Ouvrir le classement" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
-        <div class="broadcast-btn" role="button" aria-label="Ouvrir les statistiques" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
+        <div class="controls-wrapper">
+            <!-- Toggle Button -->
+            <div class="broadcast-btn controls-menu-toggle" role="button" aria-label="Menu" tabindex="0" onclick="toggleControlsMenu()">
+                <span>MENU ☰</span>
+            </div>
+            <!-- Expanded Items -->
+            <div id="controls-items" class="controls-menu-items">
+                <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
+                <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les trophées" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir le classement" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les statistiques" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
+            </div>
+        </div>
     </div>
     <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
         <div class="broadcast-icon-btn" role="button" aria-label="Piste précédente" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
@@ -654,109 +750,137 @@
 
     <div id="shopUI" class="modal">
         <div class="modal-header">TACO MERCADO</div>
+
+        <div class="shop-tabs">
+            <button class="shop-tab-btn active" onclick="switchShopTab('upgrades')">UPGRADES</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('character')">PERSO</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('style')">STYLE</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('equipment')">MATOS</button>
+        </div>
+
         <div id="shopPlayerToggle" style="display:none; margin-bottom:10px;">
              <button id="btnShopP1" class="btn" style="background:#0047AB; border:2px solid #FFF;" onclick="switchShopPlayer(1)">PLAYER 1</button>
              <button id="btnShopP2" class="btn" style="background:#333; border:1px solid #555;" onclick="switchShopPlayer(2)">PLAYER 2</button>
         </div>
         <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
-        <div class="difficulty-row">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
-            <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
-            <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
-        </div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
-        <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
-        <div class="skin-viewer">
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
-            <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
-            <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
-            <div id="customizationControls" style="display:none; margin-top:15px; border:1px solid #444; padding:10px; background:#111;">
-                <h4 style="margin:0 0 10px 0; color:#FFD700;">PERSONNALISATION</h4>
-
-                <div style="margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                        <span>TAILLE</span> <span id="lblCustomHeight">100%</span>
-                    </div>
-                    <input type="range" id="sldCustomHeight" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomHeight()">
-                </div>
-
-                <div style="margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                        <span>LARGEUR</span> <span id="lblCustomWidth">100%</span>
-                    </div>
-                    <input type="range" id="sldCustomWidth" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomWidth()">
-                </div>
-
-                <div style="margin-bottom:5px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                        <span>TEINT</span>
-                    </div>
-                    <input type="range" id="sldCustomSkinTone" min="0" max="14" step="1" value="4" oninput="updateCustomSkinTone()">
-                    <div id="previewSkinTone" style="width:100%; height:15px; background:#8d5524; border:1px solid #555; margin-top:5px;"></div>
-                </div>
-
+        <!-- TAB: UPGRADES -->
+        <div id="tab-upgrades" class="shop-section active">
+            <div class="difficulty-row">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
+                <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
+                <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
             </div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
+        </div>
 
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">COIFFURE</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
+        <!-- TAB: CHARACTER (Body/Skin) -->
+        <div id="tab-character" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
+                <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
+                <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
 
-            <!-- Global Hair Controls -->
-            <div style="background:#111; padding:10px; margin:10px 0; border:1px solid #333;">
-                <div style="margin-bottom:5px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                        <span>COULEUR</span>
+                <div id="customizationControls" style="display:none; margin-top:15px; border:1px solid #444; padding:10px; background:#111;">
+                    <h4 style="margin:0 0 10px 0; color:#FFD700;">PERSONNALISATION</h4>
+
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>TAILLE</span> <span id="lblCustomHeight">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomHeight" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomHeight()">
                     </div>
-                    <input type="range" id="sldCustomHairColor" min="0" max="26" step="1" value="0" oninput="updateCustomHairColor()">
-                    <div id="previewHairColor" style="width:100%; height:15px; background:#000000; border:1px solid #555; margin-top:5px;"></div>
-                </div>
-                <div style="margin-bottom:0px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
-                        <span>LONGUEUR</span> <span id="lblCustomHairSize">100%</span>
+
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>LARGEUR</span> <span id="lblCustomWidth">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomWidth" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomWidth()">
                     </div>
-                    <input type="range" id="sldCustomHairSize" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateCustomHairSize()">
+
+                    <div style="margin-bottom:5px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>TEINT</span>
+                        </div>
+                        <input type="range" id="sldCustomSkinTone" min="0" max="14" step="1" value="4" oninput="updateCustomSkinTone()">
+                        <div id="previewSkinTone" style="width:100%; height:15px; background:#8d5524; border:1px solid #555; margin-top:5px;"></div>
+                    </div>
                 </div>
             </div>
-
-            <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
-            <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">PANTALONS</h3>
-            <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
-            <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
-            <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAUSSURES</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeShoes(-1)">&lt;</button><span id="shoeName" class="selector-label">Aucun</span><button class="btn" onclick="changeShoes(1)">&gt;</button></div>
-            <div id="shoeStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipShoe" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShoes()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
-            <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
-
-            <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
-            <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
-            <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
-            <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
-            <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
-            <button id="btnToggleHand" class="btn" style="width:100%; margin-top:10px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
         </div>
+
+        <!-- TAB: STYLE (Clothing/Hair) -->
+        <div id="tab-style" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">COIFFURE</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
+
+                <!-- Global Hair Controls -->
+                <div style="background:#111; padding:10px; margin:10px 0; border:1px solid #333;">
+                    <div style="margin-bottom:5px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>COULEUR</span>
+                        </div>
+                        <input type="range" id="sldCustomHairColor" min="0" max="26" step="1" value="0" oninput="updateCustomHairColor()">
+                        <div id="previewHairColor" style="width:100%; height:15px; background:#000000; border:1px solid #555; margin-top:5px;"></div>
+                    </div>
+                    <div style="margin-bottom:0px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>LONGUEUR</span> <span id="lblCustomHairSize">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomHairSize" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateCustomHairSize()">
+                    </div>
+                </div>
+
+                <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
+                <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">PANTALONS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
+                <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
+                <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAUSSURES</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeShoes(-1)">&lt;</button><span id="shoeName" class="selector-label">Aucun</span><button class="btn" onclick="changeShoes(1)">&gt;</button></div>
+                <div id="shoeStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipShoe" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShoes()">Équiper</button>
+            </div>
+        </div>
+
+        <!-- TAB: EQUIPMENT (Ball/Shooting) -->
+        <div id="tab-equipment" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">BALLONS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
+                <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
+                <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
+                <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
+
+                <button id="btnToggleHand" class="btn" style="width:100%; margin-top:20px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
+            </div>
+        </div>
+
         <button class="btn btn-close" onclick="closeShop()">FERMER</button>
     </div>
 
@@ -12919,6 +13043,31 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
     // --- UI FUNCTIONS ---
     var g_shopTargetPlayer = 1; // 1 or 2
+    var currentShopTab = 'upgrades';
+
+    window.switchShopTab = function(tabName) {
+        currentShopTab = tabName;
+        // Update Tabs
+        const tabs = document.querySelectorAll('.shop-tab-btn');
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTabBtn = Array.from(tabs).find(t => t.getAttribute('onclick').includes(tabName));
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+
+        // Update Sections
+        const sections = document.querySelectorAll('.shop-section');
+        sections.forEach(s => s.classList.remove('active'));
+        const activeSection = document.getElementById('tab-' + tabName);
+        if (activeSection) activeSection.classList.add('active');
+    }
+
+    window.toggleControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems) {
+            const isOpen = menuItems.classList.toggle('open');
+            if (btn) btn.innerText = isOpen ? "FERMER ✕" : "MENU ☰";
+        }
+    }
 
     function getShopContext() {
         if (!isSplitscreen) return game1;
@@ -12971,6 +13120,10 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
+
+        // Reset to first tab
+        window.switchShopTab('upgrades');
+
         updateDifficulty(); updateShopUI();
         saveContext(game1);
     }
@@ -13186,6 +13339,14 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         resetStage = 0;
         const btn = document.getElementById('btnReset');
         if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
+
+        // Close expandable HUD menu
+        const menuItems = document.getElementById('controls-items');
+        if (menuItems) {
+            menuItems.classList.remove('open');
+            const btnToggle = document.querySelector('.controls-menu-toggle span');
+            if(btnToggle) btnToggle.innerText = "MENU ☰";
+        }
 
         const resetState = (ctx) => {
             loadContext(ctx);
