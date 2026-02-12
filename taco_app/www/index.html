@@ -492,6 +492,93 @@
         .key.action.confirm { background: #006400; grid-column: span 3; }
         .key.action.back { background: #8B0000; grid-column: span 2; }
 
+/* --- HUD OPTIMIZATION --- */
+
+/* Expandable Menu */
+.controls-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse; /* Menu button at bottom, items expand up */
+    align-items: center;
+    gap: 10px;
+    /* Ensure the menu doesn't overflow if too tall */
+    max-height: 80vh;
+}
+
+.controls-menu-toggle {
+    z-index: 21;
+    width: auto;
+    min-width: 120px;
+}
+
+.controls-menu-items {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+    animation: slideUpMenu 0.2s ease-out;
+}
+
+.controls-menu-items.open {
+    display: flex;
+}
+
+@keyframes slideUpMenu {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shop Tabs */
+.shop-tabs {
+    display: flex;
+    justify-content: space-around;
+    background: #111;
+    border-bottom: 2px solid #333;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.shop-tab-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 12px 5px;
+    font-family: var(--broadcast-font-title);
+    font-size: 1.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-grow: 1;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.shop-tab-btn:hover {
+    color: #fff;
+    background: #222;
+}
+
+.shop-tab-btn.active {
+    color: var(--broadcast-accent);
+    border-bottom: 3px solid var(--broadcast-accent);
+    background: linear-gradient(to top, rgba(255, 215, 0, 0.1), transparent);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.shop-section {
+    display: none;
+    animation: fadeInTab 0.3s ease-out;
+    padding: 0 10px;
+}
+
+.shop-section.active {
+    display: block;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
 /* --- END style.css --- */
 
 </style>
@@ -12905,6 +12992,31 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
     // --- UI FUNCTIONS ---
     var g_shopTargetPlayer = 1; // 1 or 2
+    var currentShopTab = 'upgrades';
+
+    window.switchShopTab = function(tabName) {
+        currentShopTab = tabName;
+        // Update Tabs
+        const tabs = document.querySelectorAll('.shop-tab-btn');
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTabBtn = Array.from(tabs).find(t => t.getAttribute('onclick').includes(tabName));
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+
+        // Update Sections
+        const sections = document.querySelectorAll('.shop-section');
+        sections.forEach(s => s.classList.remove('active'));
+        const activeSection = document.getElementById('tab-' + tabName);
+        if (activeSection) activeSection.classList.add('active');
+    }
+
+    window.toggleControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems) {
+            const isOpen = menuItems.classList.toggle('open');
+            if (btn) btn.innerText = isOpen ? "FERMER ✕" : "MENU ☰";
+        }
+    }
 
     function getShopContext() {
         if (!isSplitscreen) return game1;
@@ -12957,6 +13069,10 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
 
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
+
+        // Reset to first tab
+        window.switchShopTab('upgrades');
+
         updateDifficulty(); updateShopUI();
         saveContext(game1);
     }
@@ -13172,6 +13288,14 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         resetStage = 0;
         const btn = document.getElementById('btnReset');
         if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
+
+        // Close expandable HUD menu
+        const menuItems = document.getElementById('controls-items');
+        if (menuItems) {
+            menuItems.classList.remove('open');
+            const btnToggle = document.querySelector('.controls-menu-toggle span');
+            if(btnToggle) btnToggle.innerText = "MENU ☰";
+        }
 
         const resetState = (ctx) => {
             loadContext(ctx);
