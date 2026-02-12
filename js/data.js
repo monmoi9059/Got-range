@@ -566,7 +566,17 @@
         { id: 'jersey_lakers', name: 'LA Gold', cost: 5000, type: 'jersey', color: '#FDB927', sleeveColor: 'none', trimColor: '#552583' },
         { id: 'jersey_celtics', name: 'Boston Green', cost: 5000, type: 'jersey', color: '#007A33', sleeveColor: 'none', trimColor: '#FFF' },
         { id: 'jersey_miami', name: 'Vice City', cost: 5000, type: 'jersey', color: '#000', sleeveColor: 'none', trimColor: '#FF69B4', pattern: 'gradient_blue_pink' },
-        { id: 'jersey_raptors', name: 'We The North', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000', chevron: true }
+        { id: 'jersey_raptors', name: 'We The North', cost: 5000, type: 'jersey', color: '#CE1141', sleeveColor: 'none', trimColor: '#000', chevron: true },
+        { id: 'jersey_memphis', name: 'Grizzlies', cost: 5000, type: 'jersey', color: '#00FFFF', sleeveColor: 'none', trimColor: '#000' },
+        { id: 'jersey_tune', name: 'Tune Squad', cost: 7500, type: 'jersey', color: '#FFF', sleeveColor: 'none', trimColor: '#0000FF', decal: 'bullseye' },
+        { id: 'jersey_monstars', name: 'Monstars', cost: 7500, type: 'jersey', color: '#000', sleeveColor: 'none', trimColor: '#800080' },
+        { id: 'tank_camo', name: 'Débardeur Camo', cost: 1500, type: 'tank', color: '#556B2F', pattern: 'camo' },
+        { id: 'tank_beach', name: 'Plage', cost: 1500, type: 'tank', color: '#FFD700', pattern: 'floral' },
+        { id: 'shirt_hawaiian', name: 'Chemise Hawaïenne', cost: 2500, type: 'shirt', color: '#00FFFF', pattern: 'floral' },
+        { id: 'shirt_tuxedo', name: 'Smoking', cost: 5000, type: 'shirt', color: '#000', pattern: 'suit' },
+        { id: 'hoodie_galaxy', name: 'Galaxie', cost: 3500, type: 'hoodie', color: '#4B0082', hoodColor: '#8A2BE2', pattern: 'galaxy' },
+        { id: 'tshirt_8bit', name: 'Rétro 8-Bit', cost: 2000, type: 'tshirt', color: '#333', decal: 'pixel_heart' },
+        { id: 'poncho', name: 'Poncho', cost: 3000, type: 'poncho', color: '#8B4513', pattern: 'striped' }
     ];
 
     var HATS_DB = [
@@ -601,7 +611,42 @@
         { id: 'hat_bucket', name: 'Bucket Hat', cost: 2000, type: 'bucket_hat', color: '#FFFF00' },
         { id: 'hat_santa', name: 'Père Noël', cost: 3000, type: 'santa_hat', color: '#FF0000' },
         { id: 'hat_viking', name: 'Viking', cost: 4000, type: 'viking_helmet', color: '#AAA' },
-        { id: 'hat_pirate', name: 'Pirate', cost: 3500, type: 'pirate_hat', color: '#111' }
+        { id: 'hat_pirate', name: 'Pirate', cost: 3500, type: 'pirate_hat', color: '#111' },
+        { id: 'hat_fedora', name: 'Fedora', cost: 2500, type: 'fedora', color: '#333' },
+        { id: 'hat_beret', name: 'Béret', cost: 2000, type: 'beret', color: '#000' },
+        { id: 'hat_visor_white', name: 'Visière', cost: 1000, type: 'visor', color: '#FFF' },
+        { id: 'hat_ushanka', name: 'Chapka', cost: 3000, type: 'ushanka', color: '#8B4513' },
+        { id: 'hat_jester', name: 'Bouffon', cost: 4000, type: 'jester', color: '#FF00FF' },
+        { id: 'hat_police', name: 'Képi', cost: 2500, type: 'police_cap', color: '#000080' },
+        { id: 'hat_turban', name: 'Turban', cost: 2500, type: 'turban', color: '#FFF' },
+        { id: 'hat_bandana_blue', name: 'Bandana Bleu', cost: 1500, type: 'bandana', color: '#0000FF' },
+        { id: 'hat_bandana_green', name: 'Bandana Vert', cost: 1500, type: 'bandana', color: '#008000' },
+        { id: 'hat_headphones', name: 'Écouteurs', cost: 2000, type: 'headphones', color: '#333' },
+        { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
+        { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
+        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+    ];
+
+    var SHOES_DB = [
+        { id: 'shoe_none', name: 'Aucun (Pieds nus)', cost: 0, type: 'none' },
+        { id: 'shoe_sneakers_white', name: 'Baskets Blanches', cost: 500, type: 'sneakers', color: '#FFF' },
+        { id: 'shoe_sneakers_black', name: 'Baskets Noires', cost: 500, type: 'sneakers', color: '#111' },
+        { id: 'shoe_sneakers_red', name: 'Baskets Rouges', cost: 750, type: 'sneakers', color: '#FF0000' },
+        { id: 'shoe_sneakers_blue', name: 'Baskets Bleues', cost: 750, type: 'sneakers', color: '#0000FF' },
+        { id: 'shoe_jordan1_chi', name: 'Air Legend 1', cost: 2500, type: 'hightop', color: '#FFF', detailColor: '#FF0000' },
+        { id: 'shoe_jordan11', name: 'Concord 11', cost: 3000, type: 'hightop', color: '#FFF', detailColor: '#000', shiny: true },
+        { id: 'shoe_boots_timber', name: 'Bottes Chantier', cost: 1500, type: 'boots', color: '#D2B48C' },
+        { id: 'shoe_boots_black', name: 'Bottes Militaires', cost: 1500, type: 'boots', color: '#111' },
+        { id: 'shoe_crocs_green', name: 'Crocos Verts', cost: 1000, type: 'clogs', color: '#00FF00' },
+        { id: 'shoe_crocs_pink', name: 'Crocos Roses', cost: 1000, type: 'clogs', color: '#FF69B4' },
+        { id: 'shoe_sandals', name: 'Sandales', cost: 750, type: 'sandals', color: '#8B4513' },
+        { id: 'shoe_slides', name: 'Claquettes', cost: 750, type: 'slides', color: '#000' },
+        { id: 'shoe_heels_red', name: 'Talons Rouges', cost: 2000, type: 'heels', color: '#FF0000' },
+        { id: 'shoe_dress', name: 'Souliers Chics', cost: 2000, type: 'dress', color: '#000', shiny: true },
+        { id: 'shoe_cleats', name: 'Crampons', cost: 2500, type: 'cleats', color: '#FFFF00' },
+        { id: 'shoe_slippers', name: 'Pantoufles Lapin', cost: 3000, type: 'slippers_bunny', color: '#FFF' },
+        { id: 'shoe_skates', name: 'Patins', cost: 4000, type: 'skates', color: '#000' },
+        { id: 'shoe_space', name: 'Bottes Lunaires', cost: 5000, type: 'boots_heavy', color: '#AAA' }
     ];
 
     var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];

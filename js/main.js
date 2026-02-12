@@ -261,6 +261,7 @@
     let viewingHairstyleIndex = 0;
     let viewingClothingIndex = 0;
     let viewingHatIndex = 0;
+    let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
     let currentGameMode = 'CLASSIC';
@@ -312,6 +313,8 @@ let lastDisplayedContestTime = -1;
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
+            unlockedShoes: ['shoe_none'], currentShoes: 'shoe_none',
+            customHairColorIndex: 0, customHairLength: 1.0,
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
             releaseTiming: 3,
@@ -350,11 +353,25 @@ let lastDisplayedContestTime = -1;
     if(!playerData.currentHat) playerData.currentHat = 'hat_none';
     if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
     if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
+    if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
+    if(!playerData.currentShoes) playerData.currentShoes = 'shoe_none';
+    if(typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
+    if(typeof playerData.customHairLength === 'undefined') playerData.customHairLength = 1.0;
     if(!playerData.skinVariants) playerData.skinVariants = {};
     if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
     if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+
+    // Migrate old hair settings if present
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
+        playerData.customHairColorIndex = playerData.customSkinSettings.hairColorIndex;
+        delete playerData.customSkinSettings.hairColorIndex;
+    }
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairSize !== undefined) {
+        playerData.customHairLength = playerData.customSkinSettings.hairSize;
+        delete playerData.customSkinSettings.hairSize;
+    }
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -551,7 +568,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, hat: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, hat: 0, shoe: 0, ball: 0, style: 0 } // UI state
         };
     }
 
@@ -644,6 +661,7 @@ let lastDisplayedContestTime = -1;
             viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
             viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
             viewingHatIndex = ctxObj.viewingIndices.hat || 0;
+            viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
         }

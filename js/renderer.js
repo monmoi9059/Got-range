@@ -3057,24 +3057,114 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    function drawRealisticShoe(x, y, w, h, color, isRight) {
-        // Detailed sneaker
-        // Sole
-        ctx.fillStyle = '#DDD';
-        ctx.beginPath();
-        ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+    function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, shiny) {
+        // Defaults
+        type = type || 'sneakers';
+        const soleColor = (type === 'boots' || type === 'dress') ? '#111' : '#DDD';
 
-        // Upper
+        ctx.save();
+        ctx.translate(x, y);
+        if(!isRight) ctx.scale(-1, 1); // Mirror for left foot if asymmetrical, but feet are usually symmetric in back view
+
+        // 1. SOLE
+        if(type !== 'socks' && type !== 'bare') {
+            ctx.fillStyle = soleColor;
+            if(type === 'cleats') ctx.fillStyle = '#FFF';
+
+            ctx.beginPath();
+            if(type === 'heels') {
+                ctx.ellipse(0, h*0.4, w*0.3, h*0.3, 0, 0, Math.PI*2); // Heel
+                ctx.fill();
+                ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.9, h*0.3, 0, 0, Math.PI*2); // Sole
+            } else {
+                ctx.ellipse(0, h*0.2, w, h*0.4, 0, 0, Math.PI*2);
+            }
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth=1; ctx.stroke();
+        }
+
+        // 2. UPPER
         ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2); // Main foot
-        ctx.fill();
 
-        // Detail lines (laces area)
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
+        if (type === 'sandals' || type === 'slides') {
+            // Straps only
+            // Foot skin should be drawn by drawLowerLeg beforehand?
+            // drawLowerLeg draws the "ankle/foot" blob if shoesColor is passed.
+            // But if we have sandals, we want skin visible.
+            // Current drawLowerLeg logic: if(shoesColor) drawRealisticShoe... else drawFuzzyCircle(paw).
+            // We'll handle skin in drawLowerLeg update. Here we just draw straps.
+
+            ctx.fillStyle = color;
+            if(type === 'slides') {
+                ctx.fillRect(-w*0.8, -h*0.3, w*1.6, h*0.6); // Strap across
+            } else {
+                // Sandals
+                ctx.beginPath(); ctx.rect(-w*0.8, -h*0.2, w*1.6, h*0.3); ctx.fill();
+                ctx.beginPath(); ctx.rect(-w*0.2, -h*0.5, w*0.4, h); ctx.fill();
+            }
+        }
+        else if (type === 'boots') {
+            // High top
+            ctx.beginPath();
+            ctx.moveTo(-w*0.7, -h*1.2);
+            ctx.lineTo(w*0.7, -h*1.2);
+            ctx.lineTo(w*0.9, h*0.2);
+            ctx.lineTo(-w*0.9, h*0.2);
+            ctx.fill();
+        }
+        else if (type === 'hightop') {
+            // High sneakers (Jordan style)
+            ctx.beginPath();
+            ctx.moveTo(-w*0.6, -h*1.0);
+            ctx.lineTo(w*0.6, -h*1.0);
+            ctx.quadraticCurveTo(w*1.0, 0, w*0.8, h*0.2);
+            ctx.quadraticCurveTo(0, h*0.4, -w*0.8, h*0.2);
+            ctx.quadraticCurveTo(-w*1.0, 0, -w*0.6, -h*1.0);
+            ctx.fill();
+
+            // Detail (Swoosh/Logo)
+            if (detailColor) {
+                ctx.fillStyle = detailColor;
+                ctx.beginPath(); ctx.arc(w*0.3, -h*0.2, w*0.2, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        else if (type === 'heels') {
+            // Pointy
+            ctx.beginPath();
+            ctx.moveTo(-w*0.5, -h*0.5);
+            ctx.lineTo(w*0.5, -h*0.5);
+            ctx.lineTo(0, h*0.3);
+            ctx.fill();
+        }
+        else {
+            // Standard Sneakers / Dress / Clogs
+            ctx.beginPath();
+            ctx.arc(0, -h*0.1, w*0.9, 0, Math.PI*2);
+            ctx.fill();
+
+            if(type === 'clogs') {
+                // Holes
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath(); ctx.arc(-w*0.3, -h*0.2, w*0.1, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(w*0.3, -h*0.2, w*0.1, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 0, w*0.1, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // Laces / Details
+        if (type === 'sneakers' || type === 'hightop' || type === 'boots' || type === 'cleats') {
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.4); ctx.lineTo(w*0.4, -h*0.4); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.2); ctx.lineTo(w*0.4, -h*0.2); ctx.stroke();
+        }
+
+        // Shine
+        if (shiny) {
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath(); ctx.ellipse(-w*0.3, -h*0.4, w*0.2, h*0.1, -0.5, 0, Math.PI*2); ctx.fill();
+        }
+
+        ctx.restore();
     }
 
     // --- OPTIMIZATION: Gradient Caching ---
@@ -5358,8 +5448,29 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
                  }
              }
-             if(shoesColor) {
-                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight);
+
+             // Shoes Logic
+             let shoeType = 'none';
+             let shoeColor = shoesColor;
+             let shoeDetail = null;
+             let shoeShiny = false;
+
+             if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
+                 const shoeObj = SHOES_DB.find(s => s.id === playerData.currentShoes);
+                 if (shoeObj) {
+                     shoeType = shoeObj.type;
+                     shoeColor = shoeObj.color;
+                     shoeDetail = shoeObj.detailColor;
+                     shoeShiny = shoeObj.shiny;
+                 }
+             } else if (shoesColor) {
+                 // Default shoes from skin
+                 shoeType = 'sneakers';
+                 shoeColor = shoesColor;
+             }
+
+             if(shoeType !== 'none') {
+                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoeColor, isRight, shoeType, shoeDetail, shoeShiny);
              }
         };
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
@@ -5692,20 +5803,21 @@ var BallRenderer = {
              skinObj.heightScale = 1.06 * cs.height;
              skinObj.widthScale = 1.0 * cs.width;
 
-             // Arm/Leg width should scale with width?
-             // Renderer defaults armWidth/legWidth to widthScale if not set.
-             // But let's explicitly scale them to keep proportions or let it fallback.
-             // Fallback logic: if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
-             // This works fine.
-
              if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
                  skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
              }
-             if (typeof HAIR_COLORS !== 'undefined' && HAIR_COLORS[cs.hairColorIndex]) {
-                 skinObj.hairColor = HAIR_COLORS[cs.hairColorIndex];
+        }
+
+        // Apply Global Hair Settings (Length & Color) if set
+        if (typeof playerData.customHairLength !== 'undefined' || typeof playerData.customHairColorIndex !== 'undefined') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj); // Ensure copy
+
+             if (typeof playerData.customHairLength !== 'undefined') {
+                 skinObj.hairScale = playerData.customHairLength;
              }
-             if (cs.hairSize !== undefined) {
-                 skinObj.hairScale = cs.hairSize;
+             if (typeof playerData.customHairColorIndex !== 'undefined' && typeof HAIR_COLORS !== 'undefined') {
+                 const col = HAIR_COLORS[playerData.customHairColorIndex];
+                 if(col) skinObj.hairColor = col;
              }
         }
 
@@ -6312,7 +6424,7 @@ var BallRenderer = {
              else drawFuzzyCircle(xTop, yTop, thighEndW * 0.5, thighColor, isRight?40:20, s, true);
 
              // Socks & Shoes Overlay
-             if(skinObj.socksColor || skinObj.shoesColor) {
+             if(skinObj.socksColor || skinObj.shoesColor || (playerData.currentShoes && playerData.currentShoes !== 'shoe_none')) {
                  const shoeH = 5 * s; const sockH = 7 * s;
                  // Calculate local Y relative to the foot Y
                  const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
@@ -6331,13 +6443,35 @@ var BallRenderer = {
                      const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
                      drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, sockTopW, skinObj.socksColor, s, false, 0, ankleW);
                  }
-                 if(skinObj.shoesColor) {
+
+                 // Shoes Logic
+                 let shoeType = 'none';
+                 let shoeColor = skinObj.shoesColor;
+                 let shoeDetail = null;
+                 let shoeShiny = false;
+
+                 if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
+                     const shoeObj = SHOES_DB.find(s => s.id === playerData.currentShoes);
+                     if (shoeObj) {
+                         shoeType = shoeObj.type;
+                         shoeColor = shoeObj.color;
+                         shoeDetail = shoeObj.detailColor;
+                         shoeShiny = shoeObj.shiny;
+                     }
+                 } else if (skinObj.shoesColor) {
+                     shoeType = 'sneakers';
+                 }
+
+                 if(shoeType !== 'none' && shoeColor) {
                      const ankleX = getXAtY(ankleY);
                      const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, ankleW, skinObj.shoesColor, s, false, 0, calfEndW);
-                     // Shoe Foot
-                     ctx.fillStyle = skinObj.shoesColor;
-                     ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
+
+                     // Draw high top part of shoe on ankle
+                     if(shoeType === 'hightop' || shoeType === 'boots' || shoeType === 'sneakers') {
+                         drawFuzzyLimb(ankleX, ankleY, xBot, yBot, ankleW, shoeColor, s, false, 0, calfEndW);
+                     }
+                     // Draw Foot Shoe
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoeColor, isRight, shoeType, shoeDetail, shoeShiny);
                  }
              }
         };
