@@ -4920,8 +4920,8 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         // Legs
         const baseKneeY = p.y - (legLen * 0.5);
         const stanceModLegs = sizeMod.stance || 1.0;
-        const hipOffset = 7 * s;
-        const footOffset = 10 * s * stanceModLegs;
+        const hipOffset = 7 * s * sizeMod.w;
+        const footOffset = 10 * s * sizeMod.w * stanceModLegs;
         const kneeOffset = (hipOffset + footOffset) / 2;
 
         let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
