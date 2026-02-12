@@ -579,6 +579,33 @@
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* Modal Close Button (Top-Right X) */
+.modal-close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 35px;
+    height: 35px;
+    background: transparent;
+    border: none;
+    color: var(--broadcast-accent);
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 101;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: #fff;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
 /* --- END style.css --- */
 
 </style>
@@ -678,6 +705,7 @@
 
     <!-- MODALS -->
     <div id="statsUI" class="modal">
+        <button class="modal-close-btn" onclick="closeStats()">✕</button>
         <div class="modal-header">STATISTIQUES À VIE</div>
 
         <div id="dailyChallengeContainer" style="background:linear-gradient(90deg, #1a1a1a, #2a2a2a); padding:15px; margin:10px 15px; border:1px solid #FFD700; border-left: 5px solid #FFD700; text-align:left; transform: skewX(-5deg);">
@@ -745,10 +773,10 @@
         <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
         <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
-        <button class="btn btn-close" onclick="closeStats()">FERMER</button>
     </div>
 
     <div id="shopUI" class="modal">
+        <button class="modal-close-btn" onclick="closeShop()">✕</button>
         <div class="modal-header">TACO MERCADO</div>
 
         <div class="shop-tabs">
@@ -881,16 +909,16 @@
             </div>
         </div>
 
-        <button class="btn btn-close" onclick="closeShop()">FERMER</button>
     </div>
 
     <div id="achUI" class="modal">
+        <button class="modal-close-btn" onclick="closeAchievements()">✕</button>
         <div class="modal-header">SALLE DES TROPHÉES</div>
         <div id="achList"></div>
-        <button class="btn btn-close" onclick="closeAchievements()">FERMER</button>
     </div>
 
     <div id="leaderboardUI" class="modal">
+        <button class="modal-close-btn" onclick="closeLeaderboard()">✕</button>
         <div class="modal-header">CLASSEMENT</div>
         <div class="modal-content-wrapper">
             <div class="lb-tab-container">
@@ -902,7 +930,6 @@
                 <!-- Rows injected via JS -->
                 <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
             </div>
-            <button class="btn btn-close" onclick="closeLeaderboard()">FERMER</button>
         </div>
     </div>
 

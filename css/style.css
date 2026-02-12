@@ -564,3 +564,30 @@
     from { opacity: 0; transform: translateX(10px); }
     to { opacity: 1; transform: translateX(0); }
 }
+
+/* Modal Close Button (Top-Right X) */
+.modal-close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 35px;
+    height: 35px;
+    background: transparent;
+    border: none;
+    color: var(--broadcast-accent);
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 101;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: #fff;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
