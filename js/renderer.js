@@ -1867,6 +1867,64 @@ var BallRenderer = {
                  ctx.strokeRect(cx - w*0.3, topY + h*0.2, w*0.6, h*0.4);
                  ctx.fillStyle = '#EEE'; ctx.fillRect(cx - w*0.2, topY + h*0.25, w*0.4, h*0.3);
              }
+             else if (pat === 'camo') {
+                 const c1 = '#556B2F'; const c2 = '#8B4513'; const c3 = '#2E8B57';
+                 for(let i=0; i<15; i++) {
+                     // Deterministic blobs
+                     const bx = cx - w/2 + (Math.abs(Math.sin(seed * 13 + i * 47)) * w);
+                     const by = topY + (Math.abs(Math.cos(seed * 7 + i * 29)) * h);
+                     const r = (5 + (Math.abs(Math.sin(i)) * 8)) * s;
+                     ctx.fillStyle = (i%2===0) ? c2 : c3;
+                     ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (pat === 'stripes_side') {
+                 const sc = options.chestStripeColor || '#FFF';
+                 ctx.fillStyle = sc;
+                 // Adidas style 3 stripes
+                 const lw = 1.5*s;
+                 const gap = 2*s;
+                 for(let k=0; k<3; k++) {
+                     // Left Side
+                     ctx.fillRect(cx - w/2 + 2*s + k*(lw+gap), topY, lw, h);
+                     // Right Side
+                     ctx.fillRect(cx + w/2 - 2*s - (k+1)*(lw+gap), topY, lw, h);
+                 }
+             }
+             else if (pat === 'galaxy') {
+                 // Stars
+                 ctx.fillStyle = '#FFF';
+                 for(let i=0; i<30; i++) {
+                     const sx = cx - w/2 + Math.abs(Math.sin(seed + i)) * w;
+                     const sy = topY + Math.abs(Math.cos(seed + i*2)) * h;
+                     const size = (Math.random() * 2 + 0.5) * s;
+                     ctx.globalAlpha = Math.random();
+                     ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+                 }
+                 ctx.globalAlpha = 1.0;
+                 // Nebulae
+                 ctx.fillStyle = 'rgba(255, 0, 255, 0.15)';
+                 ctx.beginPath(); ctx.arc(cx - w*0.2, topY + h*0.3, w*0.4, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = 'rgba(0, 255, 255, 0.15)';
+                 ctx.beginPath(); ctx.arc(cx + w*0.2, topY + h*0.7, w*0.3, 0, Math.PI*2); ctx.fill();
+             }
+             else if (pat === 'tie_dye') {
+                 const colors = ['#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF', '#FF00FF'];
+                 for(let i=0; i<6; i++) {
+                     ctx.beginPath();
+                     // Spiral approximation
+                     ctx.arc(cx, topY + h/2, w * (0.8 - i*0.12), 0, Math.PI*2);
+                     ctx.fillStyle = colors[i];
+                     ctx.fill();
+                 }
+             }
+             else if (pat === 'gradient_blue_pink') {
+                 const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY + h);
+                 grad.addColorStop(0, '#00FFFF');
+                 grad.addColorStop(1, '#FF69B4');
+                 ctx.fillStyle = grad;
+                 ctx.fillRect(cx - w/2, topY, w, h);
+             }
         };
 
         if (isFurry) {
