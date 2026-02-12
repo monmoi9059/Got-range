@@ -1023,6 +1023,15 @@
         }
     }
 
+    window.closeControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems && menuItems.classList.contains('open')) {
+            menuItems.classList.remove('open');
+            if (btn) btn.innerText = "MENU ☰";
+        }
+    }
+
     function getShopContext() {
         if (!isSplitscreen) return game1;
         return (g_shopTargetPlayer === 2) ? game2 : game1;
@@ -1054,6 +1063,7 @@
     }
 
     window.openShop = function(force) {
+        window.closeControlsMenu();
         g_shopTargetPlayer = 1; // Default to P1
         loadContext(game1);
 
@@ -1082,6 +1092,7 @@
         saveContext(game1);
     }
     window.openAchievements = function() {
+        window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
 
@@ -1092,6 +1103,7 @@
         saveContext(game1);
     }
     window.openStats = function() {
+        window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
 
@@ -2156,6 +2168,7 @@
     }
 
     window.toggleMode = function() {
+        window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         if(currentGameMode === 'CLASSIC') {
             currentGameMode = 'CONTEST';

@@ -458,6 +458,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
 
@@ -690,6 +691,7 @@ let lastDisplayedContestTime = -1;
     // Let's keep it separate.
 
     function toggleSplitscreen() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         isSplitscreen = !isSplitscreen;
 
