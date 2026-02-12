@@ -4980,11 +4980,25 @@ function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
+            // Force sleeve color for long-sleeved types (Double-check overwrite)
+            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
+
+            // Draw Base Joint (Skin or Sleeve)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
 
             let elbow = getJoint(sx, sy, effUpper, angle1);
             const upperTattoos = skinObj.tattoos && !activeSleeveColor;
+
+            // Draw Upper Arm (Base)
             drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
+
+            // FORCE SLEEVE LAYER (If long sleeve is detected, draw OVER the arm)
+            if (isLongSleeveItem && activeSleeveColor) {
+                 // Draw Sleeve Joint
+                 drawJoint(sx, sy, 4.2*s*sizeMod.armWidth, activeSleeveColor, false);
+                 // Draw Sleeve Limb (slightly wider to cover skin)
+                 drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
+            }
 
             if (activeSleeveColor) {
                  const midX = (sx + elbow.x) / 2;
