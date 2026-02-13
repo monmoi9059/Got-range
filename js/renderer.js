@@ -4386,7 +4386,8 @@ var BallRenderer = {
 
              const numRows = (style === 'cornrows_straight' || style === 'braids_zigzag') ? 9 : 7;
              let rowW = 3.5 * s;
-             if (style === 'cornrows_braids' || style === 'braids_zigzag') { rowW = 5 * s; }
+             if (style === 'cornrows_braids') { rowW = 5 * s; }
+             if (style === 'braids_zigzag') { rowW = 3.5 * s; }
              if (style === 'braids_box') { rowW = 6 * s; }
 
              for(let i=0; i<numRows; i++) {
@@ -4426,16 +4427,19 @@ var BallRenderer = {
                      // Zig Zag Pattern (Cornrows style)
                      path.moveTo(sx, sy);
 
+                     // Tighter control point to hug scalp
+                     const tightCpX = p.x + Math.sin(theta) * modRadius * 1.02;
+
                      // Oscillate along the path
-                     const steps = 20;
-                     const zigFreq = 8 * Math.PI;
-                     const zigAmp = 3 * s;
+                     const steps = 30; // Smoother
+                     const zigFreq = 10 * Math.PI; // Tighter frequency
+                     const zigAmp = 1.5 * s; // Reduced amplitude (less messy)
 
                      for (let j = 1; j <= steps; j++) {
                          const t = j / steps;
                          // Quadratic Bezier Interpolation
                          const invT = 1 - t;
-                         const bx = invT * invT * sx + 2 * invT * t * cpX + t * t * ex;
+                         const bx = invT * invT * sx + 2 * invT * t * tightCpX + t * t * ex;
                          const by = invT * invT * sy + 2 * invT * t * cpY + t * t * ey;
 
                          // Zig Zag Offset
