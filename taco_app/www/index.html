@@ -785,7 +785,7 @@
         </div>
 
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
+        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">TOUT DÉBLOQUER</button>
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
         <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
@@ -13446,7 +13446,7 @@ var BallRenderer = {
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
         playerData = createDefaultData();
-        saveData();
+        if (typeof forceSave === 'function') forceSave();
         updateUI();
         closeStats();
         resetGame();
