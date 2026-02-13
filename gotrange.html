@@ -785,7 +785,7 @@
         </div>
 
         <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 20px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
-        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">DÉBLOQUER TOUS LES SKINS</button>
+        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">TOUT DÉBLOQUER</button>
         <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
         <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
         <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
@@ -13012,6 +13012,36 @@ var BallRenderer = {
             CLOTHING_DB.forEach(c => {
                 if(!playerData.unlockedClothing.includes(c.id)) {
                     playerData.unlockedClothing.push(c.id);
+                }
+            });
+            HATS_DB.forEach(h => {
+                if(!playerData.unlockedHats.includes(h.id)) {
+                    playerData.unlockedHats.push(h.id);
+                }
+            });
+            PANTS_DB.forEach(p => {
+                if(!playerData.unlockedPants.includes(p.id)) {
+                    playerData.unlockedPants.push(p.id);
+                }
+            });
+            SHOES_DB.forEach(s => {
+                if(!playerData.unlockedShoes.includes(s.id)) {
+                    playerData.unlockedShoes.push(s.id);
+                }
+            });
+            BALLS_DB.forEach(b => {
+                if(!playerData.unlockedBalls.includes(b.id)) {
+                    playerData.unlockedBalls.push(b.id);
+                }
+            });
+            HAIRSTYLES.forEach(h => {
+                if(!playerData.unlockedHairstyles.includes(h.id)) {
+                    playerData.unlockedHairstyles.push(h.id);
+                }
+            });
+            SHOOTING_STYLES.forEach(s => {
+                if(!playerData.unlockedStyles.includes(s.id)) {
+                    playerData.unlockedStyles.push(s.id);
                 }
             });
             checkAchievements('shop');

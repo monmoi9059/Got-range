@@ -13014,6 +13014,36 @@ var BallRenderer = {
                     playerData.unlockedClothing.push(c.id);
                 }
             });
+            HATS_DB.forEach(h => {
+                if(!playerData.unlockedHats.includes(h.id)) {
+                    playerData.unlockedHats.push(h.id);
+                }
+            });
+            PANTS_DB.forEach(p => {
+                if(!playerData.unlockedPants.includes(p.id)) {
+                    playerData.unlockedPants.push(p.id);
+                }
+            });
+            SHOES_DB.forEach(s => {
+                if(!playerData.unlockedShoes.includes(s.id)) {
+                    playerData.unlockedShoes.push(s.id);
+                }
+            });
+            BALLS_DB.forEach(b => {
+                if(!playerData.unlockedBalls.includes(b.id)) {
+                    playerData.unlockedBalls.push(b.id);
+                }
+            });
+            HAIRSTYLES.forEach(h => {
+                if(!playerData.unlockedHairstyles.includes(h.id)) {
+                    playerData.unlockedHairstyles.push(h.id);
+                }
+            });
+            SHOOTING_STYLES.forEach(s => {
+                if(!playerData.unlockedStyles.includes(s.id)) {
+                    playerData.unlockedStyles.push(s.id);
+                }
+            });
             checkAchievements('shop');
             saveData();
             updateShopUI();
