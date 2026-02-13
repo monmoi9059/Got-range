@@ -4097,17 +4097,36 @@ var BallRenderer = {
              drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -20), true, 'natural'); // Shadow
 
              if (style === 'buzz_colored') {
-                 // Rodman Pattern
+                 // Rodman Pattern (Dye on head, not floating)
                  const baseColor = hairColor;
                  const spotColor = skinObj.hairColor2 || '#FFD700';
+
+                 // Draw Base
                  drawSolidLayeredBase(1.01, 0, baseColor, false, 'natural');
-                 // Spots
+
+                 // Draw Spots (Clipped to head shape logic)
+                 ctx.save();
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0); // Top arch
+                 ctx.lineTo(p.x + modRadius, headY);
+                 ctx.lineTo(p.x - modRadius, headY);
+                 ctx.clip();
+
                  ctx.fillStyle = spotColor;
-                 for(let i=0; i<6; i++) {
-                     const rx = p.x + (seededRandom(seed + i) - 0.5) * modRadius * 1.4;
-                     const ry = headY - 5*s + (seededRandom(seed + i + 50) - 0.5) * modRadius * 1.4;
-                     ctx.beginPath(); ctx.arc(rx, ry, 5*s, 0, Math.PI*2); ctx.fill();
+                 const numSpots = 5;
+                 for(let i=0; i<numSpots; i++) {
+                     // Spread points on surface
+                     const angle = (seededRandom(seed + i * 13) * Math.PI) - Math.PI/2;
+                     const dist = (seededRandom(seed + i * 7)) * modRadius * 0.8;
+                     const sx = p.x + Math.sin(angle) * dist;
+                     const sy = headY - 2*s - Math.cos(angle) * dist * 0.6;
+
+                     // Irregular patches
+                     ctx.beginPath();
+                     ctx.ellipse(sx, sy, 6*s, 4*s, seededRandom(seed+i)*3, 0, Math.PI*2);
+                     ctx.fill();
                  }
+                 ctx.restore();
              } else {
                  const grad = ctx.createLinearGradient(0, headY - modRadius, 0, headY + 5*s);
                  grad.addColorStop(0, adjustColor(hairColor, 20));
@@ -4147,14 +4166,22 @@ var BallRenderer = {
              }
              ctx.fill();
 
-             // Texture details
+             // Texture details (Sponge Curls / Chef)
              if (style === 'fade_chef') {
-                 // Curls texture
+                 // Tight sponge texture - Dense small noise pattern inside the shape
                  ctx.fillStyle = adjustColor(hairColor, 15);
-                 for(let i=0; i<8; i++) {
-                     const rx = (seededRandom(seed + i) - 0.5) * w * 1.5;
-                     const ry = (seededRandom(seed + i + 20) - 0.5) * w;
-                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 2*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 const dens = 15;
+                 for(let i=0; i<dens; i++) {
+                     // Concentrated on top
+                     const angle = (seededRandom(seed + i) * Math.PI) - Math.PI/2; // Top half
+                     const r = (seededRandom(seed + i + 100)) * w * 0.9;
+                     const tx = p.x + Math.cos(angle) * r;
+                     const ty = headY - 2*s + Math.sin(angle) * r * 0.6; // Flattened Y
+
+                     // Irregular small blobs
+                     ctx.beginPath();
+                     ctx.arc(tx, ty, 2*s, 0, Math.PI*2);
+                     ctx.fill();
                  }
              }
 
@@ -4197,11 +4224,32 @@ var BallRenderer = {
                  // Wider
                  ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.1, r*0.9, 0, 0, Math.PI*2); ctx.fill();
              } else if (style === 'curls_textured') {
-                 // Lumpy surface
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r*0.9, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = adjustColor(hairColor, 10);
-                 for(let i=0; i<5; i++) {
-                     ctx.beginPath(); ctx.arc(p.x + (i-2)*8*s, headY - r*0.8, 6*s, 0, Math.PI*2); ctx.fill();
+                 // Tight Nappy Curls (KD/Tatum)
+                 // Solid base with rough edge
+                 ctx.beginPath();
+                 const steps = 16;
+                 for (let i = 0; i <= steps; i++) {
+                     const angle = (i / steps) * Math.PI; // 0 to PI (Top arc)
+                     const radiusNoise = (seededRandom(seed + i) * 3 * s);
+                     const cx = p.x + Math.cos(angle) * (r * 0.95 + radiusNoise);
+                     const cy = headY + 5*s - Math.sin(angle) * (r * 0.9 + radiusNoise);
+                     if (i===0) ctx.moveTo(cx, cy);
+                     else ctx.lineTo(cx, cy);
+                 }
+                 ctx.lineTo(p.x + r*0.8, headY + 5*s);
+                 ctx.lineTo(p.x - r*0.8, headY + 5*s);
+                 ctx.fill();
+
+                 // Internal Texture (No floating balls)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const dens = 12;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
+                     const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
+                     // Only draw if inside ellipse roughly
+                     if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
+                         ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                     }
                  }
              } else {
                  // Perfect Sphere
@@ -4443,11 +4491,44 @@ var BallRenderer = {
         }
 
         if (style === 'crew_messy') {
-            drawSolidLayeredBase(1.05, 3*s, hairColor, false, 'square');
-            // Messy bits
-            ctx.fillStyle = adjustColor(hairColor, 10);
-            ctx.beginPath(); ctx.arc(p.x - modRadius*0.5, headY - modRadius, 4*s, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x + modRadius*0.3, headY - modRadius*1.1, 5*s, 0, Math.PI*2); ctx.fill();
+            // Jokic: Short but spiky/messy top
+            const topH = modRadius * 1.1;
+            const w = modRadius * 0.95;
+
+            // Draw Sides (Short)
+            drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -10), false, 'square');
+
+            // Draw Top (Spiky Polygon)
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+            const spikes = 7;
+            const startAngle = Math.PI; // Left
+            const endAngle = 0; // Right
+
+            for(let i=0; i<=spikes; i++) {
+                const t = i/spikes;
+                const angle = startAngle + (endAngle - startAngle) * t;
+
+                // Base point on head curve
+                const bx = p.x + Math.cos(angle) * w;
+                const by = headY - 2*s + Math.sin(angle) * w * 0.5; // Flattened circle base
+
+                // Spike Tip
+                const hNoise = (seededRandom(seed + i) * 8 * s);
+                const tx = p.x + Math.cos(angle) * w;
+                const ty = headY - topH - hNoise + Math.abs(Math.cos(angle))*5*s; // Lower at sides
+
+                if(i===0) ctx.moveTo(bx, by);
+                ctx.lineTo(tx, ty);
+                // Mid-point dip
+                if(i < spikes) {
+                    const nextAngle = startAngle + (endAngle - startAngle) * ( (i+0.5)/spikes );
+                    ctx.lineTo(p.x + Math.cos(nextAngle)*w*0.9, headY - topH*0.8);
+                }
+            }
+            ctx.lineTo(p.x + w, headY + 5*s); // Side down
+            ctx.lineTo(p.x - w, headY + 5*s); // Side down
+            ctx.fill();
             return;
         }
 
