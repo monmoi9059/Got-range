@@ -4068,19 +4068,65 @@ var BallRenderer = {
         }
 
         if (style === 'short' || style === 'buzz_cut' || style === 'caesar' || style === 'french_crop' || style === 'fade') {
-             // Layer 1: Shadow/Base
-             drawSolidLayeredBase(1.05, 5*s, adjustColor(hairColor, -30), true);
+             // Layer 1: Base
+             let radiusMod = 1.02;
+             let lengthMod = 3*s;
+             let isFade = (style === 'fade');
 
-             // Layer 2: Main Gradient
-             const r = modRadius * 1.02;
-             const grad = ctx.createLinearGradient(0, headY - r, 0, headY + 5*s);
+             if (style === 'buzz_cut') {
+                 radiusMod = 1.01; // Tighter
+                 lengthMod = 1*s;  // Shorter
+             }
+
+             // Shadow
+             drawSolidLayeredBase(radiusMod + 0.03, lengthMod + 2*s, adjustColor(hairColor, -30), true);
+
+             // Main Body
+             const r = modRadius * radiusMod;
+             const grad = ctx.createLinearGradient(0, headY - r, 0, headY + lengthMod);
              grad.addColorStop(0, adjustColor(hairColor, 20));
              grad.addColorStop(0.5, hairColor);
              grad.addColorStop(1, adjustColor(hairColor, -20));
-             drawSolidLayeredBase(1.02, 3*s, grad);
 
-             if (style === 'fade') {
-                 // Fade is handled by the gradient in drawSolidLayeredBase
+             ctx.fillStyle = grad;
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
+             ctx.lineTo(p.x + r, headY + lengthMod);
+
+             // Bottom Shape Variation
+             if (style === 'buzz_cut') {
+                 // Sharp square back
+                 ctx.lineTo(p.x - r, headY + lengthMod);
+             } else {
+                 // Curved Neckline
+                 ctx.quadraticCurveTo(p.x, headY + lengthMod + 5*s, p.x - r, headY + lengthMod);
+             }
+             ctx.lineTo(p.x - r, headY - 2*s);
+             ctx.fill();
+
+             // Details
+             if (style === 'caesar') {
+                 // Fringe Line
+                 ctx.strokeStyle = adjustColor(hairColor, -20);
+                 ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - r*0.6, headY - r*0.8);
+                 ctx.quadraticCurveTo(p.x, headY - r*0.75, p.x + r*0.6, headY - r*0.8);
+                 ctx.stroke();
+             }
+             if (style === 'french_crop') {
+                 // Texture on top
+                 ctx.fillStyle = adjustColor(hairColor, 10);
+                 ctx.beginPath(); ctx.arc(p.x - r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
+             }
+             if (isFade) {
+                 // Side fade gradient overlay
+                 const fadeG = ctx.createLinearGradient(0, headY, 0, headY + 8*s);
+                 fadeG.addColorStop(0, 'rgba(0,0,0,0)');
+                 fadeG.addColorStop(1, 'rgba(0,0,0,0.5)');
+                 ctx.fillStyle = fadeG;
+                 ctx.fillRect(p.x - r, headY, r*2, 10*s);
              }
              return;
         }
@@ -4113,8 +4159,15 @@ var BallRenderer = {
              ctx.fillStyle = adjustColor(hairColor, -30);
              ctx.beginPath();
              ctx.moveTo(p.x - r, headY);
+
+         if (style === 'long_straight') {
+             ctx.lineTo(p.x - shoulderW, headY + maxLen);
+             ctx.lineTo(p.x + shoulderW, headY + maxLen);
+             ctx.lineTo(p.x + r, headY);
+         } else {
              ctx.quadraticCurveTo(p.x - shoulderW, headY + maxLen, p.x, headY + maxLen + 5*s);
              ctx.quadraticCurveTo(p.x + shoulderW, headY + maxLen, p.x + r, headY);
+         }
              ctx.fill();
 
              // 2. Main Flow Layer
@@ -4126,9 +4179,16 @@ var BallRenderer = {
              ctx.beginPath();
              ctx.arc(p.x, headY - 2*s, r, Math.PI, 0); // Top
              // Sides
+         if (style === 'long_wavy') {
+             const cpOffset = 10*s;
+             ctx.bezierCurveTo(p.x + r*1.2, headY + maxLen*0.3, p.x + shoulderW + cpOffset, headY + maxLen*0.6, p.x + shoulderW*0.9, headY + maxLen);
+             ctx.lineTo(p.x - shoulderW*0.9, headY + maxLen);
+             ctx.bezierCurveTo(p.x - shoulderW - cpOffset, headY + maxLen*0.6, p.x - r*1.2, headY + maxLen*0.3, p.x - r, headY - 2*s);
+         } else {
              ctx.bezierCurveTo(p.x + r*1.1, headY + maxLen*0.5, p.x + shoulderW*0.9, headY + maxLen, p.x + shoulderW*0.9, headY + maxLen);
              ctx.lineTo(p.x - shoulderW*0.9, headY + maxLen);
              ctx.bezierCurveTo(p.x - shoulderW*0.9, headY + maxLen, p.x - r*1.1, headY + maxLen*0.5, p.x - r, headY - 2*s);
+         }
              ctx.fill();
 
              // 3. Shine / Parting
@@ -4234,11 +4294,19 @@ var BallRenderer = {
         }
 
         if (style === 'bun_low' || style === 'bun_high' || style === 'top_knot' || style === 'space_buns') {
-             // Base Layer
-             drawSolidLayeredBase(1.0, 0, hairColor);
+             // Base Layer Variations
+             if (style === 'top_knot') {
+                 // Undercut base for top knot
+                 ctx.fillStyle = adjustColor(hairColor, -20);
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = hairColor;
+                 ctx.beginPath(); ctx.arc(p.x, headY - modRadius*0.5, modRadius*0.8, Math.PI, 0); ctx.fill(); // Just top
+             } else {
+                 drawSolidLayeredBase(1.0, 0, hairColor);
+             }
 
              // Buns (Spheres)
-             const drawBun = (bx, by, size) => {
+             const drawBun = (bx, by, size, isMessy = false) => {
                  // Shadow
                  ctx.fillStyle = adjustColor(hairColor, -30);
                  ctx.beginPath(); ctx.arc(bx, by + 2*s, size, 0, Math.PI*2); ctx.fill();
@@ -4247,16 +4315,28 @@ var BallRenderer = {
                  grad.addColorStop(0, adjustColor(hairColor, 30));
                  grad.addColorStop(1, hairColor);
                  ctx.fillStyle = grad;
-                 ctx.beginPath(); ctx.arc(bx, by, size, 0, Math.PI*2); ctx.fill();
+
+                 if (isMessy) {
+                     // Irregular bun
+                     ctx.beginPath();
+                     ctx.moveTo(bx - size, by);
+                     ctx.quadraticCurveTo(bx - size, by - size*1.2, bx, by - size);
+                     ctx.quadraticCurveTo(bx + size*1.2, by - size, bx + size, by);
+                     ctx.quadraticCurveTo(bx + size, by + size*1.2, bx, by + size);
+                     ctx.quadraticCurveTo(bx - size*1.2, by + size, bx - size, by);
+                     ctx.fill();
+                 } else {
+                     ctx.beginPath(); ctx.arc(bx, by, size, 0, Math.PI*2); ctx.fill();
+                 }
              };
 
              if (style === 'space_buns') {
                  drawBun(p.x - modRadius*0.8, headY - modRadius*0.6, 8*s);
                  drawBun(p.x + modRadius*0.8, headY - modRadius*0.6, 8*s);
              } else if (style === 'top_knot') {
-                 drawBun(p.x, headY - modRadius * 1.2, 6*s);
+                 drawBun(p.x, headY - modRadius * 1.2, 5*s);
              } else if (style === 'bun_low') {
-                 drawBun(p.x, headY + 5*s, 8*s);
+                 drawBun(p.x, headY + 5*s, 8*s, true); // Messy low bun
              } else {
                  drawBun(p.x, headY - modRadius, 9*s);
              }
@@ -4293,13 +4373,36 @@ var BallRenderer = {
 
              // Top Slick
              ctx.fillStyle = hairColor;
-             const w = modRadius * 0.8;
+             const w = modRadius * (style === 'slicked_back' ? 0.9 : 0.8); // Slicked back is wider
              ctx.beginPath();
              ctx.moveTo(p.x - w, headY - 2*s);
-             ctx.bezierCurveTo(p.x - w, headY - modRadius*1.5, p.x + w, headY - modRadius*1.5, p.x + w, headY - 2*s);
-             ctx.lineTo(p.x + w*0.8, headY + 8*s);
-             ctx.lineTo(p.x - w*0.8, headY + 8*s);
+
+             // Top curve
+             const topH = modRadius * (style === 'slicked_back' ? 1.3 : 1.5);
+             ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY - 2*s);
+
+             // Bottom edge
+             if (style === 'slicked_back') {
+                 // Straight back
+                 ctx.lineTo(p.x + w*0.9, headY + 10*s);
+                 ctx.lineTo(p.x - w*0.9, headY + 10*s);
+             } else {
+                 // Undercut flop
+                 ctx.lineTo(p.x + w*0.8, headY + 8*s);
+                 ctx.lineTo(p.x - w*0.8, headY + 8*s);
+             }
              ctx.fill();
+
+             // Striations for slicked look
+             if (style === 'slicked_back') {
+                 ctx.strokeStyle = adjustColor(hairColor, 20);
+                 ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x, headY - topH*0.8); ctx.lineTo(p.x, headY + 8*s);
+                 ctx.moveTo(p.x - w*0.5, headY - topH*0.7); ctx.lineTo(p.x - w*0.5, headY + 8*s);
+                 ctx.moveTo(p.x + w*0.5, headY - topH*0.7); ctx.lineTo(p.x + w*0.5, headY + 8*s);
+                 ctx.stroke();
+             }
              return;
         }
 
@@ -4340,18 +4443,19 @@ var BallRenderer = {
         }
 
         if (style === 'mullet_modern') {
-             // Top
-             drawSolidBase(1.0, 0);
-             // Back flow
-             const w = modRadius * 0.8;
-             const len = 20*s;
-             ctx.fillStyle = hairColor;
+             // 1. Back Flow (Draw first so it's behind)
+             const w = modRadius * 0.9;
+             const len = 18*s;
+             ctx.fillStyle = adjustColor(hairColor, -10);
              ctx.beginPath();
-             ctx.moveTo(p.x - w, headY + 5*s);
-             ctx.lineTo(p.x + w, headY + 5*s);
-             ctx.lineTo(p.x + w*1.2, headY + len);
-             ctx.lineTo(p.x - w*1.2, headY + len);
+             ctx.moveTo(p.x - w, headY);
+             ctx.quadraticCurveTo(p.x - w*1.3, headY + len*0.5, p.x - w*0.8, headY + len);
+             ctx.lineTo(p.x + w*0.8, headY + len);
+             ctx.quadraticCurveTo(p.x + w*1.3, headY + len*0.5, p.x + w, headY);
              ctx.fill();
+
+             // 2. Top (Business)
+             drawSolidLayeredBase(1.02, 2*s, hairColor);
              return;
         }
 
