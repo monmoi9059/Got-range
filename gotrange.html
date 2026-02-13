@@ -8304,7 +8304,7 @@ var BallRenderer = {
              ctx.fillStyle = adjustColor(hairColor, -20);
              ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-             const len = 24 * s;
+             const len = 16 * s; // Shorter (Was 24)
 
              // Draw Locks (Back to Front)
              const numLocks = 32;
@@ -8313,14 +8313,15 @@ var BallRenderer = {
                  const angle = (t - 0.5) * 4.0; // Spread around head (-2.0 to 2.0 rad)
 
                  // Randomize slightly (Deterministic)
-                 const rLen = len + (seededRandom(seed + i) - 0.5) * 10 * s;
+                 const rLen = len + (seededRandom(seed + i) - 0.5) * 6 * s;
                  const rAngle = angle + (seededRandom(seed + i + 50) - 0.5) * 0.2;
-                 const wavy = (seededRandom(seed + i + 100) - 0.5) * 15 * s;
+                 const wavy = (seededRandom(seed + i + 100) - 0.5) * 8 * s;
 
                  const sx = p.x + Math.sin(rAngle) * modRadius * 0.9;
                  const sy = (headY - 5*s) - Math.cos(rAngle) * modRadius * 0.6;
 
-                 const ex = p.x + Math.sin(rAngle) * (modRadius + 15*s);
+                 // Narrower bottom spread (Was modRadius + 15*s -> modRadius + 2*s)
+                 const ex = p.x + Math.sin(rAngle) * (modRadius + 2*s);
                  const ey = headY + rLen;
 
                  // Control point for waviness
