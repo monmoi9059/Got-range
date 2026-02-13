@@ -4149,6 +4149,8 @@ var BallRenderer = {
              if (style === 'fade_king') topH = modRadius * 1.05; // Tight
              if (style === 'fade_chef') topH = modRadius * 1.1; // Textured
              if (style === 'fade_pompadour') topH = modRadius * 1.4; // High volume (Luka)
+             if (style === 'fade_low') topH = modRadius * 1.05;
+             if (style === 'curly_top_fade') topH = modRadius * 1.2;
 
              const topY = headY - topH;
              ctx.fillStyle = hairColor;
@@ -4168,10 +4170,24 @@ var BallRenderer = {
                  ctx.bezierCurveTo(p.x - w, topY, p.x + w, topY, p.x + w, headY - 2*s);
                  ctx.fill();
                  return; // Skip standard fill
+             } else if (style === 'curly_top_fade') {
+                 // Curly Top: Bumpy surface
+                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
              } else {
                  ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
              }
              ctx.fill();
+
+             // Curly Top Texture
+             if (style === 'curly_top_fade') {
+                 ctx.fillStyle = adjustColor(hairColor, 10);
+                 const dens = 10;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed+i) - 0.5) * w * 1.5;
+                     const ry = (seededRandom(seed+i+20) - 0.5) * w * 0.8;
+                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 4*s + ry, 3*s, 0, Math.PI*2); ctx.fill();
+                 }
+             }
 
              // Texture details (Sponge Curls / Chef)
              if (style === 'fade_chef') {
@@ -4195,15 +4211,43 @@ var BallRenderer = {
              return;
         }
 
-        if (style === 'waves') {
+        if (style === 'waves' || style === 'waves_360') {
              drawSolidLayeredBase(1.01, 1*s, hairColor, false, 'shaved');
              ctx.strokeStyle = adjustColor(hairColor, 20);
              ctx.lineWidth = 2*s;
-             for(let i=0; i<3; i++) {
+             const numWaves = (style === 'waves_360') ? 5 : 3;
+             for(let i=0; i<numWaves; i++) {
                  ctx.beginPath();
-                 ctx.arc(p.x, headY - 2*s, modRadius * (0.3 + i*0.25), Math.PI, 0);
+                 ctx.arc(p.x, headY - 2*s, modRadius * (0.3 + i*(0.7/numWaves)), 0, Math.PI*2);
                  ctx.stroke();
              }
+             return;
+        }
+
+        if (style === 'buzz_line') {
+             drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -10), true, 'natural');
+             ctx.strokeStyle = '#333'; // Skin tone gap approx or dark line? usually skin exposed
+             // Draw line on side
+             ctx.lineWidth = 2*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - modRadius*0.7, headY - 5*s);
+             ctx.lineTo(p.x - modRadius*0.9, headY + 5*s);
+             ctx.globalCompositeOperation = 'destination-out';
+             ctx.stroke();
+             ctx.globalCompositeOperation = 'source-over';
+             return;
+        }
+
+        if (style === 'caesar_cut') {
+             // Low cut with straight fringe
+             drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), true, 'square');
+             // Fringe
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 5*s, modRadius, Math.PI, 0);
+             ctx.lineTo(p.x + modRadius, headY);
+             ctx.lineTo(p.x - modRadius, headY);
+             ctx.fill();
              return;
         }
 
@@ -4213,6 +4257,7 @@ var BallRenderer = {
              if (style === 'afro_classic') sizeMult = 1.5; // Dr J
              if (style === 'afro_blowout') sizeMult = 1.8; // Ben
              if (style === 'curls_textured') sizeMult = 1.15; // KD/Tatum
+             if (style === 'afro_taper') sizeMult = 1.25;
 
              const r = modRadius * sizeMult;
 
@@ -4273,7 +4318,7 @@ var BallRenderer = {
 
              const numRows = (style === 'cornrows_straight') ? 9 : 7;
              let rowW = 3.5 * s;
-             if (style === 'cornrows_braids') { rowW = 5 * s; }
+             if (style === 'cornrows_braids' || style === 'braids_zigzag') { rowW = 5 * s; }
              if (style === 'braids_box') { rowW = 6 * s; }
 
              for(let i=0; i<numRows; i++) {
@@ -4309,6 +4354,13 @@ var BallRenderer = {
                      const r1 = (seededRandom(seed + i) - 0.5) * 10 * s;
                      const r2 = (seededRandom(seed + i + 50) - 0.5) * 10 * s;
                      path.bezierCurveTo(cpX + r1, cpY, hangX + r2, hangY - 10*s, hangX, hangY);
+                 } else if (style === 'braids_zigzag') {
+                     // Zig Zag Pattern
+                     path.moveTo(sx, sy);
+                     const midX = (sx + ex)/2;
+                     const midY = (sy + ey)/2;
+                     const zigOff = ((i%2===0)?1:-1) * 10 * s;
+                     path.quadraticCurveTo(cpX + zigOff, cpY, ex, ey);
                  } else if (style === 'cornrows_braids') {
                      // Thick Braids (Klaw) - Slightly looser/3D
                      path.moveTo(sx, sy);
@@ -4353,6 +4405,25 @@ var BallRenderer = {
                  ctx.strokeStyle = hairColor; ctx.lineWidth = 4*s;
                  ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x - 15*s, headY - modRadius + 15*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x + 15*s, headY - modRadius + 15*s); ctx.stroke();
+             } else if (style === 'dreads_short') {
+                 // Jimmy Butler / Short Dreads
+                 ctx.fillStyle = adjustColor(hairColor, -10);
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+
+                 const num = 12;
+                 const len = 10 * s;
+                 for(let i=0; i<num; i++) {
+                     const angle = (i/num)*Math.PI + Math.PI; // Top arc
+                     const sx = p.x + Math.cos(angle) * modRadius * 0.8;
+                     const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.8;
+                     ctx.strokeStyle = hairColor;
+                     ctx.lineWidth = 4*s;
+                     ctx.lineCap = 'round';
+                     ctx.beginPath();
+                     ctx.moveTo(sx, sy);
+                     ctx.lineTo(sx + (Math.random()-0.5)*5*s, sy + len);
+                     ctx.stroke();
+                 }
              } else {
                  // Loose (Long)
                  ctx.fillStyle = adjustColor(hairColor, -20); // Base
@@ -4480,8 +4551,8 @@ var BallRenderer = {
              return;
         }
 
-        if (style === 'slicked_back') {
-             // The Anchor / Riley
+        if (style === 'slicked_back' || style === 'slick_side_part') {
+             // The Anchor / Riley / Gentleman
              drawSolidLayeredBase(1.0, 4*s, adjustColor(hairColor, -10), false, 'tapered');
              ctx.fillStyle = hairColor;
              const w = modRadius * 0.9;
@@ -4498,12 +4569,24 @@ var BallRenderer = {
              ctx.beginPath();
              ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x, headY + 6*s);
              ctx.stroke();
+
+             if (style === 'slick_side_part') {
+                 // Hard Part line
+                 ctx.strokeStyle = '#333';
+                 ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - w*0.6, headY - modRadius*0.8);
+                 ctx.lineTo(p.x - w*0.6, headY);
+                 ctx.stroke();
+             }
              return;
         }
 
-        if (style === 'mohawk_fade' || style === 'mohawk_burst') {
+        if (style === 'mohawk_fade' || style === 'mohawk_burst' || style === 'mohawk_short') {
              // Harden Style
-             const w = modRadius * 0.6; // Narrower strip
+             let w = modRadius * 0.6;
+             if (style === 'mohawk_short') w = modRadius * 0.7;
+
              const topY = headY - modRadius * 1.3;
              const botY = headY + modRadius;
 
