@@ -4444,7 +4444,8 @@ var BallRenderer = {
                      ctx.lineCap = 'round';
                      ctx.beginPath();
                      ctx.moveTo(sx, sy);
-                     ctx.lineTo(sx + (Math.random()-0.5)*5*s, sy + len);
+                     const rx = (seededRandom(seed+i) - 0.5) * 5 * s;
+                     ctx.lineTo(sx + rx, sy + len);
                      ctx.stroke();
                  }
              } else {

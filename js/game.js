@@ -1237,21 +1237,28 @@
             return;
         }
         if(resetStage === 2) {
-            SKINS_DB.forEach(skin => {
-                if(!playerData.unlockedSkins.includes(skin.id)) {
-                    playerData.unlockedSkins.push(skin.id);
-                }
-            });
-            CLOTHING_DB.forEach(c => {
-                if(!playerData.unlockedClothing.includes(c.id)) {
-                    playerData.unlockedClothing.push(c.id);
-                }
-            });
+            // Unlocks everything
+            SKINS_DB.forEach(skin => { if(!playerData.unlockedSkins.includes(skin.id)) playerData.unlockedSkins.push(skin.id); });
+            CLOTHING_DB.forEach(c => { if(!playerData.unlockedClothing.includes(c.id)) playerData.unlockedClothing.push(c.id); });
+            HATS_DB.forEach(h => { if(!playerData.unlockedHats.includes(h.id)) playerData.unlockedHats.push(h.id); });
+            PANTS_DB.forEach(p => { if(!playerData.unlockedPants.includes(p.id)) playerData.unlockedPants.push(p.id); });
+            SHOES_DB.forEach(s => { if(!playerData.unlockedShoes.includes(s.id)) playerData.unlockedShoes.push(s.id); });
+            BALLS_DB.forEach(b => { if(!playerData.unlockedBalls.includes(b.id)) playerData.unlockedBalls.push(b.id); });
+            SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
+            HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
+
+            // Max Stats
+            playerData.purchasedStats.income = 5; playerData.stats.income = 5;
+            playerData.purchasedStats.aim = 5; playerData.stats.aim = 5;
+            playerData.purchasedStats.luck = 10; playerData.stats.luck = 10;
+            playerData.purchasedStats.moonwalk = 5; playerData.stats.moonwalk = 5;
+            playerData.purchasedStats.extraLives = 5; playerData.stats.extraLives = 5;
+
             checkAchievements('shop');
             saveData();
             updateShopUI();
             const btn = document.getElementById('btnUnlock');
-            btn.innerText = "TRICHEUR !";
+            btn.innerText = "TOUT DÉBLOQUÉ !";
             btn.disabled = true;
             resetStage = 0;
             showNotification("TRICHEUR !", 0);
