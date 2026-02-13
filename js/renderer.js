@@ -4379,12 +4379,12 @@ var BallRenderer = {
         }
 
         // --- 4. BRAIDS / CORNROWS ---
-        if (style.startsWith('cornrows_') || style === 'braids_box') {
+        if (style.startsWith('cornrows_') || style === 'braids_box' || style === 'braids_zigzag') {
              // Scalp Base
              ctx.fillStyle = adjustColor(hairColor, -20);
              ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-             const numRows = (style === 'cornrows_straight') ? 9 : 7;
+             const numRows = (style === 'cornrows_straight' || style === 'braids_zigzag') ? 9 : 7;
              let rowW = 3.5 * s;
              if (style === 'cornrows_braids' || style === 'braids_zigzag') { rowW = 5 * s; }
              if (style === 'braids_box') { rowW = 6 * s; }
@@ -4423,12 +4423,27 @@ var BallRenderer = {
                      const r2 = (seededRandom(seed + i + 50) - 0.5) * 10 * s;
                      path.bezierCurveTo(cpX + r1, cpY, hangX + r2, hangY - 10*s, hangX, hangY);
                  } else if (style === 'braids_zigzag') {
-                     // Zig Zag Pattern
+                     // Zig Zag Pattern (Cornrows style)
                      path.moveTo(sx, sy);
-                     const midX = (sx + ex)/2;
-                     const midY = (sy + ey)/2;
-                     const zigOff = ((i%2===0)?1:-1) * 10 * s;
-                     path.quadraticCurveTo(cpX + zigOff, cpY, ex, ey);
+
+                     // Oscillate along the path
+                     const steps = 20;
+                     const zigFreq = 8 * Math.PI;
+                     const zigAmp = 3 * s;
+
+                     for (let j = 1; j <= steps; j++) {
+                         const t = j / steps;
+                         // Quadratic Bezier Interpolation
+                         const invT = 1 - t;
+                         const bx = invT * invT * sx + 2 * invT * t * cpX + t * t * ex;
+                         const by = invT * invT * sy + 2 * invT * t * cpY + t * t * ey;
+
+                         // Zig Zag Offset
+                         // Alternating phase per row (i) to interlock
+                         const offset = Math.sin(t * zigFreq + (i * Math.PI)) * zigAmp;
+
+                         path.lineTo(bx + offset, by);
+                     }
                  } else if (style === 'cornrows_braids') {
                      // Thick Braids (Klaw) - Slightly looser/3D
                      path.moveTo(sx, sy);
