@@ -4023,20 +4023,26 @@ var BallRenderer = {
     function drawScalpCoverage(ctx, p, headY, headRadius, s, color) {
         // Draw a solid "helmet" base to ensure no skin shows
         // Extend slightly beyond radius to merge with flowing hair
-        const r = headRadius * 1.05;
+        // Increased to 1.1x to prevent gaps
+        const r = headRadius * 1.1;
 
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(p.x, headY, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Depth gradient
+        // Solid top fill to ensure no transparency leak
+        ctx.beginPath();
+        ctx.arc(p.x, headY, r * 0.8, 0, Math.PI*2);
+        ctx.fill();
+
+        // Depth gradient (Subtle)
         const grad = ctx.createRadialGradient(p.x, headY - r*0.3, r*0.2, p.x, headY, r);
         grad.addColorStop(0, 'rgba(255,255,255,0.1)');
         grad.addColorStop(0.7, 'rgba(0,0,0,0)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
         ctx.fillStyle = grad;
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, headY, r, 0, Math.PI*2); ctx.fill();
     }
 
     function drawHairStrands(ctx, startX, startY, length, angleBase, spread, count, color, s, curliness = 0, seedBase = 0, headRadius = 0) {
@@ -4256,8 +4262,12 @@ var BallRenderer = {
             drawHairMass(ctx, p.x, headY, headRadius, length*0.9, 0, 0.4, hairColor, s, curliness);
 
             // Overlay Texture (Optional strands for detail on top)
+            // Increased density to avoid "crackhead" look
+            const count = (playerData.graphics === 'HIGH') ? 80 : 40;
+            drawHairStrands(ctx, p.x, headY, length, -Math.PI/2, Math.PI, count, adjustColor(hairColor, 20), s, curliness, baseSeed, headRadius);
+            // Second layer for depth
             if (playerData.graphics === 'HIGH') {
-                drawHairStrands(ctx, p.x, headY, length, -Math.PI/2, Math.PI, 20, adjustColor(hairColor, 20), s, curliness, baseSeed, headRadius);
+                drawHairStrands(ctx, p.x, headY, length * 0.9, -Math.PI/2, Math.PI, count / 2, hairColor, s, curliness, baseSeed + 500, headRadius);
             }
 
             return;
@@ -4266,30 +4276,57 @@ var BallRenderer = {
         // --- BRAIDS & DREADS ---
         const braidStyles = ['cornrows', 'dreads', 'dreads_short', 'braids_back', 'twisted_fade'];
         if (braidStyles.includes(style)) {
-            drawScalpCoverage(ctx, p, headY, headRadius, s, skinObj.skinTone || '#8d5524');
-            const numRows = 7;
-            const rowW = 4*s;
+            // Draw dark scalp base (roots) instead of skin tone for better coverage
+            const baseColor = (style === 'cornrows') ? skinObj.skinTone || '#8d5524' : adjustColor(hairColor, -30);
+            drawScalpCoverage(ctx, p, headY, headRadius, s, baseColor);
+
+            const numRows = 9; // Increased density
+            const rowW = (style === 'dreads' ? 6 : 4) * s;
+
             for(let i=0; i<numRows; i++) {
-                const xOff = (i - Math.floor(numRows/2)) * rowW * 1.2;
+                // Spherical Distribution
+                // Map i to an angle spanning -PI/2 (left) to PI/2 (right)
+                const t = (i / (numRows - 1)); // 0 to 1
+                const angle = -Math.PI/2 + t * Math.PI; // -90 deg to +90 deg
+
+                // Calculate Start Point on Scalp Sphere (Top-Front)
+                // We offset Y slightly back to simulate starting from forehead
+                const startX = p.x + Math.sin(angle) * headRadius * 0.9;
+                const startY = headY - Math.cos(angle) * headRadius * 0.9;
+
+                // Calculate End Point (Nape of neck)
+                // Converge slightly towards center bottom
+                const endX = p.x + Math.sin(angle) * headRadius * 0.6;
+                const endY = headY + headRadius * 1.1;
+
+                // Control Point to make it hug the head
+                // Push out in the direction of the normal
+                const cpX = p.x + Math.sin(angle) * headRadius * 1.3;
+                const cpY = headY; // Mid-height
+
+                // Draw Braid/Row
                 ctx.strokeStyle = hairColor;
                 ctx.lineWidth = rowW;
                 ctx.lineCap = 'round';
+
                 ctx.beginPath();
-                ctx.moveTo(p.x + xOff, headY - headRadius * 0.8);
-                ctx.quadraticCurveTo(p.x + xOff*1.1, headY, p.x + xOff * 0.5, headY + headRadius);
+                ctx.moveTo(startX, startY);
+                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
                 ctx.stroke();
+
+                // Texture (Braid segments)
                 ctx.strokeStyle = adjustColor(hairColor, 30);
-                ctx.lineWidth = 1*s;
-                ctx.setLineDash([2*s, 2*s]);
+                ctx.lineWidth = 1.5*s;
+                ctx.setLineDash([3*s, 3*s]);
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
+
             if (style.includes('dreads')) {
-                const count = 15;
-                for(let i=0; i<count; i++) {
-                    const angle = Math.PI/2 + (seededRandom(baseSeed+i) - 0.5) * 1.5;
-                    drawHairStrands(ctx, p.x + (seededRandom(i)-0.5)*headRadius, headY, 20*s, angle, 0.2, 1, hairColor, s, 0.1, baseSeed+i);
-                }
+                // Massive Strand Count increase for dreads
+                const count = (playerData.graphics === 'HIGH') ? 60 : 30;
+                // Use radial distribution for dreads too
+                drawHairStrands(ctx, p.x, headY, 25*s, -Math.PI/2, Math.PI, count, hairColor, s, 0.2, baseSeed, headRadius);
             }
             return;
         }
@@ -7446,8 +7483,21 @@ var BallRenderer = {
 
         // Draw shape
         // 1. Top Edge (Scalp attachment)
-        // We simulate a small arc along the scalp to avoid point-connection
-        ctx.arc(cx, cy, radius, angle - spread/2, angle + spread/2);
+        // Simulate irregular hairline by varying radius slightly
+        const steps = 10;
+        const startAngle = angle - spread/2;
+        const endAngle = angle + spread/2;
+
+        for(let i=0; i<=steps; i++) {
+            const t = i/steps;
+            const a = startAngle + (endAngle - startAngle) * t;
+            // Noise factor: +0 to +5% radius to cover scalp line
+            const noise = 1.0 + (Math.sin(a * 10) * 0.02);
+            const px = cx + Math.cos(a) * radius * noise;
+            const py = cy + Math.sin(a) * radius * noise;
+            if(i===0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
 
         // 2. Right Side down
         // Calculate point at angle + spread/2
