@@ -4148,6 +4148,7 @@ var BallRenderer = {
              if (style === 'fade_retro') topH = modRadius * 1.2; // Round 80s
              if (style === 'fade_king') topH = modRadius * 1.05; // Tight
              if (style === 'fade_chef') topH = modRadius * 1.1; // Textured
+             if (style === 'fade_pompadour') topH = modRadius * 1.4; // High volume (Luka)
 
              const topY = headY - topH;
              ctx.fillStyle = hairColor;
@@ -4161,6 +4162,12 @@ var BallRenderer = {
              } else if (style === 'fade_king') {
                  // Round top but receding hairline shape implied
                  ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
+             } else if (style === 'fade_pompadour') {
+                 // Voluminous top (Luka)
+                 ctx.moveTo(p.x - w, headY - 2*s);
+                 ctx.bezierCurveTo(p.x - w, topY, p.x + w, topY, p.x + w, headY - 2*s);
+                 ctx.fill();
+                 return; // Skip standard fill
              } else {
                  ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
              }
@@ -4386,6 +4393,37 @@ var BallRenderer = {
 
              // Top (Short/Feathered)
              drawSolidLayeredBase(1.0, 2*s, hairColor, false, 'natural');
+             return;
+        }
+
+        if (style === 'anchor_man_80s') {
+             // Ron Burgundy style: Voluminous, side-parted, thick back
+             const r = modRadius * 1.15; // Wide top
+             const len = 12 * s; // Moderate length, not full mullet
+
+             // Back/Sides (Thick block)
+             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.beginPath();
+             ctx.moveTo(p.x - r, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - r*1.2, headY + len*0.5, p.x - r*0.9, headY + len);
+             ctx.lineTo(p.x + r*0.9, headY + len);
+             ctx.quadraticCurveTo(p.x + r*1.2, headY + len*0.5, p.x + r, headY - 5*s);
+             ctx.fill();
+
+             // Top (Voluminous Helmet)
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - r, headY - 2*s);
+             // Big arc
+             ctx.bezierCurveTo(p.x - r, headY - modRadius*1.8, p.x + r, headY - modRadius*1.8, p.x + r, headY - 2*s);
+             // Bottom edge of hair cap
+             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY - 2*s);
+             ctx.fill();
+
+             // Parting line visual
+             ctx.strokeStyle = adjustColor(hairColor, -20);
+             ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x - r*0.6, headY - modRadius*1.2); ctx.lineTo(p.x - r*0.4, headY); ctx.stroke();
              return;
         }
 
