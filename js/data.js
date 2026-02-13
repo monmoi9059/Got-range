@@ -1247,5 +1247,10 @@
         { id: 'mohawk_short', name: 'Mini Hawk', cost: 1500 },
         { id: 'caesar_cut', name: 'Caesar', cost: 1000 },
         { id: 'buzz_line', name: 'Buzz + Line', cost: 1000 },
-        { id: 'curly_top_fade', name: 'Curly Top', cost: 1500 }
+        { id: 'curly_top_fade', name: 'Curly Top', cost: 1500 },
+        { id: 'shaggy_top', name: 'Messy Shag', cost: 1500 },
+        { id: 'side_swept_fringe', name: 'Emo Bangs', cost: 1500 },
+        { id: 'surfer_flow', name: 'Surfer', cost: 2000 },
+        { id: 'ivy_league', name: 'Ivy League', cost: 2000 },
+        { id: 'undercut_slick', name: 'Undercut', cost: 2500 }
     ];

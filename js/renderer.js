@@ -4162,10 +4162,14 @@ var BallRenderer = {
                  ctx.lineTo(p.x + w*0.9, headY); // Sides taper in
                  ctx.lineTo(p.x - w*0.9, headY);
              } else if (style === 'fade_king') {
-                 // Round top but receding hairline shape implied
-                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
+                 // Crown shape: Wide top, tapered sides, slightly peaked center
+                 ctx.moveTo(p.x - w, headY - s);
+                 ctx.quadraticCurveTo(p.x - w*0.5, topY, p.x, topY - 2*s); // Peak
+                 ctx.quadraticCurveTo(p.x + w*0.5, topY, p.x + w, headY - s);
+                 ctx.lineTo(p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
              } else if (style === 'fade_pompadour') {
-                 // Voluminous top (Luka)
+                 // Voluminous top (Luka) - Swept back
                  ctx.moveTo(p.x - w, headY - 2*s);
                  ctx.bezierCurveTo(p.x - w, topY, p.x + w, topY, p.x + w, headY - 2*s);
                  ctx.fill();
@@ -4173,6 +4177,19 @@ var BallRenderer = {
              } else if (style === 'curly_top_fade') {
                  // Curly Top: Bumpy surface
                  ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
+             } else if (style === 'fade_low') {
+                 // Low Fade: Rounded, shorter on sides, uniform top
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY - 2*s, w, w * 0.8, 0, Math.PI, 0);
+                 ctx.lineTo(p.x + w, headY + s);
+                 ctx.lineTo(p.x - w, headY + s);
+             } else if (style === 'fade_retro') {
+                 // Retro 80s: Boxy but rounded corners (not sharp fade_box)
+                 ctx.moveTo(p.x - w*0.9, topY);
+                 ctx.lineTo(p.x + w*0.9, topY);
+                 ctx.quadraticCurveTo(p.x + w, headY, p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
+                 ctx.quadraticCurveTo(p.x - w, headY, p.x - w*0.9, topY);
              } else {
                  ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
              }
@@ -4276,31 +4293,37 @@ var BallRenderer = {
 
         // --- 3. AFROS & CURLS ---
         if (style.startsWith('afro_') || style === 'curls_textured') {
+             // Universal Afro logic with Shape differentiation
              let sizeMult = 1.2;
-             if (style === 'afro_classic') sizeMult = 1.5; // Dr J
-             if (style === 'afro_blowout') sizeMult = 1.8; // Ben
-             if (style === 'curls_textured') sizeMult = 1.15; // KD/Tatum
-             if (style === 'afro_taper') sizeMult = 1.25;
+             // Base sizes (if no user override)
+             if (style === 'afro_classic') sizeMult = 1.4; // Medium-Large
+             if (style === 'afro_blowout') sizeMult = 1.6; // XL Wide
+             if (style === 'curls_textured') sizeMult = 1.15; // Tight
+             if (style === 'afro_taper') sizeMult = 1.25; // Tall but narrow bottom
+
+             // Apply Global or Skin-specific Scale override
+             if (skinObj.hairScale) sizeMult *= skinObj.hairScale;
+             if (skinObj.afroSize) sizeMult = skinObj.afroSize; // Legacy direct override
 
              const r = modRadius * sizeMult;
 
              // Shadow Halo
              ctx.fillStyle = adjustColor(hairColor, -40);
-             ctx.beginPath(); ctx.arc(p.x, headY, r, 0, Math.PI*2); ctx.fill();
 
-             // Main Body
-             const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
-             grad.addColorStop(0, adjustColor(hairColor, 30));
-             grad.addColorStop(0.6, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -30));
-             ctx.fillStyle = grad;
-
-             if (style === 'afro_blowout') {
-                 // Wider
-                 ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.1, r*0.9, 0, 0, Math.PI*2); ctx.fill();
+             // Shape Logic
+             if (style === 'afro_taper') {
+                 // High top, tapered sides (Trapezoid/Boxy)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - r*0.6, headY + 5*s); // Bottom left
+                 ctx.lineTo(p.x - r, headY - r*0.8); // Top left flare
+                 ctx.quadraticCurveTo(p.x, headY - r*1.2, p.x + r, headY - r*0.8); // Top dome
+                 ctx.lineTo(p.x + r*0.6, headY + 5*s); // Bottom right
+                 ctx.fill();
+             } else if (style === 'afro_blowout') {
+                 // Wide Oval
+                 ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.15, r*0.9, 0, 0, Math.PI*2); ctx.fill();
              } else if (style === 'curls_textured') {
-                 // Tight Nappy Curls (KD/Tatum)
-                 // Solid base with rough edge
+                 // Tight Nappy Curls (KD/Tatum) - Solid base with rough edge
                  ctx.beginPath();
                  const steps = 16;
                  for (let i = 0; i <= steps; i++) {
@@ -4314,21 +4337,34 @@ var BallRenderer = {
                  ctx.lineTo(p.x + r*0.8, headY + 5*s);
                  ctx.lineTo(p.x - r*0.8, headY + 5*s);
                  ctx.fill();
-
-                 // Internal Texture (No floating balls)
-                 ctx.fillStyle = adjustColor(hairColor, 15);
-                 const dens = 12;
-                 for(let i=0; i<dens; i++) {
-                     const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
-                     const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
-                     // Only draw if inside ellipse roughly
-                     if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
-                         ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
-                     }
-                 }
              } else {
-                 // Perfect Sphere
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r * 0.95, 0, Math.PI*2); ctx.fill();
+                 // Classic / Mini (Spherical)
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
+             }
+
+             // Internal Texture (Noise for all types)
+             // Main Body Gradient
+             const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(0.6, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -30));
+             ctx.fillStyle = grad;
+             // Re-fill shape with gradient
+             if (style === 'afro_blowout') { ctx.fill(); }
+             else if (style === 'afro_taper') { ctx.fill(); }
+             else if (style === 'curls_textured') { ctx.fill(); } // Already filled base, overlay
+             else { ctx.fill(); }
+
+             // Detail Texture (No floating balls)
+             ctx.fillStyle = adjustColor(hairColor, 15);
+             const dens = 12;
+             for(let i=0; i<dens; i++) {
+                 const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
+                 const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
+                 // Clip to approx shape
+                 if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
+                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 }
              }
              return;
         }
@@ -4575,35 +4611,95 @@ var BallRenderer = {
              return;
         }
 
-        if (style === 'slicked_back' || style === 'slick_side_part') {
-             // The Anchor / Riley / Gentleman
-             drawSolidLayeredBase(1.0, 4*s, adjustColor(hairColor, -10), false, 'tapered');
+        if (style === 'slicked_back' || style === 'slick_side_part' || style === 'ivy_league' || style === 'undercut_slick') {
+             // The Anchor / Riley / Gentleman / Ivy / Undercut
+             const isUndercut = (style === 'undercut_slick');
+             const sideLen = isUndercut ? 0 : 4*s;
+             const sideType = isUndercut ? 'shaved' : 'tapered';
+             const baseColor = isUndercut ? adjustColor(hairColor, -40) : adjustColor(hairColor, -10);
+
+             drawSolidLayeredBase(1.0, sideLen, baseColor, false, sideType);
+
              ctx.fillStyle = hairColor;
              const w = modRadius * 0.9;
              // Top Block
              ctx.beginPath();
              ctx.moveTo(p.x - w, headY);
              ctx.bezierCurveTo(p.x - w, headY - modRadius*1.5, p.x + w, headY - modRadius*1.5, p.x + w, headY);
-             ctx.lineTo(p.x + w*0.8, headY + 8*s);
-             ctx.lineTo(p.x - w*0.8, headY + 8*s);
+             // Back taper
+             if (isUndercut) {
+                 ctx.lineTo(p.x + w*0.6, headY + 12*s); // Long back slick
+                 ctx.lineTo(p.x - w*0.6, headY + 12*s);
+             } else {
+                 ctx.lineTo(p.x + w*0.8, headY + 8*s);
+                 ctx.lineTo(p.x - w*0.8, headY + 8*s);
+             }
              ctx.fill();
-             // Lines
+
+             // Texture Lines
              ctx.strokeStyle = adjustColor(hairColor, 20);
              ctx.lineWidth = 2*s;
              ctx.beginPath();
-             ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x, headY + 6*s);
+             const lines = (style === 'ivy_league') ? 7 : 4;
+             for(let i=0; i<lines; i++) {
+                 // Fan out slightly
+                 const t = (i/lines);
+                 const x = p.x - w*0.6 + t * w * 1.2;
+                 ctx.moveTo(x, headY - modRadius * (0.8 + seededRandom(seed+i)*0.2));
+                 ctx.lineTo(x, headY + 6*s);
+             }
              ctx.stroke();
 
-             if (style === 'slick_side_part') {
+             if (style === 'slick_side_part' || style === 'ivy_league') {
                  // Hard Part line
                  ctx.strokeStyle = '#333';
                  ctx.lineWidth = 2*s;
                  ctx.beginPath();
-                 ctx.moveTo(p.x - w*0.6, headY - modRadius*0.8);
-                 ctx.lineTo(p.x - w*0.6, headY);
+                 const partX = (style === 'ivy_league') ? p.x + w*0.5 : p.x - w*0.6;
+                 ctx.moveTo(partX, headY - modRadius*0.8);
+                 ctx.lineTo(partX, headY + s);
                  ctx.stroke();
              }
              return;
+        }
+
+        if (style === 'shaggy_top' || style === 'side_swept_fringe' || style === 'surfer_flow') {
+            // Messy / Long Top styles
+            const isSurfer = (style === 'surfer_flow');
+            const isFringe = (style === 'side_swept_fringe');
+
+            // Base
+            const backLen = isSurfer ? 18*s : 5*s;
+            drawSolidLayeredBase(1.05, backLen, adjustColor(hairColor, -15), false, isSurfer ? 'natural' : 'tapered');
+
+            // Top Layers
+            const numLocks = isSurfer ? 20 : 15;
+            const spread = isFringe ? 1.5 : 3.0; // Fringe swept to side
+
+            for(let i=0; i<numLocks; i++) {
+                const t = i / numLocks;
+                const angle = (t - 0.5) * spread;
+
+                // Shift angle for side sweep
+                const finalAngle = isFringe ? angle + 0.5 : angle;
+
+                const rLen = (12 + seededRandom(seed+i)*8) * s;
+                const sx = p.x + Math.sin(finalAngle) * modRadius * 0.5;
+                const sy = headY - modRadius * 0.8;
+                const ex = p.x + Math.sin(finalAngle) * (modRadius + (isSurfer?10:5)*s);
+                const ey = headY + (isSurfer ? rLen + 10*s : rLen);
+
+                ctx.strokeStyle = hairColor;
+                ctx.lineWidth = (isSurfer ? 5 : 6) * s;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                const cpX = sx + (ex-sx)*0.2 + (seededRandom(seed+i+50)-0.5)*10*s;
+                ctx.quadraticCurveTo(cpX, sy - 5*s, ex, ey);
+                ctx.stroke();
+            }
+            return;
         }
 
         if (style === 'mohawk_fade' || style === 'mohawk_burst' || style === 'mohawk_short') {
