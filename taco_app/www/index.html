@@ -8085,14 +8085,15 @@ var BallRenderer = {
                 ctx.lineTo(p.x - r, headY + lengthMod);
             } else if (neckType === 'tapered') {
                 // Taper inwards
-                ctx.quadraticCurveTo(p.x + r*0.5, headY + lengthMod + 8*s, p.x, headY + lengthMod + 10*s);
-                ctx.quadraticCurveTo(p.x - r*0.5, headY + lengthMod + 8*s, p.x - r, headY + lengthMod);
+                ctx.quadraticCurveTo(p.x + r*0.5, headY + lengthMod + 4*s, p.x, headY + lengthMod + 6*s);
+                ctx.quadraticCurveTo(p.x - r*0.5, headY + lengthMod + 4*s, p.x - r, headY + lengthMod);
             } else if (neckType === 'shaved') {
                 // High arc (undercut style)
                 ctx.quadraticCurveTo(p.x, headY + lengthMod - 5*s, p.x - r, headY + lengthMod);
             } else {
                 // Natural/Round (Default)
-                ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 10*s : 5*s), p.x - r, headY + lengthMod);
+                // Raised curve (less dip) to show more neck
+                ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 5*s : 2*s), p.x - r, headY + lengthMod);
             }
 
             ctx.lineTo(p.x - r, headY - 2*s);
@@ -8119,19 +8120,19 @@ var BallRenderer = {
 
         if (style === 'short' || style === 'buzz_cut' || style === 'caesar' || style === 'french_crop' || style === 'fade') {
              let radiusMod = 1.02;
-             let lengthMod = 3*s;
+             let lengthMod = 1*s; // Reduced from 3s to raise hairline
              let neckType = 'natural';
 
              if (style === 'buzz_cut') {
                  radiusMod = 1.01;
-                 lengthMod = 1*s;
+                 lengthMod = 0; // Even higher
                  neckType = 'shaved'; // High tight cut
              } else if (style === 'caesar') {
                  neckType = 'square';
-                 lengthMod = 4*s;
+                 lengthMod = 2*s; // Reduced from 4s
              } else if (style === 'fade') {
                  neckType = 'tapered';
-                 lengthMod = 5*s;
+                 lengthMod = 2*s; // Reduced from 5s
              }
 
              // Shadow
