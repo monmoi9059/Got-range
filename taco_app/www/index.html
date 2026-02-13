@@ -8297,47 +8297,60 @@ var BallRenderer = {
                  // Wide Oval
                  ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.15, r*0.9, 0, 0, Math.PI*2); ctx.fill();
              } else if (style === 'curls_textured') {
-                 // Tight Nappy Curls (KD/Tatum) - Solid base with rough edge
+                 // Tight Nappy Curls (KD/Tatum)
+                 // Cleaner shape: Rounded box/dome, less lumpy edge
+                 const w = r * 0.95;
+                 const topH = r * 0.9;
+
                  ctx.beginPath();
-                 const steps = 16;
-                 for (let i = 0; i <= steps; i++) {
-                     const angle = (i / steps) * Math.PI; // 0 to PI (Top arc)
-                     const radiusNoise = (seededRandom(seed + i) * 3 * s);
-                     const cx = p.x + Math.cos(angle) * (r * 0.95 + radiusNoise);
-                     const cy = headY + 5*s - Math.sin(angle) * (r * 0.9 + radiusNoise);
-                     if (i===0) ctx.moveTo(cx, cy);
-                     else ctx.lineTo(cx, cy);
-                 }
-                 ctx.lineTo(p.x + r*0.8, headY + 5*s);
-                 ctx.lineTo(p.x - r*0.8, headY + 5*s);
+                 ctx.moveTo(p.x - w, headY + 2*s);
+                 ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY + 2*s);
                  ctx.fill();
+
+                 // Dense Noise Texture (Sponge effect)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const dens = 30;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed + i) - 0.5) * w * 1.8;
+                     const ry = (seededRandom(seed + i + 50) - 0.5) * topH * 1.2;
+
+                     // Keep inside dome roughly
+                     const normalizedX = rx / w;
+                     const normalizedY = ry / topH;
+                     if (normalizedX*normalizedX + normalizedY*normalizedY < 0.9) {
+                         const tx = p.x + rx;
+                         const ty = headY - topH*0.4 + ry;
+                         ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
              } else {
                  // Classic / Mini (Spherical)
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
              }
 
-             // Internal Texture (Noise for all types)
-             // Main Body Gradient
-             const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
-             grad.addColorStop(0, adjustColor(hairColor, 30));
-             grad.addColorStop(0.6, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -30));
-             ctx.fillStyle = grad;
-             // Re-fill shape with gradient
-             if (style === 'afro_blowout') { ctx.fill(); }
-             else if (style === 'afro_taper') { ctx.fill(); }
-             else if (style === 'curls_textured') { ctx.fill(); } // Already filled base, overlay
-             else { ctx.fill(); }
+             // Internal Texture (Noise for all types except textured which handles its own)
+             if (style !== 'curls_textured') {
+                 // Main Body Gradient
+                 const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
+                 grad.addColorStop(0, adjustColor(hairColor, 30));
+                 grad.addColorStop(0.6, hairColor);
+                 grad.addColorStop(1, adjustColor(hairColor, -30));
+                 ctx.fillStyle = grad;
+                 // Re-fill shape with gradient
+                 if (style === 'afro_blowout') { ctx.fill(); }
+                 else if (style === 'afro_taper') { ctx.fill(); }
+                 else { ctx.fill(); }
 
-             // Detail Texture (No floating balls)
-             ctx.fillStyle = adjustColor(hairColor, 15);
-             const dens = 12;
-             for(let i=0; i<dens; i++) {
-                 const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
-                 const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
-                 // Clip to approx shape
-                 if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
-                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 // Detail Texture (No floating balls)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const dens = 12;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
+                     const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
+                     // Clip to approx shape
+                     if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
+                         ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                     }
                  }
              }
              return;
