@@ -4324,30 +4324,26 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.15, r*0.9, 0, 0, Math.PI*2); ctx.fill();
              } else if (style === 'curls_textured') {
                  // Tight Nappy Curls (KD/Tatum)
-                 // Cleaner shape: Rounded box/dome, less lumpy edge
-                 const w = r * 0.95;
-                 const topH = r * 0.9;
-
+                 // Use a full ellipse to ensure crown coverage
                  ctx.beginPath();
-                 ctx.moveTo(p.x - w, headY + 2*s);
-                 ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY + 2*s);
+                 ctx.ellipse(p.x, headY - 2*s, r * 0.95, r * 0.95, 0, 0, Math.PI*2);
                  ctx.fill();
 
                  // Dense Noise Texture (Sponge effect)
                  ctx.fillStyle = adjustColor(hairColor, 15);
-                 const dens = 30;
-                 for(let i=0; i<dens; i++) {
-                     const rx = (seededRandom(seed + i) - 0.5) * w * 1.8;
-                     const ry = (seededRandom(seed + i + 50) - 0.5) * topH * 1.2;
+                 const dens = 40;
+                 const w = r * 0.95;
+                 const h = r * 0.95;
 
-                     // Keep inside dome roughly
-                     const normalizedX = rx / w;
-                     const normalizedY = ry / topH;
-                     if (normalizedX*normalizedX + normalizedY*normalizedY < 0.9) {
-                         const tx = p.x + rx;
-                         const ty = headY - topH*0.4 + ry;
-                         ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
-                     }
+                 for(let i=0; i<dens; i++) {
+                     // Random point inside circle
+                     const ang = seededRandom(seed + i) * Math.PI * 2;
+                     const rad = Math.sqrt(seededRandom(seed + i + 50)) * w * 0.9; // Bias outward slightly
+
+                     const tx = p.x + Math.cos(ang) * rad;
+                     const ty = (headY - 2*s) + Math.sin(ang) * rad * 0.9; // Flatten Y slightly
+
+                     ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
                  }
              } else {
                  // Classic / Mini (Spherical)
