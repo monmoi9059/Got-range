@@ -4021,52 +4021,108 @@ var BallRenderer = {
 
     // --- HAIR RENDERING HELPERS ---
     function drawScalpCoverage(ctx, p, headY, headRadius, s, color) {
+        // Draw a solid "helmet" base to ensure no skin shows
+        // Extend slightly beyond radius to merge with flowing hair
+        const r = headRadius * 1.05;
+
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(p.x, headY, headRadius, 0, Math.PI * 2);
+        ctx.arc(p.x, headY, r, 0, Math.PI * 2);
         ctx.fill();
-        const grad = ctx.createRadialGradient(p.x, headY - headRadius*0.3, headRadius*0.2, p.x, headY, headRadius);
-        grad.addColorStop(0, 'rgba(255,255,255,0.15)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+
+        // Depth gradient
+        const grad = ctx.createRadialGradient(p.x, headY - r*0.3, r*0.2, p.x, headY, r);
+        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+        grad.addColorStop(0.7, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
         ctx.fillStyle = grad;
         ctx.fill();
     }
 
-    function drawHairStrands(ctx, startX, startY, length, angleBase, spread, count, color, s, curliness = 0, seedBase = 0) {
+    function drawHairStrands(ctx, startX, startY, length, angleBase, spread, count, color, s, curliness = 0, seedBase = 0, headRadius = 0) {
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.2 * s;
         ctx.lineCap = 'round';
+
         for (let i = 0; i < count; i++) {
             const r1 = seededRandom(seedBase + i * 13);
             const r2 = seededRandom(seedBase + i * 7 + 500);
-            const angle = angleBase + (r1 - 0.5) * spread;
+
+            // Radial Start Logic:
+            // Instead of all starting at startX/Y, they start on an arc defined by angleBase +/- spread
+            // If headRadius is provided, we calculate a start point on the scalp surface
+
+            let sx = startX;
+            let sy = startY;
+            let strandAngle = angleBase + (r1 - 0.5) * spread;
+
+            if (headRadius > 0) {
+                // Map the spread angle to a position on the head curvature
+                // angleBase is usually -Math.PI/2 (Up)
+                // spread is the arc width (e.g. PI for full top semi-circle)
+                // We offset from center (startX, startY should be HEAD CENTER in this mode)
+
+                // For back view:
+                // angle -Math.PI/2 is top.
+                // We want to distribute strands along the top hemisphere surface
+
+                // Adjust angle slightly to avoid perfect symmetry
+                const arcAngle = strandAngle;
+                sx = startX + Math.cos(arcAngle) * headRadius * 0.9; // Start slightly inside to hide roots
+                sy = startY + Math.sin(arcAngle) * headRadius * 0.9;
+
+                // For long hair, the flow angle starts normal to surface then bends down
+                // Normal vector is arcAngle. Gravity vector is Math.PI/2.
+                // We blend them.
+            }
+
             const l = length * (0.8 + r2 * 0.4);
+
             ctx.beginPath();
-            ctx.moveTo(startX, startY);
+            ctx.moveTo(sx, sy);
+
             if (curliness > 0.5) {
+                // Tight Curls
                 const loops = 4;
                 const loopRadius = curliness * 3 * s;
-                let cx = startX; let cy = startY;
+                let cx = sx; let cy = sy;
                 const step = l / (loops * 4);
                 for(let j=0; j<loops * 4; j++) {
-                    cx += Math.cos(angle) * step; cy += Math.sin(angle) * step;
+                    cx += Math.cos(strandAngle) * step;
+                    cy += Math.sin(strandAngle) * step;
                     const offset = Math.sin(j) * loopRadius;
-                    const perp = angle + Math.PI/2;
+                    const perp = strandAngle + Math.PI/2;
                     ctx.lineTo(cx + Math.cos(perp)*offset, cy + Math.sin(perp)*offset);
                 }
-            } else if (curliness > 0) {
-                const endX = startX + Math.cos(angle) * l;
-                const endY = startY + Math.sin(angle) * l;
-                const cpX = (startX + endX)/2 + (r1-0.5)*10*s;
-                const cpY = (startY + endY)/2 + (r2-0.5)*10*s;
-                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
-            } else {
-                const endX = startX + Math.cos(angle) * l;
-                let endY = startY + Math.sin(angle) * l;
-                if (l > 20*s) endY += l * 0.2;
-                const cpX = startX + Math.cos(angle) * l * 0.3;
-                const cpY = startY + Math.sin(angle) * l * 0.3 + (l * 0.1);
-                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+            }
+            else if (curliness > 0) {
+                // Wavy
+                // Initial direction is normal to surface (strandAngle)
+                // Then gravity takes over
+                const midL = l * 0.5;
+                const midX = sx + Math.cos(strandAngle) * midL;
+                const midY = sy + Math.sin(strandAngle) * midL;
+
+                // End point falls down
+                const endX = midX + (r1-0.5)*10*s;
+                const endY = midY + l*0.5; // Gravity
+
+                ctx.quadraticCurveTo(midX, midY, endX, endY);
+            }
+            else {
+                // Straight
+                // Control point extends outward from scalp normal to give volume
+                const cpLen = l * 0.3;
+                const cpX = sx + Math.cos(strandAngle) * cpLen;
+                const cpY = sy + Math.sin(strandAngle) * cpLen;
+
+                // End point falls down, slightly flared
+                const flare = (r1 - 0.5) * l * 0.2;
+                const endX = sx + flare + Math.cos(strandAngle) * l * 0.1; // Slight momentum
+                const endY = sy + l; // Straight down
+
+                // If angle is pointing UP (-PI/2), we need curve to go UP then DOWN
+                ctx.bezierCurveTo(cpX, cpY, endX, sy + l*0.3, endX, endY);
             }
             ctx.stroke();
         }
@@ -4150,9 +4206,10 @@ var BallRenderer = {
             if (style === 'afro') { volRadius *= 1.4; }
             if (style === 'short_curly') { volRadius *= 1.1; }
             if (style === 'pompadour') {
-                ctx.fillStyle = hairColor;
-                ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 0.9, headRadius * 1.3, 0, 0, Math.PI*2); ctx.fill();
-                drawHairStrands(ctx, p.x, headY - headRadius, 15*s, -Math.PI/2, 0.5, 10, adjustColor(hairColor, 20), s, 0, baseSeed);
+                // Volume Mass
+                drawHairMass(ctx, p.x, headY - 5*s, headRadius * 0.9, 15*lenScale, -Math.PI/2, Math.PI, hairColor, s, 0.1);
+                // Texture on top
+                drawHairStrands(ctx, p.x, headY, 20*lenScale, -Math.PI/2, Math.PI*0.5, 15, adjustColor(hairColor, 20), s, 0.2, baseSeed, headRadius);
                 return;
             }
             if (style === 'mohawk' || style === 'liberty_spikes') {
@@ -4179,18 +4236,30 @@ var BallRenderer = {
         const longStyles = ['long', 'long_straight', 'long_wavy', 'curtains', 'bob', 'emo_fringe', 'mullet_modern', 'comb_over', 'straight'];
 
         if (longStyles.includes(style)) {
+            // Draw solid scalp coverage first (prevent skin peeking)
             drawScalpCoverage(ctx, p, headY, headRadius, s, adjustColor(hairColor, -20));
-            const crownY = headY - headRadius * 0.5;
-            const length = (style === 'bob') ? 25*s : (style === 'mullet_modern' ? 35*s : 50*s);
+
+            const length = (style === 'bob') ? 25*lenScale : (style === 'mullet_modern' ? 35*lenScale : 50*lenScale);
             const isWavy = style.includes('wavy') || style === 'curtains';
-            const strandCount = (playerData.graphics === 'HIGH') ? 40 : 20;
+            const curliness = isWavy ? 0.2 : 0;
 
-            drawHairStrands(ctx, p.x, crownY, length, Math.PI/2, 1.5, strandCount, adjustColor(hairColor, -10), s, isWavy ? 0.3 : 0, baseSeed);
-            drawHairStrands(ctx, p.x, crownY, length * 0.9, Math.PI/2, 1.2, strandCount, hairColor, s, isWavy ? 0.3 : 0, baseSeed+100);
+            // Use drawHairMass for volume masses instead of thin strands
+            // Mass 1: Left Back
+            drawHairMass(ctx, p.x, headY, headRadius, length, -Math.PI*0.8, 0.5, adjustColor(hairColor, -10), s, curliness);
+            // Mass 2: Right Back
+            drawHairMass(ctx, p.x, headY, headRadius, length, -Math.PI*0.2, 0.5, adjustColor(hairColor, -10), s, curliness);
+            // Mass 3: Center Back
+            drawHairMass(ctx, p.x, headY, headRadius, length*1.05, -Math.PI/2, 0.6, hairColor, s, curliness);
 
-            if (style === 'mullet_modern') {
-                drawHairTexture(ctx, p.x, headY, headRadius, hairColor, s, 1.0, baseSeed);
+            // Mass 4 & 5: Sides
+            drawHairMass(ctx, p.x, headY, headRadius, length*0.9, -Math.PI, 0.4, hairColor, s, curliness);
+            drawHairMass(ctx, p.x, headY, headRadius, length*0.9, 0, 0.4, hairColor, s, curliness);
+
+            // Overlay Texture (Optional strands for detail on top)
+            if (playerData.graphics === 'HIGH') {
+                drawHairStrands(ctx, p.x, headY, length, -Math.PI/2, Math.PI, 20, adjustColor(hairColor, 20), s, curliness, baseSeed, headRadius);
             }
+
             return;
         }
 
@@ -4248,7 +4317,8 @@ var BallRenderer = {
             } else {
                 drawFuzzyCircle(p.x, tieY, 12*s, hairColor, baseSeed, s, true);
                 if (style.includes('ponytail')) {
-                    drawHairStrands(ctx, p.x, tieY, 30*s, Math.PI/2, 0.5, 15, hairColor, s, 0.1, baseSeed);
+                    // Ponytail flows down
+                    drawHairStrands(ctx, p.x, tieY, 35*s, Math.PI/2, 0.6, 20, hairColor, s, 0.2, baseSeed);
                 }
             }
             return;
@@ -7350,4 +7420,67 @@ var BallRenderer = {
         ctx.stroke();
 
         ctx.restore();
+    }
+
+    // --- NEW SOLID HAIR HELPER ---
+    function drawHairMass(ctx, cx, cy, radius, length, angle, spread, color, s, curliness = 0) {
+        // Draws a solid "chunk" of hair starting from scalp
+        ctx.fillStyle = color;
+        ctx.beginPath();
+
+        // Start point on scalp
+        const startX = cx + Math.cos(angle) * radius * 0.9;
+        const startY = cy + Math.sin(angle) * radius * 0.9;
+
+        // End point
+        // Gravity pulls down (positive Y)
+        const endX = startX + Math.cos(angle) * length * 0.2;
+        const endY = startY + length;
+
+        // Width of the mass depends on spread
+        const width = radius * spread;
+
+        // Control points for flow
+        const cp1x = startX + Math.cos(angle) * length * 0.5;
+        const cp1y = startY + length * 0.1;
+
+        // Draw shape
+        // 1. Top Edge (Scalp attachment)
+        // We simulate a small arc along the scalp to avoid point-connection
+        ctx.arc(cx, cy, radius, angle - spread/2, angle + spread/2);
+
+        // 2. Right Side down
+        // Calculate point at angle + spread/2
+        const rX = cx + Math.cos(angle + spread/2) * radius;
+        const rY = cy + Math.sin(angle + spread/2) * radius;
+
+        // Curve to bottom right
+        const botRX = endX + width * 0.5 + (curliness * 10 * s);
+        const botRY = endY;
+
+        ctx.bezierCurveTo(rX + (endX-rX)*0.3, rY + length*0.5, botRX, botRY - length*0.2, botRX, botRY);
+
+        // 3. Bottom Edge (Jagged or smooth)
+        const botLX = endX - width * 0.5 - (curliness * 10 * s);
+        const botLY = endY;
+
+        // Simple curve for now, can add jaggedness
+        ctx.quadraticCurveTo(endX, endY + 5*s, botLX, botLY);
+
+        // 4. Left Side up
+        const lX = cx + Math.cos(angle - spread/2) * radius;
+        const lY = cy + Math.sin(angle - spread/2) * radius;
+
+        ctx.bezierCurveTo(botLX, botLY - length*0.2, lX + (endX-lX)*0.3, lY + length*0.5, lX, lY);
+
+        ctx.closePath();
+        ctx.fill();
+
+        // Add Texture Lines (Subtle)
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 1 * s;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.quadraticCurveTo(cp1x, (startY+endY)/2, endX, endY);
+        ctx.stroke();
     }
