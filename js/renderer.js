@@ -4023,40 +4023,36 @@ var BallRenderer = {
         const hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle || 'bald';
 
-        // Map old fuzzy styles to solid equivalents
-        if (style === 'curly' || style === 'short_curly') style = 'short_curly';
-        if (style === 'perm' || style === 'messy_bedhead') style = 'afro'; // Use afro solid logic for now
+        // Map legacy/animal styles to new system
+        if (style === 'curly' || style === 'short_curly') style = 'afro_mini';
+        if (style === 'short' || style === 'fade') style = 'fade_high';
+        if (style === 'afro') style = 'afro_classic';
+        if (style === 'cornrows') style = 'cornrows_straight';
+        if (style === 'mohawk') style = 'mohawk_burst';
+        if (style === 'long' || style === 'straight') style = 'long_layered';
+        if (style === 'dreads') style = 'dreads_long';
 
-        // Apply Global Hair Scale
         const hairScale = skinObj.hairScale || 1.0;
         const modRadius = headRadius * hairScale;
         const lenScale = s * hairScale;
 
         // --- SHARED HELPERS ---
 
-        // Draw a "Helmet" shape with layers for depth
         const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
             const r = modRadius * radiusMod;
             ctx.fillStyle = color;
             ctx.beginPath();
-            // Top Dome
             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
-            // Sides
             ctx.lineTo(p.x + r, headY + lengthMod);
 
-            // Bottom Variation
             if (neckType === 'square') {
                 ctx.lineTo(p.x - r, headY + lengthMod);
             } else if (neckType === 'tapered') {
-                // Taper inwards
                 ctx.quadraticCurveTo(p.x + r*0.5, headY + lengthMod + 4*s, p.x, headY + lengthMod + 6*s);
                 ctx.quadraticCurveTo(p.x - r*0.5, headY + lengthMod + 4*s, p.x - r, headY + lengthMod);
             } else if (neckType === 'shaved') {
-                // High arc (undercut style)
                 ctx.quadraticCurveTo(p.x, headY + lengthMod - 5*s, p.x - r, headY + lengthMod);
-            } else {
-                // Natural/Round (Default)
-                // Raised curve (less dip) to show more neck
+            } else { // Natural
                 ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 5*s : 2*s), p.x - r, headY + lengthMod);
             }
 
@@ -4064,121 +4060,251 @@ var BallRenderer = {
             ctx.fill();
         };
 
-        // --- STYLE IMPLEMENTATIONS ---
-
+        // --- 1. BALD & BUZZ ---
         if (style === 'bald') {
-             // Shiny scalp
+             // Shiny Skin Tone Match
              if (hairColor && hairColor !== '#000' && hairColor !== skinObj.skinTone) {
                  ctx.fillStyle = hairColor;
                  ctx.globalAlpha = 0.3;
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
                  ctx.globalAlpha = 1.0;
              }
-             // Highlight
-             ctx.fillStyle = 'rgba(255,255,255,0.3)';
-             ctx.beginPath();
-             ctx.ellipse(p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.25, headRadius*0.15, -0.5, 0, Math.PI*2);
-             ctx.fill();
+             const shine = ctx.createRadialGradient(p.x + headRadius*0.3, headY - headRadius*0.4, 0, p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.4);
+             shine.addColorStop(0, 'rgba(255,255,255,0.5)');
+             shine.addColorStop(1, 'rgba(255,255,255,0)');
+             ctx.fillStyle = shine;
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.3, headRadius*0.2, -0.5, 0, Math.PI*2); ctx.fill();
              return;
         }
 
-        if (style === 'short' || style === 'buzz_cut' || style === 'caesar' || style === 'french_crop' || style === 'fade') {
-             let radiusMod = 1.02;
-             let lengthMod = 1*s; // Reduced from 3s to raise hairline
-             let neckType = 'natural';
-
-             if (style === 'buzz_cut') {
-                 radiusMod = 1.01;
-                 lengthMod = 0; // Even higher
-                 neckType = 'shaved'; // High tight cut
-             } else if (style === 'caesar') {
-                 neckType = 'square';
-                 lengthMod = 2*s; // Reduced from 4s
-             } else if (style === 'fade') {
-                 neckType = 'tapered';
-                 lengthMod = 2*s; // Reduced from 5s
-             }
-
-             // Shadow
-             drawSolidLayeredBase(radiusMod + 0.03, lengthMod + 2*s, adjustColor(hairColor, -30), true, neckType);
-
-             // Main Body (Using Helper for Consistent Neckline)
-             const r = modRadius * radiusMod;
-             const grad = ctx.createLinearGradient(0, headY - r, 0, headY + lengthMod);
+        if (style === 'buzz_cut') {
+             drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -20), true, 'natural'); // Shadow
+             const grad = ctx.createLinearGradient(0, headY - modRadius, 0, headY + 5*s);
              grad.addColorStop(0, adjustColor(hairColor, 20));
-             grad.addColorStop(0.5, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -20));
+             grad.addColorStop(1, adjustColor(hairColor, -10));
+             drawSolidLayeredBase(1.01, 0, grad, false, 'natural');
+             return;
+        }
 
-             drawSolidLayeredBase(radiusMod, lengthMod, grad, false, neckType);
-
-             // Details
-             if (style === 'caesar') {
-                 // Fringe Line
-                 ctx.strokeStyle = adjustColor(hairColor, -20);
-                 ctx.lineWidth = 2*s;
-                 ctx.beginPath();
-                 ctx.moveTo(p.x - r*0.6, headY - r*0.8);
-                 ctx.quadraticCurveTo(p.x, headY - r*0.75, p.x + r*0.6, headY - r*0.8);
-                 ctx.stroke();
-             }
-             if (style === 'french_crop') {
-                 // Texture on top
-                 ctx.fillStyle = adjustColor(hairColor, 10);
-                 ctx.beginPath(); ctx.arc(p.x - r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.arc(p.x + r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
-             }
-             if (style === 'fade') {
-                 // Side fade gradient overlay (re-added)
-                 const r = modRadius * radiusMod;
-                 const fadeG = ctx.createLinearGradient(0, headY, 0, headY + 8*s);
-                 fadeG.addColorStop(0, 'rgba(0,0,0,0)');
-                 fadeG.addColorStop(1, 'rgba(0,0,0,0.5)');
-                 ctx.fillStyle = fadeG;
-                 ctx.fillRect(p.x - r, headY, r*2, 10*s);
+        if (style === 'rodman_dye') {
+             // Buzz cut base
+             drawSolidLayeredBase(1.02, 1*s, hairColor, false, 'natural');
+             // Pattern Overlay
+             ctx.fillStyle = skinObj.hairColor2 || '#FFD700'; // Second color
+             for(let i=0; i<8; i++) {
+                 const rx = p.x + (Math.random()-0.5) * modRadius * 1.5;
+                 const ry = headY - 5*s + (Math.random()-0.5) * modRadius * 1.5;
+                 ctx.beginPath(); ctx.arc(rx, ry, 4*s, 0, Math.PI*2); ctx.fill();
              }
              return;
         }
 
-        if (style === 'afro' || style === 'short_afro') {
-             const sizeMult = (style === 'short_afro') ? 1.2 : (skinObj.afroSize || 1.4);
+        // --- 2. FADES & WAVES ---
+        if (style === 'fade_high' || style === 'flat_top' || style === 'waves') {
+             // Shaved sides base (skin fade)
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
+
+             // Top Hair Mass
+             ctx.fillStyle = hairColor;
+             let topH = (style === 'flat_top') ? modRadius * 1.6 : modRadius * 1.1;
+             if (style === 'waves') topH = modRadius * 0.9; // Lower profile
+
+             ctx.beginPath();
+             const w = modRadius * 0.9;
+             const topY = headY - topH;
+
+             if (style === 'flat_top') {
+                 // Box shape
+                 ctx.moveTo(p.x - w*0.8, topY);
+                 ctx.lineTo(p.x + w*0.8, topY);
+                 ctx.lineTo(p.x + w*0.9, headY);
+                 ctx.lineTo(p.x - w*0.9, headY);
+             } else {
+                 // Rounded/Fade top
+                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
+             }
+             ctx.fill();
+
+             // Wave Texture
+             if (style === 'waves') {
+                 ctx.strokeStyle = adjustColor(hairColor, 20);
+                 ctx.lineWidth = 2*s;
+                 for(let i=0; i<3; i++) {
+                     ctx.beginPath();
+                     ctx.arc(p.x, headY - 2*s, w * (0.3 + i*0.25), Math.PI, 0);
+                     ctx.stroke();
+                 }
+             }
+             return;
+        }
+
+        // --- 3. AFROS ---
+        if (style === 'afro_mini' || style === 'afro_classic' || style === 'afro_blowout') {
+             let sizeMult = 1.2; // mini
+             if (style === 'afro_classic') sizeMult = 1.5;
+             if (style === 'afro_blowout') sizeMult = 1.8;
+
              const r = modRadius * sizeMult;
 
-             // Shadow Layer (Behind)
+             // 1. Dark halo (shadow)
              ctx.fillStyle = adjustColor(hairColor, -40);
              ctx.beginPath(); ctx.arc(p.x, headY, r, 0, Math.PI*2); ctx.fill();
 
-             // Main Layer (Sphere with Radial Depth)
+             // 2. Main sphere with gradient
              const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
-             grad.addColorStop(0, adjustColor(hairColor, 30)); // Highlight
+             grad.addColorStop(0, adjustColor(hairColor, 30));
              grad.addColorStop(0.6, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -30)); // Shadow edge
+             grad.addColorStop(1, adjustColor(hairColor, -30));
              ctx.fillStyle = grad;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r * 0.95, 0, Math.PI*2); ctx.fill();
+
+             // Blowout is slightly wider/messier
+             if (style === 'afro_blowout') {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY - 2*s, r*1.1, r*0.9, 0, 0, Math.PI*2);
+                 ctx.fill();
+             } else {
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r * 0.95, 0, Math.PI*2); ctx.fill();
+             }
              return;
         }
 
-        if (style === 'long' || style === 'straight' || style === 'long_straight' || style === 'long_wavy') {
-             // Shoulder Cap
+        // --- 4. BRAIDS & CORNROWS ---
+        if (style === 'cornrows_straight' || style === 'cornrows_designer') {
+             // Skull cap base
+             ctx.fillStyle = adjustColor(hairColor, -30);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+
+             const numRows = 7;
+             ctx.lineWidth = 4 * s;
+             ctx.lineCap = 'round';
+
+             for(let i=0; i<numRows; i++) {
+                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1
+                 const xOff = t * modRadius * 0.9;
+
+                 ctx.strokeStyle = adjustColor(hairColor, -10); // Shadow border
+                 const path = new Path2D();
+
+                 if (style === 'cornrows_designer') {
+                     // Curved / S-shaped paths
+                     const curve = Math.sin(t * Math.PI) * 10 * s;
+                     path.moveTo(p.x + xOff, headY - modRadius);
+                     path.bezierCurveTo(p.x + xOff + curve, headY, p.x + xOff - curve, headY + modRadius*0.5, p.x + xOff * 0.6, headY + modRadius*0.8);
+                 } else {
+                     // Straight back
+                     path.moveTo(p.x + xOff, headY - Math.cos(t)*modRadius*0.9);
+                     path.quadraticCurveTo(p.x + xOff * 1.2, headY, p.x + xOff * 0.5, headY + modRadius*0.8);
+                 }
+
+                 ctx.stroke(path);
+                 ctx.strokeStyle = hairColor;
+                 ctx.lineWidth = 3 * s;
+                 ctx.stroke(path);
+                 ctx.lineWidth = 4 * s; // Reset for shadow
+             }
+             return;
+        }
+
+        if (style === 'braids_box') {
+             // Box braids hanging down
+             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -30)); // Scalp base
+
+             const numBraids = 14;
+             const len = 15 * s;
+
+             for(let i=0; i<numBraids; i++) {
+                 const t = i / (numBraids-1);
+                 const angle = Math.PI + t * Math.PI;
+                 const sx = p.x + Math.cos(angle) * modRadius * 0.85;
+                 const sy = headY + Math.sin(angle) * modRadius * 0.85;
+
+                 ctx.strokeStyle = hairColor;
+                 ctx.lineWidth = 5 * s;
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 ctx.quadraticCurveTo(sx + (Math.random()-0.5)*5*s, sy + len*0.5, sx, sy + len);
+                 ctx.stroke();
+
+                 // Texture (Segments)
+                 ctx.strokeStyle = adjustColor(hairColor, 20);
+                 ctx.lineWidth = 1 * s;
+                 ctx.stroke();
+             }
+             return;
+        }
+
+        // --- 5. DREADS ---
+        if (style === 'dreads_long' || style === 'dreads_tied') {
+             if (style === 'dreads_tied') {
+                 // High bun dreads
+                 drawSolidLayeredBase(1.0, 0, hairColor); // Pulled tight base
+                 // Bun
+                 const bunSize = 10 * s;
+                 const by = headY - modRadius;
+                 ctx.fillStyle = hairColor;
+                 ctx.beginPath(); ctx.arc(p.x, by, bunSize, 0, Math.PI*2); ctx.fill();
+
+                 // Loose tips falling out
+                 ctx.strokeStyle = hairColor;
+                 ctx.lineWidth = 4 * s;
+                 for(let i=0; i<5; i++) {
+                     ctx.beginPath();
+                     ctx.moveTo(p.x, by);
+                     ctx.quadraticCurveTo(p.x + (i-2)*10*s, by, p.x + (i-2)*15*s, by + 15*s);
+                     ctx.stroke();
+                 }
+             } else {
+                 // Ja Morant style loose dreads
+                 // Base
+                 ctx.fillStyle = adjustColor(hairColor, -20);
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+
+                 // Dreads
+                 const len = 18 * s; // Shoulder length max
+                 const num = 12;
+                 for(let i=0; i<num; i++) {
+                     const t = i/(num-1);
+                     const angle = Math.PI * 0.8 + t * Math.PI * 1.4; // Fan out
+                     const sx = p.x;
+                     const sy = headY - 10*s;
+
+                     // Colored tips option?
+                     const tipColor = (i % 3 === 0 && skinObj.hairColor2) ? skinObj.hairColor2 : hairColor;
+
+                     ctx.strokeStyle = hairColor;
+                     ctx.lineWidth = 6 * s;
+                     ctx.beginPath();
+                     ctx.moveTo(sx + Math.cos(angle)*10*s, sy + Math.sin(angle)*10*s);
+                     ctx.quadraticCurveTo(p.x + Math.cos(angle)*modRadius*1.5, headY + len*0.5, p.x + Math.cos(angle)*modRadius*1.2, headY + len);
+                     ctx.stroke();
+
+                     // Tip
+                     ctx.strokeStyle = tipColor;
+                     ctx.beginPath();
+                     ctx.moveTo(p.x + Math.cos(angle)*modRadius*1.2, headY + len - 5*s);
+                     ctx.lineTo(p.x + Math.cos(angle)*modRadius*1.2, headY + len);
+                     ctx.stroke();
+                 }
+             }
+             return;
+        }
+
+        // --- 6. LONG & TIED ---
+        if (style === 'long_layered') {
+             // Shoulder Length Flow
              const maxLen = 22 * s;
              const r = modRadius * 1.1;
              const shoulderW = r * 1.5;
 
-             // 1. Back Layer (Darker, behind neck)
+             // Back Layer
              ctx.fillStyle = adjustColor(hairColor, -30);
              ctx.beginPath();
              ctx.moveTo(p.x - r, headY);
-
-         if (style === 'long_straight') {
-             ctx.lineTo(p.x - shoulderW, headY + maxLen);
-             ctx.lineTo(p.x + shoulderW, headY + maxLen);
-             ctx.lineTo(p.x + r, headY);
-         } else {
              ctx.quadraticCurveTo(p.x - shoulderW, headY + maxLen, p.x, headY + maxLen + 5*s);
              ctx.quadraticCurveTo(p.x + shoulderW, headY + maxLen, p.x + r, headY);
-         }
              ctx.fill();
 
-             // 2. Main Flow Layer
+             // Main Layer
              const grad = ctx.createLinearGradient(0, headY - r, 0, headY + maxLen);
              grad.addColorStop(0, adjustColor(hairColor, 20));
              grad.addColorStop(1, adjustColor(hairColor, -10));
@@ -4186,403 +4312,74 @@ var BallRenderer = {
 
              ctx.beginPath();
              ctx.arc(p.x, headY - 2*s, r, Math.PI, 0); // Top
-             // Sides
-         if (style === 'long_wavy') {
-             const cpOffset = 10*s;
-             ctx.bezierCurveTo(p.x + r*1.2, headY + maxLen*0.3, p.x + shoulderW + cpOffset, headY + maxLen*0.6, p.x + shoulderW*0.9, headY + maxLen);
-             ctx.lineTo(p.x - shoulderW*0.9, headY + maxLen);
-             ctx.bezierCurveTo(p.x - shoulderW - cpOffset, headY + maxLen*0.6, p.x - r*1.2, headY + maxLen*0.3, p.x - r, headY - 2*s);
-         } else {
              ctx.bezierCurveTo(p.x + r*1.1, headY + maxLen*0.5, p.x + shoulderW*0.9, headY + maxLen, p.x + shoulderW*0.9, headY + maxLen);
              ctx.lineTo(p.x - shoulderW*0.9, headY + maxLen);
              ctx.bezierCurveTo(p.x - shoulderW*0.9, headY + maxLen, p.x - r*1.1, headY + maxLen*0.5, p.x - r, headY - 2*s);
-         }
-             ctx.fill();
-
-             // 3. Shine / Parting
-             ctx.fillStyle = 'rgba(255,255,255,0.1)';
-             ctx.beginPath();
-             ctx.ellipse(p.x, headY - r*0.6, r*0.6, r*0.2, 0, 0, Math.PI*2);
              ctx.fill();
              return;
         }
 
-        if (style === 'cornrows' || style === 'braids_back') {
-             // 1. Solid Base (Skull cap)
-             ctx.fillStyle = adjustColor(hairColor, -30);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-
-             // 2. Thick Braids (Solid Tubes)
-             const numRows = 7;
-             const r = modRadius;
-
-             for(let i=0; i<numRows; i++) {
-                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1
-                 const xOff = t * r * 0.9;
-
-                 // Draw Braid Tube
-                 ctx.lineWidth = 5 * s;
-                 ctx.lineCap = 'round';
-                 ctx.strokeStyle = adjustColor(hairColor, -10); // Dark border
-
-                 const path = new Path2D();
-                 path.moveTo(p.x + xOff, headY - Math.cos(t)*r*0.9);
-                 path.quadraticCurveTo(p.x + xOff * 1.2, headY, p.x + xOff * 0.5, headY + r*0.8);
-
-                 ctx.stroke(path);
-
-                 // Inner Color
-                 ctx.lineWidth = 3 * s;
-                 ctx.strokeStyle = hairColor;
-                 ctx.stroke(path);
-             }
-             return;
-        }
-
-        if (style === 'mohawk' || style === 'faux_hawk' || style === 'liberty_spikes' || style === 'spikes') {
-             // 1. Shaved Base
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.globalAlpha = 0.3;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-             ctx.globalAlpha = 1.0;
-
-             // 2. Spikes Construction
+        if (style === 'top_knot') {
+             // Undercut base
+             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -20), false, 'shaved');
+             // Knot
+             const bx = p.x; const by = headY - modRadius * 1.2;
+             const size = 6*s;
              ctx.fillStyle = hairColor;
-             if (style === 'spikes' || style === 'liberty_spikes') {
-                 const num = 7;
-                 const h = (style === 'liberty_spikes') ? 25*s : 10*s;
-
-                 // Draw spikes from back to front order? No, radial.
-                 for(let i=0; i<num; i++) {
-                     const angle = Math.PI + (i/(num-1)) * Math.PI;
-                     // Base points
-                     const sx = p.x + Math.cos(angle) * modRadius * 0.8;
-                     const sy = headY + Math.sin(angle) * modRadius * 0.8;
-
-                     // Tip point
-                     const ex = p.x + Math.cos(angle) * (modRadius + h);
-                     const ey = headY + Math.sin(angle) * (modRadius + h);
-
-                     ctx.beginPath();
-                     ctx.moveTo(sx + Math.cos(angle+1.5)*6*s, sy + Math.sin(angle+1.5)*6*s); // Wide base
-                     ctx.lineTo(ex, ey);
-                     ctx.lineTo(sx + Math.cos(angle-1.5)*6*s, sy + Math.sin(angle-1.5)*6*s);
-                     ctx.fill();
-
-                     // Add side shading to spike
-                     ctx.strokeStyle = adjustColor(hairColor, -20);
-                     ctx.lineWidth = 1;
-                     ctx.stroke();
-                 }
-             } else {
-                 // Solid Mohawk Fin
-                 const stripW = (style === 'faux_hawk') ? 12*s : 10*s;
-                 const topY = headY - modRadius * 1.3;
-                 const botY = headY + modRadius;
-
-                 // Shadow side
-                 ctx.fillStyle = adjustColor(hairColor, -20);
-                 ctx.beginPath();
-                 ctx.moveTo(p.x - stripW/2, topY + 5*s);
-                 ctx.lineTo(p.x, topY - 5*s); // Peak
-                 ctx.lineTo(p.x, botY);
-                 ctx.lineTo(p.x - stripW/2, botY);
-                 ctx.fill();
-
-                 // Light side
-                 ctx.fillStyle = hairColor;
-                 ctx.beginPath();
-                 ctx.moveTo(p.x + stripW/2, topY + 5*s);
-                 ctx.lineTo(p.x, topY - 5*s); // Peak
-                 ctx.lineTo(p.x, botY);
-                 ctx.lineTo(p.x + stripW/2, botY);
-                 ctx.fill();
-             }
+             ctx.beginPath(); ctx.arc(bx, by, size, 0, Math.PI*2); ctx.fill();
+             // Tie
+             ctx.fillStyle = '#FFF';
+             ctx.fillRect(bx - size*0.5, by + size*0.8, size, 2*s);
              return;
         }
 
-        if (style === 'bun_low' || style === 'bun_high' || style === 'top_knot' || style === 'space_buns') {
-             // Base Layer Variations
-             if (style === 'top_knot') {
-                 // Undercut base for top knot
-                 ctx.fillStyle = adjustColor(hairColor, -20);
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = hairColor;
-                 ctx.beginPath(); ctx.arc(p.x, headY - modRadius*0.5, modRadius*0.8, Math.PI, 0); ctx.fill(); // Just top
-             } else {
-                 drawSolidLayeredBase(1.0, 0, hairColor);
-             }
-
-             // Buns (Spheres)
-             const drawBun = (bx, by, size, isMessy = false) => {
-                 // Shadow
-                 ctx.fillStyle = adjustColor(hairColor, -30);
-                 ctx.beginPath(); ctx.arc(bx, by + 2*s, size, 0, Math.PI*2); ctx.fill();
-                 // Main
-                 const grad = ctx.createRadialGradient(bx - size*0.3, by - size*0.3, size*0.2, bx, by, size);
-                 grad.addColorStop(0, adjustColor(hairColor, 30));
-                 grad.addColorStop(1, hairColor);
-                 ctx.fillStyle = grad;
-
-                 if (isMessy) {
-                     // Irregular bun
-                     ctx.beginPath();
-                     ctx.moveTo(bx - size, by);
-                     ctx.quadraticCurveTo(bx - size, by - size*1.2, bx, by - size);
-                     ctx.quadraticCurveTo(bx + size*1.2, by - size, bx + size, by);
-                     ctx.quadraticCurveTo(bx + size, by + size*1.2, bx, by + size);
-                     ctx.quadraticCurveTo(bx - size*1.2, by + size, bx - size, by);
-                     ctx.fill();
-                 } else {
-                     ctx.beginPath(); ctx.arc(bx, by, size, 0, Math.PI*2); ctx.fill();
-                 }
-             };
-
-             if (style === 'space_buns') {
-                 drawBun(p.x - modRadius*0.8, headY - modRadius*0.6, 8*s);
-                 drawBun(p.x + modRadius*0.8, headY - modRadius*0.6, 8*s);
-             } else if (style === 'top_knot') {
-                 drawBun(p.x, headY - modRadius * 1.2, 5*s);
-             } else if (style === 'bun_low') {
-                 drawBun(p.x, headY + 5*s, 8*s, true); // Messy low bun
-             } else {
-                 drawBun(p.x, headY - modRadius, 9*s);
-             }
-             return;
-        }
-
-        if (style === 'ponytail_high' || style === 'ponytail_low' || style === 'pigtails') {
-             drawSolidLayeredBase(1.0, 0, hairColor);
-
-             const drawTail = (tx, ty, len) => {
-                 // Thick solid shape
-                 ctx.fillStyle = hairColor;
-                 ctx.beginPath();
-                 ctx.arc(tx, ty, 6*s, Math.PI, 0); // Tie knot area
-                 ctx.quadraticCurveTo(tx + 10*s, ty + len*0.5, tx, ty + len); // Curve out
-                 ctx.quadraticCurveTo(tx - 10*s, ty + len*0.5, tx - 6*s, ty); // Curve back
-                 ctx.fill();
-             };
-
-             if (style === 'pigtails') {
-                 drawTail(p.x - modRadius*0.9, headY, 15*s);
-                 drawTail(p.x + modRadius*0.9, headY, 15*s);
-             } else {
-                 const py = (style === 'ponytail_high') ? headY - modRadius*0.5 : headY + 5*s;
-                 drawTail(p.x, py, 20*s);
-             }
-             return;
-        }
-
-        if (style === 'undercut' || style === 'slicked_back') {
-             // Shaved Sides
-             const shavedColor = style === 'undercut' ? adjustColor(hairColor, -30) : adjustColor(hairColor, -10);
-             drawSolidLayeredBase(1.0, style === 'undercut' ? 0 : 4*s, shavedColor, false, 'shaved');
-
-             // Top Slick
+        if (style === 'slicked_back') {
+             // Tapered sides
+             drawSolidLayeredBase(1.0, 4*s, adjustColor(hairColor, -10), false, 'tapered');
+             // Slick Top
              ctx.fillStyle = hairColor;
-             const w = modRadius * (style === 'slicked_back' ? 0.95 : 0.75); // Slicked back is wider
-             ctx.beginPath();
-
-             const topH = modRadius * (style === 'slicked_back' ? 1.2 : 1.4);
-             const botY = headY + (style === 'slicked_back' ? 12*s : 8*s);
-
-             // More rectangular silhouette for undercut
-             ctx.moveTo(p.x - w, headY);
-             ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY);
-
-             // Bottom edge
-             if (style === 'slicked_back') {
-                 ctx.lineTo(p.x + w*0.8, botY);
-                 ctx.lineTo(p.x - w*0.8, botY);
-             } else {
-                 // Undercut flop (asymmetric or narrower)
-                 ctx.lineTo(p.x + w*0.9, botY);
-                 ctx.lineTo(p.x - w*0.9, botY);
-             }
-             ctx.fill();
-
-             // Striations for slicked look
-             if (style === 'slicked_back') {
-                 ctx.strokeStyle = adjustColor(hairColor, 20);
-                 ctx.lineWidth = 2*s;
-                 ctx.beginPath();
-                 const midY = headY - topH*0.5;
-                 ctx.moveTo(p.x, midY); ctx.lineTo(p.x, botY);
-                 ctx.moveTo(p.x - w*0.4, midY); ctx.lineTo(p.x - w*0.4, botY);
-                 ctx.moveTo(p.x + w*0.4, midY); ctx.lineTo(p.x + w*0.4, botY);
-                 ctx.stroke();
-             }
-             return;
-        }
-
-        if (style === 'bowl_cut') {
-             const r = modRadius * 1.1;
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 5*s, r, Math.PI, 0); // Top dome
-             ctx.lineTo(p.x + r, headY + 2*s); // Straight down
-             ctx.lineTo(p.x - r, headY + 2*s); // Straight cut line
-             ctx.lineTo(p.x - r, headY - 5*s);
-             ctx.fill();
-             return;
-        }
-
-
-        if (style === 'mullet_modern') {
-             // 1. Back Flow (Draw first so it's behind)
              const w = modRadius * 0.9;
-             const len = 18*s;
-             ctx.fillStyle = adjustColor(hairColor, -10);
              ctx.beginPath();
              ctx.moveTo(p.x - w, headY);
-             ctx.quadraticCurveTo(p.x - w*1.3, headY + len*0.5, p.x - w*0.8, headY + len);
-             ctx.lineTo(p.x + w*0.8, headY + len);
-             ctx.quadraticCurveTo(p.x + w*1.3, headY + len*0.5, p.x + w, headY);
+             ctx.bezierCurveTo(p.x - w, headY - modRadius*1.3, p.x + w, headY - modRadius*1.3, p.x + w, headY);
+             ctx.lineTo(p.x + w*0.8, headY + 10*s);
+             ctx.lineTo(p.x - w*0.8, headY + 10*s);
              ctx.fill();
 
-             // 2. Top (Business)
-             drawSolidLayeredBase(1.02, 2*s, hairColor);
-             return;
-        }
-
-        if (style === 'headband') {
-             drawSolidLayeredBase(1.0, 5*s, skinObj.hairColor || '#000');
-
-             const bandColor = skinObj.headbandColor || '#FFF';
-             ctx.fillStyle = bandColor;
-             ctx.fillRect(p.x - modRadius*1.1, headY - 5*s, modRadius*2.2, 5*s);
-             return;
-        }
-
-        if (style === 'dreads_short' || style === 'twisted_fade') {
-             // Solid mass with "bumps"
-             const r = modRadius * 1.15;
-             ctx.fillStyle = hairColor;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
-
-             // Surface Texture details (Solid circles)
-             ctx.fillStyle = adjustColor(hairColor, 10);
-             for(let i=0; i<8; i++) {
-                 const ang = (i/8) * Math.PI * 2;
-                 const dist = r * 0.7;
-                 const cx = p.x + Math.cos(ang)*dist;
-                 const cy = headY - 2*s + Math.sin(ang)*dist;
-                 ctx.beginPath(); ctx.arc(cx, cy, 3*s, 0, Math.PI*2); ctx.fill();
-             }
-             return;
-        }
-
-        if (style === 'hat') {
-             const hColor = skinObj.hairColor || '#3c2415';
-             const capColor = skinObj.hatColor || '#F00';
-
-             ctx.fillStyle = hColor;
-             ctx.beginPath();
-             ctx.arc(p.x, headY + 4*s, modRadius * 1.05, Math.PI, 0, true);
-             ctx.fill();
-
-             ctx.fillStyle = capColor;
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, modRadius * 1.15, Math.PI, 0);
-             ctx.lineTo(p.x + modRadius * 1.15, headY + 2*s);
-             ctx.quadraticCurveTo(p.x, headY + 6*s, p.x - modRadius * 1.15, headY + 2*s);
-             ctx.lineTo(p.x - modRadius * 1.15, headY - 2*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'pompadour') {
-             // Undercut sides
-             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -20), false, 'shaved');
-
-             // Huge Top
-             const r = modRadius * 0.95;
-             const h = r * 2.0; // Taller than before
-             const grad = ctx.createLinearGradient(0, headY - h, 0, headY + 5*s);
-             grad.addColorStop(0, adjustColor(hairColor, 30));
-             grad.addColorStop(0.6, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -10));
-             ctx.fillStyle = grad;
-
-             ctx.beginPath();
-             ctx.moveTo(p.x - r, headY);
-             // More forward bulge
-             ctx.bezierCurveTo(p.x - r*1.2, headY - h, p.x + r*1.2, headY - h, p.x + r, headY);
-             ctx.lineTo(p.x + r*0.8, headY + 8*s); // Taper back
-             ctx.lineTo(p.x - r*0.8, headY + 8*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'comb_over') {
-             drawSolidLayeredBase(1.05, 4*s, adjustColor(hairColor, -20), true);
-             drawSolidLayeredBase(1.02, 3*s, hairColor);
-             // Parting line
-             ctx.strokeStyle = adjustColor(hairColor, -30);
+             // Comb lines
+             ctx.strokeStyle = adjustColor(hairColor, 20);
              ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x - modRadius*0.6, headY - modRadius*0.8); ctx.lineTo(p.x + modRadius*0.8, headY + 2*s); ctx.stroke();
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x, headY + 8*s);
+             ctx.moveTo(p.x - w*0.4, headY - modRadius*0.9); ctx.lineTo(p.x - w*0.4, headY + 8*s);
+             ctx.moveTo(p.x + w*0.4, headY - modRadius*0.9); ctx.lineTo(p.x + w*0.4, headY + 8*s);
+             ctx.stroke();
              return;
         }
 
-        if (style === 'beehive') {
-             const h = modRadius * 2.0;
-             // Shadow
-             ctx.fillStyle = adjustColor(hairColor, -30);
-             ctx.beginPath(); ctx.ellipse(p.x, headY - h*0.4, modRadius * 1.3, h * 0.6, 0, 0, Math.PI*2); ctx.fill();
-             // Main
-             const grad = ctx.createLinearGradient(0, headY - h, 0, headY);
-             grad.addColorStop(0, adjustColor(hairColor, 30));
-             grad.addColorStop(1, hairColor);
-             ctx.fillStyle = grad;
-             ctx.beginPath(); ctx.ellipse(p.x, headY - h*0.4, modRadius * 1.2, h * 0.55, 0, 0, Math.PI*2); ctx.fill();
-             return;
-        }
+        if (style === 'mohawk_burst') {
+             // Wide mohawk with skin fade on sides
+             const r = modRadius;
+             // Skin fade sides (draw nothing or skin tone shadow?)
 
-        if (style === 'bob') {
-             const len = 12 * s;
-             drawSolidLayeredBase(1.1, len, hairColor);
-             return;
-        }
+             // Mohawk Strip (Wide)
+             const stripW = r * 1.2;
+             ctx.fillStyle = hairColor;
 
-        if (style === 'pixie') {
-             drawSolidLayeredBase(1.05, 2*s, hairColor);
+             ctx.beginPath();
+             ctx.moveTo(p.x - stripW/2, headY - r);
+             ctx.quadraticCurveTo(p.x, headY - r*1.2, p.x + stripW/2, headY - r);
+             ctx.lineTo(p.x + stripW/2, headY + r); // Nape
+             ctx.lineTo(p.x - stripW/2, headY + r);
+             ctx.fill();
+
              // Texture
              ctx.fillStyle = adjustColor(hairColor, 20);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius * 0.8, 0, Math.PI*2); ctx.fill();
-             return;
-        }
-
-        if (style === 'clown') {
-             // Side puffs (solid)
-             const r = modRadius * 0.8;
-             const drawPuff = (px, py) => {
-                 const grad = ctx.createRadialGradient(px-r*0.2, py-r*0.2, r*0.1, px, py, r);
-                 grad.addColorStop(0, adjustColor(hairColor, 30));
-                 grad.addColorStop(1, adjustColor(hairColor, -20));
-                 ctx.fillStyle = grad;
-                 ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill();
-             };
-             drawPuff(p.x - modRadius, headY);
-             drawPuff(p.x + modRadius, headY);
-             return;
-        }
-
-        if (style === 'monk') {
-             // Ring
-             ctx.fillStyle = hairColor;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-             // Bald spot
-             ctx.fillStyle = skinObj.skinTone || '#dcb';
-             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, modRadius * 0.7, 0, Math.PI*2); ctx.fill();
-             return;
-        }
-
-        if (style === 'emo_fringe') {
-             drawSolidLayeredBase(1.1, 15*s, hairColor);
-             // Side sweep
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.beginPath(); ctx.moveTo(p.x - modRadius, headY - 5*s); ctx.lineTo(p.x + modRadius, headY + 10*s); ctx.lineTo(p.x - modRadius, headY + 15*s); ctx.fill();
+             for(let i=0; i<5; i++) {
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - r + i*8*s, 3*s, 0, Math.PI*2);
+                 ctx.fill();
+             }
              return;
         }
 
