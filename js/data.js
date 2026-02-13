@@ -1314,6 +1314,5 @@
         { id: 'comb_over', name: 'Mèche Rabattue', cost: 1000 },
         { id: 'perm', name: 'Permanente', cost: 1500 },
         { id: 'french_crop', name: 'French Crop', cost: 1000 },
-        { id: 'messy_bedhead', name: 'Coiffé-Décoiffé', cost: 1000 },
-        { id: 'curtains', name: 'Rideaux', cost: 1500 }
+        { id: 'messy_bedhead', name: 'Coiffé-Décoiffé', cost: 1000 }
     ];

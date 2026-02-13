@@ -2461,8 +2461,7 @@
         { id: 'comb_over', name: 'Mèche Rabattue', cost: 1000 },
         { id: 'perm', name: 'Permanente', cost: 1500 },
         { id: 'french_crop', name: 'French Crop', cost: 1000 },
-        { id: 'messy_bedhead', name: 'Coiffé-Décoiffé', cost: 1000 },
-        { id: 'curtains', name: 'Rideaux', cost: 1500 }
+        { id: 'messy_bedhead', name: 'Coiffé-Décoiffé', cost: 1000 }
     ];
 
 // --- END data.js ---
@@ -8072,7 +8071,7 @@ var BallRenderer = {
         // --- SHARED HELPERS ---
 
         // Draw a "Helmet" shape with layers for depth
-        const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false) => {
+        const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
             const r = modRadius * radiusMod;
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -8080,8 +8079,22 @@ var BallRenderer = {
             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
             // Sides
             ctx.lineTo(p.x + r, headY + lengthMod);
-            // Bottom Curve
-            ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 10*s : 5*s), p.x - r, headY + lengthMod);
+
+            // Bottom Variation
+            if (neckType === 'square') {
+                ctx.lineTo(p.x - r, headY + lengthMod);
+            } else if (neckType === 'tapered') {
+                // Taper inwards
+                ctx.quadraticCurveTo(p.x + r*0.5, headY + lengthMod + 8*s, p.x, headY + lengthMod + 10*s);
+                ctx.quadraticCurveTo(p.x - r*0.5, headY + lengthMod + 8*s, p.x - r, headY + lengthMod);
+            } else if (neckType === 'shaved') {
+                // High arc (undercut style)
+                ctx.quadraticCurveTo(p.x, headY + lengthMod - 5*s, p.x - r, headY + lengthMod);
+            } else {
+                // Natural/Round (Default)
+                ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 10*s : 5*s), p.x - r, headY + lengthMod);
+            }
+
             ctx.lineTo(p.x - r, headY - 2*s);
             ctx.fill();
         };
@@ -8105,41 +8118,33 @@ var BallRenderer = {
         }
 
         if (style === 'short' || style === 'buzz_cut' || style === 'caesar' || style === 'french_crop' || style === 'fade') {
-             // Layer 1: Base
              let radiusMod = 1.02;
              let lengthMod = 3*s;
-             let isFade = (style === 'fade');
+             let neckType = 'natural';
 
              if (style === 'buzz_cut') {
-                 radiusMod = 1.01; // Tighter
-                 lengthMod = 1*s;  // Shorter
+                 radiusMod = 1.01;
+                 lengthMod = 1*s;
+                 neckType = 'shaved'; // High tight cut
+             } else if (style === 'caesar') {
+                 neckType = 'square';
+                 lengthMod = 4*s;
+             } else if (style === 'fade') {
+                 neckType = 'tapered';
+                 lengthMod = 5*s;
              }
 
              // Shadow
-             drawSolidLayeredBase(radiusMod + 0.03, lengthMod + 2*s, adjustColor(hairColor, -30), true);
+             drawSolidLayeredBase(radiusMod + 0.03, lengthMod + 2*s, adjustColor(hairColor, -30), true, neckType);
 
-             // Main Body
+             // Main Body (Using Helper for Consistent Neckline)
              const r = modRadius * radiusMod;
              const grad = ctx.createLinearGradient(0, headY - r, 0, headY + lengthMod);
              grad.addColorStop(0, adjustColor(hairColor, 20));
              grad.addColorStop(0.5, hairColor);
              grad.addColorStop(1, adjustColor(hairColor, -20));
 
-             ctx.fillStyle = grad;
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
-             ctx.lineTo(p.x + r, headY + lengthMod);
-
-             // Bottom Shape Variation
-             if (style === 'buzz_cut') {
-                 // Sharp square back
-                 ctx.lineTo(p.x - r, headY + lengthMod);
-             } else {
-                 // Curved Neckline
-                 ctx.quadraticCurveTo(p.x, headY + lengthMod + 5*s, p.x - r, headY + lengthMod);
-             }
-             ctx.lineTo(p.x - r, headY - 2*s);
-             ctx.fill();
+             drawSolidLayeredBase(radiusMod, lengthMod, grad, false, neckType);
 
              // Details
              if (style === 'caesar') {
@@ -8157,8 +8162,9 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.arc(p.x - r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
                  ctx.beginPath(); ctx.arc(p.x + r*0.4, headY - r*0.5, 3*s, 0, Math.PI*2); ctx.fill();
              }
-             if (isFade) {
-                 // Side fade gradient overlay
+             if (style === 'fade') {
+                 // Side fade gradient overlay (re-added)
+                 const r = modRadius * radiusMod;
                  const fadeG = ctx.createLinearGradient(0, headY, 0, headY + 8*s);
                  fadeG.addColorStop(0, 'rgba(0,0,0,0)');
                  fadeG.addColorStop(1, 'rgba(0,0,0,0.5)');
@@ -8405,28 +8411,29 @@ var BallRenderer = {
 
         if (style === 'undercut' || style === 'slicked_back') {
              // Shaved Sides
-             ctx.fillStyle = adjustColor(hairColor, -20);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+             const shavedColor = style === 'undercut' ? adjustColor(hairColor, -30) : adjustColor(hairColor, -10);
+             drawSolidLayeredBase(1.0, style === 'undercut' ? 0 : 4*s, shavedColor, false, 'shaved');
 
              // Top Slick
              ctx.fillStyle = hairColor;
-             const w = modRadius * (style === 'slicked_back' ? 0.9 : 0.8); // Slicked back is wider
+             const w = modRadius * (style === 'slicked_back' ? 0.95 : 0.75); // Slicked back is wider
              ctx.beginPath();
-             ctx.moveTo(p.x - w, headY - 2*s);
 
-             // Top curve
-             const topH = modRadius * (style === 'slicked_back' ? 1.3 : 1.5);
-             ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY - 2*s);
+             const topH = modRadius * (style === 'slicked_back' ? 1.2 : 1.4);
+             const botY = headY + (style === 'slicked_back' ? 12*s : 8*s);
+
+             // More rectangular silhouette for undercut
+             ctx.moveTo(p.x - w, headY);
+             ctx.bezierCurveTo(p.x - w, headY - topH, p.x + w, headY - topH, p.x + w, headY);
 
              // Bottom edge
              if (style === 'slicked_back') {
-                 // Straight back
-                 ctx.lineTo(p.x + w*0.9, headY + 10*s);
-                 ctx.lineTo(p.x - w*0.9, headY + 10*s);
+                 ctx.lineTo(p.x + w*0.8, botY);
+                 ctx.lineTo(p.x - w*0.8, botY);
              } else {
-                 // Undercut flop
-                 ctx.lineTo(p.x + w*0.8, headY + 8*s);
-                 ctx.lineTo(p.x - w*0.8, headY + 8*s);
+                 // Undercut flop (asymmetric or narrower)
+                 ctx.lineTo(p.x + w*0.9, botY);
+                 ctx.lineTo(p.x - w*0.9, botY);
              }
              ctx.fill();
 
@@ -8435,9 +8442,10 @@ var BallRenderer = {
                  ctx.strokeStyle = adjustColor(hairColor, 20);
                  ctx.lineWidth = 2*s;
                  ctx.beginPath();
-                 ctx.moveTo(p.x, headY - topH*0.8); ctx.lineTo(p.x, headY + 8*s);
-                 ctx.moveTo(p.x - w*0.5, headY - topH*0.7); ctx.lineTo(p.x - w*0.5, headY + 8*s);
-                 ctx.moveTo(p.x + w*0.5, headY - topH*0.7); ctx.lineTo(p.x + w*0.5, headY + 8*s);
+                 const midY = headY - topH*0.5;
+                 ctx.moveTo(p.x, midY); ctx.lineTo(p.x, botY);
+                 ctx.moveTo(p.x - w*0.4, midY); ctx.lineTo(p.x - w*0.4, botY);
+                 ctx.moveTo(p.x + w*0.4, midY); ctx.lineTo(p.x + w*0.4, botY);
                  ctx.stroke();
              }
              return;
@@ -8455,29 +8463,6 @@ var BallRenderer = {
              return;
         }
 
-        if (style === 'curtains') {
-             const r = modRadius * 1.1;
-             const len = 10*s;
-             ctx.fillStyle = hairColor;
-
-             // Left Curtain
-             ctx.beginPath();
-             ctx.moveTo(p.x - 2*s, headY - r);
-             ctx.bezierCurveTo(p.x - r*1.2, headY - r, p.x - r, headY + len, p.x - r*0.5, headY + len);
-             ctx.lineTo(p.x - 2*s, headY + len*0.5);
-             ctx.closePath();
-             ctx.fill();
-
-             // Right Curtain
-             ctx.beginPath();
-             ctx.moveTo(p.x + 2*s, headY - r);
-             ctx.bezierCurveTo(p.x + r*1.2, headY - r, p.x + r, headY + len, p.x + r*0.5, headY + len);
-             ctx.lineTo(p.x + 2*s, headY + len*0.5);
-             ctx.closePath();
-             ctx.fill();
-
-             return;
-        }
 
         if (style === 'mullet_modern') {
              // 1. Back Flow (Draw first so it's behind)
@@ -8543,19 +8528,24 @@ var BallRenderer = {
         }
 
         if (style === 'pompadour') {
-             const r = modRadius * 1.0;
-             const h = r * 1.5;
-             const grad = ctx.createLinearGradient(0, headY - h, 0, headY);
-             grad.addColorStop(0, adjustColor(hairColor, 20));
-             grad.addColorStop(1, hairColor);
+             // Undercut sides
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -20), false, 'shaved');
+
+             // Huge Top
+             const r = modRadius * 0.95;
+             const h = r * 2.0; // Taller than before
+             const grad = ctx.createLinearGradient(0, headY - h, 0, headY + 5*s);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(0.6, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -10));
              ctx.fillStyle = grad;
 
              ctx.beginPath();
              ctx.moveTo(p.x - r, headY);
-             // Bulge top
-             ctx.bezierCurveTo(p.x - r, headY - h, p.x + r, headY - h, p.x + r, headY);
-             ctx.lineTo(p.x + r, headY + 5*s);
-             ctx.lineTo(p.x - r, headY + 5*s);
+             // More forward bulge
+             ctx.bezierCurveTo(p.x - r*1.2, headY - h, p.x + r*1.2, headY - h, p.x + r, headY);
+             ctx.lineTo(p.x + r*0.8, headY + 8*s); // Taper back
+             ctx.lineTo(p.x - r*0.8, headY + 8*s);
              ctx.fill();
              return;
         }
