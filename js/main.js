@@ -403,6 +403,7 @@ let lastDisplayedContestTime = -1;
     // --- 3. HELPER FUNCTIONS ---
     var saveTimer = null;
     function forceSave() {
+        if (window.isResetting) return;
         if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
         localStorage.setItem('tacoSaveData', JSON.stringify(playerData));
     }

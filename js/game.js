@@ -1206,12 +1206,17 @@
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
+
+        // Nuclear Reset
+        window.isResetting = true;
+        localStorage.removeItem('tacoSaveData');
+
         playerData = createDefaultData();
-        if (typeof forceSave === 'function') forceSave();
         updateUI();
         closeStats();
         resetGame();
         resetStage = 0;
+
         btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000";
         feedback = "RESET!"; feedbackTimer = 60;
 
