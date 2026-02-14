@@ -1206,6 +1206,7 @@
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
+        localStorage.removeItem('tacoSaveData');
         playerData = createDefaultData();
         if (typeof forceSave === 'function') forceSave();
         updateUI();
