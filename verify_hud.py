@@ -10,7 +10,8 @@ def verify_hud(page):
     page.goto(f"file://{os.getcwd()}/gotrange.html")
 
     # Click 'ORDI' to start
-    page.click("button:has-text('ORDI')")
+    if page.is_visible("button:has-text('ORDI')"):
+        page.click("button:has-text('ORDI')")
 
     # Wait for game to initialize (IDLE state)
     page.wait_for_timeout(1000)
@@ -26,7 +27,11 @@ def verify_hud(page):
 
     # Click MODE button to switch to CONTEST
     # The button text is "MODE: CLASSIQUE" inside a span inside .broadcast-btn
-    page.click("text=MODE: CLASSIQUE")
+    if page.is_visible("text=MODE: CLASSIQUE"):
+        page.click("text=MODE: CLASSIQUE")
+    else:
+        print("ERROR: Mode button not visible (Classic)")
+        return
 
     # Wait for transition/render
     page.wait_for_timeout(1000)
@@ -34,8 +39,17 @@ def verify_hud(page):
     # Take screenshot of Contest HUD
     page.screenshot(path="verification_contest.png")
 
+    # Re-open menu because toggleMode closes it
+    if page.is_visible(".controls-menu-toggle"):
+        page.click(".controls-menu-toggle")
+        page.wait_for_timeout(500)
+
     # Click MODE button to switch to TIME ATTACK
-    page.click("text=MODE: CONCOURS")
+    if page.is_visible("text=MODE: CONCOURS"):
+        page.click("text=MODE: CONCOURS")
+    else:
+        print("ERROR: Mode button not visible (Contest)")
+        return
 
     # Wait for transition/render
     page.wait_for_timeout(1000)
