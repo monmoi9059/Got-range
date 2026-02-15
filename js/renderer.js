@@ -788,9 +788,21 @@ var BallRenderer = {
             container.style.transform = 'none';
         }
 
-        // Calculate Resolution Scale based on Fixed Logical Height
-        window.RESOLUTION_SCALE = canvas.height / window.LOGICAL_HEIGHT;
-        window.LOGICAL_WIDTH = canvas.width / window.RESOLUTION_SCALE;
+        // Calculate Resolution Scale
+        // In portrait, fit width. In landscape, fit height.
+        if (winW < winH) {
+            // Portrait
+            // Fit logical width (e.g. 1066) to screen width
+            window.RESOLUTION_SCALE = canvas.width / 1066;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = canvas.height / window.RESOLUTION_SCALE;
+        } else {
+            // Landscape (Original logic)
+            // Fit logical height (600) to screen height
+            window.RESOLUTION_SCALE = canvas.height / 600;
+            window.LOGICAL_HEIGHT = 600;
+            window.LOGICAL_WIDTH = canvas.width / window.RESOLUTION_SCALE;
+        }
 
         invalidateBackgroundCache();
     }

@@ -399,50 +399,6 @@
         .startup-btn:active { transform: translateY(5px); box-shadow: none; }
         .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
 
-        #orientation-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-        .rotate-icon {
-            font-size: 5em;
-            margin-bottom: 20px;
-            animation: rotatePhone 2s infinite ease-in-out;
-        }
-        @keyframes rotatePhone {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        #btn-force-fullscreen {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 50px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #FFD700;
-            border-radius: 8px;
-            color: #FFD700;
-            font-size: 30px;
-            display: none;
-            z-index: 99999;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
-            line-height: 50px;
-            text-align: center;
-        }
-
         .gamepad-focus {
             outline: 4px solid #FFD700 !important;
             box-shadow: 0 0 15px #FFD700 !important;
