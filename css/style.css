@@ -120,7 +120,7 @@
         /* Controls (Bottom Overlay) */
         #controls {
             position: absolute;
-            bottom: 0;
+            bottom: 70px;
             left: 0;
             width: 100%;
             text-align: center;
@@ -129,7 +129,6 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            padding-bottom: 10px;
         }
 
         .broadcast-btn {
