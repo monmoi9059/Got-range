@@ -324,6 +324,7 @@ let lastDisplayedContestTime = -1;
             customHairColorIndex: 0, customHairLength: 1.0,
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            cameraZoomScale: 1.0,
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
@@ -357,6 +358,7 @@ let lastDisplayedContestTime = -1;
     }
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
+    if(typeof playerData.cameraZoomScale === 'undefined') playerData.cameraZoomScale = 1.0;
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
@@ -864,6 +866,125 @@ let lastDisplayedContestTime = -1;
             `;
             container.appendChild(div);
         });
+    }
+
+    window.openStats = function() {
+        window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
+
+        state = 'STATS';
+        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
+
+        shopUI.style.display = 'none';
+        achUI.style.display = 'none';
+        statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        populateInputSelects();
+        const ls = playerData.lifetimeStats;
+        document.getElementById('statShots').innerText = ls.shots;
+        document.getElementById('statMakes').innerText = ls.makes;
+        document.getElementById('statMisses').innerText = ls.misses;
+        document.getElementById('statContests').innerText = ls.contests;
+        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
+        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
+        let acc = 0;
+        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
+        document.getElementById('statAccuracy').innerText = acc + "%";
+
+        const btnMob = document.getElementById('btnToggleMobile');
+        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        const btnGraph = document.getElementById('btnToggleGraphics');
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        const btnMeter = document.getElementById('btnToggleMeter');
+        if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
+        const btnShape = document.getElementById('btnCycleMeterShape');
+        if(btnShape) {
+            let shapeName = playerData.meterShape || 'arc';
+            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
+        }
+        const sld = document.getElementById('meterSizeSlider');
+        if(sld) {
+            const sc = playerData.meterScale || 1.0;
+            sld.value = sc;
+            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+        }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+    }
+    window.toggleMeter = function() {
+        playerData.meterEnabled = !playerData.meterEnabled;
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.cycleMeterShape = function() {
+        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
+        let idx = shapes.indexOf(playerData.meterShape);
+        if (idx < 0) idx = 0;
+        idx = (idx + 1) % shapes.length;
+        playerData.meterShape = shapes[idx];
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.updateMeterScale = function() {
+        const val = parseFloat(document.getElementById('meterSizeSlider').value);
+        playerData.meterScale = val;
+        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.updateCameraZoom = function() {
+        const val = parseFloat(document.getElementById('cameraZoomSlider').value);
+        playerData.cameraZoomScale = val;
+        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.populateInputSelects = function() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p1Sel = document.getElementById('p1InputSelect');
+        const p2Sel = document.getElementById('p2InputSelect');
+
+        if(!p1Sel || !p2Sel) return;
+
+        const fillSelect = (sel, isP2) => {
+            sel.innerHTML = '';
+
+            const defOpt = document.createElement('option');
+            defOpt.value = "-1";
+            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
+            sel.appendChild(defOpt);
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                const opt = document.createElement('option');
+                opt.value = i;
+
+                let label = `MANETTE ${i+1}`;
+                if (gp && gp.connected) {
+                    let id = gp.id;
+                    if(id.length > 15) id = id.substring(0,15) + "...";
+                    label += ` (${id})`;
+                } else {
+                    label += " (Déconnectée)";
+                }
+                opt.textContent = label;
+                sel.appendChild(opt);
+            }
+        };
+
+        fillSelect(p1Sel, false);
+        fillSelect(p2Sel, true);
+
+        p1Sel.value = playerData.inputMap.p1;
+        p2Sel.value = playerData.inputMap.p2;
     }
 
     // P2 Setup (Separate Profile)

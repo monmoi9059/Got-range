@@ -7517,7 +7517,10 @@ var BallRenderer = {
         const camRotation = -angleToHoop - Math.PI / 2;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
-        const camZoom = isSplitscreen ? 450 : 698;
+        let camZoom = isSplitscreen ? 450 : 698;
+        if (playerData.cameraZoomScale) {
+            camZoom *= playerData.cameraZoomScale;
+        }
         const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
