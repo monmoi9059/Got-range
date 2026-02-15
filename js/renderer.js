@@ -1312,8 +1312,7 @@ var BallRenderer = {
 
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
-        const horizonFactor = (vpH > vpW) ? 0.65 : 0.38;
-        const horizonY = (vpH - 120) * horizonFactor;
+        const horizonY = (vpH - 120) * 0.38;
 
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
         const rx = (sx - vpW/2) / p.scale;
@@ -7450,7 +7449,7 @@ var BallRenderer = {
 
         // Portrait Mode Zoom Adjustment (2x Closer)
         if (vpH > vpW) {
-            camZoom *= 3.0;
+            camZoom *= 2.0;
         }
 
         const camHeight = 130000 / camZoom;
@@ -7468,8 +7467,7 @@ var BallRenderer = {
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonFactor = (vpH > vpW) ? 0.65 : 0.38;
-        const horizonY = (vpH - 120) * horizonFactor;
+        const horizonY = (vpH - 120) * 0.38;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };

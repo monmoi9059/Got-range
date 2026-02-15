@@ -446,9 +446,9 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; flex: 1; }
         .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
+        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; padding-bottom: 20px; }
         .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
         .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
         .key.action { background: #444; grid-column: span 2; }
@@ -639,12 +639,12 @@
     .modal {
         width: 95% !important;
         height: 90% !important;
-        max-height: none !important;
+        max-height: 90% !important;
         top: 5% !important;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;
-        /* display: flex; Removed to prevent overriding hidden state */
+        overflow-y: auto !important;
     }
 
     /* Only enforce flex layout when the modal is actually visible */

@@ -460,9 +460,9 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; flex: 1; }
         .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
+        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; padding-bottom: 20px; }
         .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
         .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
         .key.action { background: #444; grid-column: span 2; }
@@ -653,12 +653,12 @@
     .modal {
         width: 95% !important;
         height: 90% !important;
-        max-height: none !important;
+        max-height: 90% !important;
         top: 5% !important;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;
-        /* display: flex; Removed to prevent overriding hidden state */
+        overflow-y: auto !important;
     }
 
     /* Only enforce flex layout when the modal is actually visible */
@@ -3455,7 +3455,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
-    if (score <= 0) return false;
+        if (score <= 10) return false; // Ignore default/low scores
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
@@ -5301,8 +5301,7 @@ var BallRenderer = {
 
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
-        const horizonFactor = (vpH > vpW) ? 0.65 : 0.38;
-        const horizonY = (vpH - 120) * horizonFactor;
+        const horizonY = (vpH - 120) * 0.38;
 
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
         const rx = (sx - vpW/2) / p.scale;
@@ -11439,7 +11438,7 @@ var BallRenderer = {
 
         // Portrait Mode Zoom Adjustment (2x Closer)
         if (vpH > vpW) {
-            camZoom *= 3.0;
+            camZoom *= 2.0;
         }
 
         const camHeight = 130000 / camZoom;
@@ -11457,8 +11456,7 @@ var BallRenderer = {
         cameraZoom = camZoom;
         cameraHeight = camHeight;
 
-        const horizonFactor = (vpH > vpW) ? 0.65 : 0.38;
-        const horizonY = (vpH - 120) * horizonFactor;
+        const horizonY = (vpH - 120) * 0.38;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
