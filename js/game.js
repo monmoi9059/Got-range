@@ -1821,10 +1821,20 @@
     function startGame() {
         state = 'IDLE';
         document.getElementById('startup-ui').style.display = 'none';
+        // Force hide High Score UI and other modals to be safe
+        document.getElementById('highScoreUI').style.display = 'none';
+        window.closeAllMenus(); // Ensures all other modals are closed and state is reset
+
         document.getElementById('scorebug-container').style.display = 'flex';
         document.getElementById('controls').style.display = 'flex';
         updateUI();
         updateMobileControlsUI();
+        // Double safety check for High Score UI persistence
+        setTimeout(() => {
+            if(state === 'IDLE') {
+                document.getElementById('highScoreUI').style.display = 'none';
+            }
+        }, 100);
     }
     function renderUpgradeControl(statName, containerId) {
         const active = playerData.stats[statName];

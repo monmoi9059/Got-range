@@ -502,6 +502,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+        if (score <= 10) return false; // Ignore default/low scores
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;

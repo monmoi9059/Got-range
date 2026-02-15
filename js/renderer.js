@@ -1313,7 +1313,6 @@ var BallRenderer = {
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
         const horizonY = (vpH - 120) * 0.38;
-
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
         const rx = (sx - vpW/2) / p.scale;
         const ry = 550 - p.depth;
@@ -7446,7 +7445,17 @@ var BallRenderer = {
         if (playerData.cameraZoomScale) {
             camZoom *= playerData.cameraZoomScale;
         }
-        const camHeight = 130000 / camZoom;
+
+        // Portrait Mode Zoom Adjustment (2x Closer)
+        if (vpH > vpW) {
+            camZoom *= 2.0;
+        }
+
+        let camHeight = 130000 / camZoom;
+        if (vpH > vpW) {
+            // Lift camera to push player down to lower 1/3
+            camHeight += vpH * 0.1;
+        }
 
         if (!g_camCache) g_camCache = {};
         g_camCache.rotation = camRotation;
