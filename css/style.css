@@ -221,6 +221,7 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 0; /* Sharp corners */
             flex-direction: column; /* Allow flex children */
+            overflow-y: auto; /* Ensure scroll if content overflows */
         }
 
         .modal-content-wrapper {

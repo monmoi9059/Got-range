@@ -235,6 +235,7 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 0; /* Sharp corners */
             flex-direction: column; /* Allow flex children */
+            overflow-y: auto; /* Ensure scroll if content overflows */
         }
 
         .modal-content-wrapper {
@@ -11437,7 +11438,7 @@ var BallRenderer = {
 
         // Portrait Mode Zoom Adjustment (2x Closer)
         if (vpH > vpW) {
-            camZoom *= 2.0;
+            camZoom *= 3.0;
         }
 
         const camHeight = 130000 / camZoom;
@@ -14137,6 +14138,12 @@ var BallRenderer = {
         document.getElementById('controls').style.display = 'flex';
         updateUI();
         updateMobileControlsUI();
+        // Double safety check for High Score UI persistence
+        setTimeout(() => {
+            if(state === 'IDLE') {
+                document.getElementById('highScoreUI').style.display = 'none';
+            }
+        }, 100);
     }
     function renderUpgradeControl(statName, containerId) {
         const active = playerData.stats[statName];

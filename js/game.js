@@ -1829,6 +1829,12 @@
         document.getElementById('controls').style.display = 'flex';
         updateUI();
         updateMobileControlsUI();
+        // Double safety check for High Score UI persistence
+        setTimeout(() => {
+            if(state === 'IDLE') {
+                document.getElementById('highScoreUI').style.display = 'none';
+            }
+        }, 100);
     }
     function renderUpgradeControl(statName, containerId) {
         const active = playerData.stats[statName];
