@@ -1054,6 +1054,10 @@
             document.getElementById('shopPlayerToggle').style.display = 'none';
         }
 
+        // Save immediately so subsequent helper calls (like updateDifficulty)
+        // that use loadContext() will load the correct SHOP state.
+        saveContext(game1);
+
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
