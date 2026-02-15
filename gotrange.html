@@ -69,6 +69,8 @@
             align-items: flex-start;
             pointer-events: none;
             z-index: 100;
+            transform-origin: top center;
+            transition: transform 0.2s;
         }
 
         .sb-panel {
@@ -143,6 +145,8 @@
             display: flex;
             justify-content: center;
             gap: 10px;
+            transform-origin: bottom center;
+            transition: transform 0.2s;
         }
 
         .broadcast-btn {
@@ -201,6 +205,17 @@
             background: #444;
         }
 
+        /* Audio Controls */
+        #audio-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 120;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
         /* Modals Remaster */
         .modal {
             display: none;
@@ -211,7 +226,6 @@
             transform: translateY(-50%); /* Only center vertically */
             width: 400px; /* Reduced width to fit on side better */
             max-height: 85%;
-            overflow-y: auto;
             background: #111;
             border: 2px solid var(--broadcast-accent);
             padding: 0; /* Removing padding to use header fully */
@@ -220,15 +234,20 @@
             z-index: 100;
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 0; /* Sharp corners */
+            flex-direction: column; /* Allow flex children */
         }
 
         .modal-content-wrapper {
             padding: 25px;
+            overflow-y: auto; /* Scroll ONLY the content area */
+            flex-grow: 1; /* Take remaining height */
+            display: flex;
+            flex-direction: column;
         }
 
-        .modal::-webkit-scrollbar { width: 8px; }
-        .modal::-webkit-scrollbar-track { background: #222; }
-        .modal::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
+        .modal::-webkit-scrollbar, .lb-list::-webkit-scrollbar, .modal-content-wrapper::-webkit-scrollbar { width: 8px; }
+        .modal::-webkit-scrollbar-track, .lb-list::-webkit-scrollbar-track, .modal-content-wrapper::-webkit-scrollbar-track { background: #222; }
+        .modal::-webkit-scrollbar-thumb, .lb-list::-webkit-scrollbar-thumb, .modal-content-wrapper::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
 
         .modal-header {
             background: linear-gradient(90deg, #222, #111);
@@ -240,6 +259,7 @@
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            flex-shrink: 0; /* Don't shrink */
         }
 
         .upgrade-row {
@@ -422,11 +442,11 @@
         }
 
         /* Leaderboard Styles */
-        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; }
+        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; flex-shrink: 0; }
         .lb-tab { background: #333; color: #888; border: 1px solid #444; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-family: var(--broadcast-font-title); }
         .lb-tab.active { background: var(--broadcast-accent); color: #000; border-color: #FFF; }
 
-        .lb-list { height: 350px; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; }
+        .lb-list { flex-grow: 1; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; min-height: 200px; }
         .lb-list::-webkit-scrollbar { width: 8px; }
         .lb-list::-webkit-scrollbar-track { background: #222; }
         .lb-list::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
@@ -524,6 +544,8 @@
     display: none;
     animation: fadeInTab 0.3s ease-out;
     padding: 0 10px;
+    overflow-y: auto; /* Allow scrolling within tab content if needed */
+    max-height: 100%;
 }
 
 .shop-section.active {
@@ -592,6 +614,66 @@
     100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 255, 0, 0.7); }
 }
 
+/* --- PORTRAIT / MOBILE OPTIMIZATIONS --- */
+@media (max-aspect-ratio: 13/9) {
+    /* Scale down HUD elements */
+    #scorebug-container {
+        transform: scale(0.8);
+        width: 125%; /* Compensate for scale to keep full width: 100/0.8 = 125% */
+        left: -12.5%; /* Center it: (125-100)/2 = 12.5% */
+        top: 10px;
+    }
+
+    #controls {
+        transform: scale(0.8);
+        width: 125%;
+        left: -12.5%;
+        bottom: 40px; /* Bring it lower */
+    }
+
+    /* Move Audio Controls to Top-Right to avoid overlap with Menu */
+    #audio-controls {
+        top: 80px; /* Below scorebug */
+        right: 10px;
+        bottom: auto; /* Unset bottom */
+        flex-direction: column; /* Stack vertically to save horizontal space? Or keep horizontal */
+        gap: 10px;
+    }
+
+    /* Adjust Mobile Shoot Button */
+    .mobile-shoot-btn {
+        bottom: 15%; /* Lower down */
+        right: 20px;
+        width: 80px; /* Smaller */
+        height: 80px;
+    }
+
+    /* Full-Screen Menus */
+    .modal {
+        width: 95% !important;
+        height: 90% !important;
+        max-height: none !important;
+        top: 5% !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        display: flex; /* Enforce flex layout for children */
+    }
+
+    /* Optimization for Leaderboard & Lists */
+    .modal-content-wrapper {
+        padding: 15px; /* Less padding */
+    }
+
+    /* Leaderboard list expansion handled by flex-grow above */
+
+    /* Make buttons bigger/easier to tap inside lists if needed, or adjust font */
+    .lb-row {
+        padding: 10px; /* Slightly more touch padding */
+        font-size: 1.0em; /* Slightly smaller font to fit width */
+    }
+}
+
 /* --- END style.css --- */
 
 </style>
@@ -652,7 +734,7 @@
             </div>
         </div>
     </div>
-    <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
+    <div id="audio-controls">
         <div class="broadcast-icon-btn" role="button" aria-label="Piste précédente" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
         <div id="btn-mute" class="broadcast-icon-btn" role="button" aria-label="Couper le son" tabindex="0" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
         <div class="broadcast-icon-btn" role="button" aria-label="Piste suivante" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
@@ -4972,7 +5054,11 @@ var BallRenderer = {
 
     function drawBroadcastLowerThird() {
         const dpr = window.devicePixelRatio || 1;
-        const h = 60 * dpr; // Height scaled by DPI
+        const isPortrait = canvas.width < canvas.height;
+        // Scale down broadcast HUD in portrait to match CSS UI scale (0.8) and prevent crowding
+        const s = dpr * (isPortrait ? 0.8 : 1.0);
+
+        const h = 60 * s; // Height scaled by DPI
         const w = canvas.width;
         const y = canvas.height - h;
 
@@ -4986,11 +5072,11 @@ var BallRenderer = {
 
         // Top Border (Gold)
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, w, 4 * dpr);
+        ctx.fillRect(0, y, w, 4 * s);
 
         // NBA Logo (Bottom Left Corner) - Scaled down
-        const lX = 20 * dpr; const lY = canvas.height - 30 * dpr;
-        const lW = 10 * dpr; const lH = 20 * dpr;
+        const lX = 20 * s; const lY = canvas.height - 30 * s;
+        const lW = 10 * s; const lH = 20 * s;
 
         ctx.fillStyle = '#C9082A'; // Red
         ctx.fillRect(lX, lY - lH/2, lW, lH);
@@ -5000,62 +5086,62 @@ var BallRenderer = {
         // Silhouette (Simple curve) - Adjusted for smaller size
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.moveTo(lX + lW + 1 * dpr, lY + lH/2 - 1 * dpr);
-        ctx.lineTo(lX + lW - 2 * dpr, lY - lH/2 + 3 * dpr);
-        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3 * dpr, lY - lH/2 + 3 * dpr);
-        ctx.lineTo(lX + lW + 1 * dpr, lY + lH/2 - 1 * dpr);
+        ctx.moveTo(lX + lW + 1 * s, lY + lH/2 - 1 * s);
+        ctx.lineTo(lX + lW - 2 * s, lY - lH/2 + 3 * s);
+        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3 * s, lY - lH/2 + 3 * s);
+        ctx.lineTo(lX + lW + 1 * s, lY + lH/2 - 1 * s);
         ctx.fill();
-        ctx.beginPath(); ctx.arc(lX + lW + 4 * dpr, lY - lH/2 + 5 * dpr, 1.5 * dpr, 0, Math.PI*2); ctx.fill(); // Ball
+        ctx.beginPath(); ctx.arc(lX + lW + 4 * s, lY - lH/2 + 5 * s, 1.5 * s, 0, Math.PI*2); ctx.fill(); // Ball
 
         // 2. Content Logic
         const dist = 10 + (distanceLevel * 5);
         const scaleObj = getScaleObject(dist);
 
         // Fonts (using Canvas fonts that match CSS imports)
-        const fontTitle = `bold ${10 * dpr}px 'Roboto Condensed', 'Arial Narrow', sans-serif`;
-        const fontValue = `bold ${22 * dpr}px 'Russo One', 'Impact', sans-serif`;
-        const fontIcon = `${28 * dpr}px Arial`;
-        const fontName = `bold ${18 * dpr}px 'Roboto Condensed', sans-serif`;
-        const fontLive = `bold ${9 * dpr}px sans-serif`;
+        const fontTitle = `bold ${10 * s}px 'Roboto Condensed', 'Arial Narrow', sans-serif`;
+        const fontValue = `bold ${22 * s}px 'Russo One', 'Impact', sans-serif`;
+        const fontIcon = `${28 * s}px Arial`;
+        const fontName = `bold ${18 * s}px 'Roboto Condensed', sans-serif`;
+        const fontLive = `bold ${9 * s}px sans-serif`;
 
         // Center Separator
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * dpr;
-        ctx.beginPath(); ctx.moveTo(w / 2, y + 10 * dpr); ctx.lineTo(w / 2, canvas.height - 10 * dpr); ctx.stroke();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * s;
+        ctx.beginPath(); ctx.moveTo(w / 2, y + 10 * s); ctx.lineTo(w / 2, canvas.height - 10 * s); ctx.stroke();
 
-        const rowTitleY = y + 20 * dpr;
-        const rowValueY = y + 48 * dpr;
+        const rowTitleY = y + 20 * s;
+        const rowValueY = y + 48 * s;
 
         if (currentGameMode === 'CLASSIC') {
             // LEFT SIDE: Record & Current Distance
             // Record
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", w / 2 - 180 * dpr, rowTitleY);
+            ctx.fillText("RECORD", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(playerData.highScore + " ft", w / 2 - 180 * dpr, rowValueY);
+            ctx.fillText(playerData.highScore + " ft", w / 2 - 180 * s, rowValueY);
 
             // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("CURRENT DISTANCE", w / 2 - 25 * dpr, rowTitleY);
+            ctx.fillText("CURRENT DISTANCE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(dist + " ft", w / 2 - 25 * dpr, rowValueY);
+            ctx.fillText(dist + " ft", w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: Comparison
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCALE EQUIVALENT", w / 2 + 25 * dpr, rowTitleY);
+            ctx.fillText("SCALE EQUIVALENT", w / 2 + 25 * s, rowTitleY);
 
             // Icon
             ctx.textAlign = "center"; ctx.font = fontIcon;
-            const iconX = w / 2 + 45 * dpr;
+            const iconX = w / 2 + 45 * s;
             ctx.fillText(scaleObj.icon, iconX, rowValueY);
 
             // Name
             ctx.textAlign = "left";
             ctx.fillStyle = "#FFD700"; // Gold
             ctx.font = fontName;
-            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25 * dpr, rowValueY - 2 * dpr);
+            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25 * s, rowValueY - 2 * s);
         }
         else if (currentGameMode === 'CONTEST') {
             const time = Math.ceil(contestData.timer);
@@ -5064,23 +5150,23 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", w / 2 - 180 * dpr, rowTitleY);
+            ctx.fillText("TIME", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, w / 2 - 180 * dpr, rowValueY);
+            ctx.fillText(time, w / 2 - 180 * s, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", w / 2 - 25 * dpr, rowTitleY);
+            ctx.fillText("SCORE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(contestData.score, w / 2 - 25 * dpr, rowValueY);
+            ctx.fillText(contestData.score, w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: RACK
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RACK", w / 2 + 25 * dpr, rowTitleY);
+            ctx.fillText("RACK", w / 2 + 25 * s, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(contestData.rack + " / 5", w / 2 + 25 * dpr, rowValueY);
+            ctx.fillText(contestData.rack + " / 5", w / 2 + 25 * s, rowValueY);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
@@ -5089,29 +5175,29 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", w / 2 - 180 * dpr, rowTitleY);
+            ctx.fillText("TIME", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, w / 2 - 180 * dpr, rowValueY);
+            ctx.fillText(time, w / 2 - 180 * s, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", w / 2 - 25 * dpr, rowTitleY);
+            ctx.fillText("SCORE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(timeAttackData.score, w / 2 - 25 * dpr, rowValueY);
+            ctx.fillText(timeAttackData.score, w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: RECORD
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", w / 2 + 25 * dpr, rowTitleY);
+            ctx.fillText("RECORD", w / 2 + 25 * s, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * dpr, rowValueY);
+            ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * s, rowValueY);
         }
 
         // Live Indicator
-        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * dpr, y + 10 * dpr, 6 * dpr, 6 * dpr);
+        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * s, y + 10 * s, 6 * s, 6 * s);
         ctx.fillStyle = "#fff"; ctx.font = fontLive; ctx.textAlign = "left";
-        ctx.fillText("LIVE", 30 * dpr, y + 16 * dpr);
+        ctx.fillText("LIVE", 30 * s, y + 16 * s);
     }
 
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
