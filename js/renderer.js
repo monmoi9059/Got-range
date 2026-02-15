@@ -7446,6 +7446,12 @@ var BallRenderer = {
         if (playerData.cameraZoomScale) {
             camZoom *= playerData.cameraZoomScale;
         }
+
+        // Portrait Mode Zoom Adjustment (2x Closer)
+        if (vpH > vpW) {
+            camZoom *= 2.0;
+        }
+
         const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};

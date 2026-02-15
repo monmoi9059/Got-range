@@ -459,7 +459,7 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; }
         .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
         .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
@@ -657,7 +657,12 @@
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;
-        display: flex; /* Enforce flex layout for children */
+        /* display: flex; Removed to prevent overriding hidden state */
+    }
+
+    /* Only enforce flex layout when the modal is actually visible */
+    .modal[style*="display: block"] {
+        display: flex !important;
     }
 
     /* Optimization for Leaderboard & Lists */
@@ -766,7 +771,7 @@
     </div>
 
     <!-- MODALS -->
-    <div id="statsUI" class="modal">
+    <div id="statsUI" class="modal" style="display: none;">
         <button class="modal-close-btn" onclick="closeStats()">✕</button>
         <div class="modal-header">STATISTIQUES À VIE</div>
 
@@ -831,7 +836,7 @@
         <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
     </div>
 
-    <div id="shopUI" class="modal">
+    <div id="shopUI" class="modal" style="display: none;">
         <button class="modal-close-btn" onclick="closeShop()">✕</button>
         <div class="modal-header">TACO MERCADO</div>
 
@@ -967,13 +972,13 @@
 
     </div>
 
-    <div id="achUI" class="modal">
+    <div id="achUI" class="modal" style="display: none;">
         <button class="modal-close-btn" onclick="closeAchievements()">✕</button>
         <div class="modal-header">SALLE DES TROPHÉES</div>
         <div id="achList"></div>
     </div>
 
-    <div id="leaderboardUI" class="modal">
+    <div id="leaderboardUI" class="modal" style="display: none;">
         <button class="modal-close-btn" onclick="closeLeaderboard()">✕</button>
         <div class="modal-header">CLASSEMENT</div>
         <div class="modal-content-wrapper">
@@ -989,7 +994,7 @@
         </div>
     </div>
 
-    <div id="challengesUI" class="modal">
+    <div id="challengesUI" class="modal" style="display: none;">
         <button class="modal-close-btn" onclick="closeChallenges()">✕</button>
         <div class="modal-header">DÉFIS</div>
         <div class="modal-content-wrapper">
@@ -1003,7 +1008,7 @@
         </div>
     </div>
 
-    <div id="highScoreUI" class="modal" style="height: auto; top: 50%; max-width: 700px;">
+    <div id="highScoreUI" class="modal" style="display: none; height: auto; top: 50%; max-width: 700px;">
         <div class="modal-header">NOUVEAU RECORD !</div>
         <div class="hs-input-container">
             <div style="color: #AAA; font-size: 1.2em; margin-bottom: 5px;">ENTREZ VOS INITIALES</div>
@@ -3449,6 +3454,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+    if (score <= 0) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
@@ -11428,6 +11434,12 @@ var BallRenderer = {
         if (playerData.cameraZoomScale) {
             camZoom *= playerData.cameraZoomScale;
         }
+
+        // Portrait Mode Zoom Adjustment (2x Closer)
+        if (vpH > vpW) {
+            camZoom *= 2.0;
+        }
+
         const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};
@@ -14117,6 +14129,10 @@ var BallRenderer = {
     function startGame() {
         state = 'IDLE';
         document.getElementById('startup-ui').style.display = 'none';
+        // Force hide High Score UI and other modals to be safe
+        document.getElementById('highScoreUI').style.display = 'none';
+        window.closeAllMenus(); // Ensures all other modals are closed and state is reset
+
         document.getElementById('scorebug-container').style.display = 'flex';
         document.getElementById('controls').style.display = 'flex';
         updateUI();

@@ -502,6 +502,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+    if (score <= 0) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
