@@ -14483,7 +14483,8 @@ var BallRenderer = {
             ctx.rect(0, 0, halfW, h);
             ctx.clip();
             // No translation needed for left side
-            drawBackground(0, 0, halfW, h);
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT);
             ctx.restore();
 
             // Draw P2 (Right)
@@ -14493,7 +14494,8 @@ var BallRenderer = {
             ctx.rect(halfW, 0, halfW, h);
             ctx.clip();
             ctx.translate(halfW, 0); // Move origin to middle
-            drawBackground(0, 0, halfW, h); // Draw as if at 0,0 with half width
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT); // Draw as if at 0,0 with half width
             ctx.restore();
 
             // Divider Line
@@ -14514,7 +14516,10 @@ var BallRenderer = {
 
         } else {
             loadContext(game1);
-            drawBackground(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT);
+            ctx.restore();
             drawBroadcastLowerThird();
         }
     }

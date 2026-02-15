@@ -1800,6 +1800,15 @@
         saveContext(game1);
     }
     function checkStartup() {
+        // Safety: Ensure resolution variables are defined
+        if (typeof window.RESOLUTION_SCALE === 'undefined') {
+            window.RESOLUTION_SCALE = 1;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = 600;
+            // Try to force resize calculation if possible
+            if (typeof resizeGame === 'function') resizeGame();
+        }
+
         if(!playerData.platformChosen) {
             state = 'STARTUP';
             document.getElementById('startup-ui').style.display = 'flex';
@@ -2125,25 +2134,25 @@
 
     // --- GAME LOOP ---
     function drawStartupScene() {
-        // Dark Background
+        // Dark Background (Physical)
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Calculate positions for 2D Composition (Giant Cat + Hoop)
-        // We will mock project() returns manually or just draw directly using screen coordinates
-        // since we want a specific poster layout regardless of 3D camera.
+        ctx.save();
+        // Scale to Logical
+        ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
 
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const scale = 2.0; // Base scale
+        // Calculate positions for 2D Composition using LOGICAL units
+        const centerX = window.LOGICAL_WIDTH / 2;
+        const centerY = window.LOGICAL_HEIGHT / 2;
+        const scale = 2.0; // Base scale (Logical)
 
         // 1. Hoop (Right side of center)
         const hoopX = centerX + 150;
         const hoopY = centerY + 50;
         const hoopP = { x: hoopX, y: hoopY, scale: scale * 1.5 };
 
-        // Draw Hoop Manually (reuse drawHoop logic but simplified or just call it if it's robust)
-        // drawHoop depends on projection for the pole... let's mock it
+        // Draw Hoop Manually
         ctx.fillStyle = '#444'; ctx.fillRect(hoopX - 5, hoopY, 10, 300); // Pole
         // Backboard/Rim
         const bbW = 60 * hoopP.scale; const bbH = 40 * hoopP.scale; const bbX = hoopX - bbW/2; const bbY = hoopY - bbH - 10*hoopP.scale;
@@ -2164,6 +2173,8 @@
         // 3. Fire Ball (In the hoop)
         const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
         drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / -500);
+
+        ctx.restore();
     }
 
     function draw() {
@@ -2187,7 +2198,8 @@
             ctx.rect(0, 0, halfW, h);
             ctx.clip();
             // No translation needed for left side
-            drawBackground(0, 0, halfW, h);
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT);
             ctx.restore();
 
             // Draw P2 (Right)
@@ -2197,7 +2209,8 @@
             ctx.rect(halfW, 0, halfW, h);
             ctx.clip();
             ctx.translate(halfW, 0); // Move origin to middle
-            drawBackground(0, 0, halfW, h); // Draw as if at 0,0 with half width
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT); // Draw as if at 0,0 with half width
             ctx.restore();
 
             // Divider Line
@@ -2218,7 +2231,10 @@
 
         } else {
             loadContext(game1);
-            drawBackground(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT);
+            ctx.restore();
             drawBroadcastLowerThird();
         }
     }
