@@ -6691,7 +6691,12 @@ var BallRenderer = {
         var cacheKey = getShadowKey(type, obj);
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
-                drawPlayer(obj);
+                // Skip supersampling for shadows
+                if (typeof _drawPlayerInternal === 'function') {
+                    _drawPlayerInternal(obj);
+                } else {
+                    drawPlayer(obj);
+                }
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
             }
@@ -9371,7 +9376,91 @@ var BallRenderer = {
         }
     }
 
+    // Supersampling Globals
+    var g_ssCanvas = null;
+    var g_ssCtx = null;
+
     function drawPlayer(p) {
+        // Fallback for Low Graphics
+        if (playerData.graphics !== 'HIGH') {
+            _drawPlayerInternal(p);
+            return;
+        }
+
+        // Init Supersample Canvas
+        if (!g_ssCanvas) {
+            g_ssCanvas = document.createElement('canvas');
+            // Initial reasonable size
+            g_ssCanvas.width = 1024;
+            g_ssCanvas.height = 1024;
+            g_ssCtx = g_ssCanvas.getContext('2d');
+        }
+
+        // Calculate Dynamic Bounding Box
+        // Base Player Size ~ 100 * scale width, 200 * scale height
+        // We add padding for props (arms, capes, etc)
+        const s = p.scale;
+        const padding = 200 * s;
+        const pW = 300 * s;
+        const pH = 500 * s;
+
+        // Supersample Factor (4x as requested)
+        const SS = 4;
+
+        const targetW = pW * SS;
+        const targetH = pH * SS;
+
+        // Resize if needed (with margin to avoid thrashing)
+        if (g_ssCanvas.width < targetW || g_ssCanvas.height < targetH) {
+            g_ssCanvas.width = Math.max(g_ssCanvas.width, targetW);
+            g_ssCanvas.height = Math.max(g_ssCanvas.height, targetH);
+        }
+
+        // Clear
+        g_ssCtx.clearRect(0, 0, targetW + 10, targetH + 10); // Clear region + margin
+
+        // Swap Global Context
+        var originalCtx = ctx;
+        ctx = g_ssCtx;
+
+        ctx.save();
+
+        // Scale Context by SS
+        ctx.scale(SS, SS);
+
+        // Translate Context to center the player at (pW/2, pH/2) in logical space
+        // drawPlayer uses p.x, p.y absolute coords.
+        // We want p.x -> pW/2, p.y -> pH/2.
+        // offset = (pW/2 - p.x), (pH/2 - p.y)
+        const logicalCX = pW / 2;
+        const logicalCY = pH / 2;
+        ctx.translate(logicalCX - p.x, logicalCY - p.y);
+
+        // Draw High Res
+        _drawPlayerInternal(p);
+
+        ctx.restore();
+
+        // Restore Global Context
+        ctx = originalCtx;
+
+        // Draw Scaled Down Image
+        // Source Rect: (0, 0, targetW, targetH)
+        // Dest Rect: (p.x - pW/2, p.y - pH/2, pW, pH)
+        // Note: targetW = pW * SS.
+        // If we draw targetW into pW, that's a 1/SS scale.
+
+        // Smooth downscaling
+        // ctx.imageSmoothingEnabled = true; // Default is usually true
+        // ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(g_ssCanvas,
+            0, 0, targetW, targetH,
+            p.x - pW/2, p.y - pH/2, pW, pH
+        );
+    }
+
+    function _drawPlayerInternal(p) {
         if (!p) return;
         // Debug
         // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
