@@ -1312,7 +1312,11 @@ var BallRenderer = {
 
         const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
         const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
-        const horizonY = (vpH - 120) * 0.38;
+        let horizonY = (vpH - 120) * 0.38;
+        // Portrait Mode Vertical Shift (Pan Up -> Move Player Down)
+        if (vpH > vpW) {
+            horizonY += vpH * 0.15;
+        }
 
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
         const rx = (sx - vpW/2) / p.scale;
