@@ -134,7 +134,7 @@
         /* Controls (Bottom Overlay) */
         #controls {
             position: absolute;
-            bottom: 70px; /* Adjusted for 60px HUD + 10px gap */
+            bottom: 70px;
             left: 0;
             width: 100%;
             text-align: center;
@@ -705,6 +705,14 @@
                 <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
             </div>
             <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
+        </div>
+
+        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">ZOOM CAMÉRA</strong>
+                <span id="cameraZoomLabel" style="color:#00FF00; font-weight:bold;">100%</span>
+            </div>
+            <input type="range" id="cameraZoomSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateCameraZoom()">
         </div>
 
         <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
@@ -3181,6 +3189,7 @@ let lastDisplayedContestTime = -1;
             customHairColorIndex: 0, customHairLength: 1.0,
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            cameraZoomScale: 1.0,
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
@@ -3214,6 +3223,7 @@ let lastDisplayedContestTime = -1;
     }
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
+    if(typeof playerData.cameraZoomScale === 'undefined') playerData.cameraZoomScale = 1.0;
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
@@ -3721,6 +3731,125 @@ let lastDisplayedContestTime = -1;
             `;
             container.appendChild(div);
         });
+    }
+
+    window.openStats = function() {
+        window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
+
+        state = 'STATS';
+        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
+
+        shopUI.style.display = 'none';
+        achUI.style.display = 'none';
+        statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        populateInputSelects();
+        const ls = playerData.lifetimeStats;
+        document.getElementById('statShots').innerText = ls.shots;
+        document.getElementById('statMakes').innerText = ls.makes;
+        document.getElementById('statMisses').innerText = ls.misses;
+        document.getElementById('statContests').innerText = ls.contests;
+        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
+        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
+        let acc = 0;
+        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
+        document.getElementById('statAccuracy').innerText = acc + "%";
+
+        const btnMob = document.getElementById('btnToggleMobile');
+        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        const btnGraph = document.getElementById('btnToggleGraphics');
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        const btnMeter = document.getElementById('btnToggleMeter');
+        if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
+        const btnShape = document.getElementById('btnCycleMeterShape');
+        if(btnShape) {
+            let shapeName = playerData.meterShape || 'arc';
+            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
+        }
+        const sld = document.getElementById('meterSizeSlider');
+        if(sld) {
+            const sc = playerData.meterScale || 1.0;
+            sld.value = sc;
+            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+        }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+    }
+    window.toggleMeter = function() {
+        playerData.meterEnabled = !playerData.meterEnabled;
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.cycleMeterShape = function() {
+        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
+        let idx = shapes.indexOf(playerData.meterShape);
+        if (idx < 0) idx = 0;
+        idx = (idx + 1) % shapes.length;
+        playerData.meterShape = shapes[idx];
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.updateMeterScale = function() {
+        const val = parseFloat(document.getElementById('meterSizeSlider').value);
+        playerData.meterScale = val;
+        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.updateCameraZoom = function() {
+        const val = parseFloat(document.getElementById('cameraZoomSlider').value);
+        playerData.cameraZoomScale = val;
+        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.populateInputSelects = function() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p1Sel = document.getElementById('p1InputSelect');
+        const p2Sel = document.getElementById('p2InputSelect');
+
+        if(!p1Sel || !p2Sel) return;
+
+        const fillSelect = (sel, isP2) => {
+            sel.innerHTML = '';
+
+            const defOpt = document.createElement('option');
+            defOpt.value = "-1";
+            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
+            sel.appendChild(defOpt);
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                const opt = document.createElement('option');
+                opt.value = i;
+
+                let label = `MANETTE ${i+1}`;
+                if (gp && gp.connected) {
+                    let id = gp.id;
+                    if(id.length > 15) id = id.substring(0,15) + "...";
+                    label += ` (${id})`;
+                } else {
+                    label += " (Déconnectée)";
+                }
+                opt.textContent = label;
+                sel.appendChild(opt);
+            }
+        };
+
+        fillSelect(p1Sel, false);
+        fillSelect(p2Sel, true);
+
+        p1Sel.value = playerData.inputMap.p1;
+        p2Sel.value = playerData.inputMap.p2;
     }
 
     // P2 Setup (Separate Profile)
@@ -4842,24 +4971,26 @@ var BallRenderer = {
     const boatSystem = new BoatSystem();
 
     function drawBroadcastLowerThird() {
-        const h = 60; // Reduced height
-        const y = window.LOGICAL_HEIGHT - h;
+        const dpr = window.devicePixelRatio || 1;
+        const h = 60 * dpr; // Height scaled by DPI
+        const w = canvas.width;
+        const y = canvas.height - h;
 
         // 1. Background Bar (Glossy Dark)
-        const bgGrad = ctx.createLinearGradient(0, y, 0, window.LOGICAL_HEIGHT);
+        const bgGrad = ctx.createLinearGradient(0, y, 0, canvas.height);
         bgGrad.addColorStop(0, '#2a2a2a');
         bgGrad.addColorStop(0.5, '#151515');
         bgGrad.addColorStop(1, '#0a0a0a');
         ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, y, window.LOGICAL_WIDTH, h);
+        ctx.fillRect(0, y, w, h);
 
         // Top Border (Gold)
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, window.LOGICAL_WIDTH, 4);
+        ctx.fillRect(0, y, w, 4 * dpr);
 
         // NBA Logo (Bottom Left Corner) - Scaled down
-        const lX = 20; const lY = canvas.height - 30;
-        const lW = 10; const lH = 20;
+        const lX = 20 * dpr; const lY = canvas.height - 30 * dpr;
+        const lW = 10 * dpr; const lH = 20 * dpr;
 
         ctx.fillStyle = '#C9082A'; // Red
         ctx.fillRect(lX, lY - lH/2, lW, lH);
@@ -4869,60 +5000,62 @@ var BallRenderer = {
         // Silhouette (Simple curve) - Adjusted for smaller size
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.moveTo(lX + lW + 1, lY + lH/2 - 1);
-        ctx.lineTo(lX + lW - 2, lY - lH/2 + 3);
-        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3, lY - lH/2 + 3);
-        ctx.lineTo(lX + lW + 1, lY + lH/2 - 1);
+        ctx.moveTo(lX + lW + 1 * dpr, lY + lH/2 - 1 * dpr);
+        ctx.lineTo(lX + lW - 2 * dpr, lY - lH/2 + 3 * dpr);
+        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3 * dpr, lY - lH/2 + 3 * dpr);
+        ctx.lineTo(lX + lW + 1 * dpr, lY + lH/2 - 1 * dpr);
         ctx.fill();
-        ctx.beginPath(); ctx.arc(lX + lW + 4, lY - lH/2 + 5, 1.5, 0, Math.PI*2); ctx.fill(); // Ball
+        ctx.beginPath(); ctx.arc(lX + lW + 4 * dpr, lY - lH/2 + 5 * dpr, 1.5 * dpr, 0, Math.PI*2); ctx.fill(); // Ball
 
         // 2. Content Logic
         const dist = 10 + (distanceLevel * 5);
         const scaleObj = getScaleObject(dist);
 
         // Fonts (using Canvas fonts that match CSS imports)
-        const fontTitle = "bold 10px 'Roboto Condensed', 'Arial Narrow', sans-serif";
-        const fontValue = "bold 22px 'Russo One', 'Impact', sans-serif";
-        const fontIcon = "28px Arial";
+        const fontTitle = `bold ${10 * dpr}px 'Roboto Condensed', 'Arial Narrow', sans-serif`;
+        const fontValue = `bold ${22 * dpr}px 'Russo One', 'Impact', sans-serif`;
+        const fontIcon = `${28 * dpr}px Arial`;
+        const fontName = `bold ${18 * dpr}px 'Roboto Condensed', sans-serif`;
+        const fontLive = `bold ${9 * dpr}px sans-serif`;
 
         // Center Separator
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(window.LOGICAL_WIDTH / 2, y + 10); ctx.lineTo(window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT - 10); ctx.stroke();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * dpr;
+        ctx.beginPath(); ctx.moveTo(w / 2, y + 10 * dpr); ctx.lineTo(w / 2, canvas.height - 10 * dpr); ctx.stroke();
 
-        const rowTitleY = y + 20;
-        const rowValueY = y + 48;
+        const rowTitleY = y + 20 * dpr;
+        const rowValueY = y + 48 * dpr;
 
         if (currentGameMode === 'CLASSIC') {
             // LEFT SIDE: Record & Current Distance
             // Record
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
+            ctx.fillText("RECORD", w / 2 - 180 * dpr, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(playerData.highScore + " ft", window.LOGICAL_WIDTH / 2 - 180, rowValueY);
+            ctx.fillText(playerData.highScore + " ft", w / 2 - 180 * dpr, rowValueY);
 
             // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("CURRENT DISTANCE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
+            ctx.fillText("CURRENT DISTANCE", w / 2 - 25 * dpr, rowTitleY);
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(dist + " ft", window.LOGICAL_WIDTH / 2 - 25, rowValueY);
+            ctx.fillText(dist + " ft", w / 2 - 25 * dpr, rowValueY);
 
             // RIGHT SIDE: Comparison
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCALE EQUIVALENT", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
+            ctx.fillText("SCALE EQUIVALENT", w / 2 + 25 * dpr, rowTitleY);
 
             // Icon
             ctx.textAlign = "center"; ctx.font = fontIcon;
-            const iconX = window.LOGICAL_WIDTH / 2 + 45;
+            const iconX = w / 2 + 45 * dpr;
             ctx.fillText(scaleObj.icon, iconX, rowValueY);
 
             // Name
             ctx.textAlign = "left";
             ctx.fillStyle = "#FFD700"; // Gold
-            ctx.font = "bold 18px 'Roboto Condensed', sans-serif";
-            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25, rowValueY - 2);
+            ctx.font = fontName;
+            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25 * dpr, rowValueY - 2 * dpr);
         }
         else if (currentGameMode === 'CONTEST') {
             const time = Math.ceil(contestData.timer);
@@ -4931,23 +5064,23 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
+            ctx.fillText("TIME", w / 2 - 180 * dpr, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, window.LOGICAL_WIDTH / 2 - 180, rowValueY);
+            ctx.fillText(time, w / 2 - 180 * dpr, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
+            ctx.fillText("SCORE", w / 2 - 25 * dpr, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(contestData.score, window.LOGICAL_WIDTH / 2 - 25, rowValueY);
+            ctx.fillText(contestData.score, w / 2 - 25 * dpr, rowValueY);
 
             // RIGHT SIDE: RACK
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RACK", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
+            ctx.fillText("RACK", w / 2 + 25 * dpr, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(contestData.rack + " / 5", window.LOGICAL_WIDTH / 2 + 25, rowValueY);
+            ctx.fillText(contestData.rack + " / 5", w / 2 + 25 * dpr, rowValueY);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
@@ -4956,29 +5089,29 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
+            ctx.fillText("TIME", w / 2 - 180 * dpr, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, window.LOGICAL_WIDTH / 2 - 180, rowValueY);
+            ctx.fillText(time, w / 2 - 180 * dpr, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
+            ctx.fillText("SCORE", w / 2 - 25 * dpr, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(timeAttackData.score, window.LOGICAL_WIDTH / 2 - 25, rowValueY);
+            ctx.fillText(timeAttackData.score, w / 2 - 25 * dpr, rowValueY);
 
             // RIGHT SIDE: RECORD
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
+            ctx.fillText("RECORD", w / 2 + 25 * dpr, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText((playerData.timeAttackHighScore || 0), window.LOGICAL_WIDTH / 2 + 25, rowValueY);
+            ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * dpr, rowValueY);
         }
 
         // Live Indicator
-        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20, y + 10, 6, 6);
-        ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "left";
-        ctx.fillText("LIVE", 30, y + 16);
+        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * dpr, y + 10 * dpr, 6 * dpr, 6 * dpr);
+        ctx.fillStyle = "#fff"; ctx.font = fontLive; ctx.textAlign = "left";
+        ctx.fillText("LIVE", 30 * dpr, y + 16 * dpr);
     }
 
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
@@ -11284,7 +11417,10 @@ var BallRenderer = {
         const camRotation = -angleToHoop - Math.PI / 2;
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
-        const camZoom = isSplitscreen ? 450 : 698;
+        let camZoom = isSplitscreen ? 450 : 698;
+        if (playerData.cameraZoomScale) {
+            camZoom *= playerData.cameraZoomScale;
+        }
         const camHeight = 130000 / camZoom;
 
         if (!g_camCache) g_camCache = {};

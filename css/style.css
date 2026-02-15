@@ -120,7 +120,7 @@
         /* Controls (Bottom Overlay) */
         #controls {
             position: absolute;
-            bottom: 70px; /* Adjusted for 60px HUD + 10px gap */
+            bottom: 70px;
             left: 0;
             width: 100%;
             text-align: center;
