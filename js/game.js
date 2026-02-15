@@ -1775,46 +1775,6 @@
         }
     }
 
-    function checkOrientation() {
-        if (!playerData.mobileControls) return;
-        const overlay = document.getElementById('orientation-overlay');
-        const fsBtn = document.getElementById('btn-force-fullscreen');
-
-        if (window.innerHeight > window.innerWidth) {
-            overlay.style.display = 'flex';
-            fsBtn.style.display = 'none';
-        } else {
-            overlay.style.display = 'none';
-            checkFullscreenState();
-        }
-    }
-
-    function checkFullscreenState() {
-        if (!playerData.mobileControls) return;
-        const fsBtn = document.getElementById('btn-force-fullscreen');
-        const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-
-        if (!isFS) {
-            fsBtn.style.display = 'flex';
-        } else {
-            fsBtn.style.display = 'none';
-        }
-    }
-
-    window.forceFullscreen = function() {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(e => console.log(e));
-        } else if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-        }
-        checkFullscreenState();
-    }
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    document.addEventListener('fullscreenchange', checkFullscreenState);
-    document.addEventListener('webkitfullscreenchange', checkFullscreenState);
     window.addEventListener("gamepadconnected", populateInputSelects);
     window.addEventListener("gamepaddisconnected", populateInputSelects);
 
@@ -1830,14 +1790,9 @@
             if (fsPromise && fsPromise.catch) {
                 fsPromise.catch(e => {
                     console.log("Fullscreen failed or rejected:", e);
-                    checkFullscreenState(); // Show fallback button if failed
                 });
             }
 
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(e => console.log(e));
-            }
-            setTimeout(checkOrientation, 500);
         }
 
         saveData();

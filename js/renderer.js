@@ -769,13 +769,41 @@ var BallRenderer = {
     function resizeGame() {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
-        // Target 16:9 ratio (1066x600)
-        // If we want NO gap, we should cover. But "filling up" often implies "contain" without bars if ratio matches.
-        // The user said "16:9 equivalent ... no distortion ... filling up screen".
-        // Since most phones are wider than 16:9, we should stick to CONTAIN logic (Math.min) to ensure everything is visible.
-        // However, removing the 0.95 margin (done previously) is key.
-        const scale = Math.min(winW / 1066, winH / 600);
-        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        const dpr = window.devicePixelRatio || 1;
+
+        // Set Physical Resolution
+        canvas.width = Math.ceil(winW * dpr);
+        canvas.height = Math.ceil(winH * dpr);
+
+        // Set CSS Size to Fill Window
+        canvas.style.width = winW + 'px';
+        canvas.style.height = winH + 'px';
+
+        // Override Container Styles to Fill Screen
+        if (container) {
+            container.style.width = '100%';
+            container.style.height = '100%';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.transform = 'none';
+        }
+
+        // Calculate Resolution Scale
+        // In portrait, fit width. In landscape, fit height.
+        if (winW < winH) {
+            // Portrait
+            // Fit logical width (e.g. 1066) to screen width
+            window.RESOLUTION_SCALE = canvas.width / 1066;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = canvas.height / window.RESOLUTION_SCALE;
+        } else {
+            // Landscape (Original logic)
+            // Fit logical height (600) to screen height
+            window.RESOLUTION_SCALE = canvas.height / 600;
+            window.LOGICAL_HEIGHT = 600;
+            window.LOGICAL_WIDTH = canvas.width / window.RESOLUTION_SCALE;
+        }
+
         invalidateBackgroundCache();
     }
     window.addEventListener('resize', resizeGame);
@@ -822,8 +850,8 @@ var BallRenderer = {
         const cameraOffset = 550; const depth = cameraOffset - ry;
         if (depth <= 0) return null;
         const scale = cameraZoom / depth;
-        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
-        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
         const screenX = vpW / 2 + (rx * scale);
         const horizonY = (vpH - 120) * 0.38;
         const screenY = horizonY + (cameraHeight - z) * scale;
@@ -1044,19 +1072,19 @@ var BallRenderer = {
 
     function drawBroadcastLowerThird() {
         const h = 60; // Reduced height
-        const y = canvas.height - h;
+        const y = window.LOGICAL_HEIGHT - h;
 
         // 1. Background Bar (Glossy Dark)
-        const bgGrad = ctx.createLinearGradient(0, y, 0, canvas.height);
+        const bgGrad = ctx.createLinearGradient(0, y, 0, window.LOGICAL_HEIGHT);
         bgGrad.addColorStop(0, '#2a2a2a');
         bgGrad.addColorStop(0.5, '#151515');
         bgGrad.addColorStop(1, '#0a0a0a');
         ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, y, canvas.width, h);
+        ctx.fillRect(0, y, window.LOGICAL_WIDTH, h);
 
         // Top Border (Gold)
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, canvas.width, 4);
+        ctx.fillRect(0, y, window.LOGICAL_WIDTH, 4);
 
         // NBA Logo (Bottom Left Corner) - Scaled down
         const lX = 20; const lY = canvas.height - 30;
@@ -1088,7 +1116,7 @@ var BallRenderer = {
 
         // Center Separator
         ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 10); ctx.lineTo(canvas.width / 2, canvas.height - 10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(window.LOGICAL_WIDTH / 2, y + 10); ctx.lineTo(window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT - 10); ctx.stroke();
 
         const rowTitleY = y + 20;
         const rowValueY = y + 48;
@@ -1098,25 +1126,25 @@ var BallRenderer = {
             // Record
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 - 180, rowTitleY);
+            ctx.fillText("RECORD", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 180, rowValueY);
+            ctx.fillText(playerData.highScore + " ft", window.LOGICAL_WIDTH / 2 - 180, rowValueY);
 
             // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, rowTitleY);
+            ctx.fillText("CURRENT DISTANCE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(dist + " ft", canvas.width / 2 - 25, rowValueY);
+            ctx.fillText(dist + " ft", window.LOGICAL_WIDTH / 2 - 25, rowValueY);
 
             // RIGHT SIDE: Comparison
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCALE EQUIVALENT", canvas.width / 2 + 25, rowTitleY);
+            ctx.fillText("SCALE EQUIVALENT", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
 
             // Icon
             ctx.textAlign = "center"; ctx.font = fontIcon;
-            const iconX = canvas.width / 2 + 45;
+            const iconX = window.LOGICAL_WIDTH / 2 + 45;
             ctx.fillText(scaleObj.icon, iconX, rowValueY);
 
             // Name
@@ -1132,23 +1160,23 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 180, rowTitleY);
+            ctx.fillText("TIME", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 180, rowValueY);
+            ctx.fillText(time, window.LOGICAL_WIDTH / 2 - 180, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, rowTitleY);
+            ctx.fillText("SCORE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(contestData.score, canvas.width / 2 - 25, rowValueY);
+            ctx.fillText(contestData.score, window.LOGICAL_WIDTH / 2 - 25, rowValueY);
 
             // RIGHT SIDE: RACK
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RACK", canvas.width / 2 + 25, rowTitleY);
+            ctx.fillText("RACK", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, rowValueY);
+            ctx.fillText(contestData.rack + " / 5", window.LOGICAL_WIDTH / 2 + 25, rowValueY);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
@@ -1157,23 +1185,23 @@ var BallRenderer = {
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 180, rowTitleY);
+            ctx.fillText("TIME", window.LOGICAL_WIDTH / 2 - 180, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 180, rowValueY);
+            ctx.fillText(time, window.LOGICAL_WIDTH / 2 - 180, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, rowTitleY);
+            ctx.fillText("SCORE", window.LOGICAL_WIDTH / 2 - 25, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, rowValueY);
+            ctx.fillText(timeAttackData.score, window.LOGICAL_WIDTH / 2 - 25, rowValueY);
 
             // RIGHT SIDE: RECORD
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 + 25, rowTitleY);
+            ctx.fillText("RECORD", window.LOGICAL_WIDTH / 2 + 25, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, rowValueY);
+            ctx.fillText((playerData.timeAttackHighScore || 0), window.LOGICAL_WIDTH / 2 + 25, rowValueY);
         }
 
         // Live Indicator
@@ -1274,8 +1302,8 @@ var BallRenderer = {
     function getTempBallPhys(sx, sy, p) {
         if (playerData.graphics !== 'HIGH') return null;
 
-        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
-        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
         const horizonY = (vpH - 120) * 0.38;
 
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
@@ -2853,7 +2881,12 @@ var BallRenderer = {
         var cacheKey = getShadowKey(type, obj);
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
-                drawPlayer(obj);
+                // Skip supersampling for shadows
+                if (typeof _drawPlayerInternal === 'function') {
+                    _drawPlayerInternal(obj);
+                } else {
+                    drawPlayer(obj);
+                }
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
             }
@@ -5533,7 +5566,91 @@ var BallRenderer = {
         }
     }
 
+    // Supersampling Globals
+    var g_ssCanvas = null;
+    var g_ssCtx = null;
+
     function drawPlayer(p) {
+        // Fallback for Low Graphics
+        if (playerData.graphics !== 'HIGH') {
+            _drawPlayerInternal(p);
+            return;
+        }
+
+        // Init Supersample Canvas
+        if (!g_ssCanvas) {
+            g_ssCanvas = document.createElement('canvas');
+            // Initial reasonable size
+            g_ssCanvas.width = 1024;
+            g_ssCanvas.height = 1024;
+            g_ssCtx = g_ssCanvas.getContext('2d');
+        }
+
+        // Calculate Dynamic Bounding Box
+        // Base Player Size ~ 100 * scale width, 200 * scale height
+        // We add padding for props (arms, capes, etc)
+        const s = p.scale;
+        const padding = 200 * s;
+        const pW = 300 * s;
+        const pH = 500 * s;
+
+        // Supersample Factor (4x as requested)
+        const SS = 4;
+
+        const targetW = pW * SS;
+        const targetH = pH * SS;
+
+        // Resize if needed (with margin to avoid thrashing)
+        if (g_ssCanvas.width < targetW || g_ssCanvas.height < targetH) {
+            g_ssCanvas.width = Math.max(g_ssCanvas.width, targetW);
+            g_ssCanvas.height = Math.max(g_ssCanvas.height, targetH);
+        }
+
+        // Clear
+        g_ssCtx.clearRect(0, 0, targetW + 10, targetH + 10); // Clear region + margin
+
+        // Swap Global Context
+        var originalCtx = ctx;
+        ctx = g_ssCtx;
+
+        ctx.save();
+
+        // Scale Context by SS
+        ctx.scale(SS, SS);
+
+        // Translate Context to center the player at (pW/2, pH/2) in logical space
+        // drawPlayer uses p.x, p.y absolute coords.
+        // We want p.x -> pW/2, p.y -> pH/2.
+        // offset = (pW/2 - p.x), (pH/2 - p.y)
+        const logicalCX = pW / 2;
+        const logicalCY = pH / 2;
+        ctx.translate(logicalCX - p.x, logicalCY - p.y);
+
+        // Draw High Res
+        _drawPlayerInternal(p);
+
+        ctx.restore();
+
+        // Restore Global Context
+        ctx = originalCtx;
+
+        // Draw Scaled Down Image
+        // Source Rect: (0, 0, targetW, targetH)
+        // Dest Rect: (p.x - pW/2, p.y - pH/2, pW, pH)
+        // Note: targetW = pW * SS.
+        // If we draw targetW into pW, that's a 1/SS scale.
+
+        // Smooth downscaling
+        // ctx.imageSmoothingEnabled = true; // Default is usually true
+        // ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(g_ssCanvas,
+            0, 0, targetW, targetH,
+            p.x - pW/2, p.y - pH/2, pW, pH
+        );
+    }
+
+    function _drawPlayerInternal(p) {
         if (!p) return;
         // Debug
         // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
@@ -7334,7 +7451,7 @@ var BallRenderer = {
         if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
         const ratio = gDist / currentDist;
         const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-        const p = project(wx, wy, 0); return p ? p.y : canvas.height;
+        const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
     function drawMountainLayer(layer, horizonY, dx, scale) {
@@ -7360,7 +7477,7 @@ var BallRenderer = {
     }
 
     function drawBackground(vpX, vpY, vpW, vpH) {
-        if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
+        if (vpW === undefined) { vpX=0; vpY=0; vpW=window.LOGICAL_WIDTH; vpH=window.LOGICAL_HEIGHT; }
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
 
         // Optimization: Per-frame camera calculation
@@ -7623,7 +7740,7 @@ var BallRenderer = {
                 const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
 
                 const yTop = pStart ? pStart.y : horizonY;
-                const yBottom = pEnd ? pEnd.y : canvas.height;
+                const yBottom = pEnd ? pEnd.y : window.LOGICAL_HEIGHT;
 
                 if ((yBottom - yTop) > 0.5) {
                     const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
@@ -7814,8 +7931,8 @@ var BallRenderer = {
     }
     // Achievement Logic Helpers
     function drawSplitscreenHUD() {
-        const w = canvas.width;
-        const h = canvas.height;
+        const w = window.LOGICAL_WIDTH;
+        const h = window.LOGICAL_HEIGHT;
 
         ctx.save();
         ctx.shadowColor = "black";
