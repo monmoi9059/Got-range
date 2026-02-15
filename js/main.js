@@ -233,6 +233,11 @@
 
     // --- 1.5 AUDIO SYSTEM (RETRO SYNTH) ---
     // --- 2. GLOBAL VARIABLES ---
+    // Resolution Constants
+    window.LOGICAL_HEIGHT = 600;
+    window.LOGICAL_WIDTH = 1066;
+    window.RESOLUTION_SCALE = 1;
+
     const canvas = document.getElementById('gameCanvas');
     var ctx = canvas.getContext('2d');
 
