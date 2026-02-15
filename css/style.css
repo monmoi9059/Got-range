@@ -208,6 +208,25 @@
             border-radius: 0; /* Sharp corners */
         }
 
+        /* Landscape Mobile Fix */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .modal {
+                top: 0;
+                bottom: 0;
+                right: 0;
+                height: 100%;
+                max-height: 100%;
+                transform: none;
+                width: 50%; /* Take up half screen */
+                border-top: none;
+                border-bottom: none;
+                border-right: none;
+            }
+            .modal-content-wrapper {
+                padding-bottom: 50px; /* Space for close button if at bottom */
+            }
+        }
+
         .modal-content-wrapper {
             padding: 25px;
         }
@@ -226,6 +245,9 @@
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .upgrade-row {

@@ -410,6 +410,10 @@
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
 
+        const dist = 10 + (distanceLevel * 5);
+        if (dist > 100) checkDailyProgress('makes_long', 1);
+        if (dist > 200) checkDailyProgress('makes_super', 1);
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -833,6 +837,9 @@
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
+
+            checkDailyProgress('distance_classic', currentDistanceVal);
+
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
             invalidateBackgroundCache();

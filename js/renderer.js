@@ -7439,6 +7439,10 @@ var BallRenderer = {
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
         let camZoom = isSplitscreen ? 450 : 698;
+        // Optimization: Double zoom in portrait mode
+        if (window.innerHeight > window.innerWidth) {
+            camZoom *= 2.0;
+        }
         if (playerData.cameraZoomScale) {
             camZoom *= playerData.cameraZoomScale;
         }

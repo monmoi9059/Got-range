@@ -502,6 +502,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+        if (score <= 0) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
@@ -627,6 +628,13 @@ let lastDisplayedContestTime = -1;
                      if(amount >= def.target) { userC.progress = def.target; completed = true; }
                  } else {
                      userC.progress += amount;
+                     if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                     else saveData();
+                 }
+            } else if (type === 'distance_classic') {
+                 // High-water mark logic for distance in a single game
+                 if (amount > userC.progress) {
+                     userC.progress = amount;
                      if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
                      else saveData();
                  }

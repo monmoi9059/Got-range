@@ -222,6 +222,25 @@
             border-radius: 0; /* Sharp corners */
         }
 
+        /* Landscape Mobile Fix */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .modal {
+                top: 0;
+                bottom: 0;
+                right: 0;
+                height: 100%;
+                max-height: 100%;
+                transform: none;
+                width: 50%; /* Take up half screen */
+                border-top: none;
+                border-bottom: none;
+                border-right: none;
+            }
+            .modal-content-wrapper {
+                padding-bottom: 50px; /* Space for close button if at bottom */
+            }
+        }
+
         .modal-content-wrapper {
             padding: 25px;
         }
@@ -240,6 +259,9 @@
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .upgrade-row {
@@ -3367,6 +3389,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+        if (score <= 0) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
@@ -3492,6 +3515,13 @@ let lastDisplayedContestTime = -1;
                      if(amount >= def.target) { userC.progress = def.target; completed = true; }
                  } else {
                      userC.progress += amount;
+                     if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                     else saveData();
+                 }
+            } else if (type === 'distance_classic') {
+                 // High-water mark logic for distance in a single game
+                 if (amount > userC.progress) {
+                     userC.progress = amount;
                      if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
                      else saveData();
                  }
@@ -11339,6 +11369,10 @@ var BallRenderer = {
         const camSin = Math.sin(camRotation);
         const camCos = Math.cos(camRotation);
         let camZoom = isSplitscreen ? 450 : 698;
+        // Optimization: Double zoom in portrait mode
+        if (window.innerHeight > window.innerWidth) {
+            camZoom *= 2.0;
+        }
         if (playerData.cameraZoomScale) {
             camZoom *= playerData.cameraZoomScale;
         }
@@ -12620,6 +12654,10 @@ var BallRenderer = {
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
 
+        const dist = 10 + (distanceLevel * 5);
+        if (dist > 100) checkDailyProgress('makes_long', 1);
+        if (dist > 200) checkDailyProgress('makes_super', 1);
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -13043,6 +13081,9 @@ var BallRenderer = {
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
+
+            checkDailyProgress('distance_classic', currentDistanceVal);
+
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
             invalidateBackgroundCache();
