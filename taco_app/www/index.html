@@ -734,7 +734,7 @@
             </div>
         </div>
     </div>
-    <div style="position: absolute; bottom: 30px; right: 30px; z-index: 120; display:flex; gap:15px; align-items:center;">
+    <div id="audio-controls">
         <div class="broadcast-icon-btn" role="button" aria-label="Piste précédente" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
         <div id="btn-mute" class="broadcast-icon-btn" role="button" aria-label="Couper le son" tabindex="0" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
         <div class="broadcast-icon-btn" role="button" aria-label="Piste suivante" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
@@ -14096,6 +14096,15 @@ var BallRenderer = {
         saveContext(game1);
     }
     function checkStartup() {
+        // Safety: Ensure resolution variables are defined
+        if (typeof window.RESOLUTION_SCALE === 'undefined') {
+            window.RESOLUTION_SCALE = 1;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = 600;
+            // Try to force resize calculation if possible
+            if (typeof resizeGame === 'function') resizeGame();
+        }
+
         if(!playerData.platformChosen) {
             state = 'STARTUP';
             document.getElementById('startup-ui').style.display = 'flex';
@@ -14421,25 +14430,25 @@ var BallRenderer = {
 
     // --- GAME LOOP ---
     function drawStartupScene() {
-        // Dark Background
+        // Dark Background (Physical)
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Calculate positions for 2D Composition (Giant Cat + Hoop)
-        // We will mock project() returns manually or just draw directly using screen coordinates
-        // since we want a specific poster layout regardless of 3D camera.
+        ctx.save();
+        // Scale to Logical
+        ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
 
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const scale = 2.0; // Base scale
+        // Calculate positions for 2D Composition using LOGICAL units
+        const centerX = window.LOGICAL_WIDTH / 2;
+        const centerY = window.LOGICAL_HEIGHT / 2;
+        const scale = 2.0; // Base scale (Logical)
 
         // 1. Hoop (Right side of center)
         const hoopX = centerX + 150;
         const hoopY = centerY + 50;
         const hoopP = { x: hoopX, y: hoopY, scale: scale * 1.5 };
 
-        // Draw Hoop Manually (reuse drawHoop logic but simplified or just call it if it's robust)
-        // drawHoop depends on projection for the pole... let's mock it
+        // Draw Hoop Manually
         ctx.fillStyle = '#444'; ctx.fillRect(hoopX - 5, hoopY, 10, 300); // Pole
         // Backboard/Rim
         const bbW = 60 * hoopP.scale; const bbH = 40 * hoopP.scale; const bbX = hoopX - bbW/2; const bbY = hoopY - bbH - 10*hoopP.scale;
@@ -14460,6 +14469,8 @@ var BallRenderer = {
         // 3. Fire Ball (In the hoop)
         const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
         drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / -500);
+
+        ctx.restore();
     }
 
     function draw() {
