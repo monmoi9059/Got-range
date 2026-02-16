@@ -536,6 +536,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('achUI').style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        updateMobileControlsUI();
         saveContext(game1);
     }
 
@@ -820,6 +821,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('leaderboardUI').style.display = 'none';
 
         switchChallengeTab('daily');
+        updateMobileControlsUI();
         saveContext(game1);
     }
 

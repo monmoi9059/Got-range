@@ -95,6 +95,7 @@
             pendingHighScore = { mode: mode, score: score };
             highScoreUI.style.display = 'block';
             state = 'HIGHSCORE_INPUT';
+            updateMobileControlsUI();
             initHighScoreUI();
         } else {
             openShop();
@@ -1053,6 +1054,10 @@
             document.getElementById('shopPlayerToggle').style.display = 'none';
         }
 
+        // Save immediately so subsequent helper calls (like updateDifficulty)
+        // that use loadContext() will load the correct SHOP state.
+        saveContext(game1);
+
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
@@ -1062,6 +1067,7 @@
         window.switchShopTab('upgrades');
 
         updateDifficulty(); updateShopUI();
+        updateMobileControlsUI();
         saveContext(game1);
     }
     window.openAchievements = function() {
@@ -1076,6 +1082,7 @@
         document.getElementById('challengesUI').style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
         renderAchievements();
+        updateMobileControlsUI();
         saveContext(game1);
     }
     window.openStats = function() {
@@ -1122,6 +1129,13 @@
             sld.value = sc;
             document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
         }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+        updateMobileControlsUI();
     }
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
@@ -1307,6 +1321,7 @@
 
         // Restore P1 context for main loop
         loadContext(game1);
+        updateMobileControlsUI();
         if(callback) callback();
     }
 
@@ -1757,7 +1772,8 @@
         const btn = document.getElementById('mobileShootBtn');
         const btn2 = document.getElementById('mobileShootBtn2');
 
-        if(playerData.mobileControls && state !== 'STARTUP') {
+        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP'];
+        if(playerData.mobileControls && !menuStates.includes(state)) {
             btn.style.display = 'block';
             if (isSplitscreen && btn2) btn2.style.display = 'block';
             else if (btn2) btn2.style.display = 'none';
