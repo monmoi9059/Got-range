@@ -83,23 +83,27 @@ var BallRenderer = {
             var lx = 0.5, ly = -0.8, lz = 0.5;
             var dot = nx*lx + ny*ly + nz*lz;
 
-            // Diffuse
-            var diffuse = Math.max(0, dot);
+            // Cel Shading Logic (Quantized Lighting)
+            var intensity = 0.5; // Shadow
+            if (dot > 0.8) intensity = 1.1; // Highlight
+            else if (dot > 0.3) intensity = 0.9; // Mid-tone
+            else if (dot > -0.2) intensity = 0.7; // Base
+            else intensity = 0.5; // Shadow
 
-            // Specular (Phong)
-            var rx = 2*dot*nx - lx;
-            var ry = 2*dot*ny - ly;
-            var rz = 2*dot*nz - lz;
-
-            // Specular highlight
-            var spec = Math.pow(Math.max(0, rz * 0.8 + 0.2), (ball.shininess ? 20 : 5));
-            if (ball.texture === 'leather' || ball.texture === 'fuzzy') spec *= 0.2;
-
-            var light = 0.4 + diffuse * 0.6;
-
-            drawFaces.push({f:f, z: v0.z + v1.z + v2.z, light: light, spec: spec, nx:nx, ny:ny, nz:nz});
+            drawFaces.push({f:f, z: v0.z + v1.z + v2.z, light: intensity, nx:nx, ny:ny, nz:nz});
         }
         drawFaces.sort(function(a,b){ return b.z - a.z; });
+
+        // Draw Cel Outline (Simple Hull)
+        // Project center for radius approximation
+        var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+        if (centerProj) {
+            ctx.beginPath();
+            ctx.arc(centerProj.x, centerProj.y, 25 * centerProj.scale * 0.33, 0, Math.PI*2); // Slightly larger radius
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2 * centerProj.scale;
+            ctx.stroke();
+        }
 
         var type = ball.type || 'basketball';
         var baseColor = ball.color1;
@@ -111,7 +115,10 @@ var BallRenderer = {
         var shadeColor = function(color, percent) {
             // Safety check
             if (!color || !color.startsWith('#')) return color;
-            var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+            // For Cel Shading, we multiply brightness rather than add black/white linear
+            // But reuse existing function for simplicity, mapping intensity to -1..1 range
+            var p = percent - 1.0;
+            var f=parseInt(color.slice(1),16),t=p<0?0:255,p=p<0?p*-1:p,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
             return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
         };
 
@@ -167,6 +174,13 @@ var BallRenderer = {
                 if (n > 0) faceColor = ball.color2; // Brown
                 else faceColor = ball.color1; // Green
             }
+            else if (ball.type === 'lava') {
+                // Magma Cracks
+                var nx = v0.normal.x, ny = v0.normal.y, nz = v0.normal.z;
+                var n = Math.sin(nx*10 + ny*10 + nz*10) + Math.cos(nx*5);
+                if (n > 0.5) faceColor = ball.color2; // Dark Red Rock
+                else faceColor = ball.color1; // Bright Lava
+            }
             else if (ball.type === 'earth') {
                 // Simple continents
                 var nx = v0.normal.x, ny = v0.normal.y, nz = v0.normal.z;
@@ -182,32 +196,28 @@ var BallRenderer = {
                 faceColor = '#FFFFFF';
             }
 
-            // Texture / Bump Map Effect
+            // Texture / Bump Map Effect (Subtle for Cel Shading)
             var noise = 0;
             if (ball.texture === 'leather') {
-                noise = (getNoise(i) - 0.5) * 0.1;
+                noise = (getNoise(i) - 0.5) * 0.05; // Reduced noise
             } else if (ball.texture === 'fuzzy') {
-                noise = (getNoise(i) - 0.5) * 0.15;
+                noise = (getNoise(i) - 0.5) * 0.1;
             } else if (ball.texture === 'ice') {
                 noise = (getNoise(i) - 0.5) * 0.05;
             } else if (ball.texture === 'slime') {
-                noise = Math.sin(Date.now()*0.005 + i)*0.1;
+                noise = Math.sin(Date.now()*0.005 + i)*0.05;
             } else if (ball.texture === 'galaxy') {
-                if (getNoise(i) > 0.9) noise = 0.8;
-                else noise = (getNoise(i*2) - 0.5) * 0.3;
+                if (getNoise(i) > 0.9) noise = 0.8; // Stars remain bright
+                else noise = (getNoise(i*2) - 0.5) * 0.2;
             }
 
             // Apply Lighting + Noise
             var intensity = df.light + noise;
 
-            // Specular Add
-            if (ball.shininess && df.spec > 0.1) {
-                intensity += df.spec * (ball.shininess || 0.5);
-            }
+            // No Specular in Cel Shading (highlight is in quantized band)
 
             if (faceColor.startsWith('#')) {
-                var shade = intensity - 1.0;
-                faceColor = shadeColor(faceColor, shade);
+                faceColor = shadeColor(faceColor, intensity);
             } else if (faceColor.startsWith('hsl')) {
                 // HSL shading approximation
                 var hsl = faceColor.match(/hsl\(([0-9]+\.?[0-9]*), *([0-9]+)%, *([0-9]+)%\)/);
@@ -215,6 +225,9 @@ var BallRenderer = {
                     var h = parseFloat(hsl[1]);
                     var s = parseFloat(hsl[2]);
                     var l = parseFloat(hsl[3]);
+                    // Adjust L based on intensity (0.5 to 1.1)
+                    // Base L is usually 50%.
+                    // 0.5 -> 25% (Dark), 0.7 -> 35%, 0.9 -> 45%, 1.1 -> 55%
                     l = Math.max(0, Math.min(100, l * intensity));
                     faceColor = `hsl(${h}, ${s}%, ${l}%)`;
                 }
@@ -228,7 +241,7 @@ var BallRenderer = {
             ctx.closePath();
             ctx.fill();
 
-            // Hide seams
+            // Hide seams with same color stroke
             ctx.strokeStyle = faceColor;
             ctx.lineWidth = 0.5;
             ctx.stroke();
@@ -360,34 +373,6 @@ var BallRenderer = {
                 }
             }
         }
-        else if (type === 'beach') {
-            var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
-            var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
-            var s = centerProj ? centerProj.scale : 1;
-
-            for(var k=0; k<6; k++) {
-                 ctx.strokeStyle = colors[k];
-                 ctx.lineWidth = 25 * s * 0.6;
-                 ctx.lineCap = 'round';
-
-                 ctx.beginPath();
-                 var line = Geometry.beach[k];
-                 var first = true;
-                 for(var i=0; i<line.length; i++) {
-                     var proj = projectPoint(line[i]);
-                     if (proj) {
-                         if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
-                         else ctx.lineTo(proj.x, proj.y);
-                     } else first = true;
-                 }
-                 ctx.stroke();
-            }
-            var capProj = projectPoint({x:0, y:-0.9, z:0});
-            if(capProj) {
-                ctx.fillStyle = '#FFF';
-                ctx.beginPath(); ctx.arc(capProj.x, capProj.y, 25*s*0.2, 0, Math.PI*2); ctx.fill();
-            }
-        }
         else if (type === 'watermelon') {
              ctx.strokeStyle = '#155e15';
              var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -407,7 +392,7 @@ var BallRenderer = {
                  ctx.stroke();
              }
         }
-        else if (type === 'bille8' || type === 'eyeball' || type === 'donut' || type === 'camo' || type === 'earth') {
+        else if (type === 'bille8' || type === 'eyeball' || type === 'donut') {
             if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -453,28 +438,6 @@ var BallRenderer = {
                      ctx.fillStyle = '#222';
                      ctx.beginPath(); ctx.arc(centerProj.x, centerProj.y, 25*centerProj.scale*0.25, 0, Math.PI*2); ctx.fill();
                  }
-            } else if (type === 'camo') {
-                ctx.fillStyle = ball.color2;
-                var patches = [1,2,3,4];
-                patches.forEach(function(i) {
-                    var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
-                    var proj = projectPoint(p);
-                    if (proj) {
-                        ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.4, 0, Math.PI*2); ctx.fill();
-                    }
-                });
-            } else if (type === 'earth') {
-                 ctx.fillStyle = '#228B22';
-                 var continents = [0, 2, 4];
-                 continents.forEach(function(i) {
-                    var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
-                    var proj = projectPoint(p);
-                     if (proj) {
-                        ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.5, 0, Math.PI*2); ctx.fill();
-                    }
-                 });
             }
         }
     },
