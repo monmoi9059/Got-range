@@ -18,7 +18,7 @@
                 [0, 2, 4], [0, 4, 3], [0, 3, 5], [0, 5, 2],
                 [1, 4, 2], [1, 3, 4], [1, 5, 3], [1, 2, 5]
             ];
-            var subdiv = 3;
+            var subdiv = 2;
             for(var s=0; s<subdiv; s++) {
                 var newF = [];
                 var midCache = {};
@@ -49,7 +49,7 @@
             this.sphere.faces = f;
 
             // Basketball (3 Rings - Orthogonal)
-            var res = 64;
+            var res = 32;
             // Ring 1 (XY)
             for(var i=0; i<=res; i++) { var a=(i/res)*Math.PI*2; this.basketball.push({x:Math.cos(a), y:Math.sin(a), z:0}); }
             // Ring 2 (YZ)
@@ -100,8 +100,8 @@
             });
 
             // Seam (Baseball/Tennis)
-            for(var i=0; i<=128; i++) {
-                var t = (i/128)*Math.PI*2;
+            for(var i=0; i<=100; i++) {
+                var t = (i/100)*Math.PI*2;
                 var r0 = 0.4;
                 var x = Math.sin(t) - r0 * Math.sin(3*t);
                 var y = Math.cos(t) + r0 * Math.cos(3*t);
