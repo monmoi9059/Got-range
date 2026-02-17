@@ -1,5 +1,25 @@
 var BallRenderer = {
     _projResult: {x:0, y:0, z:0},
+    _noisePattern: null,
+
+    getNoise: function(ctx) {
+        if (this._noisePattern) return this._noisePattern;
+        var cvs = document.createElement('canvas');
+        cvs.width = 128; cvs.height = 128;
+        var c = cvs.getContext('2d');
+        // Generate pebbled leather texture
+        for(var i=0; i<1500; i++) {
+            var x = Math.random() * 128;
+            var y = Math.random() * 128;
+            var s = 1 + Math.random();
+            c.fillStyle = 'rgba(0,0,0,0.15)';
+            c.beginPath(); c.arc(x, y, s, 0, Math.PI*2); c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.05)';
+            c.beginPath(); c.arc(x+1, y+1, s, 0, Math.PI*2); c.fill();
+        }
+        this._noisePattern = ctx.createPattern(cvs, 'repeat');
+        return this._noisePattern;
+    },
 
     projectIso: function(p, r, cosR, sinR) {
         var ry = p.y * cosR - p.z * sinR;
@@ -11,10 +31,7 @@ var BallRenderer = {
 
         draw: function(ctx, x, y, scale, rotation, ball, phys) {
             // phys: {x, y, z, rotationX, rotationY, rotationZ}
-            if (phys && playerData.graphics === 'HIGH') {
-                this.draw3D(ctx, ball, phys);
-                return;
-            }
+            // 3D Ball removed in favor of high-quality 2D shader
 
             var radius = 25 * scale;
             if (radius < 1) return; // Cull if too small
@@ -26,7 +43,7 @@ var BallRenderer = {
             ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.clip();
 
             this.drawBackground(ctx, radius, ball);
-            this.drawPattern(ctx, radius, rotation, ball);
+            this.drawPattern(ctx, radius, rotation, ball, phys);
             this.drawLighting(ctx, radius, ball);
 
             // Border
@@ -414,136 +431,183 @@ var BallRenderer = {
         drawBackground: function(ctx, r, ball) {
             var type = ball.type || 'basketball';
 
-            if (type === 'soccer' || type === 'baseball' || type === 'golf') ctx.fillStyle = ball.color1;
-            else if (type === 'tennis') ctx.fillStyle = ball.color1;
-            else if (type === 'eyeball') ctx.fillStyle = '#EEE';
-            else if (type === 'bille8') ctx.fillStyle = '#000';
-            else if (type === 'donut') ctx.fillStyle = '#D2691E';
-            else if (type === 'watermelon') ctx.fillStyle = '#228B22';
-            else if (type === 'earth') ctx.fillStyle = '#0000FF';
-            else {
-                // Gradient default
-                var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.2, 0, 0, r);
+            // 1. Base Color Determination
+            var color = ball.color1;
+            if (type === 'eyeball') color = '#EEE';
+            else if (type === 'bille8') color = '#151515'; // Dark grey instead of pure black for shading visibility
+            else if (type === 'donut') color = '#D2691E';
+            else if (type === 'watermelon') color = '#228B22';
+            else if (type === 'earth') color = '#0000FF';
+
+            // 2. Base Diffuse Gradient (Under-shading)
+            // Creates a rich spherical base color
+            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
+
+            // Logic for gradients
+            if (['basketball', 'money', 'beach'].includes(type) && ball.color2) {
+                // Dual color balls rely on pattern, but base needs to be one of them or gradient
+                // Standard basketball uses gradient logic
                 grad.addColorStop(0, ball.color1);
                 grad.addColorStop(1, ball.color2);
-                ctx.fillStyle = grad;
+            } else {
+                // Single color balls
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, color);
             }
-            ctx.fillRect(-r, -r, r*2, r*2);
 
-            // Texture Noise
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+
+            // 3. Texture Overlay (Leather/Fuzz)
             if (ball.texture === 'leather' || ball.texture === 'fuzzy') {
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                // Reduce noise count for performance
-                var count = 10;
-                for(var i=0; i<count; i++) {
-                    ctx.fillRect((Math.random()-0.5)*2*r, (Math.random()-0.5)*2*r, 2, 2);
+                var pat = this.getNoise(ctx);
+                if (pat) {
+                    ctx.save();
+                    // Scale pattern relative to ball size (approx)
+                    // If r=25, scale 1. If r=50, scale 2.
+                    var s = r / 25;
+                    ctx.scale(s, s);
+
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = pat;
+                    // Draw large enough rect to cover circle (inverse scale)
+                    ctx.beginPath(); ctx.arc(0, 0, r/s, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
                 }
             }
         },
 
-        drawPattern: function(ctx, r, rot, ball) {
+        drawPattern: function(ctx, r, rot, ball, phys) {
             var type = ball.type || 'basketball';
             var cosR = Math.cos(rot);
             var sinR = Math.sin(rot);
             var self = this;
 
-            if (type === 'basketball') {
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-                ctx.lineWidth = 2 * (r/25);
-
-                // Draw Geometry.basketball
-                ctx.beginPath();
-                var first = true;
-                for(var i=0; i<Geometry.basketball.length; i++) {
-                     if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
-                     this.projectIso(Geometry.basketball[i], r, cosR, sinR);
-                     if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                     else ctx.lineTo(this._projResult.x, this._projResult.y);
+            // Helper to transform points using full 3D physics state if available
+            var transform = function(p) {
+                if (phys) {
+                    var rp = self.rotatePoint(p, phys.rotationX, phys.rotationY, phys.rotationZ);
+                    self._projResult.x = rp.x * r;
+                    self._projResult.y = rp.y * r;
+                    self._projResult.z = rp.z; // Z points out/in
+                } else {
+                    self.projectIso(p, r, cosR, sinR);
                 }
-                ctx.stroke();
+            };
+
+            if (type === 'basketball') {
+                // Draw Grooves (Highlight + Shadow)
+                var drawStrip = function(color, width, ox, oy) {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = width;
+                    ctx.beginPath();
+                    var first = true;
+                    for(var i=0; i<Geometry.basketball.length; i++) {
+                         if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
+                         transform(Geometry.basketball[i]);
+                         if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+                         else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+                    }
+                    ctx.stroke();
+                };
+
+                // Highlight (Rim of groove)
+                drawStrip('rgba(255,255,255,0.15)', 2 * (r/25), -0.5, -0.5);
+                // Shadow (The Groove)
+                drawStrip('rgba(0,0,0,0.7)', 2 * (r/25), 0, 0);
             }
             else if (type === 'soccer') {
                 ctx.fillStyle = ball.color2;
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Panel seams
+                ctx.lineWidth = 1;
+
                 for(var i=0; i<Geometry.soccer.length; i++) {
                     var face = Geometry.soccer[i];
                     var avgZ = 0;
-                    // First pass: Z check
                     for(var j=0; j<face.length; j++) {
-                        this.projectIso(face[j], r, cosR, sinR);
-                        avgZ += this._projResult.z;
+                        transform(face[j]);
+                        avgZ += self._projResult.z;
                     }
 
                     if (avgZ > 0) {
                         ctx.beginPath();
-                        // Second pass: Draw
                         for(var k=0; k<face.length; k++) {
-                            this.projectIso(face[k], r, cosR, sinR);
-                            if (k === 0) ctx.moveTo(this._projResult.x, this._projResult.y);
-                            else ctx.lineTo(this._projResult.x, this._projResult.y);
+                            transform(face[k]);
+                            if (k === 0) ctx.moveTo(self._projResult.x, self._projResult.y);
+                            else ctx.lineTo(self._projResult.x, self._projResult.y);
                         }
                         ctx.closePath();
                         ctx.fill();
+                        ctx.stroke(); // Draw seam
                     }
                 }
             }
             else if (type === 'baseball' || type === 'tennis') {
-                ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
-                ctx.lineWidth = 3 * (r/25);
-                if (type === 'baseball') ctx.setLineDash([4, 3]);
+                var c = (type === 'baseball') ? '#FF0000' : '#FFF';
 
-                ctx.beginPath();
-                var first = true;
-                for(var i=0; i<Geometry.seam.length; i++) {
-                    this.projectIso(Geometry.seam[i], r, cosR, sinR);
-                    if (this._projResult.z > -0.5) {
-                        if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                        else ctx.lineTo(this._projResult.x, this._projResult.y);
-                    } else {
-                        first = true;
+                var drawSeam = function(col, w, ox, oy, dash) {
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = w;
+                    if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+                    ctx.beginPath();
+                    var first = true;
+                    for(var i=0; i<Geometry.seam.length; i++) {
+                        transform(Geometry.seam[i]);
+                        if (self._projResult.z > -0.5) {
+                            if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+                            else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+                        } else {
+                            first = true;
+                        }
                     }
-                }
-                ctx.stroke();
-                ctx.setLineDash([]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                };
+
+                // Drop Shadow for Thread
+                drawSeam('rgba(0,0,0,0.3)', 4 * (r/25), 1, 1, (type === 'baseball') ? [4, 3] : []);
+                // Thread
+                drawSeam(c, 3 * (r/25), 0, 0, (type === 'baseball') ? [4, 3] : []);
             }
             else if (type === 'golf') {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 for(var i=0; i<Geometry.dimples.length; i++) {
-                    this.projectIso(Geometry.dimples[i], r, cosR, sinR);
-                    if (this._projResult.z > 0) {
-                        ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
+                    transform(Geometry.dimples[i]);
+                    if (self._projResult.z > 0) {
+                        ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
             else if (type === 'bille8') {
-                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
-                if (this._projResult.z > 0) {
+                transform({x:0, y:0, z:1});
+                if (self._projResult.z > 0) {
                     ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold ' + (r*0.6) + 'px Arial';
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText('8', this._projResult.x, this._projResult.y);
+                    ctx.fillText('8', self._projResult.x, self._projResult.y);
                 }
             }
             else if (type === 'bowling') {
                  var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
                  ctx.fillStyle = '#111';
                  holes.forEach(function(h) {
-                     self.projectIso(h, r, cosR, sinR);
+                     transform(h);
                      if (self._projResult.z > 0) {
                          ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.12, 0, Math.PI*2); ctx.fill();
                      }
                  });
             }
             else if (type === 'eyeball') {
-                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
-                if (this._projResult.z > 0) {
+                transform({x:0, y:0, z:1});
+                if (self._projResult.z > 0) {
                     ctx.fillStyle = ball.color2;
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.beginPath(); ctx.arc(this._projResult.x - r*0.15, this._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
                 }
             }
             else if (type === 'beach') {
@@ -556,10 +620,10 @@ var BallRenderer = {
                      ctx.beginPath();
                      var line = Geometry.beach[s];
                      for(var i=0; i<line.length; i++) {
-                         this.projectIso(line[i], r, cosR, sinR);
-                         if (this._projResult.z > -0.2) {
-                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                             else ctx.lineTo(this._projResult.x, this._projResult.y);
+                         transform(line[i]);
+                         if (self._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+                             else ctx.lineTo(self._projResult.x, self._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -568,8 +632,8 @@ var BallRenderer = {
                 ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
             }
             else if (type === 'donut') {
-                 this.projectIso({x:0, y:-0.9, z:0}, r, cosR, sinR);
-                 var cx = this._projResult.x; var cy = this._projResult.y; var cz = this._projResult.z;
+                 transform({x:0, y:-0.9, z:0});
+                 var cx = self._projResult.x; var cy = self._projResult.y; var cz = self._projResult.z;
                  if (cz > -r) {
                      ctx.fillStyle = ball.color1;
                      ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI*2); ctx.fill();
@@ -590,10 +654,10 @@ var BallRenderer = {
                      var first = true;
                      var line = Geometry.watermelon[s];
                      for(var i=0; i<line.length; i++) {
-                         this.projectIso(line[i], r, cosR, sinR);
-                         if(this._projResult.z > -0.2) {
-                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                             else ctx.lineTo(this._projResult.x, this._projResult.y);
+                         transform(line[i]);
+                         if(self._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+                             else ctx.lineTo(self._projResult.x, self._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -604,7 +668,7 @@ var BallRenderer = {
                 var patches = [1,2,3,4];
                 patches.forEach(function(i) {
                     var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
-                    self.projectIso(p, r, cosR, sinR);
+                    transform(p);
                     if (self._projResult.z > 0) {
                         ctx.beginPath();
                         ctx.arc(self._projResult.x, self._projResult.y, r * 0.4, 0, Math.PI*2);
@@ -617,7 +681,7 @@ var BallRenderer = {
                  var continents = [0, 2, 4];
                  continents.forEach(function(i) {
                     var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
-                    self.projectIso(p, r, cosR, sinR);
+                    transform(p);
                      if (self._projResult.z > 0) {
                         ctx.beginPath();
                         ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2);
@@ -629,17 +693,39 @@ var BallRenderer = {
 
         drawLighting: function(ctx, r, ball) {
             var shininess = ball.shininess || 0.3;
-            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, -r*0.3, -r*0.3, r*1.2);
-            grad.addColorStop(0, 'rgba(255,255,255,' + shininess + ')');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0)');
-            ctx.fillStyle = grad;
+
+            // 1. Core Shadow (Volume)
+            // Darken bottom-right
+            var shadowGrad = ctx.createRadialGradient(-r*0.2, -r*0.2, r*0.4, 0, 0, r*1.1);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(0.6, 'rgba(0,0,0,0.1)'); // Mid-tone falloff
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Deep shadow edge
+            ctx.fillStyle = shadowGrad;
             ctx.fill();
 
-            var shadow = ctx.createRadialGradient(0, 0, r*0.8, 0, 0, r);
-            shadow.addColorStop(0, 'rgba(0,0,0,0)');
-            shadow.addColorStop(1, 'rgba(0,0,0,0.4)');
-            ctx.fillStyle = shadow;
+            // 2. Specular Highlight (Key Light)
+            // Sharp reflection at top-left
+            var spotX = -r * 0.35;
+            var spotY = -r * 0.35;
+            var specGrad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, r * 0.8);
+            specGrad.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, shininess + 0.3) + ')'); // Hotspot
+            specGrad.addColorStop(0.15, 'rgba(255,255,255,' + (shininess) + ')');
+            specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = specGrad;
             ctx.fill();
+
+            // 3. Rim Light (Bounce Light)
+            // Subtle reflection from ground at the very bottom
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI*2);
+            ctx.clip();
+            var rimGrad = ctx.createLinearGradient(0, r*0.6, 0, r);
+            rimGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            rimGrad.addColorStop(1, 'rgba(200,220,255,0.3)'); // Cool bounce light
+            ctx.fillStyle = rimGrad;
+            ctx.fillRect(-r, r*0.6, r*2, r*0.4);
+            ctx.restore();
         }
     };
     function drawShotMeter(cx, cy, radius, s, progress, greenStart, shape, greenEnd) {
