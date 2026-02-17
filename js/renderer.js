@@ -105,10 +105,12 @@ var BallRenderer = {
         var baseColor = ball.color1;
         if (type === 'soccer' || type === 'baseball' || type === 'golf') baseColor = ball.color1;
         else if (type === 'earth') baseColor = '#0000FF';
-        else if (type === 'watermelon') baseColor = '#155e15';
+        else if (type === 'watermelon') baseColor = '#228B22'; // Outside green
         else if (type === 'beach') baseColor = '#FFF';
 
         var shadeColor = function(color, percent) {
+            // Safety check
+            if (!color || !color.startsWith('#')) return color;
             var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
             return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
         };
@@ -125,6 +127,60 @@ var BallRenderer = {
             var v0 = tVerts[f[0]], v1 = tVerts[f[1]], v2 = tVerts[f[2]];
 
             var faceColor = baseColor;
+
+            // Specialized Face Coloring
+            if (ball.id === 'ball_aba') {
+                // Red/White/Blue Bands
+                var nx = (v0.normal.x + v1.normal.x + v2.normal.x) / 3;
+                if (nx < -0.2) faceColor = '#0000FF'; // Blue
+                else if (nx > 0.2) faceColor = '#FF0000'; // Red
+                else faceColor = '#FFFFFF'; // White
+            }
+            else if (ball.id === 'ball_money') {
+                // White/Blue Panels (Checkerboard-ish)
+                var nx = v0.normal.x, ny = v0.normal.y, nz = v0.normal.z;
+                if ((nx*ny*nz) > 0) faceColor = ball.color2; // Blue
+                else faceColor = ball.color1; // White
+            }
+            else if (ball.id === 'ball_rainbow') {
+                // Spectrum
+                var nx = (v0.normal.x + v1.normal.x + v2.normal.x) / 3;
+                var nz = (v0.normal.z + v1.normal.z + v2.normal.z) / 3;
+                var angle = Math.atan2(nz, nx) + Math.PI;
+                var hue = (angle / (Math.PI*2)) * 360;
+                faceColor = 'hsl(' + hue + ', 100%, 50%)';
+            }
+            else if (ball.type === 'beach') {
+                // Beach Panels
+                var nx = (v0.normal.x + v1.normal.x + v2.normal.x) / 3;
+                var nz = (v0.normal.z + v1.normal.z + v2.normal.z) / 3;
+                var angle = Math.atan2(nz, nx) + Math.PI; // 0 to 2PI
+                var seg = Math.floor(angle / (Math.PI*2/6)) % 6;
+                var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
+                faceColor = colors[seg];
+                // White Caps
+                if (Math.abs(v0.normal.y) > 0.8) faceColor = '#FFFFFF';
+            }
+            else if (ball.type === 'camo') {
+                var nx = v0.normal.x, ny = v0.normal.y, nz = v0.normal.z;
+                var n = Math.sin(nx*5 + ny*5 + nz*5);
+                if (n > 0) faceColor = ball.color2; // Brown
+                else faceColor = ball.color1; // Green
+            }
+            else if (ball.type === 'earth') {
+                // Simple continents
+                var nx = v0.normal.x, ny = v0.normal.y, nz = v0.normal.z;
+                var noise = Math.sin(nx*4) + Math.sin(ny*4) + Math.sin(nz*4);
+                if (noise > 0.5) faceColor = ball.color2; // Green
+                else faceColor = ball.color1; // Blue
+            }
+            else if (ball.type === 'eyeball') {
+                // Pupil/Iris logic
+                var ny = (v0.normal.y + v1.normal.y + v2.normal.y) / 3; // Facing camera?
+                // Eye looks forward? Front is ?
+                // Let's rely on drawPattern3D for the iris, base is white
+                faceColor = '#FFFFFF';
+            }
 
             // Texture / Bump Map Effect
             var noise = 0;
@@ -149,9 +205,19 @@ var BallRenderer = {
                 intensity += df.spec * (ball.shininess || 0.5);
             }
 
-            if (baseColor.startsWith('#')) {
+            if (faceColor.startsWith('#')) {
                 var shade = intensity - 1.0;
-                faceColor = shadeColor(baseColor, shade);
+                faceColor = shadeColor(faceColor, shade);
+            } else if (faceColor.startsWith('hsl')) {
+                // HSL shading approximation
+                var hsl = faceColor.match(/hsl\(([0-9]+\.?[0-9]*), *([0-9]+)%, *([0-9]+)%\)/);
+                if (hsl) {
+                    var h = parseFloat(hsl[1]);
+                    var s = parseFloat(hsl[2]);
+                    var l = parseFloat(hsl[3]);
+                    l = Math.max(0, Math.min(100, l * intensity));
+                    faceColor = `hsl(${h}, ${s}%, ${l}%)`;
+                }
             }
 
             ctx.fillStyle = faceColor;
@@ -266,11 +332,7 @@ var BallRenderer = {
                 if (proj) {
                     if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
                     else {
-                        if (type === 'tennis') {
-                            ctx.lineTo(proj.x + (Math.random()-0.5)*2*s, proj.y + (Math.random()-0.5)*2*s);
-                        } else {
-                            ctx.lineTo(proj.x, proj.y);
-                        }
+                        ctx.lineTo(proj.x, proj.y);
                     }
                 } else {
                     first = true;
@@ -338,9 +400,8 @@ var BallRenderer = {
                  for(var i=0; i<line.length; i++) {
                      var proj = projectPoint(line[i]);
                      if(proj) {
-                         var ox = (Math.random()-0.5)*2*s;
-                         if(first) { ctx.moveTo(proj.x+ox, proj.y); first=false; }
-                         else ctx.lineTo(proj.x+ox, proj.y);
+                         if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+                         else ctx.lineTo(proj.x, proj.y);
                      } else first = true;
                  }
                  ctx.stroke();
