@@ -2606,6 +2606,9 @@
     }
 
 
+    const g_rimOffsets = [];
+    const g_netOffsetsBot = [];
+
     function drawHoop(p) {
         if (!p) return;
 
@@ -2613,6 +2616,29 @@
         const rimZ = HOOP_POS.z;
         const rimY = HOOP_POS.y;
         const rimX = HOOP_POS.x;
+
+        const segs = 24;
+        const netSegs = 12;
+
+        if (g_rimOffsets.length === 0) {
+            const rimRadius = 25;
+            for(let i=0; i<segs; i++) {
+                const a = (i/segs) * Math.PI * 2;
+                const rx = Math.cos(a) * rimRadius;
+                const ry = Math.sin(a) * rimRadius;
+                g_rimOffsets.push({ x: rx, y: ry });
+            }
+            const netLen = 35;
+            const netBotRad = 12;
+            for(let i=0; i<netSegs; i++) {
+                 const a = (i/netSegs) * Math.PI * 2;
+                 g_netOffsetsBot.push({
+                     x: Math.cos(a)*netBotRad,
+                     y: Math.sin(a)*netBotRad,
+                     z: -netLen
+                 });
+            }
+        }
 
         // Orientation: Forward Vector towards Classic Start (433, 300) from Hoop (733, 150)
         // Dynamic Orientation based on player position
@@ -2664,30 +2690,6 @@
             { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset - isH }
         ];
 
-        // Rim Circle
-        const rimPoints = [];
-        const segs = 24;
-        for(let i=0; i<segs; i++) {
-            const a = (i/segs) * Math.PI * 2;
-            const rx = Math.cos(a) * rimRadius;
-            const ry = Math.sin(a) * rimRadius;
-            rimPoints.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
-        }
-
-        // Net Bottom Ring
-        const netPointsBot = [];
-        const netLen = 35;
-        const netBotRad = 12;
-        const netSegs = 12;
-        for(let i=0; i<netSegs; i++) {
-             const a = (i/netSegs) * Math.PI * 2;
-             netPointsBot.push({
-                 x: rimX + Math.cos(a)*netBotRad,
-                 y: rimY + Math.sin(a)*netBotRad,
-                 z: rimZ - netLen
-             });
-        }
-
         // Pole
         const poleX = bbCX - fX * 20;
         const poleY = bbCY - fY * 20;
@@ -2697,8 +2699,10 @@
 
         const projBB = bbVerts.map(v => project(v.x, v.y, v.z));
         const projIS = isVerts.map(v => project(v.x, v.y, v.z));
-        const projRim = rimPoints.map(v => project(v.x, v.y, v.z));
-        const projNetBot = netPointsBot.map(v => project(v.x, v.y, v.z));
+
+        const projRim = g_rimOffsets.map(o => project(rimX + o.x, rimY + o.y, rimZ));
+        const projNetBot = g_netOffsetsBot.map(o => project(rimX + o.x, rimY + o.y, rimZ + o.z));
+
         const projPoleTop = project(poleX, poleY, bbCZ);
         const projPoleBot = project(poleX, poleY, 0);
 
@@ -6944,3 +6948,17 @@
                 ctx.fillText("TO RESTART", xCenter, h/2 + 55);
             }
         };
+
+        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
+        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
+
+        // Center Divider Line (Visual)
+        ctx.beginPath();
+        ctx.moveTo(w/2, 0);
+        ctx.lineTo(w/2, h);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
