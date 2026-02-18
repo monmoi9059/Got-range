@@ -2054,22 +2054,98 @@ var BallRenderer = {
         }
         else {
             // Default Humanoid (Hourglass/Trapezoid)
-            points = [
-                {x: cx - sW/2, y: shoulderY},     // 0: Top Left
-                {x: cx + sW/2, y: shoulderY},     // 1: Top Right
-                {x: cx + wW/2, y: waistY},        // 2: Waist Right
-                {x: cx + hW/2, y: hipY},          // 3: Hip Right
-                {x: cx - hW/2, y: hipY},          // 4: Hip Left
-                {x: cx - wW/2, y: waistY}         // 5: Waist Left
-            ];
+            // Determine clothing fit
+            let fitType = 'standard'; // standard, baggy, boxy, fitted, robe
+            const ct = options.clothingType;
+            if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+            else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+            else if (ct === 'robe') fitType = 'robe';
+            else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
 
-            if (isFurry && roundness > 0) {
-                 const rOffset = w * roundness;
-                 const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
-                 const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-                 points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+            // Modifier Scalars
+            let sMod = 1.0; // Shoulder Width Mod
+            let wMod = 1.0; // Waist Width Mod
+            let hMod = 1.0; // Hip Width Mod
+
+            // RADICAL SHAPE REDEFINITION
+            if (fitType === 'baggy') {
+                // PEAR SHAPE (Wide bottom, drooping shoulders)
+                const bagS = sW * 1.1; // Broad shoulders
+                const bagW = hW * 1.15; // Bulge wider than hips
+                const bagH = hW * 1.0; // Elastic hem matches hips
+
+                const dropY = shoulderY + h * 0.15; // Shoulders start lower/sloped
+                const hemY = hipY + h * 0.05; // Slightly longer
+
+                points = [
+                    {x: cx - bagS/2, y: dropY}, // Top Left (Dropped)
+                    {x: cx, y: shoulderY},      // Neck (Peak)
+                    {x: cx + bagS/2, y: dropY}, // Top Right (Dropped)
+
+                    {x: cx + bagW/2, y: waistY},         // Bulge Right
+                    {x: cx + bagH/2, y: hemY},           // Hip Right
+                    {x: cx - bagH/2, y: hemY},           // Hip Left
+                    {x: cx - bagW/2, y: waistY}          // Bulge Left
+                ];
+            }
+            else if (fitType === 'boxy') {
+                // RECTANGLE SHAPE (Hard lines, no taper)
+                // Straight down from shoulders
+                const boxS = sW * 1.1;
+
+                points = [
+                    {x: cx - boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: hipY + h*0.05}, // Straight down
+                    {x: cx - boxS/2, y: hipY + h*0.05}  // Straight down
+                ];
+            }
+            else if (fitType === 'robe') {
+                // TRAPEZOID SHAPE (Flared bottom)
+                const robeTop = sW * 1.05;
+                const robeBot = hW * 1.5; // Dramatic flare
+
+                points = [
+                    {x: cx - robeTop/2, y: shoulderY},
+                    {x: cx + robeTop/2, y: shoulderY},
+                    {x: cx + robeBot/2, y: hipY},
+                    {x: cx - robeBot/2, y: hipY}
+                ];
+            }
+            else if (fitType === 'fitted') {
+                // V-SHAPE (Exaggerated taper)
+                const fitS = sW * 1.05;
+                const fitW = wW * 0.95; // Snatched waist (Relaxed)
+                const fitH = hW * 0.95;
+
+                points = [
+                    {x: cx - fitS/2, y: shoulderY},
+                    {x: cx + fitS/2, y: shoulderY},
+                    {x: cx + fitW/2, y: waistY},
+                    {x: cx + fitH/2, y: hipY},
+                    {x: cx - fitH/2, y: hipY},
+                    {x: cx - fitW/2, y: waistY}
+                ];
+            }
+            else {
+                // STANDARD (Hourglass/Trapezoid)
+                points = [
+                    {x: cx - sW/2, y: shoulderY},
+                    {x: cx + sW/2, y: shoulderY},
+                    {x: cx + wW/2, y: waistY},
+                    {x: cx + hW/2, y: hipY},
+                    {x: cx - hW/2, y: hipY},
+                    {x: cx - wW/2, y: waistY}
+                ];
+
+                if (isFurry && roundness > 0) {
+                     const rOffset = w * roundness;
+                     const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
+                     const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
+                     points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+                }
             }
         }
 
@@ -2492,6 +2568,126 @@ var BallRenderer = {
             ctx.fillStyle = options.chestStripeColor;
             ctx.fillRect(cx - w*2, topY, w*4, h * 0.25);
             ctx.restore();
+        }
+
+        // --- NEW CLOTHING GEOMETRY OVERLAY ---
+        if (options.skinId && options.clothingType) {
+            const cType = options.clothingType;
+            const cStyle = options.clothingStyle;
+            const cMat = options.clothingMaterial;
+
+            // 1. PUFFER TEXTURE (Horizontal Segments)
+            if (cStyle === 'puffer') {
+                ctx.save();
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true); // Clip
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2*scale;
+                const numSegs = 6;
+                for(let i=1; i<numSegs; i++) {
+                    const y = topY + (h * (i/numSegs));
+                    // Curved line for volume
+                    ctx.beginPath();
+                    ctx.moveTo(cx - w, y);
+                    ctx.quadraticCurveTo(cx, y + 5*scale, cx + w, y);
+                    ctx.stroke();
+
+                    // Highlight top of puff
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(cx - w, y - (h/numSegs)*0.8, w*2, (h/numSegs)*0.4);
+                }
+                ctx.restore();
+            }
+
+            // 2. INTERNAL WRINKLES & FOLDS
+            if (cStyle === 'baggy' || cType === 'hoodie' || cType === 'sweatshirt') {
+                ctx.save();
+                // Clip to body path again if needed, or assume containment
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*scale;
+                // Armpit folds
+                ctx.beginPath(); ctx.moveTo(cx - w*0.9, topY + h*0.3); ctx.lineTo(cx - w*0.7, topY + h*0.4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx + w*0.9, topY + h*0.3); ctx.lineTo(cx + w*0.7, topY + h*0.4); ctx.stroke();
+                // Lower Back bunching
+                ctx.beginPath(); ctx.moveTo(cx - w*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + w*0.4, topY + h*0.8); ctx.stroke();
+                ctx.restore();
+
+                // Hoodie Pocket Pouch Outline (Back view - just side bulges or stitching?)
+                // Actually back view shouldn't see pocket.
+                // But we can see the gathered hem.
+                ctx.fillStyle = adjustColor(color, -10);
+                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 8*scale); // Hem band
+            }
+
+            // 3. ROBE (Long Skirt)
+            if (cType === 'robe') {
+                const robeLen = h * 1.2;
+                const skirtY = topY + h * 0.8;
+                const baseW = w * 1.5;
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(cx - w*0.9, skirtY);
+                ctx.lineTo(cx + w*0.9, skirtY);
+                ctx.lineTo(cx + baseW, skirtY + robeLen);
+                ctx.lineTo(cx - baseW, skirtY + robeLen);
+                ctx.fill();
+
+                // Center Split / Fold
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*scale;
+                ctx.beginPath(); ctx.moveTo(cx, skirtY); ctx.lineTo(cx, skirtY + robeLen); ctx.stroke();
+            }
+
+            // 4. COLLARS (Jacket/Vest/Robe)
+            if (['jacket', 'vest', 'robe'].includes(cType)) {
+                ctx.fillStyle = options.clothingTrim ? options.clothingTrim : adjustColor(color, -20);
+                // Collar geometry behind neck
+                ctx.beginPath();
+                ctx.moveTo(cx - w*0.5, topY + 5*scale);
+                ctx.quadraticCurveTo(cx, topY - 5*scale, cx + w*0.5, topY + 5*scale); // Back curve
+                ctx.lineTo(cx + w*0.6, topY + 12*scale);
+                ctx.lineTo(cx + w*0.4, topY + 12*scale);
+                ctx.quadraticCurveTo(cx, topY + 2*scale, cx - w*0.4, topY + 12*scale);
+                ctx.lineTo(cx - w*0.6, topY + 12*scale);
+                ctx.fill();
+            }
+
+            // 4. MATERIAL EFFECTS
+            if (cMat === 'leather') {
+                 // High Specular
+                 ctx.save();
+                 // Re-clip to body
+                 // (Simplified clip rect for performance)
+                 ctx.beginPath(); ctx.rect(cx-w, topY, w*2, h); ctx.clip();
+
+                 const grad = ctx.createLinearGradient(cx-w, topY, cx+w, topY);
+                 grad.addColorStop(0.2, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.3, 'rgba(255,255,255,0.2)'); // Sharp highlight
+                 grad.addColorStop(0.4, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.7, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.8, 'rgba(255,255,255,0.15)');
+                 ctx.fillStyle = grad;
+                 ctx.fill();
+                 ctx.restore();
+            }
+
+            // 5. VARSITY DETAILS
+            if (cStyle === 'varsity') {
+                // Ribbed Waistband
+                ctx.fillStyle = '#FFF'; // Default white trim if no sleeve color available, but we can't access skinObj here easily. Assume white/contrast.
+                ctx.fillRect(cx - w, topY + h - 10*scale, w*2, 10*scale);
+                // Stripes on waistband
+                ctx.fillStyle = color;
+                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 2*scale);
+                ctx.fillRect(cx - w, topY + h - 4*scale, w*2, 2*scale);
+            }
         }
     }
 
@@ -3144,7 +3340,7 @@ var BallRenderer = {
                 if (typeof _drawPlayerInternal === 'function') {
                     _drawPlayerInternal(obj);
                 } else {
-                    drawPlayer(obj);
+                    PlayerRenderer.draw(obj);
                 }
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
@@ -3444,83 +3640,228 @@ var BallRenderer = {
 
         function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s) {
         type = type || 'sneakers';
-        const soleColor = '#DDD';
+        const soleColor = '#EEE';
         const laceColor = detailColor || 'rgba(0,0,0,0.3)';
 
-        // Shadow/Base
-        ctx.fillStyle = soleColor;
-        ctx.beginPath();
+        ctx.save();
+        ctx.translate(x, y);
 
-        if (type === 'boots' || type === 'boots_heavy') {
-             ctx.ellipse(x, y + h*0.2, w*1.1, h*0.5, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.strokeStyle = '#333'; ctx.lineWidth=1; ctx.stroke();
+        // Helper for mirroring details based on foot
+        // Note: Render logic here assumes back view.
+        // Left foot (isRight=false) is on left of screen. Right foot is on right.
+        // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
+        const sideMult = isRight ? 1 : -1;
 
+        if (type === 'foam') {
+            // Yeezy Foam Runner (Blobby, porous)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            // Organic Shape
+            ctx.moveTo(-w*0.6, -h*0.5);
+            ctx.quadraticCurveTo(-w, 0, -w*0.8, h*0.5);
+            ctx.quadraticCurveTo(0, h*0.8, w*0.8, h*0.5);
+            ctx.quadraticCurveTo(w, 0, w*0.6, -h*0.5);
+            ctx.fill();
+
+            // Holes
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            const holes = [[0,0,0.3], [0.5,0.2,0.2], [-0.5,0.2,0.2], [0, -0.3, 0.25]];
+            holes.forEach(p => {
+                ctx.beginPath();
+                ctx.ellipse(p[0]*w, p[1]*h, p[2]*w, p[2]*h*0.6, 0, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+        } else if (type === 'hightop_canvas') {
+            // Converse (Canvas texture, toe cap, logo)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(w*0.8, h*0.3); ctx.stroke();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.75, -h*0.8, w*1.5, h*0.9);
+
+            // White stitching
+            ctx.strokeStyle = '#FFF'; ctx.setLineDash([2*s, 2*s]);
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.8); ctx.lineTo(-w*0.4, h*0.1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w*0.4, -h*0.8); ctx.lineTo(w*0.4, h*0.1); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Star Logo (Inner side)
+            // Left foot: Inner is Right side. Right foot: Inner is Left side.
+            const logoX = isRight ? -w*0.5 : w*0.5;
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(logoX, -h*0.2, w*0.25, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'blue';
+            ctx.beginPath(); ctx.moveTo(logoX, -h*0.25); ctx.lineTo(logoX+2*s, -h*0.15); ctx.lineTo(logoX-2*s, -h*0.15); ctx.fill();
+
+        } else if (type === 'slipon') {
+            // Vans (Low, wide, pattern)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w*0.95, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, 0, w*0.9, h*0.5, 0, Math.PI, 0); ctx.fill();
+
+            // Checkerboard Pattern
+            if (color === '#FFF') { // Hack for checkerboard ID
+                ctx.fillStyle = '#000';
+                const size = 4*s;
+                for(let i=-2; i<=2; i++) {
+                    for(let j=-2; j<=0; j++) {
+                        if((i+j)%2===0) ctx.fillRect(i*size, j*size, size, size);
+                    }
+                }
+            }
+
+        } else if (type === 'retro_bulky' || type === 'retro') {
+            // Jordan 4 / Yeezy 2 (Bulky tech)
+
+            // Sole (Chunky)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath();
+            ctx.moveTo(-w, h*0.5); ctx.lineTo(w, h*0.5); ctx.lineTo(w*0.9, 0); ctx.lineTo(-w*0.9, 0);
+            ctx.fill();
+
+            // Midsole Detail
+            if (type === 'retro_bulky') {
+                ctx.fillStyle = detailColor; // Mudguard
+                ctx.beginPath(); ctx.arc(0, 0, w*0.9, 0, Math.PI, true); ctx.fill();
+
+                // Air Bubble
+                ctx.fillStyle = 'rgba(0,255,255,0.5)';
+                ctx.fillRect(-w*0.3, h*0.2, w*0.6, h*0.2);
+            }
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, 0); ctx.lineTo(-w*0.7, -h*0.8); // High collar
+            ctx.lineTo(w*0.7, -h*0.8); ctx.lineTo(w*0.8, 0);
+            ctx.fill();
+
+            // Plastic Wings / Straps
+            ctx.fillStyle = detailColor;
+            if (type === 'retro_bulky') {
+                // Triangle Wings
+                ctx.beginPath(); ctx.moveTo(-w*0.7, -h*0.2); ctx.lineTo(-w*0.8, -h*0.6); ctx.lineTo(-w*0.5, -h*0.4); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(w*0.7, -h*0.2); ctx.lineTo(w*0.8, -h*0.6); ctx.lineTo(w*0.5, -h*0.4); ctx.fill();
+                // Heel Tab
+                ctx.fillRect(-w*0.4, -h*0.8, w*0.8, h*0.4);
+            } else {
+                // Spikes/Scales (Yeezy 2)
+                ctx.strokeStyle = detailColor;
+                for(let i=0; i<5; i++) {
+                     ctx.beginPath(); ctx.moveTo(-w*0.8, -h*0.8 + i*5*s); ctx.lineTo(w*0.8, -h*0.8 + i*5*s); ctx.stroke();
+                }
+            }
+
+        } else if (type === 'hightop_future') {
+            // Mag
+            ctx.fillStyle = '#EEE'; // Sole
+            ctx.fillRect(-w*0.9, h*0.2, w*1.8, h*0.3);
+            // Lights
+            ctx.fillStyle = detailColor; ctx.shadowBlur = 5*s; ctx.shadowColor = detailColor;
+            ctx.fillRect(-w*0.4, h*0.3, 5*s, 5*s);
+            ctx.shadowBlur = 0;
+
+            // Tall Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.8, -h*1.2, w*1.6, h*1.4);
+            // Straps
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.85, -h*1.0, w*1.7, h*0.2);
+            ctx.fillStyle = 'rgba(0,255,255,0.5)'; // Light up logo
+            ctx.fillText("AIR", -w*0.3, -h*1.0 + 10*s);
+
+        } else if (type === 'boots_work' || type === 'boots') {
+            // Timberland
+            ctx.fillStyle = '#333'; // Lug Sole
+            ctx.fillRect(-w*0.9, h*0.3, w*1.8, h*0.2);
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(-w*0.8, -h*0.8);
+            ctx.lineTo(w*0.8, -h*0.8); ctx.lineTo(w*0.8, h*0.3);
+            ctx.fill();
+
+            // Padded Collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.85, -h*0.9, w*1.7, h*0.25);
+
+            // Laces
+            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.2); ctx.lineTo(w*0.4, -h*0.2); ctx.stroke();
+
+        } else if (type === 'hightop') {
+            // J1 Style
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = color; // Main
+            ctx.beginPath(); ctx.arc(0, -h*0.2, w*0.9, 0, Math.PI*2); ctx.fill(); // Heel cup
+
+            ctx.fillStyle = detailColor; // Swoosh-like or panels
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.lineTo(w*0.4, h*0.2); ctx.lineTo(-w*0.4, h*0.2); ctx.fill(); // Tongue area
+
+            // High ankle collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.8, -h*0.8, w*1.6, h*0.4);
+
+        } else if (type === 'heels') {
              ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.moveTo(x - w*0.8, y + h*0.2);
-             ctx.lineTo(x - w*0.8, y - h*0.8); // High shaft
-             ctx.lineTo(x + w*0.8, y - h*0.8);
-             ctx.lineTo(x + w*0.8, y + h*0.2);
-             ctx.fill();
-
-             // Laces
-             ctx.strokeStyle = laceColor;
-             ctx.beginPath(); ctx.moveTo(x - w*0.3, y - h*0.5); ctx.lineTo(x + w*0.3, y - h*0.5); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(x - w*0.3, y - h*0.2); ctx.lineTo(x + w*0.3, y - h*0.2); ctx.stroke();
-             return;
-        }
-
-        if (type === 'hightop') {
-             ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-
-             ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.arc(x, y - h*0.3, w*0.9, 0, Math.PI*2); // Higher ankle
-             ctx.fill();
-
-             if (detailColor) {
-                 ctx.fillStyle = detailColor;
-                 ctx.beginPath(); ctx.arc(x, y - h*0.3, w*0.4, 0, Math.PI*2); ctx.fill();
-             }
-             return;
-        }
-
-        if (type === 'heels') {
-             ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.ellipse(x, y, w*0.8, h*0.3, 0, 0, Math.PI*2);
-             ctx.fill();
-             // Heel spike
+             ctx.beginPath(); ctx.ellipse(0, 0, w*0.8, h*0.3, 0, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = color; ctx.lineWidth = 3*s;
-             ctx.beginPath(); ctx.moveTo(x, y+h*0.3); ctx.lineTo(x, y+h*0.8); ctx.stroke();
-             return;
+             ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.lineTo(0, h*0.8); ctx.stroke();
+
+        } else if (type === 'sandals' || type === 'slides') {
+             ctx.fillStyle = '#D2B48C'; // Foot/Sole
+             ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = color; // Strap
+             ctx.fillRect(-w*0.8, -h*0.1, w*1.6, h*0.4);
+
+        } else if (type === 'cleats') {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.8, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+            // Studs
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(-w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+
+        } else if (type === 'slippers_bunny') {
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*1.1, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+            // Ears
+            ctx.fillStyle = 'pink';
+            ctx.beginPath(); ctx.ellipse(-w*0.4, -h*0.5, 3*s, 8*s, -0.3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(w*0.4, -h*0.5, 3*s, 8*s, 0.3, 0, Math.PI*2); ctx.fill();
+
+        } else {
+            // Default Sneakers (Low Top)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, -h*0.1, w*0.9, 0, Math.PI*2); ctx.fill();
+
+            // Tongue
+            ctx.fillStyle = detailColor || '#FFF';
+            ctx.beginPath(); ctx.arc(0, -h*0.3, w*0.5, Math.PI, 0); ctx.fill();
+
+            // Laces
+            ctx.strokeStyle = laceColor; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.3); ctx.lineTo(w*0.4, -h*0.3); ctx.stroke();
         }
 
-        if (type === 'sandals' || type === 'slides') {
-             ctx.fillStyle = '#D2B48C'; // Skin/Sole
-             ctx.beginPath(); ctx.ellipse(x, y + h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
-
-             ctx.fillStyle = color;
-             // Strap
-             ctx.fillRect(x - w*0.8, y - h*0.1, w*1.6, h*0.4);
-             return;
-        }
-
-        // Default Sneakers
-        ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.strokeStyle = laceColor;
-        ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
+        ctx.restore();
     }
 
     // --- OPTIMIZATION: Gradient Caching ---
@@ -3544,38 +3885,40 @@ var BallRenderer = {
         return pattern;
     }
 
-    function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
-        // V-Taper Jersey
+    function drawJersey(cx, topY, baseW, h, scale, skinObj, anchors = null) {
+        // baseW passed here is now the HIP WIDTH (matching pants)
         const color = skinObj.jerseyColor || '#FFF';
 
         let slX, srX, sY, blX, brX, bY;
 
+        // Base Dimensions relative to Hip Width
+        // "Shoulder width just a bit larger than hips" -> 1.2x hips
+        const baseShoulderW = baseW * 1.2;
+        const baseWaistW = baseW; // Exact match to hips
+
         if (anchors && anchors.shoulders) {
-            // Narrow shoulders by 10% for the jersey fabric
-            slX = cx + (anchors.shoulders.left.x - cx) * 0.9;
-            srX = cx + (anchors.shoulders.right.x - cx) * 0.9;
+            // If we have anchors, prioritize them but nudge towards our new ideal proportion
+            // Calculate anchor widths
+            const anchorSW = (anchors.shoulders.right.x - anchors.shoulders.left.x);
+            // Blend anchor with ideal (Weighted towards ideal for "clothing" shape)
+            const targetSW = Math.max(anchorSW, baseShoulderW);
+
+            slX = cx - targetSW/2;
+            srX = cx + targetSW/2;
             sY = anchors.shoulders.left.y;
 
-            // For bottom, use hips if available, otherwise calculate from width
-            // Jersey tucks into shorts, so align with hip joints
-            if (anchors.hips) {
-                blX = anchors.hips.left.x;
-                brX = anchors.hips.right.x;
-                bY = anchors.hips.left.y; // Assuming roughly level
-            } else {
-                const waistW = w * 0.9;
-                blX = cx - waistW/2;
-                brX = cx + waistW/2;
-                bY = topY + h;
-            }
+            // For bottom, force alignment with baseWaistW (Hips)
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
+            bY = topY + h;
         } else {
-            const shoulderW = w * 1.6;
-            const waistW = w * 0.9;
-            slX = cx - shoulderW/2;
-            srX = cx + shoulderW/2;
+            // Standard Construction
+            slX = cx - baseShoulderW/2;
+            srX = cx + baseShoulderW/2;
             sY = topY;
-            blX = cx - waistW/2;
-            brX = cx + waistW/2;
+
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
             bY = topY + h;
         }
 
@@ -3584,22 +3927,96 @@ var BallRenderer = {
         const bottomY = bY;
         const armpitY = sY + h * 0.4;
 
+        // DETERMINE FIT TYPE
+        let fitType = 'standard';
+        const ct = skinObj.clothingType;
+        if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+        else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+        else if (ct === 'robe') fitType = 'robe';
+        else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
+
+        // Calculate Relative Widths from our new standard baselines
+        const halfHip = waistW / 2;
+        const halfShoulder = shoulderW / 2;
+
+        // DRAW PATH BASED ON FIT
         ctx.beginPath();
-        ctx.moveTo(slX, sY);
-        // Gentle neck curve (High back collar)
-        ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
 
-        // Right side
-        ctx.lineTo(srX, armpitY);
-        // Curve from armpit to bottom right (hip)
-        ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+        if (fitType === 'baggy') {
+            // Pear shape: Shoulders sloped, body wider than hips
+            const slopeY = sY + h * 0.1;
+            // Bulge width slightly larger than hips (1.1x)
+            const bulgeW = halfHip * 1.15;
+            // Hem width matches hips (1.0x) or slightly gathered (0.95x)? User said "base off hips".
+            // Let's make hem match hips exactly for "physical correctness" of elastic band.
+            const hemW = halfHip * 1.0;
 
-        // Bottom curve (Tuck)
-        ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+            // Shoulders (Sloped down)
+            ctx.moveTo(slX, slopeY);
+            ctx.quadraticCurveTo(cx, sY - h*0.05, srX, slopeY); // Neck arc
 
-        // Left side
-        ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
-        ctx.lineTo(slX, sY);
+            // Right Side (Bulge out then in to hip)
+            ctx.bezierCurveTo(cx + bulgeW, sY + h*0.5, cx + hemW, bY, cx + hemW, bY + h*0.05);
+
+            // Hem
+            ctx.quadraticCurveTo(cx, bY + h*0.1, cx - hemW, bY + h*0.05);
+
+            // Left Side
+            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX, slopeY);
+        }
+        else if (fitType === 'boxy') {
+            // Rectangle: Shoulders = Hips = Box
+            // User said shoulder width > hips. Boxy jacket falls straight from shoulders?
+            // If shoulders > hips, straight down means hem > hips.
+            // Let's conform to shoulders.
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(srX, bY + h*0.05); // Straight down from shoulder
+            ctx.lineTo(slX, bY + h*0.05);
+            ctx.lineTo(slX, sY);
+        }
+        else if (fitType === 'robe') {
+            // Trapezoid: Flared bottom
+            const robeBot = halfHip * 1.5;
+            const robeLen = h * 1.3;
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(cx + robeBot, sY + robeLen);
+            ctx.lineTo(cx - robeBot, sY + robeLen);
+            ctx.lineTo(slX, sY);
+        }
+        else if (fitType === 'fitted') {
+            // V-Shape: Follows the base dimensions exactly (which are already V-shaped: 1.2x -> 1.0x)
+            // Just slightly tighter at the waist/midsection?
+            const waistPinch = halfHip * 0.9;
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            // Taper in
+            ctx.quadraticCurveTo(cx + waistPinch, sY + h*0.6, brX, bY);
+            ctx.lineTo(blX, bY);
+            ctx.quadraticCurveTo(cx - waistPinch, sY + h*0.6, slX, sY);
+        }
+        else {
+            // Standard Jersey (Existing logic)
+            ctx.moveTo(slX, sY);
+            // Gentle neck curve (High back collar)
+            ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
+
+            // Right side
+            ctx.lineTo(srX, armpitY);
+            // Curve from armpit to bottom right (hip)
+            ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+
+            // Bottom curve (Tuck)
+            ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+
+            // Left side
+            ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
+            ctx.lineTo(slX, sY);
+        }
 
         ctx.closePath();
 
@@ -5103,6 +5520,19 @@ var BallRenderer = {
 
 
     function drawRealisticHuman(p, s, skinObj) {
+        // Fallback: Ensure clothing data is present if missing from pre-process
+        if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             if (cItem) {
+                 skinObj.clothing = cItem;
+                 skinObj.clothingType = cItem.type;
+                 skinObj.clothingStyle = cItem.style;
+                 skinObj.clothingMaterial = cItem.material;
+                 // Ensure color is available
+                 if(!skinObj.jerseyColor) skinObj.jerseyColor = cItem.color;
+             }
+        }
+
         const isMechanical = isMechanicalSkin(skinObj.id);
         // Base Setup
         const sizeMod = {
@@ -5305,20 +5735,6 @@ var BallRenderer = {
 
         const drawHumanArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
-            let uColor = skinTone, fColor = skinTone;
-            let activeSleeveColor = null;
-
-            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
-
-            if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
-            if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
-
-            if (activeSleeveColor) {
-                fColor = activeSleeveColor;
-                if (skinObj.sleeveColor) {
-                     uColor = activeSleeveColor;
-                }
-            }
 
             let uZ = angle1_z || 0;
             let fZ = angle2_z || 0;
@@ -5327,37 +5743,108 @@ var BallRenderer = {
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
-            // Force sleeve color for long-sleeved types (Double-check overwrite)
-            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
-
-            // Draw Base Joint (Skin or Sleeve)
-            drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
-
             let elbow = getJoint(sx, sy, effUpper, angle1);
-            const upperTattoos = skinObj.tattoos && !activeSleeveColor;
-
-            // Draw Upper Arm (Base)
-            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
-
-            // FORCE SLEEVE LAYER (If long sleeve is detected, draw OVER the arm)
-            if (isLongSleeveItem && activeSleeveColor) {
-                 // Draw Sleeve Joint
-                 drawJoint(sx, sy, 4.2*s*sizeMod.armWidth, activeSleeveColor, false);
-                 // Draw Sleeve Limb (slightly wider to cover skin)
-                 drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
-            }
-
-            if (activeSleeveColor) {
-                 const midX = (sx + elbow.x) / 2;
-                 const midY = (sy + elbow.y) / 2;
-                 drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
-            }
-
             let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
-            const foreTattoos = skinObj.tattoos && !activeSleeveColor;
-            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
 
-            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, activeSleeveColor || uColor, isMechanical);
+            // 1. Draw BASE SKIN ARM (Always Full)
+            // Shoulder
+            drawJoint(sx, sy, 4*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Upper Arm
+            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            // Elbow
+            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Forearm
+            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+
+
+            // 2. LAYERED CLOTHING LOGIC
+            let clothColor = null;
+            let isBulky = false;
+            let isPartial = false; // T-shirt
+            let isTight = false; // Compression sleeve
+
+            // Robust Lookup for Clothing Item
+            // Prioritize passed object, fallback to global state if needed
+            let cItem = skinObj.clothing;
+            if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+            }
+
+            if (cItem) {
+                const type = cItem.type;
+                if (['jacket', 'hoodie', 'robe', 'track', 'sweatshirt'].includes(type)) {
+                    isBulky = true;
+                    clothColor = cItem.color;
+                    // Handle sleeves override
+                    if (cItem.sleeveColor) clothColor = cItem.sleeveColor;
+                } else if (type === 'tshirt') {
+                    isPartial = true;
+                    clothColor = cItem.color;
+                }
+            }
+            // Fallback Legacy Jersey Types (only if no clothing item found)
+            else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                isPartial = true;
+                clothColor = skinObj.jerseyColor;
+            } else if (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone) {
+                // Generic Long Sleeve (Jersey w/ sleeves)
+                isBulky = false; // Regular fit
+                clothColor = skinObj.sleeveColor;
+            }
+
+            // Check Accessory Sleeves (Overrides Clothing if present? Or overlays?)
+            // Usually accessories like shooting sleeves are tight.
+            let accessorySleeveColor = null;
+            if (isRight && skinObj.sleeveRight) accessorySleeveColor = skinObj.sleeveRight;
+            if (!isRight && skinObj.sleeveLeft) accessorySleeveColor = skinObj.sleeveLeft;
+
+            // DRAW CLOTHING LAYER
+            if (clothColor) {
+                let widthMult = isBulky ? 1.35 : 1.15; // Bulky vs Regular fit
+                if (isPartial) widthMult = 1.2;
+
+                // Shoulder Joint Cover
+                drawJoint(sx, sy, 4.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                if (isPartial) {
+                    // T-Shirt: Upper half of upper arm
+                    const midBicep = { x: sx + (elbow.x-sx)*0.6, y: sy + (elbow.y-sy)*0.6 };
+                    // Use drawLimb for smoother cloth look, or drawMuscleLimb if tight
+                    drawLimb(sx, sy, midBicep.x, midBicep.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor);
+                } else {
+                    // Full Sleeve
+                    // Upper
+                    if (isBulky) {
+                        drawLimb(sx, sy, elbow.x, elbow.y, 9*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+
+                    // Elbow Cover
+                    drawJoint(elbow.x, elbow.y, 3.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                    // Forearm
+                    if (isBulky) {
+                        drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+                }
+            }
+
+            // DRAW ACCESSORY SLEEVE (Tight overlay)
+            if (accessorySleeveColor) {
+                isTight = true;
+                const tightMult = 1.05; // Just above skin
+                // Shoulder
+                drawJoint(sx, sy, 4.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Upper
+                drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+                // Elbow
+                drawJoint(elbow.x, elbow.y, 3.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Forearm
+                drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+            }
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
@@ -5442,11 +5929,14 @@ var BallRenderer = {
         // Torso & Shorts
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
+        // Calculate HIP WIDTH standard (Matches pants)
+        const hipWidth = reducedBodyW * 1.05;
+
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
+        drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
@@ -5460,7 +5950,8 @@ var BallRenderer = {
         } else if (skinObj.jerseyType === 'link_tunic') {
              drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
         } else {
-             drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
+             // Pass hipWidth as the base width for jersey construction
+             drawJersey(p.x, torsoY, hipWidth, jerseyH, s, skinObj, anchors);
         }
 
         if (skinObj.jerseyName) {
@@ -5904,14 +6395,22 @@ var BallRenderer = {
         }
 
         // Apply Clothing Overrides
+        // ROBUST LOOKUP: Ensure clothing data is populated even if previous steps failed
         if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
              // Ensure we are working on a copy
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
 
+             // Force re-lookup to guarantee data integrity
              const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+
              if (clothing) {
                  skinObj.clothing = clothing; // Tag for later use
                  skinObj.jerseyColor = clothing.color;
+
+                 // Explicitly propagate type for shape logic
+                 skinObj.clothingType = clothing.type;
+                 skinObj.clothingStyle = clothing.style;
+                 skinObj.clothingMaterial = clothing.material;
 
                  if (clothing.type === 'tshirt') {
                      skinObj.jerseyType = 'tshirt';
@@ -5930,7 +6429,7 @@ var BallRenderer = {
                  }
 
                  // Remove conflicting built-in details
-                 if (['track', 'hoodie', 'sweatshirt'].includes(clothing.type)) {
+                 if (['track', 'hoodie', 'sweatshirt', 'jacket', 'vest', 'robe'].includes(clothing.type)) {
                      skinObj.clothingDetail = null; // Hide suspenders etc.
                      // Track suits often have stripes
                      if(clothing.stripeColor) {
@@ -6280,13 +6779,19 @@ var BallRenderer = {
                     thisUpperColor = c.color; // T-Shirt covers upper arm
                     thisForeColor = furColor; // Forearm exposed
                     upperIsCovered = true;
-                } else if (['track', 'hoodie', 'sweatshirt'].includes(c.type)) {
+                } else if (['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(c.type)) {
                     // Long sleeves cover both
                     const sColor = c.sleeveColor || c.color;
                     thisUpperColor = sColor;
                     thisForeColor = sColor;
                     upperIsCovered = true;
                     foreIsCovered = true;
+                } else if (c.type === 'vest') {
+                    // Vest is sleeveless
+                    thisUpperColor = furColor;
+                    thisForeColor = furColor;
+                    upperIsCovered = false;
+                    foreIsCovered = false;
                 }
             } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
@@ -6310,7 +6815,13 @@ var BallRenderer = {
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
-            const upperStartW = 7 * s * sizeMod.armWidth;
+            let upperStartW = 7 * s * sizeMod.armWidth;
+
+            // Bulky Jacket Sleeves
+            if (skinObj.clothingType === 'jacket') {
+                upperStartW *= 1.3;
+            }
+
             const upperEndW = upperStartW * taper;
             const foreStartW = upperEndW; // Seamless transition
             const foreEndW = foreStartW * taper;
@@ -6607,6 +7118,12 @@ var BallRenderer = {
         bodyOptions.isTabby = skin.includes('tabby');
         bodyOptions.chestStripeColor = skinObj.chestStripeColor;
         bodyOptions.sideStripesColor = skinObj.sideStripesColor;
+
+        // Pass Clothing Info
+        bodyOptions.clothingType = skinObj.clothingType;
+        bodyOptions.clothingStyle = skinObj.clothingStyle;
+        bodyOptions.clothingMaterial = skinObj.clothingMaterial;
+        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor);
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },

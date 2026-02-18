@@ -678,7 +678,28 @@
         { id: 'shirt_plaid_green', name: 'Chemise Verte', cost: 1800, type: 'shirt', color: '#006400', pattern: 'plaid' },
         { id: 'suit_white', name: 'Costume Blanc', cost: 6000, type: 'shirt', color: '#FFF', pattern: 'suit' },
         { id: 'suit_red', name: 'Costume Rouge', cost: 6000, type: 'shirt', color: '#8B0000', pattern: 'suit' },
-        { id: 'suit_blue', name: 'Costume Bleu', cost: 6000, type: 'shirt', color: '#00008B', pattern: 'suit' }
+        { id: 'suit_blue', name: 'Costume Bleu', cost: 6000, type: 'shirt', color: '#00008B', pattern: 'suit' },
+
+        // JACKETS
+        { id: 'jacket_leather', name: 'Veste Cuir', cost: 5000, type: 'jacket', color: '#111', material: 'leather' },
+        { id: 'jacket_puffer_black', name: 'Puffer Noir', cost: 4000, type: 'jacket', color: '#222', style: 'puffer' },
+        { id: 'jacket_puffer_orange', name: 'Puffer Orange', cost: 4000, type: 'jacket', color: '#FF4500', style: 'puffer' },
+        { id: 'jacket_varsity_red', name: 'Varsity Rouge', cost: 4500, type: 'jacket', color: '#CC0000', sleeveColor: '#FFF', style: 'varsity' },
+        { id: 'jacket_varsity_blue', name: 'Varsity Bleu', cost: 4500, type: 'jacket', color: '#00008B', sleeveColor: '#F5F5DC', style: 'varsity' },
+        { id: 'jacket_denim', name: 'Veste Jean', cost: 3500, type: 'jacket', color: '#4682B4', material: 'denim' },
+
+        // VESTS
+        { id: 'vest_denim', name: 'Gilet Jean', cost: 3000, type: 'vest', color: '#4682B4', material: 'denim' },
+        { id: 'vest_puffer_red', name: 'Gilet Puffer', cost: 3500, type: 'vest', color: '#CC0000', style: 'puffer' },
+        { id: 'vest_tactical', name: 'Gilet Tactique', cost: 4000, type: 'vest', color: '#333', style: 'tactical' },
+
+        // ROBES
+        { id: 'robe_boxer', name: 'Robe Boxeur', cost: 3000, type: 'robe', color: '#CC0000', trimColor: '#FFD700', pattern: 'satin' },
+        { id: 'robe_wizard_blue', name: 'Robe Sorcier', cost: 4000, type: 'robe', color: '#191970', pattern: 'stars' },
+
+        // NEW HOODIES
+        { id: 'hoodie_offwhite', name: 'Streetwear', cost: 8000, type: 'hoodie', color: '#FFF', pattern: 'stripes_sleeve_diag' },
+        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' }
     ];
 
     var HATS_DB = [
@@ -869,7 +890,18 @@
         { id: 'shoe_cleats', name: 'Crampons', cost: 2500, type: 'cleats', color: '#FFFF00' },
         { id: 'shoe_slippers', name: 'Pantoufles Lapin', cost: 3000, type: 'slippers_bunny', color: '#FFF' },
         { id: 'shoe_skates', name: 'Patins', cost: 4000, type: 'skates', color: '#000' },
-        { id: 'shoe_space', name: 'Bottes Lunaires', cost: 5000, type: 'boots_heavy', color: '#AAA' }
+        { id: 'shoe_space', name: 'Bottes Lunaires', cost: 5000, type: 'boots_heavy', color: '#AAA' },
+        // NEW SHOES
+        { id: 'shoe_yeezy_foam', name: 'Alien Foam', cost: 4000, type: 'foam', color: '#E0E0E0' },
+        { id: 'shoe_yeezy_red', name: 'Red Octobers', cost: 10000, type: 'retro', color: '#FF0000', detailColor: '#8B0000' },
+        { id: 'shoe_converse_black', name: 'All-Stars Noir', cost: 1200, type: 'hightop_canvas', color: '#111', detailColor: '#FFF' },
+        { id: 'shoe_converse_red', name: 'All-Stars Rouge', cost: 1200, type: 'hightop_canvas', color: '#CC0000', detailColor: '#FFF' },
+        { id: 'shoe_vans_check', name: 'Skater Check', cost: 1500, type: 'slipon', color: '#FFF', pattern: 'check', detailColor: '#000' },
+        { id: 'shoe_vans_black', name: 'Skater Noir', cost: 1500, type: 'slipon', color: '#111', detailColor: '#FFF' },
+        { id: 'shoe_timbs', name: 'Timbs', cost: 2500, type: 'boots_work', color: '#D2B48C', detailColor: '#5D4037' },
+        { id: 'shoe_jordan4_cement', name: 'Retro 4 Cement', cost: 5000, type: 'retro_bulky', color: '#FFF', detailColor: '#000', color3: '#808080' },
+        { id: 'shoe_jordan4_bred', name: 'Retro 4 Bred', cost: 5000, type: 'retro_bulky', color: '#111', detailColor: '#CC0000', color3: '#808080' },
+        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true }
     ];
 
     var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];
