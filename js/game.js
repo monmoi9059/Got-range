@@ -1825,6 +1825,10 @@
             if (typeof resizeGame === 'function') resizeGame();
         }
 
+        if (typeof Renderer3D !== 'undefined') {
+            Renderer3D.init();
+        }
+
         if(!playerData.platformChosen) {
             state = 'STARTUP';
             document.getElementById('startup-ui').style.display = 'flex';
@@ -2209,35 +2213,27 @@
             return;
         }
 
+        // Clear 2D Canvas (UI Layer)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Render 3D Scene
+        if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) {
+            // Update 3D state based on active context
+            if (isSplitscreen) {
+                loadContext(game1); // Prioritize P1 for 3D view currently
+            } else {
+                loadContext(game1);
+            }
+
+            Renderer3D.update();
+            Renderer3D.render();
+        }
+
+        // Draw UI Overlay (2D)
         if (isSplitscreen) {
             const w = canvas.width;
             const h = canvas.height;
             const halfW = w / 2;
-
-            // Clear full canvas first? drawBackground fills rect so maybe not needed, but safe.
-            // Actually drawBackground fills rect defined by args.
-
-            // Draw P1 (Left)
-            loadContext(game1);
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(0, 0, halfW, h);
-            ctx.clip();
-            // No translation needed for left side
-            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT);
-            ctx.restore();
-
-            // Draw P2 (Right)
-            loadContext(game2);
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(halfW, 0, halfW, h);
-            ctx.clip();
-            ctx.translate(halfW, 0); // Move origin to middle
-            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT); // Draw as if at 0,0 with half width
-            ctx.restore();
 
             // Divider Line
             ctx.beginPath();
@@ -2250,17 +2246,10 @@
             ctx.strokeStyle = '#FFD700';
             ctx.stroke();
 
-            // HUD
             if (typeof drawSplitscreenHUD === 'function') {
                 drawSplitscreenHUD();
             }
-
         } else {
-            loadContext(game1);
-            ctx.save();
-            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT);
-            ctx.restore();
             drawBroadcastLowerThird();
         }
     }

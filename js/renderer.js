@@ -865,6 +865,10 @@ var BallRenderer = {
         canvas.style.width = winW + 'px';
         canvas.style.height = winH + 'px';
 
+        if (typeof Renderer3D !== 'undefined' && Renderer3D.init) {
+            Renderer3D.resize(winW, winH);
+        }
+
         // Override Container Styles to Fill Screen
         if (container) {
             container.style.width = '100%';

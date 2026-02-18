@@ -20,6 +20,7 @@ JS_ORDER = [
     'audio.js',
     'main.js',
     'renderer.js',
+    'renderer3d.js',
     'input.js',
     'game.js'
 ]
