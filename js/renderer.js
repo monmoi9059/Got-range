@@ -3245,7 +3245,7 @@ var BallRenderer = {
                 if (typeof _drawPlayerInternal === 'function') {
                     _drawPlayerInternal(obj);
                 } else {
-                    drawPlayer(obj);
+                    PlayerRenderer.draw(obj);
                 }
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
@@ -5592,20 +5592,26 @@ var BallRenderer = {
             let isPartial = false; // T-shirt
             let isTight = false; // Compression sleeve
 
-            // Check Clothing Type
-            if (skinObj.clothingType) {
-                const type = skinObj.clothingType;
-                const cColor = (skinObj.clothing && skinObj.clothing.color) ? skinObj.clothing.color : skinObj.jerseyColor;
+            // Robust Lookup for Clothing Item
+            // Prioritize passed object, fallback to global state if needed
+            let cItem = skinObj.clothing;
+            if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+            }
 
+            if (cItem) {
+                const type = cItem.type;
                 if (['jacket', 'hoodie', 'robe', 'track', 'sweatshirt'].includes(type)) {
                     isBulky = true;
-                    clothColor = cColor;
+                    clothColor = cItem.color;
+                    // Handle sleeves override
+                    if (cItem.sleeveColor) clothColor = cItem.sleeveColor;
                 } else if (type === 'tshirt') {
                     isPartial = true;
-                    clothColor = cColor;
+                    clothColor = cItem.color;
                 }
             }
-            // Fallback Legacy Jersey Types
+            // Fallback Legacy Jersey Types (only if no clothing item found)
             else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 isPartial = true;
                 clothColor = skinObj.jerseyColor;
