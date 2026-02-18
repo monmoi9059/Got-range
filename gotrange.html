@@ -6104,9 +6104,9 @@ var BallRenderer = {
             // RADICAL SHAPE REDEFINITION
             if (fitType === 'baggy') {
                 // PEAR SHAPE (Wide bottom, drooping shoulders)
-                const bagS = sW * 1.05; // Slightly wider shoulders
-                const bagW = wW * 1.25; // Moderately Wide waist
-                const bagH = hW * 1.15; // Gathered but wide hem
+                const bagS = sW * 1.1; // Broad shoulders
+                const bagW = hW * 1.15; // Bulge wider than hips
+                const bagH = hW * 1.0; // Elastic hem matches hips
 
                 const dropY = shoulderY + h * 0.15; // Shoulders start lower/sloped
                 const hemY = hipY + h * 0.05; // Slightly longer
@@ -6124,13 +6124,14 @@ var BallRenderer = {
             }
             else if (fitType === 'boxy') {
                 // RECTANGLE SHAPE (Hard lines, no taper)
-                const boxW = sW * 1.05; // Square frame
+                // Straight down from shoulders
+                const boxS = sW * 1.1;
 
                 points = [
-                    {x: cx - boxW/2, y: shoulderY},
-                    {x: cx + boxW/2, y: shoulderY},
-                    {x: cx + boxW/2, y: hipY}, // Straight down
-                    {x: cx - boxW/2, y: hipY}  // Straight down
+                    {x: cx - boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: hipY + h*0.05}, // Straight down
+                    {x: cx - boxS/2, y: hipY + h*0.05}  // Straight down
                 ];
             }
             else if (fitType === 'robe') {
@@ -7918,38 +7919,40 @@ var BallRenderer = {
         return pattern;
     }
 
-    function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
-        // V-Taper Jersey
+    function drawJersey(cx, topY, baseW, h, scale, skinObj, anchors = null) {
+        // baseW passed here is now the HIP WIDTH (matching pants)
         const color = skinObj.jerseyColor || '#FFF';
 
         let slX, srX, sY, blX, brX, bY;
 
+        // Base Dimensions relative to Hip Width
+        // "Shoulder width just a bit larger than hips" -> 1.2x hips
+        const baseShoulderW = baseW * 1.2;
+        const baseWaistW = baseW; // Exact match to hips
+
         if (anchors && anchors.shoulders) {
-            // Narrow shoulders by 10% for the jersey fabric
-            slX = cx + (anchors.shoulders.left.x - cx) * 0.9;
-            srX = cx + (anchors.shoulders.right.x - cx) * 0.9;
+            // If we have anchors, prioritize them but nudge towards our new ideal proportion
+            // Calculate anchor widths
+            const anchorSW = (anchors.shoulders.right.x - anchors.shoulders.left.x);
+            // Blend anchor with ideal (Weighted towards ideal for "clothing" shape)
+            const targetSW = Math.max(anchorSW, baseShoulderW);
+
+            slX = cx - targetSW/2;
+            srX = cx + targetSW/2;
             sY = anchors.shoulders.left.y;
 
-            // For bottom, use hips if available, otherwise calculate from width
-            // Jersey tucks into shorts, so align with hip joints
-            if (anchors.hips) {
-                blX = anchors.hips.left.x;
-                brX = anchors.hips.right.x;
-                bY = anchors.hips.left.y; // Assuming roughly level
-            } else {
-                const waistW = w * 0.95;
-                blX = cx - waistW/2;
-                brX = cx + waistW/2;
-                bY = topY + h;
-            }
+            // For bottom, force alignment with baseWaistW (Hips)
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
+            bY = topY + h;
         } else {
-            const shoulderW = w * 1.6;
-            const waistW = w * 0.95;
-            slX = cx - shoulderW/2;
-            srX = cx + shoulderW/2;
+            // Standard Construction
+            slX = cx - baseShoulderW/2;
+            srX = cx + baseShoulderW/2;
             sY = topY;
-            blX = cx - waistW/2;
-            brX = cx + waistW/2;
+
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
             bY = topY + h;
         }
 
@@ -7966,42 +7969,51 @@ var BallRenderer = {
         else if (ct === 'robe') fitType = 'robe';
         else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
 
+        // Calculate Relative Widths from our new standard baselines
+        const halfHip = waistW / 2;
+        const halfShoulder = shoulderW / 2;
+
         // DRAW PATH BASED ON FIT
         ctx.beginPath();
 
         if (fitType === 'baggy') {
-            // Pear shape: Sloped shoulders, wide bottom, gathered hem
-            const slopeY = sY + h * 0.15;
-            const bulgeW = (srX - cx) * 1.25; // Wider than shoulders at waist
-            const hemW = (brX - cx) * 1.15;
+            // Pear shape: Shoulders sloped, body wider than hips
+            const slopeY = sY + h * 0.1;
+            // Bulge width slightly larger than hips (1.1x)
+            const bulgeW = halfHip * 1.15;
+            // Hem width matches hips (1.0x) or slightly gathered (0.95x)? User said "base off hips".
+            // Let's make hem match hips exactly for "physical correctness" of elastic band.
+            const hemW = halfHip * 1.0;
 
             // Shoulders (Sloped down)
-            ctx.moveTo(slX - shoulderW*0.05, slopeY); // Top Left (Out and Down)
-            ctx.quadraticCurveTo(cx, sY - h*0.05, srX + shoulderW*0.05, slopeY); // Neck arc
+            ctx.moveTo(slX, slopeY);
+            ctx.quadraticCurveTo(cx, sY - h*0.05, srX, slopeY); // Neck arc
 
-            // Right Side (Bulge out then in)
+            // Right Side (Bulge out then in to hip)
             ctx.bezierCurveTo(cx + bulgeW, sY + h*0.5, cx + hemW, bY, cx + hemW, bY + h*0.05);
 
-            // Hem (Straight/Curved down)
+            // Hem
             ctx.quadraticCurveTo(cx, bY + h*0.1, cx - hemW, bY + h*0.05);
 
             // Left Side
-            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX - shoulderW*0.05, slopeY);
+            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX, slopeY);
         }
         else if (fitType === 'boxy') {
-            // Rectangle: Broad shoulders, straight sides
-            const boxS = (srX - cx) * 1.05; // Wider shoulders
+            // Rectangle: Shoulders = Hips = Box
+            // User said shoulder width > hips. Boxy jacket falls straight from shoulders?
+            // If shoulders > hips, straight down means hem > hips.
+            // Let's conform to shoulders.
 
-            ctx.moveTo(cx - boxS, sY);
-            ctx.lineTo(cx + boxS, sY); // Flat top
-            ctx.lineTo(cx + boxS, bY + h*0.05); // Straight down
-            ctx.lineTo(cx - boxS, bY + h*0.05); // Straight bottom
-            ctx.lineTo(cx - boxS, sY);
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(srX, bY + h*0.05); // Straight down from shoulder
+            ctx.lineTo(slX, bY + h*0.05);
+            ctx.lineTo(slX, sY);
         }
         else if (fitType === 'robe') {
             // Trapezoid: Flared bottom
-            const robeBot = (brX - cx) * 1.5;
-            const robeLen = h * 1.3; // Longer
+            const robeBot = halfHip * 1.5;
+            const robeLen = h * 1.3;
 
             ctx.moveTo(slX, sY);
             ctx.lineTo(srX, sY);
@@ -8010,15 +8022,16 @@ var BallRenderer = {
             ctx.lineTo(slX, sY);
         }
         else if (fitType === 'fitted') {
-            // V-Shape: Broad shoulders, narrow waist
-            const fitS = (srX - cx) * 1.05;
-            const fitW = (brX - cx) * 0.95; // Snatched waist
+            // V-Shape: Follows the base dimensions exactly (which are already V-shaped: 1.2x -> 1.0x)
+            // Just slightly tighter at the waist/midsection?
+            const waistPinch = halfHip * 0.9;
 
-            ctx.moveTo(cx - fitS, sY);
-            ctx.lineTo(cx + fitS, sY);
-            ctx.lineTo(cx + fitW, bY);
-            ctx.lineTo(cx - fitW, bY);
-            ctx.lineTo(cx - fitS, sY);
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            // Taper in
+            ctx.quadraticCurveTo(cx + waistPinch, sY + h*0.6, brX, bY);
+            ctx.lineTo(blX, bY);
+            ctx.quadraticCurveTo(cx - waistPinch, sY + h*0.6, slX, sY);
         }
         else {
             // Standard Jersey (Existing logic)
@@ -9950,11 +9963,14 @@ var BallRenderer = {
         // Torso & Shorts
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
+        // Calculate HIP WIDTH standard (Matches pants)
+        const hipWidth = reducedBodyW * 1.05;
+
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
+        drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
@@ -9968,7 +9984,8 @@ var BallRenderer = {
         } else if (skinObj.jerseyType === 'link_tunic') {
              drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
         } else {
-             drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
+             // Pass hipWidth as the base width for jersey construction
+             drawJersey(p.x, torsoY, hipWidth, jerseyH, s, skinObj, anchors);
         }
 
         if (skinObj.jerseyName) {
