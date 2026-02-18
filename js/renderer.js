@@ -3924,22 +3924,86 @@ var BallRenderer = {
         const bottomY = bY;
         const armpitY = sY + h * 0.4;
 
+        // DETERMINE FIT TYPE
+        let fitType = 'standard';
+        const ct = skinObj.clothingType;
+        if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+        else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+        else if (ct === 'robe') fitType = 'robe';
+        else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
+
+        // DRAW PATH BASED ON FIT
         ctx.beginPath();
-        ctx.moveTo(slX, sY);
-        // Gentle neck curve (High back collar)
-        ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
 
-        // Right side
-        ctx.lineTo(srX, armpitY);
-        // Curve from armpit to bottom right (hip)
-        ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+        if (fitType === 'baggy') {
+            // Pear shape: Sloped shoulders, wide bottom, gathered hem
+            const slopeY = sY + h * 0.15;
+            const bulgeW = (srX - cx) * 1.5; // Wider than shoulders at waist
+            const hemW = (brX - cx) * 1.2;
 
-        // Bottom curve (Tuck)
-        ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+            // Shoulders (Sloped down)
+            ctx.moveTo(slX - shoulderW*0.1, slopeY); // Top Left (Out and Down)
+            ctx.quadraticCurveTo(cx, sY - h*0.05, srX + shoulderW*0.1, slopeY); // Neck arc
 
-        // Left side
-        ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
-        ctx.lineTo(slX, sY);
+            // Right Side (Bulge out then in)
+            ctx.bezierCurveTo(cx + bulgeW, sY + h*0.5, cx + hemW, bY, cx + hemW, bY + h*0.05);
+
+            // Hem (Straight/Curved down)
+            ctx.quadraticCurveTo(cx, bY + h*0.1, cx - hemW, bY + h*0.05);
+
+            // Left Side
+            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX - shoulderW*0.1, slopeY);
+        }
+        else if (fitType === 'boxy') {
+            // Rectangle: Broad shoulders, straight sides
+            const boxS = (srX - cx) * 1.2; // Wider shoulders
+
+            ctx.moveTo(cx - boxS, sY);
+            ctx.lineTo(cx + boxS, sY); // Flat top
+            ctx.lineTo(cx + boxS, bY + h*0.05); // Straight down
+            ctx.lineTo(cx - boxS, bY + h*0.05); // Straight bottom
+            ctx.lineTo(cx - boxS, sY);
+        }
+        else if (fitType === 'robe') {
+            // Trapezoid: Flared bottom
+            const robeBot = (brX - cx) * 1.8;
+            const robeLen = h * 1.3; // Longer
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(cx + robeBot, sY + robeLen);
+            ctx.lineTo(cx - robeBot, sY + robeLen);
+            ctx.lineTo(slX, sY);
+        }
+        else if (fitType === 'fitted') {
+            // V-Shape: Broad shoulders, narrow waist
+            const fitS = (srX - cx) * 1.1;
+            const fitW = (brX - cx) * 0.85;
+
+            ctx.moveTo(cx - fitS, sY);
+            ctx.lineTo(cx + fitS, sY);
+            ctx.lineTo(cx + fitW, bY);
+            ctx.lineTo(cx - fitW, bY);
+            ctx.lineTo(cx - fitS, sY);
+        }
+        else {
+            // Standard Jersey (Existing logic)
+            ctx.moveTo(slX, sY);
+            // Gentle neck curve (High back collar)
+            ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
+
+            // Right side
+            ctx.lineTo(srX, armpitY);
+            // Curve from armpit to bottom right (hip)
+            ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+
+            // Bottom curve (Tuck)
+            ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+
+            // Left side
+            ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
+            ctx.lineTo(slX, sY);
+        }
 
         ctx.closePath();
 
