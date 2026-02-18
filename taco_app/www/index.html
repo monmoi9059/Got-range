@@ -11962,6 +11962,30 @@ var BallRenderer = {
             ctx.restore();
         }
     }
+    // Expose helpers for 3D Renderer texture generation
+    window.drawPlayerToCanvas = function(targetCtx, p) {
+         const oldCtx = ctx;
+         ctx = targetCtx;
+         // p must have {x, y, scale}
+         _drawPlayerInternal(p);
+         ctx = oldCtx;
+    };
+
+    window.drawBallToCanvas = function(targetCtx, w, h, ballObj, rotation) {
+        const oldCtx = ctx;
+        ctx = targetCtx;
+
+        // BallRenderer.draw(ctx, x, y, scale, rotation, ball, phys)
+        // Radius is 25 * scale. We want diameter slightly less than w.
+        // w=64. radius=30. scale = 30/25 = 1.2
+        const r = Math.min(w, h) / 2;
+        const scale = (r * 0.9) / 25;
+
+        BallRenderer.draw(ctx, w/2, h/2, scale, rotation, ballObj, null);
+
+        ctx = oldCtx;
+    };
+
     // Achievement Logic Helpers
     function drawSplitscreenHUD() {
         const w = window.LOGICAL_WIDTH;
@@ -12049,10 +12073,13 @@ var Renderer3D = {
     // Objects
     floor: null,
     hoopGroup: null,
-    playerGroup: null,
-    playerParts: { lArm: null, rArm: null },
+    playerMesh: null,
+    playerTexture: null,
     ballMeshes: [], // Pool of ball meshes
     decorGroup: null,
+
+    // Textures
+    ballTextures: {}, // Cache
 
     // State
     initialized: false,
@@ -12103,7 +12130,7 @@ var Renderer3D = {
         // 5. World
         this.createFloor();
         this.createHoop();
-        this.createPlayer();
+        this.createPlayerSprite(); // 2D Sprite in 3D
         this.createDecorContainer();
 
         // 6. Pre-allocate balls
@@ -12114,7 +12141,7 @@ var Renderer3D = {
     },
 
     createLighting: function() {
-        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
         this.scene.add(ambientLight);
 
         const dirLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
@@ -12134,19 +12161,37 @@ var Renderer3D = {
     },
 
     createFloor: function() {
-        const geometry = new THREE.PlaneGeometry(100000, 100000);
+        // Create Canvas Texture for Floor Gradient
+        const fCv = document.createElement('canvas');
+        fCv.width = 512;
+        fCv.height = 512;
+        this.floorTexture = new THREE.CanvasTexture(fCv);
+
+        const geometry = new THREE.PlaneGeometry(2000, 4000); // Court size approx
         const material = new THREE.MeshStandardMaterial({
-            color: 0x228B22,
+            map: this.floorTexture,
             roughness: 0.8
         });
 
         this.floor = new THREE.Mesh(geometry, material);
         this.floor.rotation.x = -Math.PI / 2;
+        this.floor.position.z = -500; // Shift back so 0 is near 3pt line
         this.floor.receiveShadow = true;
         this.scene.add(this.floor);
+
+        // Infinite Grass/Base Plane below
+        const baseGeo = new THREE.PlaneGeometry(100000, 100000);
+        const baseMat = new THREE.MeshBasicMaterial({ color: 0x228B22 }); // Default grass
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.rotation.x = -Math.PI / 2;
+        base.position.y = -1; // Slightly below court
+        this.scene.add(base);
+        this.baseFloor = base;
     },
 
     createHoop: function() {
+        // Reuse basic hoop for now, maybe billboard later?
+        // Let's stick to 3D primitives for hoop but colored correctly
         this.hoopGroup = new THREE.Group();
 
         const rimHeight = 130;
@@ -12190,45 +12235,72 @@ var Renderer3D = {
         this.scene.add(this.hoopGroup);
     },
 
-    createPlayer: function() {
-        this.playerGroup = new THREE.Group();
+    createPlayerSprite: function() {
+        // Dynamic Canvas Texture
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = 512;
+        pCanvas.height = 512;
 
-        const mat = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
+        this.playerTexture = new THREE.CanvasTexture(pCanvas);
+        this.playerTexture.minFilter = THREE.LinearFilter;
+        this.playerTexture.magFilter = THREE.LinearFilter;
 
-        // Body
-        const body = new THREE.Mesh(new THREE.BoxGeometry(30, 50, 20), mat);
-        body.position.y = 50;
-        body.castShadow = true;
-        this.playerGroup.add(body);
+        // Sprite Material (Transparent)
+        const mat = new THREE.MeshBasicMaterial({
+            map: this.playerTexture,
+            transparent: true,
+            side: THREE.DoubleSide,
+            alphaTest: 0.1
+        });
 
-        // Head
-        const head = new THREE.Mesh(new THREE.SphereGeometry(15, 16, 16), mat);
-        head.position.y = 85;
-        head.castShadow = true;
-        this.playerGroup.add(head);
+        // Player is roughly 100x200 in game pixels.
+        // Scale factor: 1 unit = 1 pixel.
+        // Plane size: 250 x 250 to fit the 512x512 texture.
+        const geo = new THREE.PlaneGeometry(250, 250);
 
-        // Arms
-        const armGeo = new THREE.CylinderGeometry(4, 4, 30);
-        armGeo.translate(0, -15, 0); // Pivot at top
+        this.playerMesh = new THREE.Mesh(geo, mat);
+        this.playerMesh.castShadow = true;
+        this.playerMesh.customDepthMaterial = new THREE.MeshDepthMaterial({
+            depthPacking: THREE.RGBADepthPacking,
+            map: this.playerTexture,
+            alphaTest: 0.5
+        });
 
-        const lArm = new THREE.Mesh(armGeo, mat);
-        lArm.position.set(-20, 70, 0);
-        this.playerGroup.add(lArm);
-        this.playerParts.lArm = lArm;
+        this.scene.add(this.playerMesh);
+    },
 
-        const rArm = new THREE.Mesh(armGeo, mat);
-        rArm.position.set(20, 70, 0);
-        this.playerGroup.add(rArm);
-        this.playerParts.rArm = rArm;
+    updatePlayerTexture: function() {
+        if (!this.playerMesh || !window.drawPlayerToCanvas) return;
 
-        this.scene.add(this.playerGroup);
+        const texture = this.playerTexture;
+        const canvas = texture.image;
+        const ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Mock a player object similar to what render.js expects for 'p'
+        // p must have {x, y, scale}
+        // We draw at center of canvas
+        const p = {
+            x: canvas.width / 2,
+            y: canvas.height * 0.8, // Feet near bottom
+            scale: 2.0, // Scale up for hi-res texture
+            type: 'player'
+        };
+
+        window.drawPlayerToCanvas(ctx, p);
+
+        texture.needsUpdate = true;
     },
 
     createBallPool: function(count) {
+        // Reuse one geometry
+        // 32x32 sphere approx radius 12
         const geo = new THREE.SphereGeometry(12, 32, 32);
-        const mat = new THREE.MeshStandardMaterial({ color: 0xFF8800, roughness: 0.4 });
 
         for(let i=0; i<count; i++) {
+            // Material will be assigned dynamically based on ball type
+            const mat = new THREE.MeshStandardMaterial({ color: 0xFF8800 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
@@ -12236,6 +12308,29 @@ var Renderer3D = {
             this.scene.add(mesh);
             this.ballMeshes.push(mesh);
         }
+    },
+
+    getBallTexture: function(ballId) {
+        if (this.ballTextures[ballId]) return this.ballTextures[ballId];
+
+        // Generate texture
+        const size = 128;
+        const cvs = document.createElement('canvas');
+        cvs.width = size; cvs.height = size;
+        const ctx = cvs.getContext('2d');
+
+        const ballObj = BALLS_DB.find(b => b.id === ballId) || BALLS_DB[0];
+
+        // Use the renderer helper
+        if (window.drawBallToCanvas) {
+            window.drawBallToCanvas(ctx, size, size, ballObj, 0);
+        } else {
+            ctx.fillStyle = 'orange'; ctx.fillRect(0,0,size,size);
+        }
+
+        const tex = new THREE.CanvasTexture(cvs);
+        this.ballTextures[ballId] = tex;
+        return tex;
     },
 
     createDecorContainer: function() {
@@ -12250,54 +12345,83 @@ var Renderer3D = {
         this.renderer.setSize(w, h);
     },
 
+    updateEnvironment: function() {
+        // Update Sky Color based on Court
+        let court;
+        if (typeof getCourtDetails === 'function') {
+            const currentDist = 10 + (distanceLevel * 5);
+            court = getCourtDetails(currentDist);
+        }
+
+        if (court) {
+             // Simple hex parse or just use top color for fog
+             // Sky gradient is hard in Three without a shader skybox
+             // We can set fog to average sky color
+             this.scene.background = new THREE.Color(court.sky1 || 0x87CEEB);
+             this.scene.fog.color = new THREE.Color(court.sky2 || 0x87CEEB);
+
+             // Update Floor Texture
+             const tex = this.floorTexture;
+             const cvs = tex.image;
+             const ctx = cvs.getContext('2d');
+
+             // Draw Gradient
+             const grad = ctx.createLinearGradient(0, 0, 0, 512);
+             grad.addColorStop(0, court.ground1 || '#228B22');
+             grad.addColorStop(1, court.ground2 || '#32CD32');
+             ctx.fillStyle = grad;
+             ctx.fillRect(0, 0, 512, 512);
+
+             tex.needsUpdate = true;
+
+             // Update infinite base color to match ground1 (horizon)
+             if (this.baseFloor) {
+                 this.baseFloor.material.color.setStyle(court.ground1 || '#228B22');
+             }
+        }
+    },
+
     update: function(dt) {
         if (!this.initialized) return;
+
+        this.updateEnvironment();
 
         if (window.g_camSmooth) {
             const cx = window.g_camSmooth.x;
             const cy = window.g_camSmooth.y;
-            this.camera.position.set(cx, 400, cy + 600);
-            this.camera.lookAt(cx, 100, cy - 200);
+
+            // Camera Logic (Third Person)
+            const camOffsetZ = 600; // Closer for sprite details
+            const camOffsetY = 300;
+
+            this.camera.position.set(cx, camOffsetY, cy + camOffsetZ);
+
+            // Look slightly ahead
+            const lookTargetZ = cy - 400;
+            const lookTargetY = 150;
+
+            this.camera.lookAt(cx, lookTargetY, lookTargetZ);
         }
 
-        if (window.player3D) {
-            this.playerGroup.position.set(player3D.x, player3D.z, player3D.y);
+        if (window.player3D && this.playerMesh) {
+            // Position
+            this.playerMesh.position.set(player3D.x, player3D.z + 125, player3D.y); // +125 to align feet (plane center is 0,0)
 
-            // Animation
-            if (window.g_animState) {
-                // Map 2D angles to 3D rotations
-                // 2D: 0 is Right, PI/2 is Down.
-                // 3D Arms: Default vertical down is rotation 0 (if geometry is vertical)
-                // My geometry is pivot at top, length -30 (down).
-                // So rotation 0 points down.
+            // Rotation - Always face camera (Billboard) or fixed?
+            // "Third person facing basket" implies back view.
+            // Our 2D drawing IS the back view.
+            // So the sprite should face the camera (which is behind the player).
+            // Camera is at +Z relative to player.
+            // Sprite faces +Z by default.
+            // So rotation 0 is correct.
+            // But we might want it to "Billboard" slightly if camera moves side to side?
+            // For now, strict back view is consistent with original 2D.
+             this.playerMesh.lookAt(this.camera.position.x, this.playerMesh.position.y, this.camera.position.z);
 
-                // 2D Angle conversion:
-                // Down is PI/2. Up is -PI/2.
-                // 3D X Rot: 0 is Down? No, depends on mapping.
-                // 2D: Up (-PI/2) -> Should be Arm Up (X Rot 180?)
-
-                // Simplified mapping:
-                // 2D Left Arm (shoulder): la
-                // 2D Right Arm (shoulder): ra
-
-                const leftAngle = g_animState.la;
-                const rightAngle = g_animState.ra;
-
-                // Map:
-                // PI/2 (Down) -> 0
-                // 0 (Right/Out) -> -PI/2 (Z axis)
-                // -PI/2 (Up) -> -PI
-
-                // Actually, shooting motion is forward (X axis rotation).
-                // Let's map (angle - PI/2) to X rotation.
-
-                if (this.playerParts.lArm) {
-                    this.playerParts.lArm.rotation.x = -(leftAngle - Math.PI/2);
-                }
-                if (this.playerParts.rArm) {
-                    this.playerParts.rArm.rotation.x = -(rightAngle - Math.PI/2);
-                }
-            }
+            // Update Texture Animation every frame?
+            // Only if anim state changes significantly?
+            // To animate smoothly, we need to update every frame.
+            this.updatePlayerTexture();
         }
 
         this.ballMeshes.forEach(b => b.visible = false);
@@ -12308,8 +12432,18 @@ var Renderer3D = {
                     const mesh = this.ballMeshes[i];
                     mesh.visible = true;
                     mesh.position.set(b.x, b.z, b.y);
+
                     mesh.rotation.x = b.rotationX;
                     mesh.rotation.y = b.rotationY || 0;
+
+                    // Update Material/Texture based on ID
+                    const ballId = playerData.currentBall || 'ball_classic';
+                    // Optimization: Only update map if changed (not implementing deep check for now)
+                    if (!mesh.material.map || mesh.userData.ballId !== ballId) {
+                         mesh.material.map = this.getBallTexture(ballId);
+                         mesh.userData.ballId = ballId;
+                         mesh.material.needsUpdate = true;
+                    }
                 }
             });
         }

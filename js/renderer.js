@@ -7960,6 +7960,30 @@ var BallRenderer = {
             ctx.restore();
         }
     }
+    // Expose helpers for 3D Renderer texture generation
+    window.drawPlayerToCanvas = function(targetCtx, p) {
+         const oldCtx = ctx;
+         ctx = targetCtx;
+         // p must have {x, y, scale}
+         _drawPlayerInternal(p);
+         ctx = oldCtx;
+    };
+
+    window.drawBallToCanvas = function(targetCtx, w, h, ballObj, rotation) {
+        const oldCtx = ctx;
+        ctx = targetCtx;
+
+        // BallRenderer.draw(ctx, x, y, scale, rotation, ball, phys)
+        // Radius is 25 * scale. We want diameter slightly less than w.
+        // w=64. radius=30. scale = 30/25 = 1.2
+        const r = Math.min(w, h) / 2;
+        const scale = (r * 0.9) / 25;
+
+        BallRenderer.draw(ctx, w/2, h/2, scale, rotation, ballObj, null);
+
+        ctx = oldCtx;
+    };
+
     // Achievement Logic Helpers
     function drawSplitscreenHUD() {
         const w = window.LOGICAL_WIDTH;
