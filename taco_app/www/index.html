@@ -4089,10 +4089,11 @@ var BallRenderer = {
 
         // Logic for gradients
         if (['basketball', 'money'].includes(type) && ball.color2) {
-            // Dual color balls rely on pattern, but base needs to be one of them or gradient
-            // Standard basketball uses gradient logic
-            grad.addColorStop(0, ball.color1);
-            grad.addColorStop(1, ball.color2);
+            // ABA/Money balls (Tri-color panels) should have a neutral base to avoid color bleed
+            // The panels will be drawn in drawPattern
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+            return; // Skip standard gradient
         } else {
             // Single color balls
             grad.addColorStop(0, color);
