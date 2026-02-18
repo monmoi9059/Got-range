@@ -2493,6 +2493,107 @@ var BallRenderer = {
             ctx.fillRect(cx - w*2, topY, w*4, h * 0.25);
             ctx.restore();
         }
+
+        // --- NEW CLOTHING GEOMETRY OVERLAY ---
+        if (options.skinId && options.clothingType) {
+            const cType = options.clothingType;
+            const cStyle = options.clothingStyle;
+            const cMat = options.clothingMaterial;
+
+            // 1. PUFFER TEXTURE (Horizontal Segments)
+            if (cStyle === 'puffer') {
+                ctx.save();
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true); // Clip
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2*scale;
+                const numSegs = 6;
+                for(let i=1; i<numSegs; i++) {
+                    const y = topY + (h * (i/numSegs));
+                    // Curved line for volume
+                    ctx.beginPath();
+                    ctx.moveTo(cx - w, y);
+                    ctx.quadraticCurveTo(cx, y + 5*scale, cx + w, y);
+                    ctx.stroke();
+
+                    // Highlight top of puff
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(cx - w, y - (h/numSegs)*0.8, w*2, (h/numSegs)*0.4);
+                }
+                ctx.restore();
+            }
+
+            // 2. ROBE (Long Skirt)
+            if (cType === 'robe') {
+                const robeLen = h * 1.2;
+                const skirtY = topY + h * 0.8;
+                const baseW = w * 1.5;
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(cx - w*0.9, skirtY);
+                ctx.lineTo(cx + w*0.9, skirtY);
+                ctx.lineTo(cx + baseW, skirtY + robeLen);
+                ctx.lineTo(cx - baseW, skirtY + robeLen);
+                ctx.fill();
+
+                // Center Split / Fold
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*scale;
+                ctx.beginPath(); ctx.moveTo(cx, skirtY); ctx.lineTo(cx, skirtY + robeLen); ctx.stroke();
+            }
+
+            // 3. COLLARS (Jacket/Vest/Robe)
+            if (['jacket', 'vest', 'robe'].includes(cType)) {
+                ctx.fillStyle = options.clothingTrim ? options.clothingTrim : adjustColor(color, -20);
+                // Collar geometry behind neck
+                ctx.beginPath();
+                ctx.moveTo(cx - w*0.5, topY + 5*scale);
+                ctx.quadraticCurveTo(cx, topY - 5*scale, cx + w*0.5, topY + 5*scale); // Back curve
+                ctx.lineTo(cx + w*0.6, topY + 12*scale);
+                ctx.lineTo(cx + w*0.4, topY + 12*scale);
+                ctx.quadraticCurveTo(cx, topY + 2*scale, cx - w*0.4, topY + 12*scale);
+                ctx.lineTo(cx - w*0.6, topY + 12*scale);
+                ctx.fill();
+            }
+
+            // 4. MATERIAL EFFECTS
+            if (cMat === 'leather') {
+                 // High Specular
+                 ctx.save();
+                 // Re-clip to body
+                 // (Simplified clip rect for performance)
+                 ctx.beginPath(); ctx.rect(cx-w, topY, w*2, h); ctx.clip();
+
+                 const grad = ctx.createLinearGradient(cx-w, topY, cx+w, topY);
+                 grad.addColorStop(0.2, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.3, 'rgba(255,255,255,0.2)'); // Sharp highlight
+                 grad.addColorStop(0.4, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.7, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.8, 'rgba(255,255,255,0.15)');
+                 ctx.fillStyle = grad;
+                 ctx.fill();
+                 ctx.restore();
+            }
+
+            // 5. VARSITY DETAILS
+            if (cStyle === 'varsity') {
+                // Ribbed Waistband
+                ctx.fillStyle = '#FFF'; // Default white trim if no sleeve color available, but we can't access skinObj here easily. Assume white/contrast.
+                ctx.fillRect(cx - w, topY + h - 10*scale, w*2, 10*scale);
+                // Stripes on waistband
+                ctx.fillStyle = color;
+                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 2*scale);
+                ctx.fillRect(cx - w, topY + h - 4*scale, w*2, 2*scale);
+            }
+        }
     }
 
 
@@ -3444,83 +3545,228 @@ var BallRenderer = {
 
         function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s) {
         type = type || 'sneakers';
-        const soleColor = '#DDD';
+        const soleColor = '#EEE';
         const laceColor = detailColor || 'rgba(0,0,0,0.3)';
 
-        // Shadow/Base
-        ctx.fillStyle = soleColor;
-        ctx.beginPath();
+        ctx.save();
+        ctx.translate(x, y);
 
-        if (type === 'boots' || type === 'boots_heavy') {
-             ctx.ellipse(x, y + h*0.2, w*1.1, h*0.5, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.strokeStyle = '#333'; ctx.lineWidth=1; ctx.stroke();
+        // Helper for mirroring details based on foot
+        // Note: Render logic here assumes back view.
+        // Left foot (isRight=false) is on left of screen. Right foot is on right.
+        // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
+        const sideMult = isRight ? 1 : -1;
 
+        if (type === 'foam') {
+            // Yeezy Foam Runner (Blobby, porous)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            // Organic Shape
+            ctx.moveTo(-w*0.6, -h*0.5);
+            ctx.quadraticCurveTo(-w, 0, -w*0.8, h*0.5);
+            ctx.quadraticCurveTo(0, h*0.8, w*0.8, h*0.5);
+            ctx.quadraticCurveTo(w, 0, w*0.6, -h*0.5);
+            ctx.fill();
+
+            // Holes
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            const holes = [[0,0,0.3], [0.5,0.2,0.2], [-0.5,0.2,0.2], [0, -0.3, 0.25]];
+            holes.forEach(p => {
+                ctx.beginPath();
+                ctx.ellipse(p[0]*w, p[1]*h, p[2]*w, p[2]*h*0.6, 0, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+        } else if (type === 'hightop_canvas') {
+            // Converse (Canvas texture, toe cap, logo)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(w*0.8, h*0.3); ctx.stroke();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.75, -h*0.8, w*1.5, h*0.9);
+
+            // White stitching
+            ctx.strokeStyle = '#FFF'; ctx.setLineDash([2*s, 2*s]);
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.8); ctx.lineTo(-w*0.4, h*0.1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w*0.4, -h*0.8); ctx.lineTo(w*0.4, h*0.1); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Star Logo (Inner side)
+            // Left foot: Inner is Right side. Right foot: Inner is Left side.
+            const logoX = isRight ? -w*0.5 : w*0.5;
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(logoX, -h*0.2, w*0.25, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'blue';
+            ctx.beginPath(); ctx.moveTo(logoX, -h*0.25); ctx.lineTo(logoX+2*s, -h*0.15); ctx.lineTo(logoX-2*s, -h*0.15); ctx.fill();
+
+        } else if (type === 'slipon') {
+            // Vans (Low, wide, pattern)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w*0.95, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, 0, w*0.9, h*0.5, 0, Math.PI, 0); ctx.fill();
+
+            // Checkerboard Pattern
+            if (color === '#FFF') { // Hack for checkerboard ID
+                ctx.fillStyle = '#000';
+                const size = 4*s;
+                for(let i=-2; i<=2; i++) {
+                    for(let j=-2; j<=0; j++) {
+                        if((i+j)%2===0) ctx.fillRect(i*size, j*size, size, size);
+                    }
+                }
+            }
+
+        } else if (type === 'retro_bulky' || type === 'retro') {
+            // Jordan 4 / Yeezy 2 (Bulky tech)
+
+            // Sole (Chunky)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath();
+            ctx.moveTo(-w, h*0.5); ctx.lineTo(w, h*0.5); ctx.lineTo(w*0.9, 0); ctx.lineTo(-w*0.9, 0);
+            ctx.fill();
+
+            // Midsole Detail
+            if (type === 'retro_bulky') {
+                ctx.fillStyle = detailColor; // Mudguard
+                ctx.beginPath(); ctx.arc(0, 0, w*0.9, 0, Math.PI, true); ctx.fill();
+
+                // Air Bubble
+                ctx.fillStyle = 'rgba(0,255,255,0.5)';
+                ctx.fillRect(-w*0.3, h*0.2, w*0.6, h*0.2);
+            }
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, 0); ctx.lineTo(-w*0.7, -h*0.8); // High collar
+            ctx.lineTo(w*0.7, -h*0.8); ctx.lineTo(w*0.8, 0);
+            ctx.fill();
+
+            // Plastic Wings / Straps
+            ctx.fillStyle = detailColor;
+            if (type === 'retro_bulky') {
+                // Triangle Wings
+                ctx.beginPath(); ctx.moveTo(-w*0.7, -h*0.2); ctx.lineTo(-w*0.8, -h*0.6); ctx.lineTo(-w*0.5, -h*0.4); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(w*0.7, -h*0.2); ctx.lineTo(w*0.8, -h*0.6); ctx.lineTo(w*0.5, -h*0.4); ctx.fill();
+                // Heel Tab
+                ctx.fillRect(-w*0.4, -h*0.8, w*0.8, h*0.4);
+            } else {
+                // Spikes/Scales (Yeezy 2)
+                ctx.strokeStyle = detailColor;
+                for(let i=0; i<5; i++) {
+                     ctx.beginPath(); ctx.moveTo(-w*0.8, -h*0.8 + i*5*s); ctx.lineTo(w*0.8, -h*0.8 + i*5*s); ctx.stroke();
+                }
+            }
+
+        } else if (type === 'hightop_future') {
+            // Mag
+            ctx.fillStyle = '#EEE'; // Sole
+            ctx.fillRect(-w*0.9, h*0.2, w*1.8, h*0.3);
+            // Lights
+            ctx.fillStyle = detailColor; ctx.shadowBlur = 5*s; ctx.shadowColor = detailColor;
+            ctx.fillRect(-w*0.4, h*0.3, 5*s, 5*s);
+            ctx.shadowBlur = 0;
+
+            // Tall Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.8, -h*1.2, w*1.6, h*1.4);
+            // Straps
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.85, -h*1.0, w*1.7, h*0.2);
+            ctx.fillStyle = 'rgba(0,255,255,0.5)'; // Light up logo
+            ctx.fillText("AIR", -w*0.3, -h*1.0 + 10*s);
+
+        } else if (type === 'boots_work' || type === 'boots') {
+            // Timberland
+            ctx.fillStyle = '#333'; // Lug Sole
+            ctx.fillRect(-w*0.9, h*0.3, w*1.8, h*0.2);
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(-w*0.8, -h*0.8);
+            ctx.lineTo(w*0.8, -h*0.8); ctx.lineTo(w*0.8, h*0.3);
+            ctx.fill();
+
+            // Padded Collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.85, -h*0.9, w*1.7, h*0.25);
+
+            // Laces
+            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.2); ctx.lineTo(w*0.4, -h*0.2); ctx.stroke();
+
+        } else if (type === 'hightop') {
+            // J1 Style
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = color; // Main
+            ctx.beginPath(); ctx.arc(0, -h*0.2, w*0.9, 0, Math.PI*2); ctx.fill(); // Heel cup
+
+            ctx.fillStyle = detailColor; // Swoosh-like or panels
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.lineTo(w*0.4, h*0.2); ctx.lineTo(-w*0.4, h*0.2); ctx.fill(); // Tongue area
+
+            // High ankle collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.8, -h*0.8, w*1.6, h*0.4);
+
+        } else if (type === 'heels') {
              ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.moveTo(x - w*0.8, y + h*0.2);
-             ctx.lineTo(x - w*0.8, y - h*0.8); // High shaft
-             ctx.lineTo(x + w*0.8, y - h*0.8);
-             ctx.lineTo(x + w*0.8, y + h*0.2);
-             ctx.fill();
-
-             // Laces
-             ctx.strokeStyle = laceColor;
-             ctx.beginPath(); ctx.moveTo(x - w*0.3, y - h*0.5); ctx.lineTo(x + w*0.3, y - h*0.5); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(x - w*0.3, y - h*0.2); ctx.lineTo(x + w*0.3, y - h*0.2); ctx.stroke();
-             return;
-        }
-
-        if (type === 'hightop') {
-             ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-
-             ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.arc(x, y - h*0.3, w*0.9, 0, Math.PI*2); // Higher ankle
-             ctx.fill();
-
-             if (detailColor) {
-                 ctx.fillStyle = detailColor;
-                 ctx.beginPath(); ctx.arc(x, y - h*0.3, w*0.4, 0, Math.PI*2); ctx.fill();
-             }
-             return;
-        }
-
-        if (type === 'heels') {
-             ctx.fillStyle = color;
-             ctx.beginPath();
-             ctx.ellipse(x, y, w*0.8, h*0.3, 0, 0, Math.PI*2);
-             ctx.fill();
-             // Heel spike
+             ctx.beginPath(); ctx.ellipse(0, 0, w*0.8, h*0.3, 0, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = color; ctx.lineWidth = 3*s;
-             ctx.beginPath(); ctx.moveTo(x, y+h*0.3); ctx.lineTo(x, y+h*0.8); ctx.stroke();
-             return;
+             ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.lineTo(0, h*0.8); ctx.stroke();
+
+        } else if (type === 'sandals' || type === 'slides') {
+             ctx.fillStyle = '#D2B48C'; // Foot/Sole
+             ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = color; // Strap
+             ctx.fillRect(-w*0.8, -h*0.1, w*1.6, h*0.4);
+
+        } else if (type === 'cleats') {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.8, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+            // Studs
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(-w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+
+        } else if (type === 'slippers_bunny') {
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*1.1, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+            // Ears
+            ctx.fillStyle = 'pink';
+            ctx.beginPath(); ctx.ellipse(-w*0.4, -h*0.5, 3*s, 8*s, -0.3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(w*0.4, -h*0.5, 3*s, 8*s, 0.3, 0, Math.PI*2); ctx.fill();
+
+        } else {
+            // Default Sneakers (Low Top)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, -h*0.1, w*0.9, 0, Math.PI*2); ctx.fill();
+
+            // Tongue
+            ctx.fillStyle = detailColor || '#FFF';
+            ctx.beginPath(); ctx.arc(0, -h*0.3, w*0.5, Math.PI, 0); ctx.fill();
+
+            // Laces
+            ctx.strokeStyle = laceColor; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.3); ctx.lineTo(w*0.4, -h*0.3); ctx.stroke();
         }
 
-        if (type === 'sandals' || type === 'slides') {
-             ctx.fillStyle = '#D2B48C'; // Skin/Sole
-             ctx.beginPath(); ctx.ellipse(x, y + h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
-
-             ctx.fillStyle = color;
-             // Strap
-             ctx.fillRect(x - w*0.8, y - h*0.1, w*1.6, h*0.4);
-             return;
-        }
-
-        // Default Sneakers
-        ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.strokeStyle = laceColor;
-        ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
+        ctx.restore();
     }
 
     // --- OPTIMIZATION: Gradient Caching ---
@@ -5930,8 +6176,12 @@ var BallRenderer = {
                  }
 
                  // Remove conflicting built-in details
-                 if (['track', 'hoodie', 'sweatshirt'].includes(clothing.type)) {
+                 if (['track', 'hoodie', 'sweatshirt', 'jacket', 'vest', 'robe'].includes(clothing.type)) {
                      skinObj.clothingDetail = null; // Hide suspenders etc.
+                     skinObj.clothingType = clothing.type;
+                     skinObj.clothingStyle = clothing.style; // puffer, varsity, etc.
+                     skinObj.clothingMaterial = clothing.material; // leather, denim
+
                      // Track suits often have stripes
                      if(clothing.stripeColor) {
                          if (clothing.pattern === 'stripes_side') {
@@ -6280,13 +6530,19 @@ var BallRenderer = {
                     thisUpperColor = c.color; // T-Shirt covers upper arm
                     thisForeColor = furColor; // Forearm exposed
                     upperIsCovered = true;
-                } else if (['track', 'hoodie', 'sweatshirt'].includes(c.type)) {
+                } else if (['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(c.type)) {
                     // Long sleeves cover both
                     const sColor = c.sleeveColor || c.color;
                     thisUpperColor = sColor;
                     thisForeColor = sColor;
                     upperIsCovered = true;
                     foreIsCovered = true;
+                } else if (c.type === 'vest') {
+                    // Vest is sleeveless
+                    thisUpperColor = furColor;
+                    thisForeColor = furColor;
+                    upperIsCovered = false;
+                    foreIsCovered = false;
                 }
             } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
                 // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
@@ -6310,7 +6566,13 @@ var BallRenderer = {
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
-            const upperStartW = 7 * s * sizeMod.armWidth;
+            let upperStartW = 7 * s * sizeMod.armWidth;
+
+            // Bulky Jacket Sleeves
+            if (skinObj.clothingType === 'jacket') {
+                upperStartW *= 1.3;
+            }
+
             const upperEndW = upperStartW * taper;
             const foreStartW = upperEndW; // Seamless transition
             const foreEndW = foreStartW * taper;
@@ -6607,6 +6869,12 @@ var BallRenderer = {
         bodyOptions.isTabby = skin.includes('tabby');
         bodyOptions.chestStripeColor = skinObj.chestStripeColor;
         bodyOptions.sideStripesColor = skinObj.sideStripesColor;
+
+        // Pass Clothing Info
+        bodyOptions.clothingType = skinObj.clothingType;
+        bodyOptions.clothingStyle = skinObj.clothingStyle;
+        bodyOptions.clothingMaterial = skinObj.clothingMaterial;
+        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor);
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
