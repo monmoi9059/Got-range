@@ -5582,12 +5582,14 @@ var BallRenderer = {
             // Check Clothing Type
             if (skinObj.clothingType) {
                 const type = skinObj.clothingType;
+                const cColor = (skinObj.clothing && skinObj.clothing.color) ? skinObj.clothing.color : skinObj.jerseyColor;
+
                 if (['jacket', 'hoodie', 'robe', 'track', 'sweatshirt'].includes(type)) {
                     isBulky = true;
-                    clothColor = skinObj.clothing.color || skinObj.jerseyColor;
+                    clothColor = cColor;
                 } else if (type === 'tshirt') {
                     isPartial = true;
-                    clothColor = skinObj.clothing.color || skinObj.jerseyColor;
+                    clothColor = cColor;
                 }
             }
             // Fallback Legacy Jersey Types
