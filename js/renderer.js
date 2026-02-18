@@ -5551,20 +5551,6 @@ var BallRenderer = {
 
         const drawHumanArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
-            let uColor = skinTone, fColor = skinTone;
-            let activeSleeveColor = null;
-
-            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
-
-            if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
-            if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
-
-            if (activeSleeveColor) {
-                fColor = activeSleeveColor;
-                if (skinObj.sleeveColor) {
-                     uColor = activeSleeveColor;
-                }
-            }
 
             let uZ = angle1_z || 0;
             let fZ = angle2_z || 0;
@@ -5573,41 +5559,100 @@ var BallRenderer = {
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
-            // Force sleeve color for long-sleeved types (Double-check overwrite)
-            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
-
-            if (skinObj.clothing && ['jacket', 'robe'].includes(skinObj.clothing.type) && !activeSleeveColor) {
-                 activeSleeveColor = skinObj.clothing.color;
-            }
-
-            // Draw Base Joint (Skin or Sleeve)
-            drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
-
             let elbow = getJoint(sx, sy, effUpper, angle1);
-            const upperTattoos = skinObj.tattoos && !activeSleeveColor;
-
-            // Draw Upper Arm (Base)
-            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
-
-            // FORCE SLEEVE LAYER (If long sleeve is detected, draw OVER the arm)
-            if (isLongSleeveItem && activeSleeveColor) {
-                 // Draw Sleeve Joint
-                 drawJoint(sx, sy, 4.2*s*sizeMod.armWidth, activeSleeveColor, false);
-                 // Draw Sleeve Limb (slightly wider to cover skin)
-                 drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
-            }
-
-            if (activeSleeveColor) {
-                 const midX = (sx + elbow.x) / 2;
-                 const midY = (sy + elbow.y) / 2;
-                 drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
-            }
-
             let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
-            const foreTattoos = skinObj.tattoos && !activeSleeveColor;
-            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
 
-            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, activeSleeveColor || uColor, isMechanical);
+            // 1. Draw BASE SKIN ARM (Always Full)
+            // Shoulder
+            drawJoint(sx, sy, 4*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Upper Arm
+            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            // Elbow
+            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Forearm
+            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+
+
+            // 2. LAYERED CLOTHING LOGIC
+            let clothColor = null;
+            let isBulky = false;
+            let isPartial = false; // T-shirt
+            let isTight = false; // Compression sleeve
+
+            // Check Clothing Type
+            if (skinObj.clothingType) {
+                const type = skinObj.clothingType;
+                if (['jacket', 'hoodie', 'robe', 'track', 'sweatshirt'].includes(type)) {
+                    isBulky = true;
+                    clothColor = skinObj.clothing.color || skinObj.jerseyColor;
+                } else if (type === 'tshirt') {
+                    isPartial = true;
+                    clothColor = skinObj.clothing.color || skinObj.jerseyColor;
+                }
+            }
+            // Fallback Legacy Jersey Types
+            else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                isPartial = true;
+                clothColor = skinObj.jerseyColor;
+            } else if (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone) {
+                // Generic Long Sleeve (Jersey w/ sleeves)
+                isBulky = false; // Regular fit
+                clothColor = skinObj.sleeveColor;
+            }
+
+            // Check Accessory Sleeves (Overrides Clothing if present? Or overlays?)
+            // Usually accessories like shooting sleeves are tight.
+            let accessorySleeveColor = null;
+            if (isRight && skinObj.sleeveRight) accessorySleeveColor = skinObj.sleeveRight;
+            if (!isRight && skinObj.sleeveLeft) accessorySleeveColor = skinObj.sleeveLeft;
+
+            // DRAW CLOTHING LAYER
+            if (clothColor) {
+                let widthMult = isBulky ? 1.35 : 1.15; // Bulky vs Regular fit
+                if (isPartial) widthMult = 1.2;
+
+                // Shoulder Joint Cover
+                drawJoint(sx, sy, 4.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                if (isPartial) {
+                    // T-Shirt: Upper half of upper arm
+                    const midBicep = { x: sx + (elbow.x-sx)*0.6, y: sy + (elbow.y-sy)*0.6 };
+                    // Use drawLimb for smoother cloth look, or drawMuscleLimb if tight
+                    drawLimb(sx, sy, midBicep.x, midBicep.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor);
+                } else {
+                    // Full Sleeve
+                    // Upper
+                    if (isBulky) {
+                        drawLimb(sx, sy, elbow.x, elbow.y, 9*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+
+                    // Elbow Cover
+                    drawJoint(elbow.x, elbow.y, 3.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                    // Forearm
+                    if (isBulky) {
+                        drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+                }
+            }
+
+            // DRAW ACCESSORY SLEEVE (Tight overlay)
+            if (accessorySleeveColor) {
+                isTight = true;
+                const tightMult = 1.05; // Just above skin
+                // Shoulder
+                drawJoint(sx, sy, 4.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Upper
+                drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+                // Elbow
+                drawJoint(elbow.x, elbow.y, 3.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Forearm
+                drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+            }
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
