@@ -5574,7 +5574,11 @@ var BallRenderer = {
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
             // Force sleeve color for long-sleeved types (Double-check overwrite)
-            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
+            const isLongSleeveItem = (skinObj.clothing && ['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(skinObj.clothing.type)) || (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone);
+
+            if (skinObj.clothing && ['jacket', 'robe'].includes(skinObj.clothing.type) && !activeSleeveColor) {
+                 activeSleeveColor = skinObj.clothing.color;
+            }
 
             // Draw Base Joint (Skin or Sleeve)
             drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
