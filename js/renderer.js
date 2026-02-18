@@ -5349,6 +5349,19 @@ var BallRenderer = {
 
 
     function drawRealisticHuman(p, s, skinObj) {
+        // Fallback: Ensure clothing data is present if missing from pre-process
+        if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             if (cItem) {
+                 skinObj.clothing = cItem;
+                 skinObj.clothingType = cItem.type;
+                 skinObj.clothingStyle = cItem.style;
+                 skinObj.clothingMaterial = cItem.material;
+                 // Ensure color is available
+                 if(!skinObj.jerseyColor) skinObj.jerseyColor = cItem.color;
+             }
+        }
+
         const isMechanical = isMechanicalSkin(skinObj.id);
         // Base Setup
         const sizeMod = {
