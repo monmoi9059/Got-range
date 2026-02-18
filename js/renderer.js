@@ -1,3 +1,218 @@
+var RenderEngine = RenderEngine || {};
+
+RenderEngine.Camera = {
+    // State
+    rotation: 0,
+    sinRot: 0,
+    cosRot: 1,
+    zoom: 698,
+    height: 0,
+    x: 0,
+    y: 0,
+    smoothPos: null, // {x, y}
+
+    // Constants
+    OFFSET: 550,
+
+    // Ring buffer for projection results to avoid GC
+    _projPool: [],
+    _projPoolIdx: 0,
+
+    init: function() {
+        for(var i=0; i<2048; i++) {
+            this._projPool.push({ x: 0, y: 0, scale: 0, depth: 0 });
+        }
+    },
+
+    update: function(targetX, targetY, vpW, vpH) {
+        // Initialize smooth pos if needed
+        if (!this.smoothPos) {
+            this.smoothPos = { x: targetX, y: targetY };
+            // Legacy global sync
+            window.g_camSmooth = this.smoothPos;
+        }
+
+        // Smooth Interpolation
+        const lerp = 0.1;
+        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
+        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+
+        // Snap
+        if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
+        if (Math.abs(targetY - this.smoothPos.y) < 1) this.smoothPos.y = targetY;
+
+        this.x = this.smoothPos.x;
+        this.y = this.smoothPos.y;
+
+        // Calculate Angle to Hoop
+        const dxToHoop = HOOP_POS.x - this.x;
+        const dyToHoop = HOOP_POS.y - this.y;
+        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+
+        this.rotation = -angleToHoop - Math.PI / 2;
+        this.sinRot = Math.sin(this.rotation);
+        this.cosRot = Math.cos(this.rotation);
+
+        // Zoom Logic
+        let baseZoom = isSplitscreen ? 450 : 698;
+        if (playerData.cameraZoomScale) {
+            baseZoom *= playerData.cameraZoomScale;
+        }
+
+        // Portrait Adjustment
+        if (vpH > vpW) {
+            baseZoom *= 2.0;
+        }
+        this.zoom = baseZoom;
+
+        // Height Logic
+        this.height = 130000 / this.zoom;
+        if (vpH > vpW) {
+            // Lift camera in portrait
+            this.height += vpH * 0.1;
+        }
+
+        // Sync to Legacy Global Cache for compatibility
+        if (!g_camCache) g_camCache = {};
+        g_camCache.rotation = this.rotation;
+        g_camCache.sinRot = this.sinRot;
+        g_camCache.cosRot = this.cosRot;
+        g_camCache.cameraZoom = this.zoom;
+        g_camCache.cameraHeight = this.height;
+        g_camCache.x = this.x;
+        g_camCache.y = this.y;
+
+        // Sync Global Variables (some rendering code uses these directly)
+        cameraZoom = this.zoom;
+        cameraHeight = this.height;
+    },
+
+    project: function(x, y, z, overrideCache) {
+        // Allow using a specific cache state (e.g. for static backgrounds or shadow maps)
+        // Otherwise use current state
+        let r, sin, cos, zoom, h, cx, cy;
+
+        if (overrideCache) {
+            r = overrideCache.rotation;
+            sin = overrideCache.sinRot;
+            cos = overrideCache.cosRot;
+            zoom = overrideCache.cameraZoom;
+            h = overrideCache.cameraHeight;
+            cx = overrideCache.x !== undefined ? overrideCache.x : this.x;
+            cy = overrideCache.y !== undefined ? overrideCache.y : this.y;
+        } else {
+            r = this.rotation;
+            sin = this.sinRot;
+            cos = this.cosRot;
+            zoom = this.zoom;
+            h = this.height;
+            cx = this.x;
+            cy = this.y;
+        }
+
+        // Fallback if not initialized (Startup)
+        if (zoom === undefined) {
+             const dxToHoop = HOOP_POS.x - player3D.x;
+             const dyToHoop = HOOP_POS.y - player3D.y;
+             zoom = 698;
+             h = 130000 / zoom;
+             const angle = Math.atan2(dyToHoop, dxToHoop);
+             r = -angle - Math.PI/2;
+             sin = Math.sin(r);
+             cos = Math.cos(r);
+             cx = player3D.x;
+             cy = player3D.y;
+        }
+
+        const dx = x - cx;
+        const dy = y - cy;
+        const rx = dx * cos - dy * sin;
+        const ry = dx * sin + dy * cos;
+
+        const depth = this.OFFSET - ry;
+        if (depth <= 0) return null;
+
+        const scale = zoom / depth;
+
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
+
+        const screenX = vpW / 2 + (rx * scale);
+        // Horizon Calculation (Fixed 0.38 factor)
+        const horizonY = (vpH - 120) * 0.38;
+        const screenY = horizonY + (h - z) * scale;
+
+        // Use Ring Buffer
+        if (this._projPool.length === 0) this.init();
+
+        const ret = this._projPool[this._projPoolIdx];
+        this._projPoolIdx = (this._projPoolIdx + 1) & 2047;
+
+        ret.x = screenX;
+        ret.y = screenY;
+        ret.scale = scale;
+        ret.depth = depth;
+        return ret;
+    }
+};
+
+RenderEngine.Queue = {
+    list: [],
+    pool: [],
+    poolIdx: 0,
+
+    init: function() {
+        for(let i=0; i<4096; i++) this.pool.push({});
+    },
+
+    clear: function() {
+        this.list.length = 0;
+        this.poolIdx = 0;
+    },
+
+    add: function(type, depth, x, y, scale) {
+        if (this.pool.length === 0) this.init();
+        if (this.poolIdx >= this.pool.length) this.pool.push({});
+
+        const obj = this.pool[this.poolIdx++];
+        obj.type = type;
+        obj.depth = depth;
+        obj.x = x;
+        obj.y = y;
+        obj.scale = scale;
+
+        // Reset properties that might cause issues if undefined
+        obj.ballRef = null;
+        obj.zoneType = null;
+        obj.variant = null;
+        obj.seed = 0;
+        obj.alpha = 1;
+        obj.color = null;
+
+        this.list.push(obj);
+        return obj;
+    },
+
+    render: function(ctx) {
+        this.list.sort((a, b) => b.depth - a.depth);
+
+        for (let i = 0; i < this.list.length; i++) {
+            const obj = this.list[i];
+            if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
+            else if (obj.type === 'hoop') drawHoop(obj);
+            else if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
+            else if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
+            else if (obj.type === 'player') PlayerRenderer.draw(obj);
+            else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
+            else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+        }
+    }
+};
+
+// Initialize
+RenderEngine.Camera.init();
+RenderEngine.Queue.init();
+
 var BallRenderer = {
     _projResult: {x:0, y:0, z:0},
     _noisePattern: null,
@@ -894,58 +1109,9 @@ var BallRenderer = {
     }
     window.addEventListener('resize', resizeGame);
 
-    var g_projPool = [];
-    var g_projPoolIdx = 0;
-    // Ring buffer size 2048 to safely handle all transient projections per frame
-    for(var i=0; i<2048; i++) g_projPool.push({ x: 0, y: 0, scale: 0, depth: 0 });
-
+    // Global Project Wrapper (Delegates to Camera)
     function project(x, y, z, cache) {
-        let rotation, sinRot, cosRot;
-
-        if (cache) {
-            rotation = cache.rotation;
-            sinRot = cache.sinRot;
-            cosRot = cache.cosRot;
-            cameraZoom = cache.cameraZoom;
-            cameraHeight = cache.cameraHeight;
-        } else if (g_camCache) {
-            rotation = g_camCache.rotation;
-            sinRot = g_camCache.sinRot;
-            cosRot = g_camCache.cosRot;
-            cameraZoom = g_camCache.cameraZoom;
-            cameraHeight = g_camCache.cameraHeight;
-        } else {
-            const dxToHoop = HOOP_POS.x - player3D.x;
-            const dyToHoop = HOOP_POS.y - player3D.y;
-            cameraZoom = 698;
-            cameraHeight = 130000 / cameraZoom;
-            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-            rotation = -angleToHoop - Math.PI/2;
-            sinRot = Math.sin(rotation);
-            cosRot = Math.cos(rotation);
-        }
-
-        let camX = player3D.x;
-        let camY = player3D.y;
-        if (cache && cache.x !== undefined) { camX = cache.x; camY = cache.y; }
-        else if (g_camCache && g_camCache.x !== undefined) { camX = g_camCache.x; camY = g_camCache.y; }
-
-        const dx = x - camX; const dy = y - camY;
-        const rx = dx * cosRot - dy * sinRot;
-        const ry = dx * sinRot + dy * cosRot;
-        const cameraOffset = 550; const depth = cameraOffset - ry;
-        if (depth <= 0) return null;
-        const scale = cameraZoom / depth;
-        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
-        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
-        const screenX = vpW / 2 + (rx * scale);
-        const horizonY = (vpH - 120) * 0.38;
-        const screenY = horizonY + (cameraHeight - z) * scale;
-
-        var ret = g_projPool[g_projPoolIdx];
-        g_projPoolIdx = (g_projPoolIdx + 1) & 2047;
-        ret.x = screenX; ret.y = screenY; ret.scale = scale; ret.depth = depth;
-        return ret;
+        return RenderEngine.Camera.project(x, y, z, cache);
     }
 
     // --- 4. DRAWING FUNCTIONS ---
@@ -5659,12 +5825,9 @@ var BallRenderer = {
         }
     }
 
-    function drawPlayer(p) {
-        // Optimization: Removed 4x MSAA Supersampling
-        _drawPlayerInternal(p);
-    }
-
-    function _drawPlayerInternal(p) {
+    var PlayerRenderer = {
+        draw: function(p) {
+            // Optimization: Removed 4x MSAA Supersampling
         if (!p) return;
         // Debug
         // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
@@ -7461,6 +7624,7 @@ var BallRenderer = {
         // 10. Shot Meter (Layer 6)
         drawMeterCommon(p, s, sizeMod);
     }
+};
     function getProjectedY(gDist, currentDist, horizonY) {
         if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
         const ratio = gDist / currentDist;
@@ -7494,10 +7658,7 @@ var BallRenderer = {
         if (vpW === undefined) { vpX=0; vpY=0; vpW=window.LOGICAL_WIDTH; vpH=window.LOGICAL_HEIGHT; }
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
 
-        // Optimization: Per-frame camera calculation
-        // Camera Follow Logic
-        if (!window.g_camSmooth) window.g_camSmooth = { x: player3D.x, y: player3D.y };
-
+        // Determine Target
         let targetX = player3D.x;
         let targetY = player3D.y;
 
@@ -7509,52 +7670,16 @@ var BallRenderer = {
             }
         }
 
-        // Smooth Interpolation
-        const lerp = 0.1;
-        window.g_camSmooth.x += (targetX - window.g_camSmooth.x) * lerp;
-        window.g_camSmooth.y += (targetY - window.g_camSmooth.y) * lerp;
+        // Update Camera
+        RenderEngine.Camera.update(targetX, targetY, vpW, vpH);
 
-        // Snap if close to avoid micro-jitter
-        if (Math.abs(targetX - window.g_camSmooth.x) < 1) window.g_camSmooth.x = targetX;
-        if (Math.abs(targetY - window.g_camSmooth.y) < 1) window.g_camSmooth.y = targetY;
-
-        const camX = window.g_camSmooth.x;
-        const camY = window.g_camSmooth.y;
-
-        const dxToHoop = HOOP_POS.x - camX;
-        const dyToHoop = HOOP_POS.y - camY;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-        const camRotation = -angleToHoop - Math.PI / 2;
-        const camSin = Math.sin(camRotation);
-        const camCos = Math.cos(camRotation);
-        let camZoom = isSplitscreen ? 450 : 698;
-        if (playerData.cameraZoomScale) {
-            camZoom *= playerData.cameraZoomScale;
-        }
-
-        // Portrait Mode Zoom Adjustment (2x Closer)
-        if (vpH > vpW) {
-            camZoom *= 2.0;
-        }
-
-        let camHeight = 130000 / camZoom;
-        if (vpH > vpW) {
-            // Lift camera to push player down to lower 1/3
-            camHeight += vpH * 0.1;
-        }
-
-        if (!g_camCache) g_camCache = {};
-        g_camCache.rotation = camRotation;
-        g_camCache.sinRot = camSin;
-        g_camCache.cosRot = camCos;
-        g_camCache.cameraZoom = camZoom;
-        g_camCache.cameraHeight = camHeight;
-        g_camCache.x = camX;
-        g_camCache.y = camY;
-
-        // Ensure globals are updated
-        cameraZoom = camZoom;
-        cameraHeight = camHeight;
+        // Retrieve calculated values for local use in this function
+        const camX = RenderEngine.Camera.x;
+        const camY = RenderEngine.Camera.y;
+        const camSin = RenderEngine.Camera.sinRot;
+        const camCos = RenderEngine.Camera.cosRot;
+        const camZoom = RenderEngine.Camera.zoom;
+        const camHeight = RenderEngine.Camera.height;
 
         const horizonY = (vpH - 120) * 0.38;
 
@@ -7781,8 +7906,7 @@ var BallRenderer = {
         ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(vpW, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
         // 3D OBJECTS
-        g_poolIndex = 0;
-        g_renderList.length = 0;
+        RenderEngine.Queue.clear();
 
         // Use cached camera values (already calculated at top of function)
 
@@ -7813,16 +7937,10 @@ var BallRenderer = {
             const screenX = vpW / 2 + (rx * scale);
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
-            const obj = getRenderItem();
-            obj.type = 'decor';
-            obj.depth = depth;
-            obj.x = screenX;
-            obj.y = screenY;
-            obj.scale = scale;
-            obj.zoneType = d.zoneType;
-            obj.variant = d.variant;
-            obj.seed = d.seed;
-            g_renderList.push(obj);
+            const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
+            item.zoneType = d.zoneType;
+            item.variant = d.variant;
+            item.seed = d.seed;
         };
 
         if (currentGameMode === 'CLASSIC') {
@@ -7866,51 +7984,31 @@ var BallRenderer = {
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
         if (hoopProj) {
-            const obj = getRenderItem();
-            obj.type = 'hoop';
-            obj.depth = hoopProj.depth;
-            obj.x = hoopProj.x; obj.y = hoopProj.y; obj.scale = hoopProj.scale;
-            g_renderList.push(obj);
+            RenderEngine.Queue.add('hoop', hoopProj.depth, hoopProj.x, hoopProj.y, hoopProj.scale);
         }
 
         const playerProj = project(player3D.x, player3D.y, player3D.z);
         if (playerProj) {
-            const obj = getRenderItem();
-            obj.type = 'player';
-            obj.depth = playerProj.depth;
-            obj.x = playerProj.x; obj.y = playerProj.y; obj.scale = playerProj.scale;
-            g_renderList.push(obj);
+            RenderEngine.Queue.add('player', playerProj.depth, playerProj.x, playerProj.y, playerProj.scale);
         }
 
         const shadowProj = project(player3D.x, player3D.y, 0);
         if (shadowProj) {
-            const obj = getRenderItem();
-            obj.type = 'player_shadow';
-            obj.depth = shadowProj.depth + 0.1;
-            obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
-            g_renderList.push(obj);
+            RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
         }
 
         activeBalls.forEach(b => {
             if (b.active) {
                 const ballShadowProj = project(b.x, b.y, 0);
                 if (ballShadowProj) {
-                    const obj = getRenderItem();
-                    obj.type = 'ball_shadow';
-                    obj.depth = ballShadowProj.depth + 0.1;
-                    obj.x = ballShadowProj.x; obj.y = ballShadowProj.y; obj.scale = ballShadowProj.scale;
-                    obj.ballRef = b;
-                    g_renderList.push(obj);
+                    const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
+                    item.ballRef = b;
                 }
 
                 const ballProj = project(b.x, b.y, b.z);
                 if (ballProj) {
-                    const obj = getRenderItem();
-                    obj.type = 'ball';
-                    obj.depth = ballProj.depth;
-                    obj.x = ballProj.x; obj.y = ballProj.y; obj.scale = ballProj.scale;
-                    obj.ballRef = b;
-                    g_renderList.push(obj);
+                    const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
+                    item.ballRef = b;
                 }
             }
         });
@@ -7918,31 +8016,18 @@ var BallRenderer = {
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
              if(proj) {
-                 const obj = getRenderItem();
-                 obj.type = 'smoke';
                  // Force streak fire particles behind the player (depth > 550)
+                 let depth = proj.depth;
                  if (p.isFireParticle && p.customHue !== undefined) {
-                     obj.depth = Math.max(proj.depth, 580);
-                 } else {
-                     obj.depth = proj.depth;
+                     depth = Math.max(depth, 580);
                  }
-                 obj.x = proj.x; obj.y = proj.y; obj.scale = proj.scale;
-                 obj.alpha = p.alpha;
-                 obj.color = p.color;
-                 g_renderList.push(obj);
+                 const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
+                 item.alpha = p.alpha;
+                 item.color = p.color;
              }
         });
 
-        g_renderList.sort((a, b) => b.depth - a.depth);
-        g_renderList.forEach(obj => {
-            if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
-            if (obj.type === 'hoop') drawHoop(obj);
-            if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
-            if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
-            if (obj.type === 'player') drawPlayer(obj);
-            if (obj.type === 'ball') drawBall(obj, obj.ballRef);
-            if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
-        });
+        RenderEngine.Queue.render(ctx);
 
         // Draw Weather overlay on top of 3D scene but behind UI
         weather.draw(project);
