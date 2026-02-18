@@ -2054,21 +2054,60 @@ var BallRenderer = {
         }
         else {
             // Default Humanoid (Hourglass/Trapezoid)
+            // Determine clothing fit
+            let fitType = 'standard'; // standard, baggy, boxy, fitted, robe
+            const ct = options.clothingType;
+            if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+            else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+            else if (ct === 'robe') fitType = 'robe';
+            else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
+
+            // Modifier Scalars
+            let sMod = 1.0; // Shoulder Width Mod
+            let wMod = 1.0; // Waist Width Mod
+            let hMod = 1.0; // Hip Width Mod
+
+            if (fitType === 'baggy') {
+                sMod = 1.15; // Dropped shoulders
+                wMod = 1.25; // Loose waist
+                hMod = 1.15; // Gathered hem (but wide)
+            } else if (fitType === 'boxy') {
+                sMod = 1.1;
+                wMod = 1.1; // Straight down
+                hMod = 1.1;
+            } else if (fitType === 'robe') {
+                sMod = 1.05;
+                wMod = 1.2;
+                hMod = 1.4; // Flared
+            } else if (fitType === 'fitted') {
+                sMod = 0.95;
+                wMod = 0.9;
+                hMod = 0.95;
+            }
+
+            const effSW = sW * sMod;
+            const effWW = wW * wMod;
+            const effHW = hW * hMod;
+
             points = [
-                {x: cx - sW/2, y: shoulderY},     // 0: Top Left
-                {x: cx + sW/2, y: shoulderY},     // 1: Top Right
-                {x: cx + wW/2, y: waistY},        // 2: Waist Right
-                {x: cx + hW/2, y: hipY},          // 3: Hip Right
-                {x: cx - hW/2, y: hipY},          // 4: Hip Left
-                {x: cx - wW/2, y: waistY}         // 5: Waist Left
+                {x: cx - effSW/2, y: shoulderY},     // 0: Top Left
+                {x: cx + effSW/2, y: shoulderY},     // 1: Top Right
+                {x: cx + effWW/2, y: waistY},        // 2: Waist Right
+                {x: cx + effHW/2, y: hipY},          // 3: Hip Right
+                {x: cx - effHW/2, y: hipY},          // 4: Hip Left
+                {x: cx - effWW/2, y: waistY}         // 5: Waist Left
             ];
 
-            if (isFurry && roundness > 0) {
-                 const rOffset = w * roundness;
-                 const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
-                 const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
+            if ((isFurry && roundness > 0) || fitType === 'baggy') {
+                 // Add extra points for smoothness/volume
+                 const rOffset = (fitType === 'baggy') ? w * 0.15 : w * roundness;
+
+                 // Bulge out the sides for baggy clothes
+                 const midR1 = { x: cx + effWW/2 + rOffset, y: (shoulderY + waistY)/2 };
+                 const midR2 = { x: cx + effHW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
+                 const midL1 = { x: cx - effHW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
+                 const midL2 = { x: cx - effWW/2 - rOffset, y: (shoulderY + waistY)/2 };
+
                  points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
             }
         }
@@ -2531,7 +2570,26 @@ var BallRenderer = {
                 ctx.restore();
             }
 
-            // 2. ROBE (Long Skirt)
+            // 2. INTERNAL WRINKLES & FOLDS
+            if (cStyle === 'baggy' || cType === 'hoodie' || cType === 'sweatshirt') {
+                ctx.save();
+                // Clip to body path again if needed, or assume containment
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*scale;
+                // Armpit folds
+                ctx.beginPath(); ctx.moveTo(cx - w*0.9, topY + h*0.3); ctx.lineTo(cx - w*0.7, topY + h*0.4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx + w*0.9, topY + h*0.3); ctx.lineTo(cx + w*0.7, topY + h*0.4); ctx.stroke();
+                // Lower Back bunching
+                ctx.beginPath(); ctx.moveTo(cx - w*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + w*0.4, topY + h*0.8); ctx.stroke();
+                ctx.restore();
+
+                // Hoodie Pocket Pouch Outline (Back view - just side bulges or stitching?)
+                // Actually back view shouldn't see pocket.
+                // But we can see the gathered hem.
+                ctx.fillStyle = adjustColor(color, -10);
+                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 8*scale); // Hem band
+            }
+
+            // 3. ROBE (Long Skirt)
             if (cType === 'robe') {
                 const robeLen = h * 1.2;
                 const skirtY = topY + h * 0.8;
@@ -2550,7 +2608,7 @@ var BallRenderer = {
                 ctx.beginPath(); ctx.moveTo(cx, skirtY); ctx.lineTo(cx, skirtY + robeLen); ctx.stroke();
             }
 
-            // 3. COLLARS (Jacket/Vest/Robe)
+            // 4. COLLARS (Jacket/Vest/Robe)
             if (['jacket', 'vest', 'robe'].includes(cType)) {
                 ctx.fillStyle = options.clothingTrim ? options.clothingTrim : adjustColor(color, -20);
                 // Collar geometry behind neck
