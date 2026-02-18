@@ -2067,48 +2067,84 @@ var BallRenderer = {
             let wMod = 1.0; // Waist Width Mod
             let hMod = 1.0; // Hip Width Mod
 
+            // RADICAL SHAPE REDEFINITION
             if (fitType === 'baggy') {
-                sMod = 1.15; // Dropped shoulders
-                wMod = 1.25; // Loose waist
-                hMod = 1.15; // Gathered hem (but wide)
-            } else if (fitType === 'boxy') {
-                sMod = 1.1;
-                wMod = 1.1; // Straight down
-                hMod = 1.1;
-            } else if (fitType === 'robe') {
-                sMod = 1.05;
-                wMod = 1.2;
-                hMod = 1.4; // Flared
-            } else if (fitType === 'fitted') {
-                sMod = 0.95;
-                wMod = 0.9;
-                hMod = 0.95;
+                // PEAR SHAPE (Wide bottom, drooping shoulders)
+                const bagS = sW * 1.1; // Wider shoulders
+                const bagW = wW * 1.5; // VERY Wide waist
+                const bagH = hW * 1.25; // Gathered but wide hem
+
+                const dropY = shoulderY + h * 0.15; // Shoulders start lower/sloped
+                const hemY = hipY + h * 0.05; // Slightly longer
+
+                points = [
+                    {x: cx - bagS/2, y: dropY}, // Top Left (Dropped)
+                    {x: cx, y: shoulderY},      // Neck (Peak)
+                    {x: cx + bagS/2, y: dropY}, // Top Right (Dropped)
+
+                    {x: cx + bagW/2 + w*0.1, y: waistY}, // Bulge Right
+                    {x: cx + bagH/2, y: hemY},           // Hip Right
+                    {x: cx - bagH/2, y: hemY},           // Hip Left
+                    {x: cx - bagW/2 - w*0.1, y: waistY}  // Bulge Left
+                ];
             }
+            else if (fitType === 'boxy') {
+                // RECTANGLE SHAPE (Hard lines, no taper)
+                const boxW = sW * 1.25; // Wide square frame
 
-            const effSW = sW * sMod;
-            const effWW = wW * wMod;
-            const effHW = hW * hMod;
+                points = [
+                    {x: cx - boxW/2, y: shoulderY},
+                    {x: cx + boxW/2, y: shoulderY},
+                    {x: cx + boxW/2, y: hipY}, // Straight down
+                    {x: cx - boxW/2, y: hipY}  // Straight down
+                ];
+            }
+            else if (fitType === 'robe') {
+                // TRAPEZOID SHAPE (Flared bottom)
+                const robeTop = sW * 1.1;
+                const robeBot = hW * 1.6; // Dramatic flare
 
-            points = [
-                {x: cx - effSW/2, y: shoulderY},     // 0: Top Left
-                {x: cx + effSW/2, y: shoulderY},     // 1: Top Right
-                {x: cx + effWW/2, y: waistY},        // 2: Waist Right
-                {x: cx + effHW/2, y: hipY},          // 3: Hip Right
-                {x: cx - effHW/2, y: hipY},          // 4: Hip Left
-                {x: cx - effWW/2, y: waistY}         // 5: Waist Left
-            ];
+                points = [
+                    {x: cx - robeTop/2, y: shoulderY},
+                    {x: cx + robeTop/2, y: shoulderY},
+                    {x: cx + robeBot/2, y: hipY},
+                    {x: cx - robeBot/2, y: hipY}
+                ];
+            }
+            else if (fitType === 'fitted') {
+                // V-SHAPE (Exaggerated taper)
+                const fitS = sW * 1.1;
+                const fitW = wW * 0.85; // Snatched waist
+                const fitH = hW * 0.95;
 
-            if ((isFurry && roundness > 0) || fitType === 'baggy') {
-                 // Add extra points for smoothness/volume
-                 const rOffset = (fitType === 'baggy') ? w * 0.15 : w * roundness;
+                points = [
+                    {x: cx - fitS/2, y: shoulderY},
+                    {x: cx + fitS/2, y: shoulderY},
+                    {x: cx + fitW/2, y: waistY},
+                    {x: cx + fitH/2, y: hipY},
+                    {x: cx - fitH/2, y: hipY},
+                    {x: cx - fitW/2, y: waistY}
+                ];
+            }
+            else {
+                // STANDARD (Hourglass/Trapezoid)
+                points = [
+                    {x: cx - sW/2, y: shoulderY},
+                    {x: cx + sW/2, y: shoulderY},
+                    {x: cx + wW/2, y: waistY},
+                    {x: cx + hW/2, y: hipY},
+                    {x: cx - hW/2, y: hipY},
+                    {x: cx - wW/2, y: waistY}
+                ];
 
-                 // Bulge out the sides for baggy clothes
-                 const midR1 = { x: cx + effWW/2 + rOffset, y: (shoulderY + waistY)/2 };
-                 const midR2 = { x: cx + effHW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL1 = { x: cx - effHW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL2 = { x: cx - effWW/2 - rOffset, y: (shoulderY + waistY)/2 };
-
-                 points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+                if (isFurry && roundness > 0) {
+                     const rOffset = w * roundness;
+                     const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
+                     const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
+                     points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+                }
             }
         }
 
@@ -6278,14 +6314,22 @@ var BallRenderer = {
         }
 
         // Apply Clothing Overrides
+        // ROBUST LOOKUP: Ensure clothing data is populated even if previous steps failed
         if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
              // Ensure we are working on a copy
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
 
+             // Force re-lookup to guarantee data integrity
              const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+
              if (clothing) {
                  skinObj.clothing = clothing; // Tag for later use
                  skinObj.jerseyColor = clothing.color;
+
+                 // Explicitly propagate type for shape logic
+                 skinObj.clothingType = clothing.type;
+                 skinObj.clothingStyle = clothing.style;
+                 skinObj.clothingMaterial = clothing.material;
 
                  if (clothing.type === 'tshirt') {
                      skinObj.jerseyType = 'tshirt';
@@ -6306,10 +6350,6 @@ var BallRenderer = {
                  // Remove conflicting built-in details
                  if (['track', 'hoodie', 'sweatshirt', 'jacket', 'vest', 'robe'].includes(clothing.type)) {
                      skinObj.clothingDetail = null; // Hide suspenders etc.
-                     skinObj.clothingType = clothing.type;
-                     skinObj.clothingStyle = clothing.style; // puffer, varsity, etc.
-                     skinObj.clothingMaterial = clothing.material; // leather, denim
-
                      // Track suits often have stripes
                      if(clothing.stripeColor) {
                          if (clothing.pattern === 'stripes_side') {
