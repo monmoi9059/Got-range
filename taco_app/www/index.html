@@ -4208,7 +4208,39 @@ var BallRenderer = {
                 if(botCap.z > 0) renderQueue.push({type: 'circle', z: botCap.z+0.1, x: botCap.x, y: botCap.y, r: r*0.15, color: '#FFF'});
             }
         }
-        else if (type === 'basketball') {
+        else if (type === 'basketball' || type === 'money') {
+            // 1. ABA/Money Ball Panels (Procedural Sphere)
+            if (ball.color2) {
+                var segsW = 16, segsH = 12;
+                for(var j=0; j<segsH; j++) {
+                    var theta1 = (j/segsH)*Math.PI;
+                    var theta2 = ((j+1)/segsH)*Math.PI;
+                    for(var i=0; i<segsW; i++) {
+                        var phi1 = (i/segsW)*Math.PI*2;
+                        var phi2 = ((i+1)/segsW)*Math.PI*2;
+
+                        var getP = function(t, p) { return {x: Math.sin(t)*Math.cos(p), y: Math.cos(t), z: Math.sin(t)*Math.sin(p)}; };
+                        var p1 = getP(theta1, phi1); var p2 = getP(theta1, phi2);
+                        var p3 = getP(theta2, phi2); var p4 = getP(theta2, phi1);
+
+                        // Centroid (Local)
+                        var cx = (p1.x+p2.x+p3.x+p4.x)/4;
+
+                        var faceColor = '#FFF';
+                        if (cx < -0.35) faceColor = ball.color1;
+                        else if (cx > 0.35) faceColor = ball.color2;
+
+                        var pp1 = projectPt(p1); var pp2 = projectPt(p2);
+                        var pp3 = projectPt(p3); var pp4 = projectPt(p4);
+                        var avgZ = (pp1.z + pp2.z + pp3.z + pp4.z)/4;
+
+                        if (avgZ > -0.5) {
+                            renderQueue.push({ type: 'poly', z: avgZ, points: [pp1, pp2, pp3, pp4], color: faceColor, stroke: faceColor });
+                        }
+                    }
+                }
+            }
+
             // Grooves - Draw as segments
             if (Geometry.basketball) {
                 var pts = Geometry.basketball;
