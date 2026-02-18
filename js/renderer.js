@@ -2153,6 +2153,19 @@ var BallRenderer = {
              const pat = options.pattern;
              const s = scale;
 
+             // Pinstripes (Overlay on top of any pattern or base)
+             if (options.pinstripesColor) {
+                 ctx.strokeStyle = options.pinstripesColor;
+                 ctx.lineWidth = 1 * s;
+                 const pinGap = 6 * s;
+                 ctx.beginPath();
+                 for (let i = pinGap/2; i < w; i += pinGap) {
+                      ctx.moveTo(cx - w/2 + i, topY);
+                      ctx.lineTo(cx - w/2 + i, topY + h);
+                 }
+                 ctx.stroke();
+             }
+
              // Patterns logic refactored from drawPlayer and clipped
              if(pat === 'tiger_stripes') {
                  ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
@@ -6324,16 +6337,32 @@ var BallRenderer = {
         // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
 
         const s = p.scale;
-        const skin = playerData.currentSkin;
+        let skin = playerData.currentSkin;
+
+        // SHOP PREVIEW OVERRIDE
+        if (state === 'SHOP' && typeof currentShopTab !== 'undefined' && currentShopTab === 'character' && typeof getSkinGroups === 'function') {
+             try {
+                 const currentAnimal = ANIMALS[viewingAnimalIndex];
+                 const groups = getSkinGroups(currentAnimal);
+                 const group = groups[viewingSkinIndex];
+                 if (group) {
+                     const variant = group[viewingVariantIndex] || group[0];
+                     if (variant) skin = variant.id;
+                 }
+             } catch(e) { console.error("Preview error", e); }
+        }
 
         let skinObj;
-        if (skin === g_cachedSkinId && g_cachedSkinObj) {
+        if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
             skinObj = SKINS_DB.find(x => x.id === skin);
             if(!skinObj) skinObj = SKINS_DB[0];
-            g_cachedSkinId = skin;
-            g_cachedSkinObj = skinObj;
+
+            if (state !== 'SHOP') {
+                g_cachedSkinId = skin;
+                g_cachedSkinObj = skinObj;
+            }
         }
 
         // Apply Custom Human Settings
@@ -7029,6 +7058,32 @@ var BallRenderer = {
         drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, thighStartW, thighColor, s, legFurry, 1, thighEndW);
         drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, thighStartW, thighColor, s, legFurry, 3, thighEndW);
 
+        // Shorts Details (Side Stripes & Trim) - Only if not furry (i.e. wearing shorts)
+        if (!legFurry) {
+             if (skinObj.sideStripesColor) {
+                 ctx.strokeStyle = skinObj.sideStripesColor;
+                 ctx.lineWidth = 2 * s;
+                 // Left Leg (Outer side)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - hipX - thighStartW*0.4, hipY);
+                 ctx.lineTo(lKneeX - thighEndW*0.4, lKneeY);
+                 ctx.stroke();
+
+                 // Right Leg (Outer side)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x + hipX + thighStartW*0.4, hipY);
+                 ctx.lineTo(rKneeX + thighEndW*0.4, rKneeY);
+                 ctx.stroke();
+             }
+             if (skinObj.trimColor) {
+                 ctx.strokeStyle = skinObj.trimColor;
+                 ctx.lineWidth = 2 * s;
+                 // Hem lines
+                 ctx.beginPath(); ctx.moveTo(lKneeX - thighEndW*0.5, lKneeY); ctx.lineTo(lKneeX + thighEndW*0.5, lKneeY); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(rKneeX - thighEndW*0.5, rKneeY); ctx.lineTo(rKneeX + thighEndW*0.5, rKneeY); ctx.stroke();
+             }
+        }
+
         // Calves & Socks/Shoes
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              const calfBaseColor = calfColor;
@@ -7118,12 +7173,18 @@ var BallRenderer = {
         bodyOptions.isTabby = skin.includes('tabby');
         bodyOptions.chestStripeColor = skinObj.chestStripeColor;
         bodyOptions.sideStripesColor = skinObj.sideStripesColor;
+        bodyOptions.pinstripesColor = skinObj.pinstripesColor;
 
         // Pass Clothing Info
         bodyOptions.clothingType = skinObj.clothingType;
         bodyOptions.clothingStyle = skinObj.clothingStyle;
         bodyOptions.clothingMaterial = skinObj.clothingMaterial;
-        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor);
+        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor) || skinObj.trimColor;
+
+        // Force side stripes pattern if color is present but pattern is missing
+        if (skinObj.sideStripesColor && !bodyOptions.pattern) {
+             bodyOptions.pattern = 'stripes_side';
+        }
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
@@ -8130,12 +8191,22 @@ var BallRenderer = {
              }
         }
 
-        // 9. Jersey Number (Layer 5)
-        if(!skin.includes('alien') && !skin.includes('robot') && skinObj.number) {
-            ctx.fillStyle = skinObj.numberColor || "#FFF";
-            ctx.font = `bold ${12 * s}px Arial`;
-            ctx.textAlign = "center";
-            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+        // 9. Jersey Name & Number (Layer 5)
+        if(!skin.includes('alien') && !skin.includes('robot')) {
+             if (skinObj.jerseyName) {
+                 ctx.fillStyle = skinObj.numberColor || "#FFF";
+                 ctx.font = `bold ${8 * s}px 'Roboto Condensed', sans-serif`;
+                 ctx.textAlign = "center";
+                 // Arc the text slightly if possible, or just draw straight
+                 ctx.fillText(skinObj.jerseyName, p.x, torsoY + bodyH * 0.35);
+             }
+
+             if (skinObj.number) {
+                ctx.fillStyle = skinObj.numberColor || "#FFF";
+                ctx.font = `bold ${12 * s}px 'Russo One', Arial`;
+                ctx.textAlign = "center";
+                ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+            }
         }
 
         // 10. Shot Meter (Layer 6)
