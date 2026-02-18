@@ -6451,6 +6451,15 @@ var BallRenderer = {
                  if (clothing.pattern) skinObj.pattern = clothing.pattern;
                  if (clothing.decal) skinObj.decal = clothing.decal;
 
+                 // Copy Jersey Details (Name, Number, Stripes)
+                 if (clothing.jerseyName) skinObj.jerseyName = clothing.jerseyName;
+                 if (clothing.number) skinObj.number = clothing.number;
+                 if (clothing.numberColor) skinObj.numberColor = clothing.numberColor;
+                 if (clothing.sideStripesColor) skinObj.sideStripesColor = clothing.sideStripesColor;
+                 if (clothing.chestStripeColor) skinObj.chestStripeColor = clothing.chestStripeColor;
+                 if (clothing.trimColor) skinObj.trimColor = clothing.trimColor;
+                 if (clothing.pinstripesColor) skinObj.pinstripesColor = clothing.pinstripesColor;
+
                  // Override back props if hoodie
                  if (clothing.type === 'hoodie') {
                      skinObj.backAccessory = 'hoodie_hood';
