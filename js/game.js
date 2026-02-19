@@ -1006,15 +1006,14 @@
                     } else {
                         // If scored and hit ground (or fell far enough), remove
                         b.active = false;
-                        // Spawn Taco (In front of cat/hoop for visibility)
-                        // Player at 433,300. Hoop at 733,150.
-                        // "In front" is towards player.
-                        const offsetX = -50 + (Math.random() - 0.5) * 40;
-                        const offsetY = 40 + (Math.random() - 0.5) * 40;
+                        // Spawn Taco between player and basket
+                        const t = 0.5; // Midpoint
+                        const midX = player3D.x + (HOOP_POS.x - player3D.x) * t;
+                        const midY = player3D.y + (HOOP_POS.y - player3D.y) * t;
 
                         tacosOnGround.push({
-                            x: HOOP_POS.x + offsetX,
-                            y: HOOP_POS.y + offsetY,
+                            x: midX + (Math.random() - 0.5) * 30,
+                            y: midY + (Math.random() - 0.5) * 30,
                             rotation: Math.random() * Math.PI * 2,
                             scale: 1.0,
                             beingEaten: false,
