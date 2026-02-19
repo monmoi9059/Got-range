@@ -5,8 +5,6 @@
     var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
 
-    function lerp(a, b, t) { return a + (b - a) * t; }
-
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),
     // but we might want to center the "court path" a bit more.
@@ -292,7 +290,7 @@ let lastDisplayedContestTime = -1;
     let groundShotTimer = 0;
     let lastGroundShotTimer = 0; // History
     let airbudJumpTime = 0;
-    let preJumpTimer = 0; // Explicit global
+    // preJumpTimer is defined in data.js
     let lastPreJumpTimer = 0; // History
 
     // Physique

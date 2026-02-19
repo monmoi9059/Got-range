@@ -6698,14 +6698,16 @@ var BallRenderer = {
 
             if (isGroundedShot) {
                 // Ground Shot: 8.0 - (timer * 0.5)
-                const lastT = (typeof lastGroundShotTimer !== 'undefined') ? lastGroundShotTimer : groundShotTimer;
-                const iTimer = lerp(lastT, groundShotTimer, alpha);
+                const gT = (typeof window.groundShotTimer !== 'undefined') ? window.groundShotTimer : 0;
+                const lastT = (typeof window.lastGroundShotTimer !== 'undefined') ? window.lastGroundShotTimer : gT;
+                const iTimer = lerp(lastT, gT, alpha);
                 interpVz = 8.0 - (iTimer * 0.5);
             } else if (state === 'PRE_JUMP') {
                 // Pre-Jump: base + (0.5 * timer * 60)
                 // Note: preJumpTimer decreases from 0.10
-                const lastT = (typeof lastPreJumpTimer !== 'undefined') ? lastPreJumpTimer : preJumpTimer;
-                const iTimer = lerp(lastT, preJumpTimer, alpha);
+                const pT = (typeof window.preJumpTimer !== 'undefined') ? window.preJumpTimer : 0;
+                const lastT = (typeof window.lastPreJumpTimer !== 'undefined') ? window.lastPreJumpTimer : pT;
+                const iTimer = lerp(lastT, pT, alpha);
                 const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
                 interpVz = jv + (0.5 * iTimer * 60);
             } else {
