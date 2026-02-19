@@ -642,6 +642,11 @@
         }
 
         if (cat.state === 'IDLE') {
+            // Add reaction delay
+            if (cat.reactionTimer > 0) {
+                cat.reactionTimer -= dt;
+                return;
+            }
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
@@ -687,8 +692,8 @@
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
-                cat.eatTimer = 60; // 1 second eat time
-                g_catEatTimer = 60; // Sync render animation
+                cat.eatTimer = 180; // 3 seconds eat time
+                g_catEatTimer = 180; // Sync render animation
             } else {
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
@@ -716,6 +721,7 @@
                 }
                 cat.targetTacoIndex = -1;
                 cat.state = 'IDLE'; // Will trigger return or next taco next frame
+                cat.reactionTimer = 60; // 1 second delay before next action
             }
         }
         else if (cat.state === 'RETURNING') {
@@ -1999,6 +2005,21 @@
         const val = parseFloat(document.getElementById('sldCustomHairSize').value);
         playerData.customHairLength = val;
         document.getElementById('lblCustomHairSize').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.resetCatSize = function() {
+        loadContext(getShopContext());
+        if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.height = 1.0;
+        playerData.customSkinSettings.width = 1.0;
+
+        const sldH = document.getElementById('sldCustomHeight');
+        const sldW = document.getElementById('sldCustomWidth');
+        if(sldH) { sldH.value = 1.0; document.getElementById('lblCustomHeight').innerText = "100%"; }
+        if(sldW) { sldW.value = 1.0; document.getElementById('lblCustomWidth').innerText = "100%"; }
+
         saveData();
         saveContext(getShopContext());
     }
