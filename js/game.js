@@ -1386,6 +1386,7 @@
             BALLS_DB.forEach(b => { if(!playerData.unlockedBalls.includes(b.id)) playerData.unlockedBalls.push(b.id); });
             SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
             HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
+            CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
 
             // Max Stats
             playerData.purchasedStats.income = 5; playerData.stats.income = 5;
@@ -1677,6 +1678,33 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changeCatSkin = function(dir) {
+        loadContext(getShopContext());
+        viewingCatSkinIndex += dir;
+        if(viewingCatSkinIndex < 0) viewingCatSkinIndex = CAT_SKINS_DB.length - 1;
+        if(viewingCatSkinIndex >= CAT_SKINS_DB.length) viewingCatSkinIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatSkin = function() {
+        loadContext(getShopContext());
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlocked = playerData.unlockedCatSkins.includes(cat.id);
+        if (isUnlocked) {
+            playerData.currentCatSkin = cat.id;
+        }
+        else if (playerData.tacos >= cat.cost) {
+            playerData.tacos -= cat.cost;
+            playerData.unlockedCatSkins.push(cat.id);
+            playerData.currentCatSkin = cat.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache(); // Force redraw for cat update
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -1784,6 +1812,12 @@
         if(playerData.currentBall) {
             viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
             if(viewingBallIndex < 0) viewingBallIndex = 0;
+        }
+
+        // Cat
+        if(playerData.currentCatSkin) {
+            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
+            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
         }
 
         // Style
@@ -2203,6 +2237,20 @@
         if (isEquippedShoe) { statusShoe.innerText = "Équipé"; btnShoe.style.display = 'none'; }
         else if (isUnlockedShoe) { statusShoe.innerText = "Possédé"; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Équiper"; btnShoe.disabled = false; }
         else { statusShoe.innerText = `Coût: ${shoe.cost} Tacos`; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Acheter"; btnShoe.disabled = playerData.tacos < shoe.cost; }
+
+        // Cat Skin UI
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        document.getElementById('catName').innerText = cat.name;
+        const btnCat = document.getElementById('btnEquipCat');
+        const statusCat = document.getElementById('catStatus');
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlockedCat = playerData.unlockedCatSkins.includes(cat.id);
+        const isEquippedCat = playerData.currentCatSkin === cat.id;
+
+        if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
+        else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
+        else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];

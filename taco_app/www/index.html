@@ -2111,6 +2111,39 @@ for(var k=0; k<12; k++) {
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     // --- BALL GEOMETRY & RENDERER ---
+    var CAT_SKINS_DB = [
+        { id: 'cat_default', name: 'Classique (Évolutif)', cost: 0, type: 'dynamic' },
+        { id: 'cat_white', name: 'Boule de Neige', cost: 500, furColor: '#FFFFFF', bellyColor: '#F0F8FF' },
+        { id: 'cat_black', name: 'Ombre', cost: 500, furColor: '#111111', bellyColor: '#333333' },
+        { id: 'cat_grey', name: 'Fumée', cost: 500, furColor: '#808080', bellyColor: '#A9A9A9' },
+        { id: 'cat_orange', name: 'Marmelade', cost: 500, furColor: '#FFA500', bellyColor: '#FFD700' },
+        { id: 'cat_cream', name: 'Vanille', cost: 500, furColor: '#F5DEB3', bellyColor: '#FFF8DC' },
+        { id: 'cat_brown', name: 'Chocolat', cost: 500, furColor: '#8B4513', bellyColor: '#D2691E' },
+        { id: 'cat_tuxedo', name: 'Félix', cost: 1000, furColor: '#111', bellyColor: '#FFF' },
+        { id: 'cat_calico', name: 'Patchwork', cost: 1000, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E' },
+        { id: 'cat_siamese', name: 'Siamois', cost: 1000, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333' },
+        { id: 'cat_tabby', name: 'Tigré', cost: 1000, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes' },
+        { id: 'cat_pink', name: 'Barbe à Papa', cost: 2000, furColor: '#FFB6C1', bellyColor: '#FFC0CB' },
+        { id: 'cat_blue', name: 'Ciel', cost: 2000, furColor: '#87CEEB', bellyColor: '#E0FFFF' },
+        { id: 'cat_green', name: 'Radioactif', cost: 2500, furColor: '#00FF00', bellyColor: '#ADFF2F' },
+        { id: 'cat_purple', name: 'Galaxie', cost: 3000, furColor: '#4B0082', bellyColor: '#8A2BE2' },
+        { id: 'cat_gold', name: 'Luxe', cost: 5000, furColor: '#FFD700', bellyColor: '#FFFACD', shininess: 1.0 },
+        { id: 'cat_red', name: 'Diablotin', cost: 3000, furColor: '#FF0000', bellyColor: '#8B0000' },
+        { id: 'cat_silver', name: 'Robo-Chat', cost: 4000, furColor: '#C0C0C0', bellyColor: '#A9A9A9' },
+        { id: 'cat_ghost', name: 'Fantôme', cost: 3500, furColor: 'rgba(255,255,255,0.5)', bellyColor: 'rgba(255,255,255,0.3)' },
+        { id: 'cat_tiger', name: 'Tigre', cost: 2500, furColor: '#FFA500', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000' },
+        { id: 'cat_leopard', name: 'Léopard', cost: 2500, furColor: '#FFD700', bellyColor: '#FFF', pattern: 'spots', spotColor: '#000' },
+        { id: 'cat_zebra', name: 'Zèbre', cost: 2500, furColor: '#FFF', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000' },
+        { id: 'cat_panda', name: 'Panda', cost: 3000, furColor: '#FFF', bellyColor: '#FFF', earColor: '#000', pattern: 'panda' },
+        { id: 'cat_camo', name: 'Camouflage', cost: 2000, furColor: '#556B2F', bellyColor: '#8B4513', pattern: 'camo' },
+        { id: 'cat_rainbow', name: 'Arc-en-ciel', cost: 5000, furColor: '#FF0000', bellyColor: '#0000FF', pattern: 'rainbow' },
+        { id: 'cat_lava', name: 'Magma', cost: 4000, furColor: '#FF4500', bellyColor: '#FFFF00', pattern: 'lava' },
+        { id: 'cat_ice', name: 'Glace', cost: 3000, furColor: '#E0FFFF', bellyColor: '#FFFFFF', shininess: 0.8 },
+        { id: 'cat_stone', name: 'Statue', cost: 2000, furColor: '#696969', bellyColor: '#808080' },
+        { id: 'cat_neon', name: 'Cyberpunk', cost: 4500, furColor: '#00FFFF', bellyColor: '#FF00FF' },
+        { id: 'cat_void', name: 'Néant', cost: 5000, furColor: '#000', bellyColor: '#000' }
+    ];
+
     var BALLS_DB = [
         { id: 'ball_classic', name: 'Classique', cost: 0, type: 'basketball', color1: '#ff6600', color2: '#cc5500', texture: 'leather' },
         { id: 'ball_aba', name: 'ABA', cost: 1000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'leather' },
@@ -3235,6 +3268,7 @@ for(var k=0; k<12; k++) {
     let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
+    let viewingCatSkinIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -3284,6 +3318,7 @@ let lastDisplayedContestTime = -1;
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -3346,6 +3381,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
     if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
@@ -7434,13 +7471,28 @@ var BallRenderer = {
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
              let bellyColor = '#F5F5DC'; // Cream
+             let earColor = null;
 
-             if (makes >= 500) {
-                 furColor = '#A9A9A9'; // Grey (Old)
-             } else if (makes >= 200) {
-                 furColor = '#8B4513'; // Darker Brown (Adult)
-             } else if (makes >= 50) {
-                 furColor = '#D2691E'; // Orange (Adolescent)
+             let customSkin = null;
+             if (playerData.currentCatSkin && playerData.currentCatSkin !== 'cat_default') {
+                 if (typeof CAT_SKINS_DB !== 'undefined') {
+                     customSkin = CAT_SKINS_DB.find(s => s.id === playerData.currentCatSkin);
+                 }
+             }
+
+             if (customSkin) {
+                 if (customSkin.furColor) furColor = customSkin.furColor;
+                 if (customSkin.bellyColor) bellyColor = customSkin.bellyColor;
+                 if (customSkin.earColor) earColor = customSkin.earColor;
+             } else {
+                 // Default Dynamic Logic
+                 if (makes >= 500) {
+                     furColor = '#A9A9A9'; // Grey (Old)
+                 } else if (makes >= 200) {
+                     furColor = '#8B4513'; // Darker Brown (Adult)
+                 } else if (makes >= 50) {
+                     furColor = '#D2691E'; // Orange (Adolescent)
+                 }
              }
 
              const s = p.scale * ageScale;
@@ -7467,7 +7519,7 @@ var BallRenderer = {
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
              // Ears
-             ctx.fillStyle = furColor;
+             ctx.fillStyle = earColor || furColor;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
 
@@ -15095,6 +15147,7 @@ var BallRenderer = {
             BALLS_DB.forEach(b => { if(!playerData.unlockedBalls.includes(b.id)) playerData.unlockedBalls.push(b.id); });
             SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
             HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
+            CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
 
             // Max Stats
             playerData.purchasedStats.income = 5; playerData.stats.income = 5;
@@ -15386,6 +15439,33 @@ var BallRenderer = {
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+    window.changeCatSkin = function(dir) {
+        loadContext(getShopContext());
+        viewingCatSkinIndex += dir;
+        if(viewingCatSkinIndex < 0) viewingCatSkinIndex = CAT_SKINS_DB.length - 1;
+        if(viewingCatSkinIndex >= CAT_SKINS_DB.length) viewingCatSkinIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatSkin = function() {
+        loadContext(getShopContext());
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlocked = playerData.unlockedCatSkins.includes(cat.id);
+        if (isUnlocked) {
+            playerData.currentCatSkin = cat.id;
+        }
+        else if (playerData.tacos >= cat.cost) {
+            playerData.tacos -= cat.cost;
+            playerData.unlockedCatSkins.push(cat.id);
+            playerData.currentCatSkin = cat.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache(); // Force redraw for cat update
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -15493,6 +15573,12 @@ var BallRenderer = {
         if(playerData.currentBall) {
             viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
             if(viewingBallIndex < 0) viewingBallIndex = 0;
+        }
+
+        // Cat
+        if(playerData.currentCatSkin) {
+            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
+            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
         }
 
         // Style
@@ -15912,6 +15998,20 @@ var BallRenderer = {
         if (isEquippedShoe) { statusShoe.innerText = "Équipé"; btnShoe.style.display = 'none'; }
         else if (isUnlockedShoe) { statusShoe.innerText = "Possédé"; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Équiper"; btnShoe.disabled = false; }
         else { statusShoe.innerText = `Coût: ${shoe.cost} Tacos`; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Acheter"; btnShoe.disabled = playerData.tacos < shoe.cost; }
+
+        // Cat Skin UI
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        document.getElementById('catName').innerText = cat.name;
+        const btnCat = document.getElementById('btnEquipCat');
+        const statusCat = document.getElementById('catStatus');
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlockedCat = playerData.unlockedCatSkins.includes(cat.id);
+        const isEquippedCat = playerData.currentCatSkin === cat.id;
+
+        if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
+        else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
+        else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];

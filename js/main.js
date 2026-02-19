@@ -276,6 +276,7 @@
     let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
+    let viewingCatSkinIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -325,6 +326,7 @@ let lastDisplayedContestTime = -1;
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -387,6 +389,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
     if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {

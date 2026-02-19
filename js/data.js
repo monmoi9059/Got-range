@@ -957,6 +957,39 @@
     var CROWD_EMOJIS = ['🐭', '🐱', '🐶', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐢', '🐘', '🦕', '🦓', '🦒'];
 
     // --- BALL GEOMETRY & RENDERER ---
+    var CAT_SKINS_DB = [
+        { id: 'cat_default', name: 'Classique (Évolutif)', cost: 0, type: 'dynamic' },
+        { id: 'cat_white', name: 'Boule de Neige', cost: 500, furColor: '#FFFFFF', bellyColor: '#F0F8FF' },
+        { id: 'cat_black', name: 'Ombre', cost: 500, furColor: '#111111', bellyColor: '#333333' },
+        { id: 'cat_grey', name: 'Fumée', cost: 500, furColor: '#808080', bellyColor: '#A9A9A9' },
+        { id: 'cat_orange', name: 'Marmelade', cost: 500, furColor: '#FFA500', bellyColor: '#FFD700' },
+        { id: 'cat_cream', name: 'Vanille', cost: 500, furColor: '#F5DEB3', bellyColor: '#FFF8DC' },
+        { id: 'cat_brown', name: 'Chocolat', cost: 500, furColor: '#8B4513', bellyColor: '#D2691E' },
+        { id: 'cat_tuxedo', name: 'Félix', cost: 1000, furColor: '#111', bellyColor: '#FFF' },
+        { id: 'cat_calico', name: 'Patchwork', cost: 1000, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E' },
+        { id: 'cat_siamese', name: 'Siamois', cost: 1000, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333' },
+        { id: 'cat_tabby', name: 'Tigré', cost: 1000, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes' },
+        { id: 'cat_pink', name: 'Barbe à Papa', cost: 2000, furColor: '#FFB6C1', bellyColor: '#FFC0CB' },
+        { id: 'cat_blue', name: 'Ciel', cost: 2000, furColor: '#87CEEB', bellyColor: '#E0FFFF' },
+        { id: 'cat_green', name: 'Radioactif', cost: 2500, furColor: '#00FF00', bellyColor: '#ADFF2F' },
+        { id: 'cat_purple', name: 'Galaxie', cost: 3000, furColor: '#4B0082', bellyColor: '#8A2BE2' },
+        { id: 'cat_gold', name: 'Luxe', cost: 5000, furColor: '#FFD700', bellyColor: '#FFFACD', shininess: 1.0 },
+        { id: 'cat_red', name: 'Diablotin', cost: 3000, furColor: '#FF0000', bellyColor: '#8B0000' },
+        { id: 'cat_silver', name: 'Robo-Chat', cost: 4000, furColor: '#C0C0C0', bellyColor: '#A9A9A9' },
+        { id: 'cat_ghost', name: 'Fantôme', cost: 3500, furColor: 'rgba(255,255,255,0.5)', bellyColor: 'rgba(255,255,255,0.3)' },
+        { id: 'cat_tiger', name: 'Tigre', cost: 2500, furColor: '#FFA500', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000' },
+        { id: 'cat_leopard', name: 'Léopard', cost: 2500, furColor: '#FFD700', bellyColor: '#FFF', pattern: 'spots', spotColor: '#000' },
+        { id: 'cat_zebra', name: 'Zèbre', cost: 2500, furColor: '#FFF', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000' },
+        { id: 'cat_panda', name: 'Panda', cost: 3000, furColor: '#FFF', bellyColor: '#FFF', earColor: '#000', pattern: 'panda' },
+        { id: 'cat_camo', name: 'Camouflage', cost: 2000, furColor: '#556B2F', bellyColor: '#8B4513', pattern: 'camo' },
+        { id: 'cat_rainbow', name: 'Arc-en-ciel', cost: 5000, furColor: '#FF0000', bellyColor: '#0000FF', pattern: 'rainbow' },
+        { id: 'cat_lava', name: 'Magma', cost: 4000, furColor: '#FF4500', bellyColor: '#FFFF00', pattern: 'lava' },
+        { id: 'cat_ice', name: 'Glace', cost: 3000, furColor: '#E0FFFF', bellyColor: '#FFFFFF', shininess: 0.8 },
+        { id: 'cat_stone', name: 'Statue', cost: 2000, furColor: '#696969', bellyColor: '#808080' },
+        { id: 'cat_neon', name: 'Cyberpunk', cost: 4500, furColor: '#00FFFF', bellyColor: '#FF00FF' },
+        { id: 'cat_void', name: 'Néant', cost: 5000, furColor: '#000', bellyColor: '#000' }
+    ];
+
     var BALLS_DB = [
         { id: 'ball_classic', name: 'Classique', cost: 0, type: 'basketball', color1: '#ff6600', color2: '#cc5500', texture: 'leather' },
         { id: 'ball_aba', name: 'ABA', cost: 1000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'leather' },

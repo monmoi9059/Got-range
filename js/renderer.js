@@ -3417,13 +3417,28 @@ var BallRenderer = {
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
              let bellyColor = '#F5F5DC'; // Cream
+             let earColor = null;
 
-             if (makes >= 500) {
-                 furColor = '#A9A9A9'; // Grey (Old)
-             } else if (makes >= 200) {
-                 furColor = '#8B4513'; // Darker Brown (Adult)
-             } else if (makes >= 50) {
-                 furColor = '#D2691E'; // Orange (Adolescent)
+             let customSkin = null;
+             if (playerData.currentCatSkin && playerData.currentCatSkin !== 'cat_default') {
+                 if (typeof CAT_SKINS_DB !== 'undefined') {
+                     customSkin = CAT_SKINS_DB.find(s => s.id === playerData.currentCatSkin);
+                 }
+             }
+
+             if (customSkin) {
+                 if (customSkin.furColor) furColor = customSkin.furColor;
+                 if (customSkin.bellyColor) bellyColor = customSkin.bellyColor;
+                 if (customSkin.earColor) earColor = customSkin.earColor;
+             } else {
+                 // Default Dynamic Logic
+                 if (makes >= 500) {
+                     furColor = '#A9A9A9'; // Grey (Old)
+                 } else if (makes >= 200) {
+                     furColor = '#8B4513'; // Darker Brown (Adult)
+                 } else if (makes >= 50) {
+                     furColor = '#D2691E'; // Orange (Adolescent)
+                 }
              }
 
              const s = p.scale * ageScale;
@@ -3450,7 +3465,7 @@ var BallRenderer = {
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
              // Ears
-             ctx.fillStyle = furColor;
+             ctx.fillStyle = earColor || furColor;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
 
