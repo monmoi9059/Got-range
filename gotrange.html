@@ -7677,6 +7677,8 @@ var BallRenderer = {
     }
 
 
+    var g_cachedHoopGeometry = null;
+
     function drawHoop(p) {
         if (!p) return;
 
@@ -7735,29 +7737,33 @@ var BallRenderer = {
             { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset - isH }
         ];
 
-        // Rim Circle
-        const rimPoints = [];
-        const segs = 24;
-        for(let i=0; i<segs; i++) {
-            const a = (i/segs) * Math.PI * 2;
-            const rx = Math.cos(a) * rimRadius;
-            const ry = Math.sin(a) * rimRadius;
-            rimPoints.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
+        // Rim Circle & Net Points (Cached)
+        if (!g_cachedHoopGeometry) {
+            const rPts = [];
+            const segs = 24;
+            for(let i=0; i<segs; i++) {
+                const a = (i/segs) * Math.PI * 2;
+                const rx = Math.cos(a) * rimRadius;
+                const ry = Math.sin(a) * rimRadius;
+                rPts.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
+            }
+
+            const nPts = [];
+            const netLen = 35;
+            const netBotRad = 12;
+            const netSegs = 12;
+            for(let i=0; i<netSegs; i++) {
+                 const a = (i/netSegs) * Math.PI * 2;
+                 nPts.push({
+                     x: rimX + Math.cos(a)*netBotRad,
+                     y: rimY + Math.sin(a)*netBotRad,
+                     z: rimZ - netLen
+                 });
+            }
+            g_cachedHoopGeometry = { rimPoints: rPts, netPointsBot: nPts, segs: segs, netSegs: netSegs };
         }
 
-        // Net Bottom Ring
-        const netPointsBot = [];
-        const netLen = 35;
-        const netBotRad = 12;
-        const netSegs = 12;
-        for(let i=0; i<netSegs; i++) {
-             const a = (i/netSegs) * Math.PI * 2;
-             netPointsBot.push({
-                 x: rimX + Math.cos(a)*netBotRad,
-                 y: rimY + Math.sin(a)*netBotRad,
-                 z: rimZ - netLen
-             });
-        }
+        const { rimPoints, netPointsBot, segs, netSegs } = g_cachedHoopGeometry;
 
         // Pole
         const poleX = bbCX - fX * 20;
