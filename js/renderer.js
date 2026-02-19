@@ -9145,6 +9145,11 @@ var BallRenderer = {
                     seed: i
                 });
             }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) processDecor(cat);
+            }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
             const r = 900;
@@ -9157,6 +9162,11 @@ var BallRenderer = {
                     variant: {},
                     seed: i
                 });
+            }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) processDecor(cat);
             }
         }
 
