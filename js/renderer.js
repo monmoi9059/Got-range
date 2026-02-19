@@ -215,6 +215,7 @@ RenderEngine.Queue.init();
 
 var BallRenderer = {
     _projResult: {x:0, y:0, z:0},
+    _tempPoint: {x:0, y:0, z:0},
     _noisePattern: null,
 
     getNoise: function(ctx) {
@@ -281,7 +282,11 @@ var BallRenderer = {
             // Z Rotation
             var cz = Math.cos(rz), sz = Math.sin(rz);
             tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
-            return {x:x, y:y, z:z};
+
+            this._tempPoint.x = x;
+            this._tempPoint.y = y;
+            this._tempPoint.z = z;
+            return this._tempPoint;
         },
 
         draw3D: function(ctx, ball, phys) {
@@ -298,7 +303,9 @@ var BallRenderer = {
                 var wy = phys.y + r.y * radius;
                 var wz = phys.z + r.z * radius;
                 var proj = project(wx, wy, wz, g_camCache);
-                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: r});
+                // Clone 'r' because rotatePoint returns a reusable object
+                var normal = {x: r.x, y: r.y, z: r.z};
+                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: normal});
             }
 
             // Prepare Faces
@@ -1628,8 +1635,16 @@ var BallRenderer = {
 
     function drawSmoke(p, alpha, color) {
         const s = p.scale;
-        ctx.fillStyle = color || `rgba(220, 220, 220, ${alpha * 0.6})`;
+        const oldAlpha = ctx.globalAlpha;
+        if (color) {
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+        } else {
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.fillStyle = '#DCDCDC';
+        }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
     }
 
     // --- FUR & ANATOMY HELPERS ---
@@ -1730,6 +1745,8 @@ var BallRenderer = {
     }
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
+    const g_contLimbPool = [];
+    for(let i=0; i<8; i++) g_contLimbPool.push({x:0, y:0});
 
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
@@ -1797,21 +1814,34 @@ var BallRenderer = {
         const n2 = a2 + Math.PI / 2;
 
         // Calculate offset points
+        // Use Pool to avoid GC
+        const p1L = g_contLimbPool[0];
+        const p1R = g_contLimbPool[1];
+        const p3L = g_contLimbPool[2];
+        const p3R = g_contLimbPool[3];
+        const p2L_in = g_contLimbPool[4];
+        const p2R_in = g_contLimbPool[5];
+        const p2L_out = g_contLimbPool[6];
+        const p2R_out = g_contLimbPool[7];
+
+        const cosN1 = Math.cos(n1); const sinN1 = Math.sin(n1);
+        const cosN2 = Math.cos(n2); const sinN2 = Math.sin(n2);
+
         // Start (P1)
-        const p1L = { x: p1.x + Math.cos(n1) * w1/2, y: p1.y + Math.sin(n1) * w1/2 };
-        const p1R = { x: p1.x - Math.cos(n1) * w1/2, y: p1.y - Math.sin(n1) * w1/2 };
+        p1L.x = p1.x + cosN1 * w1/2; p1L.y = p1.y + sinN1 * w1/2;
+        p1R.x = p1.x - cosN1 * w1/2; p1R.y = p1.y - sinN1 * w1/2;
 
         // End (P3)
-        const p3L = { x: p3.x + Math.cos(n2) * w3/2, y: p3.y + Math.sin(n2) * w3/2 };
-        const p3R = { x: p3.x - Math.cos(n2) * w3/2, y: p3.y - Math.sin(n2) * w3/2 };
+        p3L.x = p3.x + cosN2 * w3/2; p3L.y = p3.y + sinN2 * w3/2;
+        p3R.x = p3.x - cosN2 * w3/2; p3R.y = p3.y - sinN2 * w3/2;
 
         // Elbow/Knee (P2)
         // Incoming segment end
-        const p2L_in = { x: p2.x + Math.cos(n1) * w2/2, y: p2.y + Math.sin(n1) * w2/2 };
-        const p2R_in = { x: p2.x - Math.cos(n1) * w2/2, y: p2.y - Math.sin(n1) * w2/2 };
+        p2L_in.x = p2.x + cosN1 * w2/2; p2L_in.y = p2.y + sinN1 * w2/2;
+        p2R_in.x = p2.x - cosN1 * w2/2; p2R_in.y = p2.y - sinN1 * w2/2;
         // Outgoing segment start
-        const p2L_out = { x: p2.x + Math.cos(n2) * w2/2, y: p2.y + Math.sin(n2) * w2/2 };
-        const p2R_out = { x: p2.x - Math.cos(n2) * w2/2, y: p2.y - Math.sin(n2) * w2/2 };
+        p2L_out.x = p2.x + cosN2 * w2/2; p2L_out.y = p2.y + sinN2 * w2/2;
+        p2R_out.x = p2.x - cosN2 * w2/2; p2R_out.y = p2.y - sinN2 * w2/2;
 
         // Miter/Corner point calculation for smooth outer elbow
         // Vector average for angle bisector
@@ -1924,6 +1954,8 @@ var BallRenderer = {
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
+
+            if (playerData.graphics === 'LOW') return;
 
             // Clip for shading
             ctx.save();
@@ -8861,7 +8893,7 @@ var BallRenderer = {
                  }
                  const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
                  item.alpha = p.alpha;
-                 item.color = p.color;
+                 item.color = p.baseColor;
              }
         });
 
