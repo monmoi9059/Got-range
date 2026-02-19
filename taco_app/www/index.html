@@ -4249,7 +4249,6 @@ RenderEngine.Queue.init();
 
 var BallRenderer = {
     _projResult: {x:0, y:0, z:0},
-    _tempPoint: {x:0, y:0, z:0},
     _noisePattern: null,
 
     getNoise: function(ctx) {
@@ -4316,11 +4315,7 @@ var BallRenderer = {
             // Z Rotation
             var cz = Math.cos(rz), sz = Math.sin(rz);
             tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
-
-            this._tempPoint.x = x;
-            this._tempPoint.y = y;
-            this._tempPoint.z = z;
-            return this._tempPoint;
+            return {x:x, y:y, z:z};
         },
 
         draw3D: function(ctx, ball, phys) {
@@ -4337,9 +4332,7 @@ var BallRenderer = {
                 var wy = phys.y + r.y * radius;
                 var wz = phys.z + r.z * radius;
                 var proj = project(wx, wy, wz, g_camCache);
-                // Clone 'r' because rotatePoint returns a reusable object
-                var normal = {x: r.x, y: r.y, z: r.z};
-                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: normal});
+                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: r});
             }
 
             // Prepare Faces
@@ -5113,19 +5106,9 @@ var BallRenderer = {
         const winH = window.innerHeight;
         const dpr = window.devicePixelRatio || 1;
 
-        // Set Physical Resolution (Capped at 1920px max dimension)
-        const MAX_DIM = 1920;
-        let w = winW * dpr;
-        let h = winH * dpr;
-
-        if (w > MAX_DIM || h > MAX_DIM) {
-            const scale = Math.min(MAX_DIM / w, MAX_DIM / h);
-            w *= scale;
-            h *= scale;
-        }
-
-        canvas.width = Math.ceil(w);
-        canvas.height = Math.ceil(h);
+        // Set Physical Resolution
+        canvas.width = Math.ceil(winW * dpr);
+        canvas.height = Math.ceil(winH * dpr);
 
         // Set CSS Size to Fill Window
         canvas.style.width = winW + 'px';
@@ -5789,8 +5772,6 @@ var BallRenderer = {
     }
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
-    const g_contLimbPool = [];
-    for(let i=0; i<8; i++) g_contLimbPool.push({x:0, y:0});
 
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
@@ -5858,34 +5839,21 @@ var BallRenderer = {
         const n2 = a2 + Math.PI / 2;
 
         // Calculate offset points
-        // Use Pool to avoid GC
-        const p1L = g_contLimbPool[0];
-        const p1R = g_contLimbPool[1];
-        const p3L = g_contLimbPool[2];
-        const p3R = g_contLimbPool[3];
-        const p2L_in = g_contLimbPool[4];
-        const p2R_in = g_contLimbPool[5];
-        const p2L_out = g_contLimbPool[6];
-        const p2R_out = g_contLimbPool[7];
-
-        const cosN1 = Math.cos(n1); const sinN1 = Math.sin(n1);
-        const cosN2 = Math.cos(n2); const sinN2 = Math.sin(n2);
-
         // Start (P1)
-        p1L.x = p1.x + cosN1 * w1/2; p1L.y = p1.y + sinN1 * w1/2;
-        p1R.x = p1.x - cosN1 * w1/2; p1R.y = p1.y - sinN1 * w1/2;
+        const p1L = { x: p1.x + Math.cos(n1) * w1/2, y: p1.y + Math.sin(n1) * w1/2 };
+        const p1R = { x: p1.x - Math.cos(n1) * w1/2, y: p1.y - Math.sin(n1) * w1/2 };
 
         // End (P3)
-        p3L.x = p3.x + cosN2 * w3/2; p3L.y = p3.y + sinN2 * w3/2;
-        p3R.x = p3.x - cosN2 * w3/2; p3R.y = p3.y - sinN2 * w3/2;
+        const p3L = { x: p3.x + Math.cos(n2) * w3/2, y: p3.y + Math.sin(n2) * w3/2 };
+        const p3R = { x: p3.x - Math.cos(n2) * w3/2, y: p3.y - Math.sin(n2) * w3/2 };
 
         // Elbow/Knee (P2)
         // Incoming segment end
-        p2L_in.x = p2.x + cosN1 * w2/2; p2L_in.y = p2.y + sinN1 * w2/2;
-        p2R_in.x = p2.x - cosN1 * w2/2; p2R_in.y = p2.y - sinN1 * w2/2;
+        const p2L_in = { x: p2.x + Math.cos(n1) * w2/2, y: p2.y + Math.sin(n1) * w2/2 };
+        const p2R_in = { x: p2.x - Math.cos(n1) * w2/2, y: p2.y - Math.sin(n1) * w2/2 };
         // Outgoing segment start
-        p2L_out.x = p2.x + cosN2 * w2/2; p2L_out.y = p2.y + sinN2 * w2/2;
-        p2R_out.x = p2.x - cosN2 * w2/2; p2R_out.y = p2.y - sinN2 * w2/2;
+        const p2L_out = { x: p2.x + Math.cos(n2) * w2/2, y: p2.y + Math.sin(n2) * w2/2 };
+        const p2R_out = { x: p2.x - Math.cos(n2) * w2/2, y: p2.y - Math.sin(n2) * w2/2 };
 
         // Miter/Corner point calculation for smooth outer elbow
         // Vector average for angle bisector
@@ -5998,8 +5966,6 @@ var BallRenderer = {
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.fill();
-
-            if (playerData.graphics === 'LOW') return;
 
             // Clip for shading
             ctx.save();
@@ -7658,34 +7624,6 @@ var BallRenderer = {
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
 
-        var z = 0;
-        if (type === 'player') z = player3D.z;
-        if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
-
-        // "Dumbed down" shadow: Simple radial gradient blob
-        // Opacity fades as object goes higher
-        var alpha = Math.max(0.1, 0.4 - (z / 600));
-
-        ctx.save();
-        ctx.translate(obj.x, obj.y);
-        ctx.scale(1, 0.3); // Flatten to create ellipse perspective
-
-        var r = 25 * obj.scale * (1 + (z * 0.001)); // Slight size increase with height to simulate diffusion
-
-        var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-        grad.addColorStop(0, 'rgba(0,0,0,' + alpha + ')');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.restore();
-        return;
-
-        // LEGACY PROJECTION LOGIC REMOVED FOR PERFORMANCE
-        /*
         // Quality check
         if (playerData.graphics === 'LOW') {
              // Fallback to simple blob if needed
@@ -7736,7 +7674,6 @@ var BallRenderer = {
         ctx.drawImage(sCanvas, -256, -400);
 
         ctx.restore();
-        */
     }
 
 
@@ -12575,26 +12512,54 @@ var BallRenderer = {
         const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
-    function drawMountainLayer(layer, horizonY, dx, scale) {
-        if (playerData.graphics === 'HIGH') {
-            if (!layer.gradient) {
-                const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
+    // Optimization: Cache mountain layers to offscreen canvas
+    var g_mountainCanvas = null;
+    function ensureMountainCache() {
+        if (g_mountainCanvas) return g_mountainCanvas;
+
+        let maxWidth = 2200; // From js/main.js loop limit
+
+        g_mountainCanvas = [];
+
+        mountainLayers.forEach(layer => {
+            const c = document.createElement('canvas');
+            c.width = maxWidth;
+            c.height = 400; // Fixed height buffer
+            const ctx2 = c.getContext('2d');
+
+            // Normalized height baseline for cache
+            const hY = 350;
+
+            if (playerData.graphics === 'HIGH') {
+                const grad = ctx2.createLinearGradient(0, hY - 150, 0, hY);
                 grad.addColorStop(0, layer.color);
                 grad.addColorStop(1, '#1a1a1a');
-                layer.gradient = grad;
+                ctx2.fillStyle = grad;
+            } else {
+                ctx2.fillStyle = layer.color;
             }
-            ctx.fillStyle = layer.gradient;
-        } else {
-            ctx.fillStyle = layer.color;
-        }
 
-        if (!scale) scale = 1.0;
+            ctx2.beginPath();
+            ctx2.moveTo(layer.points[0].x, hY);
+            layer.points.forEach(p => { ctx2.lineTo(p.x, hY - p.y); });
+            ctx2.lineTo(layer.points[layer.points.length-1].x, hY);
+            ctx2.fill();
 
-        ctx.beginPath();
-        ctx.moveTo((layer.points[0].x * scale) + dx, horizonY);
-        layer.points.forEach(p => { ctx.lineTo((p.x * scale) + dx, horizonY - (p.y * scale)); });
-        ctx.lineTo((layer.points[layer.points.length-1].x * scale) + dx, horizonY);
-        ctx.fill();
+            g_mountainCanvas.push({ cvs: c, w: maxWidth, hY: hY });
+        });
+
+        return g_mountainCanvas;
+    }
+
+    function drawMountainLayerCached(layerIndex, horizonY, dx, scale) {
+        if (!g_mountainCanvas) ensureMountainCache();
+        const cache = g_mountainCanvas[layerIndex];
+        if (!cache) return;
+
+        ctx.drawImage(cache.cvs,
+            0, 0, cache.w, 400,
+            dx, horizonY - (cache.hY * scale), cache.w * scale, 400 * scale
+        );
     }
 
     function drawBackground(vpX, vpY, vpW, vpH) {
@@ -12628,6 +12593,9 @@ var BallRenderer = {
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+
+            // Invalidate Mountain Cache on level change (just in case style changes, though currently static)
+            g_mountainCanvas = null;
 
             let court;
             if (currentGameMode === 'CONTEST') {
@@ -12717,24 +12685,6 @@ var BallRenderer = {
                  currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
                  bgCache.currentFloor = currentZoneGrad;
             }
-
-            // Past Floors (Only for CLASSIC)
-            if (currentGameMode === 'CLASSIC') {
-                const currentDist = 10 + (distanceLevel * 5);
-                for (let i = 0; i < COURT_ZONES.length; i++) {
-                    const z = COURT_ZONES[i];
-                    let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-                    let zEnd = z.limit;
-                    if (zStart >= currentDist) break;
-                    let drawEnd = Math.min(zEnd, currentDist);
-                    const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
-                    if ((yBottom - yTop) > 0.5) {
-                        const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                        grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                        bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
-                    }
-                }
-            }
         }
 
         // DRAW FROM CACHE
@@ -12768,9 +12718,12 @@ var BallRenderer = {
             }
 
             // BACKGROUND MOUNTAINS
+            // Optimization: Use Offscreen Canvas Cache
+            if (!g_mountainCanvas) ensureMountainCache(horizonY);
+
             const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
 
-            mountainLayers.forEach(layer => {
+            mountainLayers.forEach((layer, idx) => {
                  const shift = (camX + camY) * layer.speed;
                  const loopWidth = 2000 * mountainScale;
                  const offset = shift % loopWidth;
@@ -12779,7 +12732,7 @@ var BallRenderer = {
 
                  let currentX = startX;
                  while(currentX < vpW) {
-                     drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                     drawMountainLayerCached(idx, horizonY, currentX, mountainScale);
                      currentX += loopWidth;
                  }
             });
@@ -12816,6 +12769,7 @@ var BallRenderer = {
 
         if (currentGameMode === 'CLASSIC') {
             const currentDist = 10 + (distanceLevel * 5);
+            // Optimization: Reuse Gradient Objects
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
                 let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -12838,10 +12792,27 @@ var BallRenderer = {
                 const yBottom = pEnd ? pEnd.y : window.LOGICAL_HEIGHT;
 
                 if ((yBottom - yTop) > 0.5) {
-                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, yTop, vpW, yBottom - yTop);
+                    // Optimized Gradient Rendering:
+                    // Use normalized gradient (0 to 1) and transform context
+                    if (!z.cachedGradient) {
+                        // Create a vertical gradient from 0 to 1
+                        const grad = ctx.createLinearGradient(0, 0, 0, 1);
+                        grad.addColorStop(0, z.ground1);
+                        grad.addColorStop(1, z.ground2);
+                        z.cachedGradient = grad;
+                    }
+
+                    ctx.save();
+                    // Translate to Top Y
+                    ctx.translate(0, yTop);
+                    // Scale Height to fit (yBottom - yTop)
+                    ctx.scale(1, yBottom - yTop);
+
+                    ctx.fillStyle = z.cachedGradient;
+                    // Draw rect from 0,0 to width,1 (which scales to height)
+                    ctx.fillRect(0, 0, vpW, 1);
+
+                    ctx.restore();
                 }
             }
         }
@@ -12966,7 +12937,7 @@ var BallRenderer = {
                  }
                  const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
                  item.alpha = p.alpha;
-                 item.color = p.baseColor;
+                 item.color = p.color;
              }
         });
 
