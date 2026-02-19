@@ -6015,6 +6015,24 @@ var BallRenderer = {
         ctx.fillStyle = radGrad;
         ctx.beginPath(); ctx.arc(creaseX, creaseY, shadowR, 0, Math.PI*2); ctx.fill();
 
+        // Pattern Overlay (e.g. Diagonal Stripes on Sleeve)
+        if (options.pattern === 'stripes_sleeve_diag') {
+             ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 3*scale;
+             const spacing = 10 * scale;
+             ctx.beginPath();
+             // Draw diagonal lines over the bounding box
+             const minX = Math.min(p1L.x, p1R.x, p3L.x, p3R.x) - 50*scale;
+             const maxX = Math.max(p1L.x, p1R.x, p3L.x, p3R.x) + 50*scale;
+             const minY = Math.min(p1L.y, p1R.y, p3L.y, p3R.y) - 50*scale;
+             const maxY = Math.max(p1L.y, p1R.y, p3L.y, p3R.y) + 50*scale;
+
+             for(let x = minX; x < maxX; x+=spacing) {
+                 ctx.moveTo(x, minY);
+                 ctx.lineTo(x - (maxY-minY), maxY);
+             }
+             ctx.stroke();
+        }
+
         ctx.restore(); // End Clip
     }
 
@@ -6295,6 +6313,7 @@ var BallRenderer = {
             if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
             else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
             else if (ct === 'robe') fitType = 'robe';
+            else if (ct === 'poncho') fitType = 'poncho';
             else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
 
             // Modifier Scalars
@@ -6345,6 +6364,19 @@ var BallRenderer = {
                     {x: cx + robeTop/2, y: shoulderY},
                     {x: cx + robeBot/2, y: hipY},
                     {x: cx - robeBot/2, y: hipY}
+                ];
+            }
+            else if (fitType === 'poncho') {
+                // DIAMOND/TRIANGLE SHAPE
+                const ponchoTop = sW * 0.9;
+                const ponchoBot = hW * 2.0;
+
+                points = [
+                    {x: cx - ponchoTop/2, y: shoulderY},
+                    {x: cx + ponchoTop/2, y: shoulderY},
+                    {x: cx + ponchoBot/2, y: hipY + h*0.2}, // Low corners
+                    {x: cx, y: hipY + h*0.5}, // Point at bottom center
+                    {x: cx - ponchoBot/2, y: hipY + h*0.2}
                 ];
             }
             else if (fitType === 'fitted') {
@@ -6592,6 +6624,26 @@ var BallRenderer = {
                  grad.addColorStop(1, '#FF69B4');
                  ctx.fillStyle = grad;
                  ctx.fillRect(cx - w/2, topY, w, h);
+             }
+             else if (pat === 'camo_shark') {
+                 // Camo Base
+                 const c1 = '#556B2F'; const c2 = '#8B4513'; const c3 = '#2E8B57';
+                 for(let i=0; i<15; i++) {
+                     const bx = cx - w/2 + (Math.abs(Math.sin(seed * 13 + i * 47)) * w);
+                     const by = topY + (Math.abs(Math.cos(seed * 7 + i * 29)) * h);
+                     const r = (5 + (Math.abs(Math.sin(i)) * 8)) * s;
+                     ctx.fillStyle = (i%2===0) ? c2 : c3;
+                     ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (pat === 'stripes_sleeve_diag') {
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 4*s;
+                 ctx.beginPath();
+                 for(let i=-w; i<w*2; i+=15*s) {
+                     ctx.moveTo(cx - w + i, topY);
+                     ctx.lineTo(cx - w + i - 20*s, topY + h);
+                 }
+                 ctx.stroke();
              }
         };
 
@@ -11225,7 +11277,7 @@ var BallRenderer = {
                  drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, activeSleeveColor, s, false, seedBase);
             }
             else if (drawMode === 'long_cloth') {
-                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, thisUpperColor, s, isFurry && (thisUpperColor === furColor), seedBase);
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, thisUpperColor, s, isFurry && (thisUpperColor === furColor), seedBase, {pattern: skinObj.pattern});
             }
             else if (drawMode === 'tshirt') {
                  // Skin Arm
@@ -11235,7 +11287,7 @@ var BallRenderer = {
                  const sleeveEnd = getJoint(sx, sy, sleeveLen, angle1);
                  const sleeveW = upperStartW * 1.1;
                  // Draw short segment
-                 drawContinuousLimb({x:sx,y:sy}, sleeveEnd, sleeveEnd, sleeveW, sleeveW*0.9, sleeveW*0.9, thisUpperColor, s, false, 0);
+                 drawContinuousLimb({x:sx,y:sy}, sleeveEnd, sleeveEnd, sleeveW, sleeveW*0.9, sleeveW*0.9, thisUpperColor, s, false, 0, {pattern: skinObj.pattern});
             }
             else { // Skin
                  drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
@@ -12315,6 +12367,31 @@ var BallRenderer = {
              // Hood crease/shadow
              ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
+
+             // Shark Face
+             if (skinObj.pattern === 'camo_shark') {
+                 // Eyes
+                 ctx.fillStyle = '#FFF'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+                 ctx.beginPath(); ctx.arc(p.x - 8*s, torsoY + 8*s, 3*s, 0, Math.PI*2); ctx.fill(); ctx.stroke(); // Left
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 8*s, torsoY + 8*s, 1*s, 0, Math.PI*2); ctx.fill();
+
+                 ctx.fillStyle = '#FFF';
+                 ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 8*s, 3*s, 0, Math.PI*2); ctx.fill(); ctx.stroke(); // Right
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 8*s, 1*s, 0, Math.PI*2); ctx.fill();
+
+                 // Mouth (Zigzag)
+                 ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - 12*s, torsoY + 15*s);
+                 for(let k=0; k<6; k++) {
+                     ctx.lineTo(p.x - 12*s + (k+0.5)*4*s, torsoY + 12*s);
+                     ctx.lineTo(p.x - 12*s + (k+1)*4*s, torsoY + 15*s);
+                 }
+                 ctx.stroke();
+                 // Outline mouth
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+                 ctx.strokeRect(p.x - 12*s, torsoY + 12*s, 24*s, 3*s);
+             }
         }
         if (skinObj.backAccessory === 'shell') {
              const shellW = bodyW * 1.4;
