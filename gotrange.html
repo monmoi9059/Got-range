@@ -3002,6 +3002,16 @@ for(var k=0; k<12; k++) {
     var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
 
+    // Cat Logic State
+    var g_catState = {
+        state: 'IDLE', // IDLE, MOVING, EATING, RETURNING
+        x: 733, y: 160, // Base position (Hoop + 10)
+        targetX: 0, targetY: 0,
+        targetTacoIndex: -1,
+        eatTimer: 0,
+        animFrame: 0
+    };
+
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),
     // but we might want to center the "court path" a bit more.
@@ -3009,8 +3019,12 @@ for(var k=0; k<12; k++) {
     const PIXELS_PER_FOOT = 4.2426;
 
     var decors = [];
-    // Cat under the hoop
-    decors.push({ x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 });
+    // Cat under the hoop (Moved dynamic cat logic to renderer, placeholder removed or kept for initial scan)
+    // We will render the cat manually in renderer.js using g_catState, so we don't push it to decors here anymore
+    // or we push it but update its position in the render loop.
+    // Let's keep it in decors for consistent depth sorting, but we'll update its x/y in update loop.
+    var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
+    decors.push(catDecor);
 
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
@@ -3071,8 +3085,7 @@ for(var k=0; k<12; k++) {
         }
     });
 
-    // TACO CAT: One per zone guaranteed - REMOVED per user request to only have one under the basket
-    /*
+    // TACO CAT: One per zone guaranteed
     for(let i=0; i<COURT_ZONES.length; i++) {
         const z = COURT_ZONES[i];
         const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -3097,7 +3110,6 @@ for(var k=0; k<12; k++) {
 
         decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
     }
-    */
 
     // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
     decors.sort((a, b) => a.dist - b.dist);
@@ -3303,6 +3315,7 @@ let lastDisplayedContestTime = -1;
     var player3D = { x: 433, y: 300, z: 0, vz: 0 };
     var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
     var activeBalls = [];
+    var tacosOnGround = []; // New array for tacos
     var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
     var particles = [];
 
@@ -3310,6 +3323,7 @@ let lastDisplayedContestTime = -1;
     if (DEBUG) {
         window.player3D = player3D;
         window.state = state;
+        window.tacosOnGround = tacosOnGround;
     }
 
     function createDefaultData() {
@@ -3697,6 +3711,7 @@ let lastDisplayedContestTime = -1;
             feedbackTimer: 0,
             player3D: { x: 433, y: 300, z: 0, vz: 0 },
             activeBalls: [],
+            tacosOnGround: [],
             particles: [],
             currentStreak: 0,
             consecutiveMisses: 0,
@@ -3739,6 +3754,8 @@ let lastDisplayedContestTime = -1;
         // But the global 'player3D' variable holds the reference.
         ctxObj.player3D = player3D;
         ctxObj.activeBalls = activeBalls;
+        ctxObj.tacosOnGround = tacosOnGround;
+        ctxObj.catState = g_catState; // Save Cat State
         ctxObj.particles = particles;
         ctxObj.currentStreak = currentStreak;
         ctxObj.consecutiveMisses = consecutiveMisses;
@@ -3780,6 +3797,8 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = ctxObj.feedbackTimer;
         player3D = ctxObj.player3D;
         activeBalls = ctxObj.activeBalls;
+        tacosOnGround = ctxObj.tacosOnGround || [];
+        if(ctxObj.catState) g_catState = ctxObj.catState; // Load Cat State
         particles = ctxObj.particles;
         currentStreak = ctxObj.currentStreak;
         consecutiveMisses = ctxObj.consecutiveMisses;
@@ -4259,6 +4278,7 @@ RenderEngine.Queue = {
         for (let i = 0; i < this.list.length; i++) {
             const obj = this.list[i];
             if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
+            else if (obj.type === 'taco') drawTaco(obj);
             else if (obj.type === 'hoop') drawHoop(obj);
             else if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
             else if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
@@ -7210,6 +7230,37 @@ var BallRenderer = {
         ctx.stroke();
     }
 
+    function drawTaco(p) {
+        const s = p.scale;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+
+        // Shell
+        ctx.fillStyle = '#DAA520'; // Goldenrod
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 * s, 0, Math.PI, true); // Semi-circle up
+        ctx.fill();
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+
+        // Fillings (visible at top/opening)
+        // Meat
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath(); ctx.ellipse(0, -5*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+        // Lettuce
+        ctx.fillStyle = '#32CD32';
+        ctx.beginPath(); ctx.arc(-5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        // Tomato
+        ctx.fillStyle = '#FF4500';
+        ctx.beginPath(); ctx.arc(-2*s, -6*s, 3*s, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
+    }
+
     function drawDecor(p, type, variant, seed) {
         if (!p) return;
         const s = p.scale;
@@ -7501,14 +7552,36 @@ var BallRenderer = {
              }
 
              const s = p.scale * ageScale;
-             const isActive = g_catEatTimer > 0;
-             const animProgress = isActive ? Math.sin((g_catEatTimer/20)*Math.PI) : 0;
 
-             // Animation Mode: Pass (Contest) vs Eat (Others)
-             const isPassing = (currentGameMode === 'CONTEST' && isActive);
-             const isEating = (!isPassing && isActive);
+             let isEating = false;
+             let isPassing = false;
+             let animProgress = 0;
+             let bounce = 0;
 
-             const mouthOpen = isEating ? animProgress * 15 * s : 0;
+             // Dynamic State Logic
+             if (typeof g_catState !== 'undefined') {
+                 if (g_catState.state === 'EATING') {
+                     isEating = true;
+                     animProgress = Math.abs(Math.sin(Date.now() * 0.02)); // Slow chew
+                     bounce = animProgress * 3 * s;
+                 } else if (g_catState.state === 'MOVING' || g_catState.state === 'RETURNING') {
+                     // Walking bounce
+                     bounce = Math.abs(Math.sin(Date.now() * 0.015)) * 8 * s;
+                 } else {
+                     // Idle
+                     bounce = Math.sin(Date.now() * 0.002) * 2 * s;
+                 }
+             } else {
+                 const isActive = (typeof g_catEatTimer !== 'undefined') && g_catEatTimer > 0;
+                 if (isActive) {
+                     animProgress = Math.sin((g_catEatTimer/20)*Math.PI);
+                     isPassing = (currentGameMode === 'CONTEST');
+                     isEating = !isPassing;
+                 }
+             }
+
+             const mouthOpen = isEating ? animProgress * 10 * s : 0;
+             p.y += bounce;
 
              // Body (Sitting)
              ctx.fillStyle = furColor;
@@ -13173,10 +13246,13 @@ var BallRenderer = {
         // We assume a max visible depth of ~15000 pixels.
 
         // Optimization: Inline decor processing to avoid intermediate array allocation
-        const processDecor = (d) => {
+        const processDecor = (d, overrideX, overrideY) => {
+            const dX = (overrideX !== undefined) ? overrideX : d.x;
+            const dY = (overrideY !== undefined) ? overrideY : d.y;
+
             // Fast Z-Check
-            const dx = d.x - camX;
-            const dy = d.y - camY;
+            const dx = dX - camX;
+            const dy = dY - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 550 in project()
@@ -13204,7 +13280,12 @@ var BallRenderer = {
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
                 if (d.dist > cullDist) break;
-                processDecor(d);
+
+                if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
+                    processDecor(d, g_catState.x, g_catState.y);
+                } else {
+                    processDecor(d);
+                }
             }
         } else if (currentGameMode === 'TIME_ATTACK') {
             // Carnival: Circle of tents around hoop
@@ -13222,7 +13303,10 @@ var BallRenderer = {
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) processDecor(cat);
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    else processDecor(cat);
+                }
             }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
@@ -13240,8 +13324,22 @@ var BallRenderer = {
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) processDecor(cat);
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    else processDecor(cat);
+                }
             }
+        }
+
+        // Draw Tacos on Ground
+        if (typeof tacosOnGround !== 'undefined') {
+            tacosOnGround.forEach(t => {
+                 const proj = project(t.x, t.y, 0); // Ground level
+                 if (proj) {
+                     const item = RenderEngine.Queue.add('taco', proj.depth, proj.x, proj.y, proj.scale);
+                     item.rotation = t.rotation;
+                 }
+            });
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
@@ -14394,6 +14492,113 @@ var BallRenderer = {
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    function updateCatLogic(dt) {
+        const cat = g_catState;
+        const speed = 4.0; // Movement speed
+
+        // Ensure catDecor syncs with logic position
+        if (typeof decors !== 'undefined') {
+            const catD = decors.find(d => d.zoneType === 'cat_hoop');
+            if (catD) {
+                catD.x = cat.x;
+                catD.y = cat.y;
+            }
+        }
+
+        if (cat.state === 'IDLE') {
+            // Check for tacos
+            if (tacosOnGround.length > 0) {
+                // Find nearest taco
+                let minDist = Infinity;
+                let targetIdx = -1;
+                for(let i=0; i<tacosOnGround.length; i++) {
+                    const t = tacosOnGround[i];
+                    if (t.beingEaten) continue; // Skip claimed tacos
+
+                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
+                    if (d < minDist) {
+                        minDist = d;
+                        targetIdx = i;
+                    }
+                }
+
+                if (targetIdx !== -1) {
+                    cat.state = 'MOVING';
+                    cat.targetTacoIndex = targetIdx;
+                    tacosOnGround[targetIdx].beingEaten = true; // Claim it
+                    cat.targetX = tacosOnGround[targetIdx].x;
+                    cat.targetY = tacosOnGround[targetIdx].y;
+                } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
+                    // Return home if no valid targets
+                     cat.state = 'RETURNING';
+                     cat.targetX = HOOP_POS.x;
+                     cat.targetY = HOOP_POS.y + 10;
+                }
+            } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
+                // Return home if idle and away
+                cat.state = 'RETURNING';
+                cat.targetX = HOOP_POS.x;
+                cat.targetY = HOOP_POS.y + 10;
+            }
+        }
+        else if (cat.state === 'MOVING') {
+            // Move towards target
+            const dx = cat.targetX - cat.x;
+            const dy = cat.targetY - cat.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < speed) {
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.state = 'EATING';
+                cat.eatTimer = 60; // 1 second eat time
+                g_catEatTimer = 60; // Sync render animation
+            } else {
+                cat.x += (dx / dist) * speed * dt;
+                cat.y += (dy / dist) * speed * dt;
+                cat.animFrame += dt * 0.2; // Walk cycle
+            }
+        }
+        else if (cat.state === 'EATING') {
+            cat.eatTimer -= dt;
+            if (cat.eatTimer <= 0) {
+                // Done eating, remove taco
+                if (cat.targetTacoIndex !== -1 && tacosOnGround[cat.targetTacoIndex]) {
+                    // Remove specific taco. Note: Index might have shifted if other tacos removed?
+                    // Better to find by reference or just filter out the one at cat pos
+                    // Actually, since we only remove here, indices shift.
+                    // Let's filter out the one we claimed.
+                    // Or simpler: We claimed it with `beingEaten`. Just filter that one out now.
+                    // But wait, if multiple cats (split screen)? They share tacosOnGround.
+                    // We need to be careful.
+                    // Let's find the taco at cat's feet.
+                     const tacoIdx = tacosOnGround.findIndex(t => Math.abs(t.x - cat.x) < 5 && Math.abs(t.y - cat.y) < 5);
+                     if (tacoIdx !== -1) {
+                         tacosOnGround.splice(tacoIdx, 1);
+                         // AudioSystem.playCrunch(); // Optional
+                     }
+                }
+                cat.targetTacoIndex = -1;
+                cat.state = 'IDLE'; // Will trigger return or next taco next frame
+            }
+        }
+        else if (cat.state === 'RETURNING') {
+            const dx = cat.targetX - cat.x;
+            const dy = cat.targetY - cat.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < speed) {
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.state = 'IDLE';
+            } else {
+                cat.x += (dx / dist) * speed * dt;
+                cat.y += (dy / dist) * speed * dt;
+                cat.animFrame += dt * 0.2;
+            }
+        }
+    }
+
     function updateParticles(dt) {
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
@@ -14480,7 +14685,12 @@ var BallRenderer = {
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
-        if (g_catEatTimer > 0) g_catEatTimer -= dt; // Update eat timer
+        // g_catEatTimer managed by updateCatLogic now for eating state
+        if (g_catEatTimer > 0) g_catEatTimer -= dt;
+
+        // Update Cat AI
+        updateCatLogic(dt);
+
         weather.update(dt);
 
         // Character Streak Fire (Super Saiyan Effect)
@@ -14653,6 +14863,14 @@ var BallRenderer = {
                     } else {
                         // If scored and hit ground (or fell far enough), remove
                         b.active = false;
+                        // Spawn Taco
+                        tacosOnGround.push({
+                            x: b.x,
+                            y: b.y,
+                            rotation: Math.random() * Math.PI * 2,
+                            scale: 1.0,
+                            beingEaten: false
+                        });
                     }
                     continue;
                 }
@@ -14840,6 +15058,7 @@ var BallRenderer = {
 
     function resetGame() {
         activeBalls = []; // Clear all balls on reset
+        tacosOnGround = []; // Clear tacos on reset
         particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
