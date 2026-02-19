@@ -476,7 +476,7 @@
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel; // Reduced wait time from 60 to 30
+            feedbackTimer = 30; state = 'RESETTING'; resetTimer = 15; nextAction = nextLevel; // Fast reset
         }
     }
 
