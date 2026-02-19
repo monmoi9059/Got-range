@@ -7421,29 +7421,35 @@ var BallRenderer = {
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
         else if (type === 'cat_hoop') {
-             // Calculate Age/Size based on Lifetime Makes
+             // Calculate Age/Size based on Net Score (Dynamic Growth/Loss)
              const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
-             let ageScale = 0.075; // Kitten (Tiny - 1/8th of adult)
-             let furColor = '#D2B48C'; // Tan/Orange
+             const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
+             const netScore = Math.max(0, makes - misses);
+
+             // Dynamic Scaling: 0.075 Base + 0.001 per net make (No Limit)
+             let ageScale = 0.075 + (netScore * 0.001);
+
+             // Color Logic based on raw experience (makes)
+             let furColor = '#D2B48C'; // Tan/Orange (Kitten)
              let bellyColor = '#F5F5DC'; // Cream
 
-             // Growth Stages
              if (makes >= 500) {
-                 ageScale = 1.1; // Giant/Old (Reduced from 1.6)
-                 furColor = '#A9A9A9'; // Grey
+                 furColor = '#A9A9A9'; // Grey (Old)
              } else if (makes >= 200) {
-                 ageScale = 0.7; // Fat/Adult (Reduced from 1.0)
-                 furColor = '#8B4513'; // Darker Brown
+                 furColor = '#8B4513'; // Darker Brown (Adult)
              } else if (makes >= 50) {
-                 ageScale = 0.3; // Adolescent (Reduced from 0.4)
-                 furColor = '#D2691E'; // Orange
+                 furColor = '#D2691E'; // Orange (Adolescent)
              }
 
              const s = p.scale * ageScale;
-             // Animate Mouth if eating (g_catEatTimer > 0)
-             // Timer goes from 20 to 0. Open mouth peak at 10.
-             const isEating = g_catEatTimer > 0;
-             const mouthOpen = isEating ? Math.sin((g_catEatTimer/20)*Math.PI) * 15 * s : 0;
+             const isActive = g_catEatTimer > 0;
+             const animProgress = isActive ? Math.sin((g_catEatTimer/20)*Math.PI) : 0;
+
+             // Animation Mode: Pass (Contest) vs Eat (Others)
+             const isPassing = (currentGameMode === 'CONTEST' && isActive);
+             const isEating = (!isPassing && isActive);
+
+             const mouthOpen = isEating ? animProgress * 15 * s : 0;
 
              // Body (Sitting)
              ctx.fillStyle = furColor;
@@ -7465,7 +7471,7 @@ var BallRenderer = {
 
              // Face
              // Eyes
-             if (makes >= 100) {
+             if (makes >= 500) {
                  // Old sleepy eyes
                  ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
                  ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
@@ -7476,20 +7482,37 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
              }
 
-             // Mouth (Eating animation)
+             // Mouth
              if (isEating) {
                  ctx.fillStyle = '#000';
                  ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 4*s + mouthOpen, 0, 0, Math.PI*2); ctx.fill();
-                 // Tongue
                  ctx.fillStyle = '#FF69B4';
                  ctx.beginPath(); ctx.arc(p.x, headY + 5*s + mouthOpen, 4*s, 0, Math.PI*2); ctx.fill();
              } else {
-                 // Normal mouth
                  ctx.fillStyle = '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
              }
+
+             // Paws (For Passing Animation)
+             // Default Position: Chest
+             let pawLX = p.x - 10*s;
+             let pawRX = p.x + 10*s;
+             let pawY = p.y - 20*s; // Chest level
+
+             if (isPassing) {
+                 // Push Outward (Chest Pass)
+                 const push = animProgress * 25 * s;
+                 pawLX -= push * 0.5; // Slight spread
+                 pawRX += push * 0.5;
+                 pawY += push * 0.8; // Forward/Down (Projected)
+             }
+
+             // Draw Paws
+             const pawR = 6*s;
+             drawFuzzyCircle(pawLX, pawY, pawR, furColor, 1001, s, true, true);
+             drawFuzzyCircle(pawRX, pawY, pawR, furColor, 1002, s, true, true);
 
              // Whiskers
              ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
@@ -7500,7 +7523,7 @@ var BallRenderer = {
              ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
              ctx.stroke();
 
-             // Tail (Wagging?)
+             // Tail (Wagging)
              const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
              ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
              ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
