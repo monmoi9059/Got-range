@@ -7844,6 +7844,10 @@ var BallRenderer = {
             drawBackboard();
         }
     }
+    // Cached objects for drawMuscleLimb optimization
+    var g_muscleGradientPattern = null;
+    var g_muscleMatrix = (typeof DOMMatrix !== 'undefined') ? new DOMMatrix() : null;
+
     function drawMuscleLimb(x1, y1, x2, y2, width, color, type, s, hasTattoos) {
         // type: 'thigh' or 'calf' or 'standard'
         const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -7904,14 +7908,47 @@ var BallRenderer = {
 
         // 2. 3D Volume Gradient (Cylinder Effect)
         if (playerData.graphics === 'HIGH') {
-            const grad = ctx.createLinearGradient(0, -w, 0, w);
-            grad.addColorStop(0, 'rgba(0,0,0,0.6)');
-            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-            grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-            grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.6)');
-            ctx.fillStyle = grad;
+            if (g_muscleMatrix && ctx.createPattern) {
+                // Optimization: Reuse CanvasPattern and DOMMatrix
+                if (!g_muscleGradientPattern) {
+                    const gradCanvas = document.createElement('canvas');
+                    gradCanvas.width = 1;
+                    gradCanvas.height = 256;
+                    const gCtx = gradCanvas.getContext('2d');
+                    const grad = gCtx.createLinearGradient(0, 0, 0, 256);
+                    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+                    grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+                    grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
+                    grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
+                    grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                    gCtx.fillStyle = grad;
+                    gCtx.fillRect(0, 0, 1, 256);
+                    g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
+                }
+
+                // Update Matrix: Scale 256px height to 2*w height, translate to -w
+                // Target Y range: -w to w. Source Y range: 0 to 256.
+                // y_new = y_old * scale + translate
+                // 0 -> -w  => translate = -w
+                // 256 -> w => 256 * scale - w = w => 256 * scale = 2w => scale = 2w / 256
+                g_muscleMatrix.a = 1; g_muscleMatrix.b = 0;
+                g_muscleMatrix.c = 0; g_muscleMatrix.d = (2 * w) / 256;
+                g_muscleMatrix.e = 0; g_muscleMatrix.f = -w;
+
+                g_muscleGradientPattern.setTransform(g_muscleMatrix);
+                ctx.fillStyle = g_muscleGradientPattern;
+            } else {
+                // Fallback for environments without DOMMatrix
+                const grad = ctx.createLinearGradient(0, -w, 0, w);
+                grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+                grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+                grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
+                grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
+                grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                ctx.fillStyle = grad;
+            }
             ctx.fill();
 
             // 3. Tattoos Overlay
