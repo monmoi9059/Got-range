@@ -4732,13 +4732,29 @@ var BallRenderer = {
             var sinR = Math.sin(rot);
             var self = this;
 
+            // Pre-calculate rotation trig if physics available
+            var cx, sx, cy, sy, cz, sz;
+            if (phys) {
+                cx = Math.cos(phys.rotationX); sx = Math.sin(phys.rotationX);
+                cy = Math.cos(phys.rotationY); sy = Math.sin(phys.rotationY);
+                cz = Math.cos(phys.rotationZ); sz = Math.sin(phys.rotationZ);
+            }
+
             // Helper to transform points using full 3D physics state if available
             var transform = function(p) {
                 if (phys) {
-                    var rp = self.rotatePoint(p, phys.rotationX, phys.rotationY, phys.rotationZ);
-                    self._projResult.x = rp.x * r;
-                    self._projResult.y = rp.y * r;
-                    self._projResult.z = rp.z; // Z points out/in
+                    // Inline rotation logic to reuse trig values and avoid object allocation
+                    var x = p.x, y = p.y, z = p.z;
+                    // X Rotation
+                    var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
+                    // Y Rotation
+                    var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
+                    // Z Rotation
+                    tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
+
+                    self._projResult.x = x * r;
+                    self._projResult.y = y * r;
+                    self._projResult.z = z; // Z points out/in
                 } else {
                     self.projectIso(p, r, cosR, sinR);
                 }
