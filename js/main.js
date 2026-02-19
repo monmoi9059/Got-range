@@ -954,7 +954,9 @@ let lastDisplayedContestTime = -1;
     window.updateCameraZoom = function() {
         const val = parseFloat(document.getElementById('cameraZoomSlider').value);
         playerData.cameraZoomScale = val;
-        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        const text = Math.round(val*100) + "%";
+        document.getElementById('cameraZoomLabel').innerText = text;
+        document.getElementById('cameraZoomSlider').setAttribute('aria-valuetext', text);
         saveData();
         saveContext(game1);
     }

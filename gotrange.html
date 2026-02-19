@@ -773,7 +773,7 @@
 
     <!-- MODALS -->
     <div id="statsUI" class="modal" style="display: none;">
-        <button class="modal-close-btn" onclick="closeStats()">✕</button>
+        <button class="modal-close-btn" aria-label="Fermer" onclick="closeStats()">✕</button>
         <div class="modal-header">STATISTIQUES À VIE</div>
 
         <div style="text-align:left; padding: 10px; font-size: 1.2em;">
@@ -792,7 +792,7 @@
                 <strong style="color:#FFD700">TAILLE VISÉE</strong>
                 <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
             </div>
-            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
+            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" aria-label="Taille de la jauge" oninput="updateMeterScale()">
         </div>
 
         <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
@@ -800,7 +800,7 @@
                 <strong style="color:#FFD700">ZOOM CAMÉRA</strong>
                 <span id="cameraZoomLabel" style="color:#00FF00; font-weight:bold;">100%</span>
             </div>
-            <input type="range" id="cameraZoomSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateCameraZoom()">
+            <input type="range" id="cameraZoomSlider" min="0.5" max="1.5" step="0.1" value="1.0" aria-label="Zoom de la caméra" oninput="updateCameraZoom()">
         </div>
 
         <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
@@ -808,7 +808,7 @@
                 <strong style="color:#FFD700">MOMENT DU TIR</strong>
                 <span id="releaseTimingLabel" style="color:#00FFFF; font-weight:bold;">LÂCHER (TARD)</span>
             </div>
-            <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" oninput="updateReleaseTiming()">
+            <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" aria-label="Moment du tir" oninput="updateReleaseTiming()">
         </div>
 
         <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
@@ -838,7 +838,7 @@
     </div>
 
     <div id="shopUI" class="modal" style="display: none;">
-        <button class="modal-close-btn" onclick="closeShop()">✕</button>
+        <button class="modal-close-btn" aria-label="Fermer" onclick="closeShop()">✕</button>
         <div class="modal-header">TACO MERCADO</div>
 
         <div class="shop-tabs">
@@ -974,13 +974,13 @@
     </div>
 
     <div id="achUI" class="modal" style="display: none;">
-        <button class="modal-close-btn" onclick="closeAchievements()">✕</button>
+        <button class="modal-close-btn" aria-label="Fermer" onclick="closeAchievements()">✕</button>
         <div class="modal-header">SALLE DES TROPHÉES</div>
         <div id="achList"></div>
     </div>
 
     <div id="leaderboardUI" class="modal" style="display: none;">
-        <button class="modal-close-btn" onclick="closeLeaderboard()">✕</button>
+        <button class="modal-close-btn" aria-label="Fermer" onclick="closeLeaderboard()">✕</button>
         <div class="modal-header">CLASSEMENT</div>
         <div class="modal-content-wrapper">
             <div class="lb-tab-container">
@@ -996,7 +996,7 @@
     </div>
 
     <div id="challengesUI" class="modal" style="display: none;">
-        <button class="modal-close-btn" onclick="closeChallenges()">✕</button>
+        <button class="modal-close-btn" aria-label="Fermer" onclick="closeChallenges()">✕</button>
         <div class="modal-header">DÉFIS</div>
         <div class="modal-content-wrapper">
             <div class="lb-tab-container">
@@ -3950,7 +3950,9 @@ let lastDisplayedContestTime = -1;
     window.updateCameraZoom = function() {
         const val = parseFloat(document.getElementById('cameraZoomSlider').value);
         playerData.cameraZoomScale = val;
-        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        const text = Math.round(val*100) + "%";
+        document.getElementById('cameraZoomLabel').innerText = text;
+        document.getElementById('cameraZoomSlider').setAttribute('aria-valuetext', text);
         saveData();
         saveContext(game1);
     }
@@ -14746,13 +14748,26 @@ var BallRenderer = {
         if(sld) {
             const sc = playerData.meterScale || 1.0;
             sld.value = sc;
-            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+            const text = Math.round(sc*100) + "%";
+            document.getElementById('meterSizeLabel').innerText = text;
+            sld.setAttribute('aria-valuetext', text);
         }
         const sldZoom = document.getElementById('cameraZoomSlider');
         if(sldZoom) {
             const zs = playerData.cameraZoomScale || 1.0;
             sldZoom.value = zs;
-            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+            const text = Math.round(zs*100) + "%";
+            document.getElementById('cameraZoomLabel').innerText = text;
+            sldZoom.setAttribute('aria-valuetext', text);
+        }
+        const sldRelease = document.getElementById('releaseTimingSlider');
+        if(sldRelease) {
+             const rt = (playerData.releaseTiming !== undefined) ? playerData.releaseTiming : 3;
+             sldRelease.value = rt;
+             const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
+             const labelText = labels[rt];
+             document.getElementById('releaseTimingLabel').innerText = labelText;
+             sldRelease.setAttribute('aria-valuetext', labelText);
         }
         updateMobileControlsUI();
     }
@@ -14773,7 +14788,9 @@ var BallRenderer = {
     window.updateMeterScale = function() {
         const val = parseFloat(document.getElementById('meterSizeSlider').value);
         playerData.meterScale = val;
-        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        const text = Math.round(val*100) + "%";
+        document.getElementById('meterSizeLabel').innerText = text;
+        document.getElementById('meterSizeSlider').setAttribute('aria-valuetext', text);
         saveData();
         saveContext(game1);
     }
@@ -14832,7 +14849,9 @@ var BallRenderer = {
         const val = parseInt(document.getElementById('releaseTimingSlider').value);
         playerData.releaseTiming = val;
         const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
-        document.getElementById('releaseTimingLabel').innerText = labels[val];
+        const labelText = labels[val];
+        document.getElementById('releaseTimingLabel').innerText = labelText;
+        document.getElementById('releaseTimingSlider').setAttribute('aria-valuetext', labelText);
         saveData();
         saveContext(game1);
     }

@@ -1193,13 +1193,26 @@
         if(sld) {
             const sc = playerData.meterScale || 1.0;
             sld.value = sc;
-            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+            const text = Math.round(sc*100) + "%";
+            document.getElementById('meterSizeLabel').innerText = text;
+            sld.setAttribute('aria-valuetext', text);
         }
         const sldZoom = document.getElementById('cameraZoomSlider');
         if(sldZoom) {
             const zs = playerData.cameraZoomScale || 1.0;
             sldZoom.value = zs;
-            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+            const text = Math.round(zs*100) + "%";
+            document.getElementById('cameraZoomLabel').innerText = text;
+            sldZoom.setAttribute('aria-valuetext', text);
+        }
+        const sldRelease = document.getElementById('releaseTimingSlider');
+        if(sldRelease) {
+             const rt = (playerData.releaseTiming !== undefined) ? playerData.releaseTiming : 3;
+             sldRelease.value = rt;
+             const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
+             const labelText = labels[rt];
+             document.getElementById('releaseTimingLabel').innerText = labelText;
+             sldRelease.setAttribute('aria-valuetext', labelText);
         }
         updateMobileControlsUI();
     }
@@ -1220,7 +1233,9 @@
     window.updateMeterScale = function() {
         const val = parseFloat(document.getElementById('meterSizeSlider').value);
         playerData.meterScale = val;
-        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        const text = Math.round(val*100) + "%";
+        document.getElementById('meterSizeLabel').innerText = text;
+        document.getElementById('meterSizeSlider').setAttribute('aria-valuetext', text);
         saveData();
         saveContext(game1);
     }
@@ -1279,7 +1294,9 @@
         const val = parseInt(document.getElementById('releaseTimingSlider').value);
         playerData.releaseTiming = val;
         const labels = ["SAUT (TRÈS TÔT)", "POINT (TÔT)", "POUSSÉE (NORMAL)", "LÂCHER (TARD)"];
-        document.getElementById('releaseTimingLabel').innerText = labels[val];
+        const labelText = labels[val];
+        document.getElementById('releaseTimingLabel').innerText = labelText;
+        document.getElementById('releaseTimingSlider').setAttribute('aria-valuetext', labelText);
         saveData();
         saveContext(game1);
     }
