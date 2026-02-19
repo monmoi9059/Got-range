@@ -3405,6 +3405,92 @@ var BallRenderer = {
              ctx.beginPath(); ctx.arc(p.x+10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
+        else if (type === 'cat_hoop') {
+             // Calculate Age/Size based on Lifetime Makes
+             const makes = playerData.lifetimeStats.makes;
+             let ageScale = 0.6; // Baby
+             let furColor = '#D2B48C'; // Tan/Orange
+             let bellyColor = '#F5F5DC'; // Cream
+
+             if (makes >= 500) {
+                 ageScale = 1.6; // Giant/Old
+                 furColor = '#A9A9A9'; // Grey
+             } else if (makes >= 200) {
+                 ageScale = 1.3; // Fat
+                 furColor = '#8B4513'; // Darker Brown
+             } else if (makes >= 50) {
+                 ageScale = 1.0; // Adult
+                 furColor = '#D2691E'; // Orange
+             }
+
+             const s = p.scale * ageScale;
+             // Animate Mouth if eating (g_catEatTimer > 0)
+             // Timer goes from 20 to 0. Open mouth peak at 10.
+             const isEating = g_catEatTimer > 0;
+             const mouthOpen = isEating ? Math.sin((g_catEatTimer/20)*Math.PI) * 15 * s : 0;
+
+             // Body (Sitting)
+             ctx.fillStyle = furColor;
+             // Fat belly
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+             // Chest
+             ctx.fillStyle = bellyColor;
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+
+             // Head
+             const headY = p.y - 35*s;
+             const headR = 18*s;
+             drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+             // Ears
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
+
+             // Face
+             // Eyes
+             if (makes >= 500) {
+                 // Old sleepy eyes
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x + 2*s, headY - 5*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.stroke();
+             } else {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+             }
+
+             // Mouth (Eating animation)
+             if (isEating) {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 4*s + mouthOpen, 0, 0, Math.PI*2); ctx.fill();
+                 // Tongue
+                 ctx.fillStyle = '#FF69B4';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s + mouthOpen, 4*s, 0, Math.PI*2); ctx.fill();
+             } else {
+                 // Normal mouth
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
+             }
+
+             // Whiskers
+             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
+             ctx.stroke();
+
+             // Tail (Wagging?)
+             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
+             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
+             ctx.stroke();
+        }
         else if (type === 'crowd') {
              const s = p.scale;
              const w = 200 * s;
