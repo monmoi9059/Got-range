@@ -511,7 +511,9 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
-        if (score <= 10) return false; // Ignore default/low scores
+        // Lower threshold for non-classic modes (Contest max is ~30)
+        const minScore = (mode === 'classic') ? 10 : 0;
+        if (score <= minScore) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;

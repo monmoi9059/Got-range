@@ -98,7 +98,11 @@
             updateMobileControlsUI();
             initHighScoreUI();
         } else {
-            openShop();
+            if (mode === 'contest' || mode === 'time_attack') {
+                openLeaderboard(); // Show results instead of shop for competitive modes
+            } else {
+                openShop();
+            }
         }
     }
 
