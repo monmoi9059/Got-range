@@ -3624,6 +3624,34 @@ var BallRenderer = {
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
 
+        var z = 0;
+        if (type === 'player') z = player3D.z;
+        if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
+
+        // "Dumbed down" shadow: Simple radial gradient blob
+        // Opacity fades as object goes higher
+        var alpha = Math.max(0.1, 0.4 - (z / 600));
+
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+        ctx.scale(1, 0.3); // Flatten to create ellipse perspective
+
+        var r = 25 * obj.scale * (1 + (z * 0.001)); // Slight size increase with height to simulate diffusion
+
+        var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        grad.addColorStop(0, 'rgba(0,0,0,' + alpha + ')');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.restore();
+        return;
+
+        // LEGACY PROJECTION LOGIC REMOVED FOR PERFORMANCE
+        /*
         // Quality check
         if (playerData.graphics === 'LOW') {
              // Fallback to simple blob if needed
@@ -3674,6 +3702,7 @@ var BallRenderer = {
         ctx.drawImage(sCanvas, -256, -400);
 
         ctx.restore();
+        */
     }
 
 
