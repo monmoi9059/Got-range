@@ -5817,6 +5817,199 @@ var BallRenderer = {
         }
     };
 
+    function drawContinuousLimb(p1, p2, p3, w1, w2, w3, color, scale, isFurry, seed = 1, options = {}) {
+        // Calculate segment vectors and angles
+        const dx1 = p2.x - p1.x; const dy1 = p2.y - p1.y;
+        const dx2 = p3.x - p2.x; const dy2 = p3.y - p2.y;
+        const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+        const len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+        const a1 = Math.atan2(dy1, dx1);
+        const a2 = Math.atan2(dy2, dx2);
+
+        // Normals
+        const n1 = a1 + Math.PI / 2;
+        const n2 = a2 + Math.PI / 2;
+
+        // Calculate offset points
+        // Start (P1)
+        const p1L = { x: p1.x + Math.cos(n1) * w1/2, y: p1.y + Math.sin(n1) * w1/2 };
+        const p1R = { x: p1.x - Math.cos(n1) * w1/2, y: p1.y - Math.sin(n1) * w1/2 };
+
+        // End (P3)
+        const p3L = { x: p3.x + Math.cos(n2) * w3/2, y: p3.y + Math.sin(n2) * w3/2 };
+        const p3R = { x: p3.x - Math.cos(n2) * w3/2, y: p3.y - Math.sin(n2) * w3/2 };
+
+        // Elbow/Knee (P2)
+        // Incoming segment end
+        const p2L_in = { x: p2.x + Math.cos(n1) * w2/2, y: p2.y + Math.sin(n1) * w2/2 };
+        const p2R_in = { x: p2.x - Math.cos(n1) * w2/2, y: p2.y - Math.sin(n1) * w2/2 };
+        // Outgoing segment start
+        const p2L_out = { x: p2.x + Math.cos(n2) * w2/2, y: p2.y + Math.sin(n2) * w2/2 };
+        const p2R_out = { x: p2.x - Math.cos(n2) * w2/2, y: p2.y - Math.sin(n2) * w2/2 };
+
+        // Miter/Corner point calculation for smooth outer elbow
+        // Vector average for angle bisector
+        let bx = Math.cos(n1) + Math.cos(n2);
+        let by = Math.sin(n1) + Math.sin(n2);
+        const blen = Math.sqrt(bx*bx + by*by);
+        if (blen > 0.01) { bx /= blen; by /= blen; }
+
+        // Check "sidedness" to see which side is outer
+        // Cross product of seg1 and seg2
+        const cross = dx1 * dy2 - dy1 * dx2;
+        const isRightTurn = cross > 0; // If > 0, turns right (in screen coords Y-down?)
+        // Screen coords: x right, y down.
+        // Right turn means outer side is Left side?
+
+        // We'll construct a path
+        const points = [];
+
+        // 1. Start Cap (Semi-circle approx)
+        if (!isFurry) {
+            // Manual curve points for start cap could be added, but for fuzzy path just points
+        }
+        points.push(p1L);
+
+        // 2. Elbow Left
+        points.push(p2L_in);
+        if (!isFurry) points.push(p2L_out); // Sharp transition for now, handled by curveTo later
+
+        // 3. End Left
+        points.push(p3L);
+
+        // 4. End Cap
+        points.push(p3R);
+
+        // 5. Elbow Right
+        points.push(p2R_out);
+        if (!isFurry) points.push(p2R_in);
+
+        // 6. Start Right
+        points.push(p1R);
+
+        if (isFurry) {
+            // Add intermediate points for fuzzy texture continuity
+            // Just pass the main outline points, drawFuzzyPath handles subdivision
+            drawFuzzyPath(points, color, scale, true, seed);
+
+            // Add shading
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            ctx.closePath();
+            ctx.clip();
+        } else {
+            ctx.beginPath();
+            // Start Cap
+            ctx.moveTo(p1L.x, p1L.y);
+            ctx.quadraticCurveTo(p1.x - Math.cos(a1)*w1*0.5, p1.y - Math.sin(a1)*w1*0.5, p1R.x, p1R.y);
+
+            // Upper Arm Side
+            // Check for muscle bulge (Bicep) if human
+            if (options.muscle && playerData.graphics === 'HIGH') {
+                const midX = (p1R.x + p2R_in.x)/2;
+                const midY = (p1R.y + p2R_in.y)/2;
+                // Bulge outward relative to normal
+                const bulge = 4 * scale;
+                ctx.quadraticCurveTo(midX - Math.cos(n1)*bulge, midY - Math.sin(n1)*bulge, p2R_in.x, p2R_in.y);
+            } else {
+                ctx.lineTo(p2R_in.x, p2R_in.y);
+            }
+
+            // Elbow Outer/Inner
+            // Quadratic curve between IN and OUT points to smooth the joint
+            // Control point is intersection of lines? Or just the corner projection.
+            // Simple: Miter point
+            let miterLen = (w2/2) * 1.2;
+            const bisectAngle = Math.atan2(by, bx);
+            // We need to determine if we are drawing the Right side joint or Left side joint
+            // Since we are tracing P1R -> P2R, this is the "Right" side of the bone.
+            // If the arm bends right (cross > 0), the Right side is the Inner Elbow (crease).
+            // If the arm bends left (cross < 0), the Right side is the Outer Elbow (point).
+
+            // Actually, simpler logic:
+            // Curve from p2R_in to p2R_out
+            ctx.quadraticCurveTo(p2.x - Math.cos(bisectAngle)*miterLen, p2.y - Math.sin(bisectAngle)*miterLen, p2R_out.x, p2R_out.y);
+
+            // Forearm Side
+            ctx.lineTo(p3R.x, p3R.y);
+
+            // End Cap
+            ctx.quadraticCurveTo(p3.x + Math.cos(a2)*w3*0.5, p3.y + Math.sin(a2)*w3*0.5, p3L.x, p3L.y);
+
+            // Forearm Return
+            ctx.lineTo(p2L_out.x, p2L_out.y);
+
+            // Elbow Return
+            ctx.quadraticCurveTo(p2.x + Math.cos(bisectAngle)*miterLen, p2.y + Math.sin(bisectAngle)*miterLen, p2L_in.x, p2L_in.y);
+
+            // Upper Arm Return
+            if (options.muscle && playerData.graphics === 'HIGH') {
+                 // Tricep/Shoulder bulge
+                 const midX = (p2L_in.x + p1L.x)/2;
+                 const midY = (p2L_in.y + p1L.y)/2;
+                 const bulge = 2 * scale;
+                 ctx.quadraticCurveTo(midX + Math.cos(n1)*bulge, midY + Math.sin(n1)*bulge, p1L.x, p1L.y);
+            } else {
+                ctx.lineTo(p1L.x, p1L.y);
+            }
+
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Clip for shading
+            ctx.save();
+            ctx.clip();
+        }
+
+        // Apply Cylindrical Shading (Gradients)
+        // We create a linear gradient for the upper arm and forearm separately or try to merge.
+        // Merging is hard with CanvasGradient on a bent path.
+        // Strategy: Gradient from "Center line" to "Edges".
+        // Since we clipped, we can draw a large radial gradient or multiple linear gradients.
+
+        // Upper Arm Shading
+        const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
+        grad1.addColorStop(0, 'rgba(0,0,0,0.4)'); // Dark edge
+        grad1.addColorStop(0.3, 'rgba(0,0,0,0)');
+        grad1.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight
+        grad1.addColorStop(0.7, 'rgba(0,0,0,0)');
+        grad1.addColorStop(1, 'rgba(0,0,0,0.4)'); // Dark edge
+        ctx.fillStyle = grad1;
+
+        // Draw rect covering upper segment (slightly oversized to cover joint)
+        ctx.beginPath();
+        ctx.moveTo(p1L.x, p1L.y); ctx.lineTo(p2L_in.x, p2L_in.y); ctx.lineTo(p2R_in.x, p2R_in.y); ctx.lineTo(p1R.x, p1R.y);
+        ctx.fill();
+
+        // Forearm Shading
+        const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
+        grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
+        grad2.addColorStop(0.3, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+        grad2.addColorStop(0.7, 'rgba(0,0,0,0)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
+        ctx.fillStyle = grad2;
+
+        ctx.beginPath();
+        ctx.moveTo(p2L_out.x, p2L_out.y); ctx.lineTo(p3L.x, p3L.y); ctx.lineTo(p3R.x, p3R.y); ctx.lineTo(p2R_out.x, p2R_out.y);
+        ctx.fill();
+
+        // Joint Occlusion Shadow (The crease)
+        // Draw a shadow gradient at the elbow crease
+        const creaseX = p2.x; const creaseY = p2.y;
+        const shadowR = w2 * 0.8;
+        const radGrad = ctx.createRadialGradient(creaseX, creaseY, 0, creaseX, creaseY, shadowR);
+        radGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = radGrad;
+        ctx.beginPath(); ctx.arc(creaseX, creaseY, shadowR, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore(); // End Clip
+    }
+
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
             // Apply 3D shading even for non-furry (e.g. robot/skin) if requested
@@ -6162,15 +6355,37 @@ var BallRenderer = {
                 ];
             }
             else {
-                // STANDARD (Hourglass/Trapezoid)
-                points = [
-                    {x: cx - sW/2, y: shoulderY},
-                    {x: cx + sW/2, y: shoulderY},
-                    {x: cx + wW/2, y: waistY},
-                    {x: cx + hW/2, y: hipY},
-                    {x: cx - hW/2, y: hipY},
-                    {x: cx - wW/2, y: waistY}
-                ];
+                // STANDARD (Hourglass/Trapezoid) + Anatomical refinement
+                if (options.animal === 'human' && !options.isJersey && playerData.graphics === 'HIGH') {
+                    // Detailed V-Taper for shirtless humans
+                    const armpitY = shoulderY + h * 0.15;
+                    const latY = shoulderY + h * 0.35;
+                    const armpitW = sW * 0.9;
+                    const latW = sW * 0.75; // V-taper
+
+                    points = [
+                        {x: cx - sW/2, y: shoulderY}, // TL
+                        {x: cx + sW/2, y: shoulderY}, // TR
+                        {x: cx + armpitW/2, y: armpitY}, // Armpit R
+                        {x: cx + latW/2, y: latY}, // Lat R
+                        {x: cx + wW/2, y: waistY}, // Waist R
+                        {x: cx + hW/2, y: hipY}, // Hip R
+                        {x: cx - hW/2, y: hipY}, // Hip L
+                        {x: cx - wW/2, y: waistY}, // Waist L
+                        {x: cx - latW/2, y: latY}, // Lat L
+                        {x: cx - armpitW/2, y: armpitY} // Armpit L
+                    ];
+                } else {
+                    // Simple shape for clothes/low graphics
+                    points = [
+                        {x: cx - sW/2, y: shoulderY},
+                        {x: cx + sW/2, y: shoulderY},
+                        {x: cx + wW/2, y: waistY},
+                        {x: cx + hW/2, y: hipY},
+                        {x: cx - hW/2, y: hipY},
+                        {x: cx - wW/2, y: waistY}
+                    ];
+                }
 
                 if (isFurry && roundness > 0) {
                      const rOffset = w * roundness;
@@ -6178,7 +6393,21 @@ var BallRenderer = {
                      const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
                      const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
                      const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-                     points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+                     // Reconstruct with curve points if needed, but fuzzy path handles points nicely
+                     // For now, keep simple points if fuzzy, let drawFuzzyPath smooth it.
+                     // Merging logic:
+                     points = [
+                        {x: cx - sW/2, y: shoulderY},
+                        {x: cx + sW/2, y: shoulderY},
+                        midR1,
+                        {x: cx + wW/2, y: waistY},
+                        midR2,
+                        {x: cx + hW/2, y: hipY},
+                        {x: cx - hW/2, y: hipY},
+                        midL1,
+                        {x: cx - wW/2, y: waistY},
+                        midL2
+                     ];
                 }
             }
         }
@@ -6490,7 +6719,16 @@ var BallRenderer = {
             // Muscle Definition (High Graphics) - BACK VIEW
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
                  const animal = options.animal || 'human';
-                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
+
+                 // Universal Spine Shadow (Soft Channel)
+                 const spineGrad = ctx.createLinearGradient(cx - w*0.1, 0, cx + w*0.1, 0);
+                 spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                 spineGrad.addColorStop(0.4, 'rgba(0,0,0,0.15)'); // Spine Groove
+                 spineGrad.addColorStop(0.6, 'rgba(0,0,0,0.15)');
+                 spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                 ctx.fillStyle = spineGrad;
+                 ctx.fillRect(cx - w*0.2, topY + h*0.1, w*0.4, h*0.8);
+
                  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
 
                  if (animal === 'dino') {
@@ -6541,38 +6779,55 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // Human / Monkey (Scapula)
-                     // Spine Indentation
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h * 0.2);
-                     ctx.lineTo(cx, topY + h * 0.8);
-                     ctx.lineWidth = w * 0.05;
-                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     ctx.stroke();
-
-                     // Shoulder Blades (Scapula)
+                     // Remastered Human Back Anatomy
                      const scapY = topY + h * 0.25;
+                     const latY = topY + h * 0.5;
 
-                     // Left Scapula
+                     // 1. Trapezius (Diamond shape at top)
+                     ctx.fillStyle = 'rgba(0,0,0,0.08)';
                      ctx.beginPath();
-                     ctx.moveTo(cx - w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
-                     ctx.lineWidth = w * 0.03;
-                     ctx.stroke();
+                     ctx.moveTo(cx, topY + h*0.05); // Neck base
+                     ctx.lineTo(cx - w*0.25, scapY);
+                     ctx.lineTo(cx, topY + h*0.45); // Mid-back
+                     ctx.lineTo(cx + w*0.25, scapY);
+                     ctx.closePath();
+                     ctx.fill();
 
-                     // Right Scapula
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
-                     ctx.stroke();
+                     // 2. Scapula (Shoulder Blades) - Soft Shadows
+                     const drawScapula = (isRight) => {
+                         const sx = isRight ? cx + w*0.25 : cx - w*0.25;
+                         const dir = isRight ? 1 : -1;
+                         const scapGrad = ctx.createRadialGradient(sx, scapY, 0, sx, scapY, w*0.25);
+                         scapGrad.addColorStop(0, 'rgba(0,0,0,0.05)');
+                         scapGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                         ctx.fillStyle = scapGrad;
+                         ctx.beginPath();
+                         ctx.moveTo(sx, scapY - h*0.05);
+                         ctx.lineTo(sx + dir*w*0.15, scapY + h*0.05);
+                         ctx.lineTo(sx, scapY + h*0.15);
+                         ctx.fill();
+                     };
+                     drawScapula(false);
+                     drawScapula(true);
 
-                     // Trapezius / Upper Back shading
-                     ctx.fillStyle = 'rgba(0,0,0,0.05)';
+                     // 3. Lats (Side shadows)
+                     const latGrad = ctx.createLinearGradient(cx, 0, cx + w, 0);
+                     latGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                     latGrad.addColorStop(0.8, 'rgba(0,0,0,0.1)'); // Shadow under arm
+
+                     // Left Lat
+                     ctx.fillStyle = 'rgba(0,0,0,0.06)';
                      ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.1);
-                     ctx.lineTo(cx - w*0.3, topY + h*0.2);
-                     ctx.lineTo(cx, topY + h*0.4);
-                     ctx.lineTo(cx + w*0.3, topY + h*0.2);
+                     ctx.moveTo(cx - w*0.2, latY);
+                     ctx.quadraticCurveTo(cx - w*0.4, latY + h*0.2, cx - w*0.15, topY + h*0.8); // To lower back
+                     ctx.lineTo(cx - w*0.1, latY);
+                     ctx.fill();
+
+                     // Right Lat
+                     ctx.beginPath();
+                     ctx.moveTo(cx + w*0.2, latY);
+                     ctx.quadraticCurveTo(cx + w*0.4, latY + h*0.2, cx + w*0.15, topY + h*0.8);
+                     ctx.lineTo(cx + w*0.1, latY);
                      ctx.fill();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
@@ -10876,14 +11131,8 @@ var BallRenderer = {
             if(isRight && skinObj.sleeveRight) activeSleeveColor = skinObj.sleeveRight;
             if(!isRight && skinObj.sleeveLeft) activeSleeveColor = skinObj.sleeveLeft;
 
-            if (activeSleeveColor) {
-                thisForeColor = activeSleeveColor;
-                foreIsCovered = true;
-            }
-
-            // 3. Determine Fuzziness per segment
-            const upperFurry = isFurry && !upperIsCovered && (thisUpperColor === furColor);
-            const foreFurry = isFurry && !foreIsCovered && (thisForeColor === furColor);
+            // 3. Determine Fuzziness
+            const isFurryArm = isFurry && !upperIsCovered && !foreIsCovered && !activeSleeveColor;
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
@@ -10895,8 +11144,7 @@ var BallRenderer = {
             }
 
             const upperEndW = upperStartW * taper;
-            const foreStartW = upperEndW; // Seamless transition
-            const foreEndW = foreStartW * taper;
+            const foreEndW = upperEndW * taper;
 
             // FORESHORTENING
             let uFactor = Math.cos(angle1_z || 0);
@@ -10911,68 +11159,77 @@ var BallRenderer = {
             uFactor = Math.max(0.1, Math.abs(uFactor));
             fFactor = Math.max(0.1, Math.abs(fFactor));
 
-            let elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
+            const elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
+            const wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
 
-            // Shoulder Joint (Radius = Half Width for seamless look)
-            if(!upperFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
+            // Determine Draw Mode
+            let drawMode = 'skin';
+            if (activeSleeveColor) drawMode = 'long_sleeve';
+            else if (upperIsCovered && foreIsCovered) drawMode = 'long_cloth'; // Track suit etc
+            else if (upperIsCovered && !foreIsCovered) drawMode = 'tshirt';
+            else drawMode = 'skin';
 
-            // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, upperFurry, seedBase, upperEndW);
-
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow) - ACCESORY OVERLAY
-            if (activeSleeveColor) {
-                const midX = (sx + elbow.x) / 2;
-                const midY = (sy + elbow.y) / 2;
-                // Interpolate width at mid point
-                const midW = upperStartW + (upperEndW - upperStartW) * 0.5;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, midW, activeSleeveColor, s, false, seedBase, upperEndW);
+            // Draw Arm Structure
+            if (drawMode === 'long_sleeve') {
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, activeSleeveColor, s, false, seedBase);
             }
-
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
-
-            // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, foreFurry, seedBase + 1, foreEndW);
-
-            // Elbow Joint (Radius = Half Width)
-            let elbowColor = thisUpperColor;
-            if (activeSleeveColor) {
-                elbowColor = activeSleeveColor;
-            } else if (upperIsCovered && !foreIsCovered) {
-                // T-Shirt Case: Elbow should probably match shirt to look like sleeve end?
-                // Or skin if it ends higher. Let's stick to shirt color for continuity.
-                elbowColor = thisUpperColor;
-            } else if (upperIsCovered && foreIsCovered) {
-                elbowColor = thisUpperColor;
-            } else {
-                elbowColor = furColor;
+            else if (drawMode === 'long_cloth') {
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, thisUpperColor, s, isFurry && (thisUpperColor === furColor), seedBase);
             }
-
-            const isElbowCovered = upperIsCovered || foreIsCovered || activeSleeveColor;
-            if(isElbowCovered || !isFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
+            else if (drawMode === 'tshirt') {
+                 // Skin Arm
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW*0.9, upperEndW*0.9, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+                 // Sleeve
+                 const sleeveLen = upperArmLen * uFactor * 0.45;
+                 const sleeveEnd = getJoint(sx, sy, sleeveLen, angle1);
+                 const sleeveW = upperStartW * 1.1;
+                 // Draw short segment
+                 drawContinuousLimb({x:sx,y:sy}, sleeveEnd, sleeveEnd, sleeveW, sleeveW*0.9, sleeveW*0.9, thisUpperColor, s, false, 0);
+            }
+            else { // Skin
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+            }
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
-            // Paw / Hand
+            // Hand / Paw
+            const foreFurry = isFurry && !foreIsCovered && !activeSleeveColor;
             if (foreFurry) {
                  // Fuzzy Paw
-                 const pawColor = thisForeColor;
+                 const pawColor = furColor;
                  drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
                  // Toes
                  for(let k=-1; k<=1; k++) {
                      drawFuzzyCircle(k*3*s, 5*s, 2.5*s, pawColor, seedBase+6+k, s, true);
                  }
             } else {
-                 // Simple Hand
-                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+                 // Human Hand (Mitten shape for style)
+                 const handColor = (currentAnimal === 'human') ? (skinObj.skinTone || '#8d5524') : furColor;
+
+                 ctx.fillStyle = handColor;
+                 ctx.beginPath();
+                 // Palm
+                 ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Thumb (medial)
+                 const thumbX = isRight ? -2.5*s : 2.5*s;
+                 ctx.beginPath();
+                 ctx.ellipse(thumbX, 2*s, 1.5*s, 2.5*s, isRight ? 0.5 : -0.5, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Simple shading
+                 const gradH = ctx.createRadialGradient(-1*s, 2*s, 0, 0, 3*s, 5*s);
+                 gradH.addColorStop(0, 'rgba(255,255,255,0.1)');
+                 gradH.addColorStop(1, 'rgba(0,0,0,0.1)');
+                 ctx.fillStyle = gradH;
+                 ctx.beginPath(); ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2); ctx.fill();
             }
 
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
 
-            // Ball removed (drawn earlier)
             ctx.restore();
         };
 
@@ -11088,100 +11345,84 @@ var BallRenderer = {
         const calfStartW = thighEndW;
         const calfEndW = calfStartW * legTaper;
 
-        // Hip Joints
-        if(!legFurry) {
-            drawJoint(p.x - hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
-            drawJoint(p.x + hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
-        } else {
-            drawFuzzyCircle(p.x - hipX, hipY, thighStartW * 0.5, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, hipY, thighStartW * 0.5, thighColor, 30, s, true);
-        }
+        // Unified Leg Drawer
+        const drawLeg = (hipP, kneeP, ankleP, isRight) => {
+            const seedBase = isRight ? 30 : 40;
 
-        // Tapered Thighs
-        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, thighStartW, thighColor, s, legFurry, 1, thighEndW);
-        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, thighStartW, thighColor, s, legFurry, 3, thighEndW);
+            let legMode = 'skin';
+            if (skinObj.legType === 'pants' || skinObj.legType === 'tights') legMode = 'pants';
 
-        // Shorts Details (Side Stripes & Trim) - Only if not furry (i.e. wearing shorts)
-        if (!legFurry) {
-             if (skinObj.sideStripesColor) {
-                 ctx.strokeStyle = skinObj.sideStripesColor;
-                 ctx.lineWidth = 2 * s;
-                 // Left Leg (Outer side)
-                 ctx.beginPath();
-                 ctx.moveTo(p.x - hipX - thighStartW*0.4, hipY);
-                 ctx.lineTo(lKneeX - thighEndW*0.4, lKneeY);
-                 ctx.stroke();
+            // 1. Draw Main Structure (Continuous)
+            if (legMode === 'pants') {
+                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, isFurry && thighColor === furColor, seedBase);
+            } else {
+                // Skin Leg
+                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
 
-                 // Right Leg (Outer side)
-                 ctx.beginPath();
-                 ctx.moveTo(p.x + hipX + thighStartW*0.4, hipY);
-                 ctx.lineTo(rKneeX + thighEndW*0.4, rKneeY);
-                 ctx.stroke();
-             }
-             if (skinObj.trimColor) {
-                 ctx.strokeStyle = skinObj.trimColor;
-                 ctx.lineWidth = 2 * s;
-                 // Hem lines
-                 ctx.beginPath(); ctx.moveTo(lKneeX - thighEndW*0.5, lKneeY); ctx.lineTo(lKneeX + thighEndW*0.5, lKneeY); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(rKneeX - thighEndW*0.5, rKneeY); ctx.lineTo(rKneeX + thighEndW*0.5, rKneeY); ctx.stroke();
-             }
-        }
+                // Shorts Overlay
+                if (!legFurry) {
+                    const shortsLen = (skinObj.shortsLength === 'short') ? 0.35 : 0.5;
+                    // Interpolate shorts end
+                    const shortsEnd = {
+                        x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
+                        y: hipP.y + (kneeP.y - hipP.y) * shortsLen
+                    };
+                    const shortsW = thighStartW * 1.2; // Flare
+                    // Draw shorts as a short limb
+                    drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
 
-        // Calves & Socks/Shoes
-        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             const calfBaseColor = calfColor;
+                    // Side Stripes on Shorts
+                    if (skinObj.sideStripesColor) {
+                        ctx.strokeStyle = skinObj.sideStripesColor;
+                        ctx.lineWidth = 2 * s;
+                        const sideX = isRight ? (hipP.x + shortsW*0.4) : (hipP.x - shortsW*0.4);
+                        const sideXEnd = isRight ? (shortsEnd.x + shortsW*0.45) : (shortsEnd.x - shortsW*0.45);
+                        ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
+                    }
+                }
+            }
 
-             // Draw Base Calf
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, calfStartW, calfBaseColor, s, legFurry, isRight?4:2, calfEndW);
+            // 2. Socks
+            if (skinObj.socksColor) {
+                 const sockH = 0.4; // % of calf
+                 const sockTop = {
+                     x: kneeP.x + (ankleP.x - kneeP.x) * (1-sockH),
+                     y: kneeP.y + (ankleP.y - kneeP.y) * (1-sockH)
+                 };
+                 const sockW = calfEndW * 1.1;
+                 // Use simple limb for sock
+                 drawLimb(sockTop.x, sockTop.y, ankleP.x, ankleP.y, sockW, skinObj.socksColor);
+            }
 
-             // Paw / Foot (If no shoes)
-             if (legFurry && !skinObj.shoesColor) {
-                 const pawColor = calfBaseColor;
-                 const footS = sizeMod.footScale || 1.0;
-                 drawFuzzyCircle(xBot, yBot, 4.5*s*footS, pawColor, isRight?50:60, s, true);
+            // 3. Feet / Shoes
+            if (skinObj.shoesColor) {
+                 // Shoe covers ankle
+                 drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+            } else if (legFurry) {
+                 // Paw
+                 const pawColor = (legMode === 'pants') ? thighColor : furColor;
+                 drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
                  // Toes
                  for(let k=-1; k<=1; k++) {
-                     drawFuzzyCircle(xBot + k*3*s*footS, yBot + 4*s*footS, 3*s*footS, pawColor, isRight?51+k:61+k, s, true);
+                     drawFuzzyCircle(ankleP.x + k*3*s, ankleP.y + 4*s, 3*s, pawColor, seedBase+6+k, s, true);
                  }
-             }
-
-             // Knee Joint (Radius = Half Width)
-             if(!legFurry) drawJoint(xTop, yTop, thighEndW * 0.5, thighColor, isMechanical);
-             else drawFuzzyCircle(xTop, yTop, thighEndW * 0.5, thighColor, isRight?40:20, s, true);
-
-             // Socks & Shoes Overlay
-             if(skinObj.socksColor || skinObj.shoesColor) {
-                 const shoeH = 5 * s; const sockH = 7 * s;
-                 // Calculate local Y relative to the foot Y
-                 const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
-
-                 // Interpolate X/Y
-                 const getXAtY = (y) => {
-                     const t = (y - yTop) / (yBot - yTop);
-                     return xTop + (xBot - xTop) * t;
-                 };
-
-                 if(skinObj.socksColor) {
-                     const sockTopX = getXAtY(sockY);
-                     const ankleX = getXAtY(ankleY);
-                     // Interpolate widths
-                     const sockTopW = calfStartW + (calfEndW - calfStartW) * ((sockY - yTop)/(yBot - yTop));
-                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
-                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, sockTopW, skinObj.socksColor, s, false, 0, ankleW);
-                 }
-                 if(skinObj.shoesColor) {
-                     const ankleX = getXAtY(ankleY);
-                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, ankleW, skinObj.shoesColor, s, false, 0, calfEndW);
-                     // Shoe Foot
-                     const footS = sizeMod.footScale || 1.0;
-                     drawRealisticShoe(xBot, yBot, 4.5*s*footS, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
-                 }
-             }
+            } else {
+                 // Human Foot
+                 const footColor = (legMode === 'pants') ? thighColor : furColor;
+                 ctx.fillStyle = footColor;
+                 // Simple foot shape
+                 const toeX = isRight ? ankleP.x + 3*s : ankleP.x - 3*s;
+                 ctx.beginPath();
+                 ctx.moveTo(ankleP.x, ankleP.y - 2*s);
+                 ctx.quadraticCurveTo(toeX, ankleP.y, toeX, ankleP.y + 3*s);
+                 ctx.lineTo(ankleP.x, ankleP.y + 4*s);
+                 ctx.fill();
+            }
         };
 
-        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
-        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
+        // Draw Legs
+        drawLeg({x:p.x-hipX, y:hipY}, {x:lKneeX, y:lKneeY}, {x:lFootX, y:lFootY}, false);
+        drawLeg({x:p.x+hipX, y:hipY}, {x:rKneeX, y:rKneeY}, {x:rFootX, y:rFootY}, true);
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
