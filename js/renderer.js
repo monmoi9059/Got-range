@@ -3411,8 +3411,8 @@ var BallRenderer = {
              const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
              const netScore = Math.max(0, makes - misses);
 
-             // Dynamic Scaling: 0.075 Base + 0.001 per net make (No Limit)
-             let ageScale = 0.075 + (netScore * 0.001);
+             // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
+             let ageScale = 0.25 + (netScore * 0.001);
 
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
