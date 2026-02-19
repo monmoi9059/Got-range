@@ -3405,6 +3405,116 @@ var BallRenderer = {
              ctx.beginPath(); ctx.arc(p.x+10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
+        else if (type === 'cat_hoop') {
+             // Calculate Age/Size based on Net Score (Dynamic Growth/Loss)
+             const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
+             const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
+             const netScore = Math.max(0, makes - misses);
+
+             // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
+             let ageScale = 0.25 + (netScore * 0.001);
+
+             // Color Logic based on raw experience (makes)
+             let furColor = '#D2B48C'; // Tan/Orange (Kitten)
+             let bellyColor = '#F5F5DC'; // Cream
+
+             if (makes >= 500) {
+                 furColor = '#A9A9A9'; // Grey (Old)
+             } else if (makes >= 200) {
+                 furColor = '#8B4513'; // Darker Brown (Adult)
+             } else if (makes >= 50) {
+                 furColor = '#D2691E'; // Orange (Adolescent)
+             }
+
+             const s = p.scale * ageScale;
+             const isActive = g_catEatTimer > 0;
+             const animProgress = isActive ? Math.sin((g_catEatTimer/20)*Math.PI) : 0;
+
+             // Animation Mode: Pass (Contest) vs Eat (Others)
+             const isPassing = (currentGameMode === 'CONTEST' && isActive);
+             const isEating = (!isPassing && isActive);
+
+             const mouthOpen = isEating ? animProgress * 15 * s : 0;
+
+             // Body (Sitting)
+             ctx.fillStyle = furColor;
+             // Fat belly
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+             // Chest
+             ctx.fillStyle = bellyColor;
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+
+             // Head
+             const headY = p.y - 35*s;
+             const headR = 18*s;
+             drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+             // Ears
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
+
+             // Face
+             // Eyes
+             if (makes >= 500) {
+                 // Old sleepy eyes
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x + 2*s, headY - 5*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.stroke();
+             } else {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+             }
+
+             // Mouth
+             if (isEating) {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 4*s + mouthOpen, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = '#FF69B4';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s + mouthOpen, 4*s, 0, Math.PI*2); ctx.fill();
+             } else {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
+             }
+
+             // Paws (For Passing Animation)
+             // Default Position: Chest
+             let pawLX = p.x - 10*s;
+             let pawRX = p.x + 10*s;
+             let pawY = p.y - 20*s; // Chest level
+
+             if (isPassing) {
+                 // Push Outward (Chest Pass)
+                 const push = animProgress * 25 * s;
+                 pawLX -= push * 0.5; // Slight spread
+                 pawRX += push * 0.5;
+                 pawY += push * 0.8; // Forward/Down (Projected)
+             }
+
+             // Draw Paws
+             const pawR = 6*s;
+             drawFuzzyCircle(pawLX, pawY, pawR, furColor, 1001, s, true, true);
+             drawFuzzyCircle(pawRX, pawY, pawR, furColor, 1002, s, true, true);
+
+             // Whiskers
+             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
+             ctx.stroke();
+
+             // Tail (Wagging)
+             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
+             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
+             ctx.stroke();
+        }
         else if (type === 'crowd') {
              const s = p.scale;
              const w = 200 * s;
@@ -9035,6 +9145,11 @@ var BallRenderer = {
                     seed: i
                 });
             }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) processDecor(cat);
+            }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
             const r = 900;
@@ -9047,6 +9162,11 @@ var BallRenderer = {
                     variant: {},
                     seed: i
                 });
+            }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) processDecor(cat);
             }
         }
 

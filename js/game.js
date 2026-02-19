@@ -98,7 +98,11 @@
             updateMobileControlsUI();
             initHighScoreUI();
         } else {
-            openShop();
+            if (mode === 'contest' || mode === 'time_attack') {
+                openLeaderboard(); // Show results instead of shop for competitive modes
+            } else {
+                openShop();
+            }
         }
     }
 
@@ -363,6 +367,7 @@
         flightTime = Math.max(32, flightTime);
 
         newBall.vx = (dx / flightTime); newBall.vy = (dy / flightTime); newBall.vz = (HOOP_POS.z - newBall.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
+        newBall.hasScored = false; // Flag to track scoring state
 
         let isMiss = Math.abs(timingError) > threshold;
 
@@ -415,8 +420,13 @@
 
     function handleScore(b) {
         const targetBall = b || ball;
+        if(targetBall.hasScored) return; // Prevent double counting
+
         AudioSystem.playSwish();
-        targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+        targetBall.hasScored = true; // Mark as scored but keep active for eating animation
+        g_catEatTimer = 20; // Trigger cat animation
+
+        playerData.lifetimeStats.makes++; currentStreak++;
 
         // Daily Challenge Hooks
         checkDailyProgress('makes', 1);
@@ -470,7 +480,7 @@
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; resetTimer = 60; nextAction = nextLevel;
+            feedbackTimer = 30; state = 'RESETTING'; resetTimer = 15; nextAction = nextLevel; // Fast reset
         }
     }
 
@@ -704,6 +714,7 @@
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
+        if (g_catEatTimer > 0) g_catEatTimer -= dt; // Update eat timer
         weather.update(dt);
 
         // Character Streak Fire (Super Saiyan Effect)
@@ -846,7 +857,8 @@
                 b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= GRAVITY * dt;
 
                 // Collision Logic
-                if (prevZ >= HOOP_POS.z && b.z <= HOOP_POS.z) {
+                // Only check collision if not already scored
+                if (!b.hasScored && prevZ >= HOOP_POS.z && b.z <= HOOP_POS.z) {
                     let t = 0;
                     if (prevZ !== b.z) {
                          t = (HOOP_POS.z - prevZ) / (b.z - prevZ);
@@ -867,7 +879,22 @@
                 const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
 
                 if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
-                if (b.z <= 0) { b.z = 0; b.active = false; handleMiss(b); continue; }
+                if (b.z <= 0) {
+                    b.z = 0;
+                    if (!b.hasScored) { // Don't trigger miss if it scored and fell
+                        b.active = false;
+                        handleMiss(b);
+                    } else {
+                        // If scored and hit ground (or fell far enough), remove
+                        b.active = false;
+                    }
+                    continue;
+                }
+                // Cat Eat Logic: If scored and falls to mouth height (~40)
+                if (b.hasScored && b.z < 40 && b.z > 0) {
+                    b.active = false; // Eaten!
+                    continue;
+                }
             } else {
                 activeBalls.splice(i, 1);
             }

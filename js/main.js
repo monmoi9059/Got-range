@@ -12,6 +12,9 @@
     const PIXELS_PER_FOOT = 4.2426;
 
     var decors = [];
+    // Cat under the hoop
+    decors.push({ x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 });
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -71,7 +74,8 @@
         }
     });
 
-    // TACO CAT: One per zone guaranteed
+    // TACO CAT: One per zone guaranteed - REMOVED per user request to only have one under the basket
+    /*
     for(let i=0; i<COURT_ZONES.length; i++) {
         const z = COURT_ZONES[i];
         const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -96,6 +100,7 @@
 
         decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
     }
+    */
 
     // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
     decors.sort((a, b) => a.dist - b.dist);
@@ -506,7 +511,9 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
-        if (score <= 10) return false; // Ignore default/low scores
+        // Lower threshold for non-classic modes (Contest max is ~30)
+        const minScore = (mode === 'classic') ? 10 : 0;
+        if (score <= minScore) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;

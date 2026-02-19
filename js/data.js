@@ -2,6 +2,7 @@
     var preJumpTimer = 0;
     var resetTimer = 0;
     var nextAction = null;
+    var g_catEatTimer = 0; // Added for Cat Hoop Animation
     // --- 1. DATA & CONSTANTS (DEFINED FIRST) ---
     var ACHIEVEMENTS = [
         { id: 'rookie', name: 'Recrue', desc: 'Premier panier marqué', reward: 100 },
