@@ -655,6 +655,7 @@
                 for(let i=0; i<tacosOnGround.length; i++) {
                     const t = tacosOnGround[i];
                     if (t.beingEaten) continue; // Skip claimed tacos
+                    if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
                     const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
                     if (d < minDist) {
@@ -1016,7 +1017,8 @@
                             y: HOOP_POS.y + offsetY,
                             rotation: Math.random() * Math.PI * 2,
                             scale: 1.0,
-                            beingEaten: false
+                            beingEaten: false,
+                            spawnTime: Date.now()
                         });
                     }
                     continue;
