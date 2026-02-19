@@ -367,7 +367,12 @@
 
         // "Sur La Ligne" Bonus: 28% forgiveness zone (0.32 / 0.25 = 1.28)
         if (isMiss && Math.abs(timingError) < threshold * 1.28) {
-            if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; }
+            if(Math.random() > 0.5) {
+                isMiss = false;
+                feedback = "SUR LA LIGNE!";
+                feedbackTimer = 30;
+                checkDailyProgress('sur_la_ligne', 1);
+            }
         }
 
         if (isMiss) {
@@ -375,7 +380,12 @@
             let finalLuckChance = luckChance;
             if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
 
-            if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
+            if (Math.random() < finalLuckChance) {
+                feedback = "CHANCEUX!";
+                feedbackTimer = 30;
+                checkAchievements('lucky');
+                checkDailyProgress('lucky', 1);
+            }
             else {
                 // Reconstruct accuracy magnitude for visuals
                 // accuracy = 0.25 * (timingError / threshold)
@@ -411,6 +421,39 @@
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
 
+        // --- NEW CHALLENGE TRIGGERS ---
+        checkDailyProgress('swish', 1); // Assume makes are swishes for now
+
+        // Difficulty Checks
+        if (playerData.difficulty >= 2) checkDailyProgress('makes_hard', 1);
+        if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
+
+        // Distance Checks (Classic/Calculated)
+        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        if (dist >= 100) checkDailyProgress('makes_long', 1);
+        if (dist >= 200) checkDailyProgress('makes_super', 1);
+
+        // Skin Checks
+        if (typeof SKINS_DB !== 'undefined') {
+            const currentSkinObj = SKINS_DB.find(s => s.id === playerData.currentSkin);
+            if (currentSkinObj) {
+                if (currentSkinObj.animal === 'human') checkDailyProgress('makes_human', 1);
+                else checkDailyProgress('makes_animal', 1);
+            }
+        }
+
+        // Streak Count Checks
+        if (currentStreak > 0) {
+            if (currentStreak % 10 === 0) checkDailyProgress('streak_10_count', 1);
+            if (currentStreak % 15 === 0) checkDailyProgress('streak_15_count', 1);
+        }
+
+        // Perfect Rack Check (Contest)
+        if (currentGameMode === 'CONTEST') {
+             if (typeof contestData.makesInRack === 'undefined') contestData.makesInRack = 0;
+             contestData.makesInRack++;
+        }
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
         if(currentGameMode === 'CONTEST') {
@@ -436,6 +479,7 @@
         AudioSystem.playFloorHit();
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
+        checkDailyProgress('misses', 1);
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
@@ -445,6 +489,7 @@
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
                 feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
+                checkDailyProgress('play_all_modes', 1);
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
             }
@@ -805,9 +850,18 @@
     // --- HELPER FUNCTIONS ---
     function nextLevel() {
         if(currentGameMode === 'CONTEST') {
+            // Perfect Rack Check
+            if (contestData.makesInRack === 5) {
+                checkDailyProgress('perfect_rack', 1);
+                feedback = "RACK PARFAIT!";
+            }
+            // Reset for next
+            if (contestData.ballsInRack === 4) contestData.makesInRack = 0;
+
             contestData.ballsInRack++;
             if(contestData.ballsInRack >= 5) {
                 contestData.rack++; contestData.ballsInRack = 0;
+                contestData.makesInRack = 0; // Reset logic for rack change
                 if(contestData.rack > 5) { endContest(); return; }
                 else { setPlayerPositionForRack(contestData.rack); }
             }
@@ -831,8 +885,14 @@
             // Hook Distance Challenge
             checkDailyProgress('distance', jump * 5);
 
+            checkDailyProgress('earn_tacos', reward);
+
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
+
+            checkDailyProgress('distance_classic', currentDistanceVal);
+            if (distanceLevel === 10) checkDailyProgress('level_10_count', 1);
+
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
@@ -848,7 +908,10 @@
         playerData.tacos += reward;
 
         checkDailyProgress('contest_score', contestData.score);
+        checkDailyProgress('total_contest_score', contestData.score);
         checkDailyProgress('play_contest', 1);
+        checkDailyProgress('earn_tacos', reward);
+        checkDailyProgress('play_all_modes', 1);
 
         checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
     }
@@ -879,7 +942,10 @@
         playerData.tacos += reward;
 
         checkDailyProgress('time_attack_score', timeAttackData.score);
+        checkDailyProgress('total_time_score', timeAttackData.score);
         checkDailyProgress('play_time_attack', 1);
+        checkDailyProgress('earn_tacos', reward);
+        checkDailyProgress('play_all_modes', 1);
 
         // Save High Score
         let isRecord = false;
@@ -937,7 +1003,7 @@
     }
 
     function startContest() {
-        contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true };
+        contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true, makesInRack: 0 };
         lastDisplayedContestTime = -1;
         currentStreak = 0;
 

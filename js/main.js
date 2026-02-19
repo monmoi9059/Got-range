@@ -624,18 +624,27 @@ let lastDisplayedContestTime = -1;
 
         if(def.type === type) {
             let completed = false;
-            if(type.includes('streak') || type.includes('score') || type === 'sur_la_ligne' || type.includes('makes')) {
-                 if(type === 'streak') {
-                     if(amount >= def.target) { userC.progress = def.target; completed = true; }
-                 } else {
-                     userC.progress += amount;
-                     if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
-                     else saveData();
-                 }
+
+            // Handle specific logic based on type
+            if (type === 'distance_classic') {
+                // High Water Mark logic (Max distance in single game)
+                if (amount > userC.progress) {
+                    userC.progress = amount;
+                    if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                    else saveData();
+                }
+            } else if (type === 'streak') {
+                // Streak is passed as current streak amount. Check if it beats target or best.
+                if (amount >= def.target) { userC.progress = def.target; completed = true; }
+                else if (amount > userC.progress) {
+                    userC.progress = amount;
+                    saveData();
+                }
             } else {
-                 userC.progress += amount;
-                 if(userC.progress >= def.target) { userC.progress = def.target; completed = true; }
-                 else saveData();
+                // Cumulative logic (makes, score, distance, play_*, etc.)
+                userC.progress += amount;
+                if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                else saveData();
             }
 
             if(completed && !userC.completedNotified) {
