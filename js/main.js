@@ -2,7 +2,10 @@
     // Global Animation State
     var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
 
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),

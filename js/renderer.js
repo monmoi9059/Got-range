@@ -1539,6 +1539,19 @@ var BallRenderer = {
         if (!p) return;
         const targetBall = ballRef || ball; // Fallback for safety
 
+        // Use Interpolated Physics if available
+        let phys = targetBall;
+        if (targetBall.renderX !== undefined) {
+             phys = {
+                 x: targetBall.renderX,
+                 y: targetBall.renderY,
+                 z: targetBall.renderZ,
+                 rotationX: targetBall.renderRotX || targetBall.rotationX,
+                 rotationY: targetBall.rotationY,
+                 rotationZ: targetBall.rotationZ
+             };
+        }
+
         // Draw Trail (NBA Jam Style - Smoke/Fire Puffs)
         if (targetBall.isFire && targetBall.trail && targetBall.trail.length > 1 && playerData.graphics === 'HIGH') {
             for (let i = 0; i < targetBall.trail.length; i++) {
@@ -1572,7 +1585,7 @@ var BallRenderer = {
             }
         }
 
-        drawBallSprite(p.x, p.y, p.scale, targetBall.isFire, targetBall.rotationX, targetBall);
+        drawBallSprite(p.x, p.y, p.scale, targetBall.isFire, phys.rotationX, phys);
     }
 
     function getTempBallPhys(sx, sy, p) {
@@ -6707,8 +6720,7 @@ var BallRenderer = {
         draw: function(p) {
             // Optimization: Removed 4x MSAA Supersampling
         if (!p) return;
-        // Debug
-        // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
+        const alpha = p.alpha !== undefined ? p.alpha : 1.0;
 
         const s = p.scale;
         let skin = playerData.currentSkin;
@@ -7008,18 +7020,24 @@ var BallRenderer = {
         }
 
         // 0. Calculate Arm Config EARLY
-        // Uses global smooth animation state
-        const r_la = g_animState.la;
-        const r_ra = g_animState.ra;
-        const r_lfa = g_animState.lfa;
-        const r_rfa = g_animState.rfa;
-        const r_w = g_animState.w;
+        const getInterp = (prop) => {
+            if (typeof g_animStateLast !== 'undefined' && g_animStateLast[prop] !== undefined) {
+                return lerp(g_animStateLast[prop], g_animState[prop], alpha);
+            }
+            return g_animState[prop];
+        };
+
+        const r_la = getInterp('la');
+        const r_ra = getInterp('ra');
+        const r_lfa = getInterp('lfa');
+        const r_rfa = getInterp('rfa');
+        const r_w = getInterp('w');
 
         // Z-Rotation (Depth)
-        const r_la_z = g_animState.la_z || 0;
-        const r_ra_z = g_animState.ra_z || 0;
-        const r_lfa_z = g_animState.lfa_z || 0;
-        const r_rfa_z = g_animState.rfa_z || 0;
+        const r_la_z = getInterp('la_z') || 0;
+        const r_ra_z = getInterp('ra_z') || 0;
+        const r_lfa_z = getInterp('lfa_z') || 0;
+        const r_rfa_z = getInterp('rfa_z') || 0;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
         let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
@@ -8664,19 +8682,27 @@ var BallRenderer = {
         );
     }
 
-    function drawBackground(vpX, vpY, vpW, vpH) {
+    function drawBackground(vpX, vpY, vpW, vpH, alpha) {
         if (vpW === undefined) { vpX=0; vpY=0; vpW=window.LOGICAL_WIDTH; vpH=window.LOGICAL_HEIGHT; }
+        if (alpha === undefined) alpha = 1.0;
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
 
+        // Interpolate Player
+        const pX = (player3D.lastX !== undefined) ? lerp(player3D.lastX, player3D.x, alpha) : player3D.x;
+        const pY = (player3D.lastY !== undefined) ? lerp(player3D.lastY, player3D.y, alpha) : player3D.y;
+        const pZ = (player3D.lastZ !== undefined) ? lerp(player3D.lastZ, player3D.z, alpha) : player3D.z;
+
         // Determine Target
-        let targetX = player3D.x;
-        let targetY = player3D.y;
+        let targetX = pX;
+        let targetY = pY;
 
         if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
-                targetX = b.x;
-                targetY = b.y;
+                const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
+                const bY = (b.lastY !== undefined) ? lerp(b.lastY, b.y, alpha) : b.y;
+                targetX = bX;
+                targetY = bY;
             }
         }
 
@@ -9003,25 +9029,34 @@ var BallRenderer = {
             RenderEngine.Queue.add('hoop', hoopProj.depth, hoopProj.x, hoopProj.y, hoopProj.scale);
         }
 
-        const playerProj = project(player3D.x, player3D.y, player3D.z);
+        const playerProj = project(pX, pY, pZ);
         if (playerProj) {
-            RenderEngine.Queue.add('player', playerProj.depth, playerProj.x, playerProj.y, playerProj.scale);
+            const item = RenderEngine.Queue.add('player', playerProj.depth, playerProj.x, playerProj.y, playerProj.scale);
+            item.alpha = alpha;
         }
 
-        const shadowProj = project(player3D.x, player3D.y, 0);
+        const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
         }
 
         activeBalls.forEach(b => {
             if (b.active) {
-                const ballShadowProj = project(b.x, b.y, 0);
+                const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
+                const bY = (b.lastY !== undefined) ? lerp(b.lastY, b.y, alpha) : b.y;
+                const bZ = (b.lastZ !== undefined) ? lerp(b.lastZ, b.z, alpha) : b.z;
+
+                b.renderX = bX; b.renderY = bY; b.renderZ = bZ;
+                if(b.lastRotX !== undefined) b.renderRotX = lerp(b.lastRotX, b.rotationX, alpha);
+                else b.renderRotX = b.rotationX;
+
+                const ballShadowProj = project(bX, bY, 0);
                 if (ballShadowProj) {
                     const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
                     item.ballRef = b;
                 }
 
-                const ballProj = project(b.x, b.y, b.z);
+                const ballProj = project(bX, bY, bZ);
                 if (ballProj) {
                     const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
                     item.ballRef = b;
