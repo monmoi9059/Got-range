@@ -7422,20 +7422,20 @@ var BallRenderer = {
         }
         else if (type === 'cat_hoop') {
              // Calculate Age/Size based on Lifetime Makes
-             const makes = playerData.lifetimeStats.makes;
+             const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
              let ageScale = 0.075; // Kitten (Tiny - 1/8th of adult)
              let furColor = '#D2B48C'; // Tan/Orange
              let bellyColor = '#F5F5DC'; // Cream
 
-             // Accelerated Growth: Max size at 100 makes
-             if (makes >= 100) {
-                 ageScale = 1.6; // Giant/Old
+             // Growth Stages
+             if (makes >= 500) {
+                 ageScale = 1.1; // Giant/Old (Reduced from 1.6)
                  furColor = '#A9A9A9'; // Grey
-             } else if (makes >= 50) {
-                 ageScale = 1.0; // Fat/Adult
+             } else if (makes >= 200) {
+                 ageScale = 0.7; // Fat/Adult (Reduced from 1.0)
                  furColor = '#8B4513'; // Darker Brown
-             } else if (makes >= 10) {
-                 ageScale = 0.4; // Adolescent
+             } else if (makes >= 50) {
+                 ageScale = 0.3; // Adolescent (Reduced from 0.4)
                  furColor = '#D2691E'; // Orange
              }
 
