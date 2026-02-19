@@ -3124,227 +3124,395 @@ var BallRenderer = {
     function drawDecor(p, type, variant, seed) {
         if (!p) return;
         const s = p.scale;
-        if(type === 'grass') {
-             // Realistic Grass Tuft
-             // Base Shadow
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath(); ctx.ellipse(p.x, p.y, 15*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
 
-             // Blades
-             ctx.strokeStyle = '#32CD32';
-             ctx.lineWidth = 2 * s;
+        if (type === 'grass') {
+             // REMASTERED GRASS
+             // Base clump shadow
+             ctx.fillStyle = 'rgba(0,0,0,0.15)';
+             ctx.beginPath(); ctx.ellipse(p.x, p.y, 12*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+
+             // Realistic blades with variety
              ctx.lineCap = 'round';
-             ctx.beginPath();
-             for(let i=0; i<5; i++) {
-                 const angle = -Math.PI/2 + (i-2)*0.3;
-                 const len = 15 * s + Math.random() * 10 * s;
-                 const bx = p.x + (i-2)*3*s;
-                 const by = p.y;
-                 ctx.moveTo(bx, by);
-                 ctx.quadraticCurveTo(bx + Math.cos(angle)*5*s, by - len*0.5, bx + Math.cos(angle)*len, by - len);
-             }
-             ctx.stroke();
+             const bladeCount = 5 + Math.floor(Math.abs(Math.sin(seed * 10)) * 4);
 
-             // Small Flower
-             if (seed > 0.7) {
-                 ctx.fillStyle = '#FFF';
-                 ctx.beginPath(); ctx.arc(p.x, p.y - 15*s, 3*s, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = '#FFD700';
-                 ctx.beginPath(); ctx.arc(p.x, p.y - 15*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+             for(let i=0; i<bladeCount; i++) {
+                 // Deterministic random
+                 const r1 = Math.abs(Math.sin(seed + i));
+                 const r2 = Math.abs(Math.cos(seed * 2 + i));
+
+                 const angle = -Math.PI/2 + (r1 - 0.5) * 0.8;
+                 const len = (15 + r2 * 15) * s;
+                 const bx = p.x + (i - bladeCount/2) * 4 * s;
+
+                 // Gradient stroke? No, strokeStyle doesn't support gradient easily on paths.
+                 // Use variations of green.
+                 const green = 100 + Math.floor(r1 * 100);
+                 ctx.strokeStyle = `rgb(34, ${green}, 34)`;
+                 ctx.lineWidth = (2 + r2) * s;
+
+                 ctx.beginPath();
+                 ctx.moveTo(bx, p.y);
+                 ctx.quadraticCurveTo(bx + Math.cos(angle)*len*0.3, p.y - len*0.5, bx + Math.cos(angle)*len, p.y - len);
+                 ctx.stroke();
+             }
+
+             // Flower (rare)
+             if (Math.abs(Math.sin(seed * 99)) > 0.8) {
+                 const fy = p.y - 20*s;
+                 ctx.fillStyle = (Math.sin(seed)>0) ? '#FFF' : '#FFFF00';
+                 ctx.beginPath(); ctx.arc(p.x, fy, 4*s, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = '#FFA500';
+                 ctx.beginPath(); ctx.arc(p.x, fy, 2*s, 0, Math.PI*2); ctx.fill();
              }
         }
-        else if(type === 'tree') {
-            const isHigh = playerData.graphics === 'HIGH';
+        else if (type === 'tree') {
+            const isPine = (variant === 'pine');
 
-            if (variant === 'pine') {
-                // Realistic Pine
-                ctx.fillStyle = '#3E2723'; // Trunk
-                ctx.fillRect(p.x - 4*s, p.y, 8*s, -20*s);
+            // Tree Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
 
-                const drawLayer = (yBase, w, h, color) => {
-                    if (isHigh) {
-                        const grad = ctx.createLinearGradient(p.x, yBase - h, p.x, yBase);
-                        grad.addColorStop(0, color); // Top lighter
-                        grad.addColorStop(1, '#1B5E20'); // Bottom darker
-                        ctx.fillStyle = grad;
-                    } else {
-                        ctx.fillStyle = color;
-                    }
+            if (isPine) {
+                // REMASTERED PINE
+                // Trunk
+                const trunkW = 12 * s;
+                const trunkH = 25 * s;
+                const gradT = ctx.createLinearGradient(p.x - trunkW/2, 0, p.x + trunkW/2, 0);
+                gradT.addColorStop(0, '#2b1b17'); gradT.addColorStop(0.5, '#4e342e'); gradT.addColorStop(1, '#2b1b17');
+                ctx.fillStyle = gradT;
+                ctx.fillRect(p.x - trunkW/2, p.y - trunkH, trunkW, trunkH);
 
+                // Layers of foliage (Cones)
+                const layers = 4;
+                const baseW = 50 * s;
+                const layerH = 40 * s;
+                const startY = p.y - trunkH * 0.5;
+
+                for (let i = 0; i < layers; i++) {
+                    const y = startY - i * (layerH * 0.7);
+                    const w = baseW * (1.0 - i * 0.2);
+
+                    // Darker bottom of foliage
+                    ctx.fillStyle = '#1b5e20';
                     ctx.beginPath();
-                    ctx.moveTo(p.x - w, yBase);
-                    ctx.lineTo(p.x, yBase - h);
-                    ctx.lineTo(p.x + w, yBase);
-                    // Jagged bottom
-                    for(let i=1; i<=4; i++) {
-                        ctx.lineTo(p.x + w - (2*w*(i/4)), yBase - (i%2==0 ? 0 : 5*s));
-                    }
-                    ctx.closePath();
+                    ctx.moveTo(p.x - w, y);
+                    ctx.lineTo(p.x + w, y);
+                    ctx.lineTo(p.x, y - layerH);
                     ctx.fill();
-                };
 
-                drawLayer(p.y - 15*s, 30*s, 60*s, '#2E7D32'); // Bottom
-                drawLayer(p.y - 45*s, 25*s, 50*s, '#388E3C'); // Mid
-                drawLayer(p.y - 70*s, 15*s, 40*s, '#4CAF50'); // Top
-            } else {
-                // Realistic Oak
-                ctx.fillStyle = '#5D4037'; // Trunk
-                // Trunk Shading
-                if (isHigh) {
-                    const tGrad = ctx.createLinearGradient(p.x - 6*s, 0, p.x + 6*s, 0);
-                    tGrad.addColorStop(0, '#3E2723'); tGrad.addColorStop(0.5, '#5D4037'); tGrad.addColorStop(1, '#3E2723');
-                    ctx.fillStyle = tGrad;
+                    // Lighter lit side (Left lit)
+                    ctx.fillStyle = '#2e7d32';
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w*0.8, y);
+                    ctx.lineTo(p.x, y);
+                    ctx.lineTo(p.x, y - layerH*0.9);
+                    ctx.fill();
+
+                    // Texture/Noise (Jagged edges)
+                    ctx.strokeStyle = '#1b5e20';
+                    ctx.lineWidth = 2*s;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x - w, y);
+                    for(let k=1; k<5; k++) {
+                       ctx.lineTo(p.x - w + (2*w*k/5), y + ((k%2)*5*s));
+                    }
+                    ctx.lineTo(p.x+w, y);
+                    ctx.stroke();
                 }
+            } else {
+                // REMASTERED OAK
+                // Trunk
+                const trunkW = 16 * s;
+                const trunkH = 40 * s;
+
+                // Bark Texture
+                const gradT = ctx.createLinearGradient(p.x - trunkW/2, 0, p.x + trunkW/2, 0);
+                gradT.addColorStop(0, '#3e2723');
+                gradT.addColorStop(0.4, '#5d4037');
+                gradT.addColorStop(0.6, '#4e342e');
+                gradT.addColorStop(1, '#3e2723');
+                ctx.fillStyle = gradT;
 
                 ctx.beginPath();
-                ctx.moveTo(p.x - 6*s, p.y);
-                ctx.lineTo(p.x - 6*s, p.y - 30*s);
-                ctx.lineTo(p.x + 6*s, p.y - 30*s);
-                ctx.lineTo(p.x + 6*s, p.y);
+                ctx.moveTo(p.x - trunkW/2, p.y); // Base Left
+                ctx.quadraticCurveTo(p.x - trunkW/4, p.y - trunkH/2, p.x - trunkW/2, p.y - trunkH); // Top Left
+                ctx.lineTo(p.x + trunkW/2, p.y - trunkH); // Top Right
+                ctx.quadraticCurveTo(p.x + trunkW/4, p.y - trunkH/2, p.x + trunkW/2, p.y); // Base Right
                 ctx.fill();
 
                 // Roots
-                ctx.beginPath(); ctx.moveTo(p.x - 6*s, p.y); ctx.lineTo(p.x - 10*s, p.y + 5*s); ctx.lineTo(p.x, p.y); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(p.x + 6*s, p.y); ctx.lineTo(p.x + 10*s, p.y + 5*s); ctx.lineTo(p.x, p.y); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(p.x - trunkW/2, p.y - 5*s);
+                ctx.quadraticCurveTo(p.x - trunkW, p.y, p.x - trunkW*1.2, p.y + 5*s);
+                ctx.lineTo(p.x - trunkW/2 + 5*s, p.y);
+                ctx.fill();
 
-                // Canopy (Clustered)
-                const drawLeafCircle = (dx, dy, r, color) => {
-                    ctx.fillStyle = color;
-                    ctx.beginPath(); ctx.arc(p.x + dx*s, p.y - 30*s + dy*s, r*s, 0, Math.PI*2); ctx.fill();
-                    // Shadow arc
-                    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*s;
-                    ctx.beginPath(); ctx.arc(p.x + dx*s, p.y - 30*s + dy*s, r*s, 0.5, 2.5); ctx.stroke();
-                };
+                ctx.beginPath();
+                ctx.moveTo(p.x + trunkW/2, p.y - 5*s);
+                ctx.quadraticCurveTo(p.x + trunkW, p.y, p.x + trunkW*1.2, p.y + 5*s);
+                ctx.lineTo(p.x + trunkW/2 - 5*s, p.y);
+                ctx.fill();
 
-                drawLeafCircle(-20, -10, 25, '#228B22');
-                drawLeafCircle(20, -10, 25, '#228B22');
-                drawLeafCircle(0, -40, 30, '#32CD32');
-                drawLeafCircle(0, -10, 25, '#2E8B57'); // Front center
+                // Foliage Clusters (Cloud style)
+                const clusters = [
+                    {dx: 0, dy: -60, r: 40, c: '#388e3c'}, // Top
+                    {dx: -30, dy: -40, r: 35, c: '#2e7d32'}, // Left
+                    {dx: 30, dy: -40, r: 35, c: '#2e7d32'}, // Right
+                    {dx: -15, dy: -20, r: 30, c: '#1b5e20'}, // Bottom Left
+                    {dx: 15, dy: -20, r: 30, c: '#1b5e20'}, // Bottom Right
+                    {dx: 0, dy: -35, r: 35, c: '#4caf50'}, // Front/Highlight
+                ];
+
+                clusters.forEach(cl => {
+                    const cx = p.x + cl.dx * s;
+                    const cy = p.y + cl.dy * s;
+                    const cr = cl.r * s;
+
+                    // Shadow bottom-right
+                    const grad = ctx.createRadialGradient(cx - cr*0.3, cy - cr*0.3, cr*0.2, cx, cy, cr);
+                    grad.addColorStop(0, cl.c);
+                    grad.addColorStop(1, '#1b5e20'); // Dark green shadow
+                    ctx.fillStyle = grad;
+
+                    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.fill();
+
+                    // Outline for retro pop
+                    ctx.strokeStyle = 'rgba(0,50,0,0.3)'; ctx.lineWidth = 1*s;
+                    ctx.stroke();
+                });
             }
         }
-        else if (type === 'water') {
-             ctx.fillStyle = '#1E90FF';
-             ctx.beginPath();
-             const r = 20 * s;
-             ctx.moveTo(p.x + r, p.y);
-             for(let i=1; i<8; i++) {
-                 const angle = (i/8) * Math.PI * 2;
-                 const varR = r * (0.8 + 0.4 * Math.sin(seed * 10 + i * 132));
-                 ctx.lineTo(p.x + Math.cos(angle)*varR, p.y + Math.sin(angle)*varR * 0.3);
-             }
-             ctx.closePath();
-             ctx.fill();
-             ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 2*s); ctx.lineTo(p.x - 5*s, p.y - 2*s); ctx.stroke();
-             ctx.beginPath(); ctx.moveTo(p.x + 2*s, p.y + 2*s); ctx.lineTo(p.x + 8*s, p.y + 2*s); ctx.stroke();
-        }
-        else if (type === 'castle') { // Now Residential Houses
-            const wallColors = ['#F5F5DC', '#FFFACD', '#E0FFFF', '#FFC0CB', '#98FB98', '#D3D3D3', '#F0E68C', '#ADD8E6'];
-            const roofColors = ['#8B4513', '#A52A2A', '#2F4F4F', '#696969', '#800000', '#556B2F'];
+        else if (type === 'castle') { // REMASTERED HOUSE
+            const wallColors = ['#fdf5e6', '#fffacd', '#e0ffff', '#ffe4e1', '#f0fff0'];
+            const roofColors = ['#8b4513', '#a0522d', '#556b2f', '#708090', '#b22222'];
 
-            // Deterministic selection
             const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
             const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
 
-            const w = 50 * s;
+            const w = 60 * s;
             const h = 50 * s;
+            const houseY = p.y;
 
-            // Body
-            ctx.fillStyle = wallColor;
-            ctx.fillRect(p.x - w/2, p.y - h, w, h);
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(p.x - w/2 + 5*s, houseY - 2*s, w, 5*s);
 
-            // Roof (Pitched)
+            // Walls (Gradient for rounded look)
+            const wGrad = ctx.createLinearGradient(p.x - w/2, 0, p.x + w/2, 0);
+            wGrad.addColorStop(0, '#ddd'); wGrad.addColorStop(0.2, wallColor); wGrad.addColorStop(0.8, wallColor); wGrad.addColorStop(1, '#bbb');
+            ctx.fillStyle = wGrad;
+            ctx.fillRect(p.x - w/2, houseY - h, w, h);
+
+            // Siding lines
+            ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 1*s;
+            for(let i=0; i<h; i+=8*s) {
+                ctx.beginPath(); ctx.moveTo(p.x - w/2, houseY - i); ctx.lineTo(p.x + w/2, houseY - i); ctx.stroke();
+            }
+
+            // Roof
             ctx.fillStyle = roofColor;
             ctx.beginPath();
-            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
-            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
-            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.moveTo(p.x - w/2 - 8*s, houseY - h);
+            ctx.lineTo(p.x + w/2 + 8*s, houseY - h);
+            ctx.lineTo(p.x, houseY - h - 35*s);
             ctx.fill();
+
+            // Roof Texture (Shingles)
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1*s;
+            const roofH = 35*s;
+            const roofW = w + 16*s;
+            for(let i=0; i<roofH; i+=5*s) {
+                const ratio = i/roofH;
+                const y = houseY - h - i;
+                const rw = roofW * (1.0 - ratio);
+                ctx.beginPath(); ctx.moveTo(p.x - rw/2, y); ctx.lineTo(p.x + rw/2, y); ctx.stroke();
+            }
 
             // Door
-            ctx.fillStyle = '#4E342E';
-            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            ctx.fillStyle = '#3e2723';
+            ctx.fillRect(p.x - 10*s, houseY - 25*s, 20*s, 25*s);
+            // Frame
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*s;
+            ctx.strokeRect(p.x - 10*s, houseY - 25*s, 20*s, 25*s);
             // Knob
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath(); ctx.arc(p.x + 6*s, houseY - 12*s, 2*s, 0, Math.PI*2); ctx.fill();
 
-            // Windows
-            ctx.fillStyle = '#87CEEB';
-            // Window 1
-            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
-            // Window 2
-            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+            // Windows with depth
+            const drawWindow = (wx, wy) => {
+                ctx.fillStyle = '#87ceeb'; // Glass
+                ctx.fillRect(wx, wy, 14*s, 14*s);
+                // Inner Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.fillRect(wx, wy, 14*s, 4*s);
+                // Frame
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*s;
+                ctx.strokeRect(wx, wy, 14*s, 14*s);
+                // Cross
+                ctx.beginPath(); ctx.moveTo(wx + 7*s, wy); ctx.lineTo(wx + 7*s, wy + 14*s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(wx, wy + 7*s); ctx.lineTo(wx + 14*s, wy + 7*s); ctx.stroke();
+                // Sill
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(wx - 2*s, wy + 14*s, 18*s, 3*s);
+            };
 
-            // Window Frames
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
-            // Cross 1
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
-            // Cross 2
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
+            drawWindow(p.x - w/2 + 8*s, houseY - h + 12*s);
+            drawWindow(p.x + w/2 - 22*s, houseY - h + 12*s);
         }
         else if (type === 'mountain') {
+            // REMASTERED MOUNTAIN (Rock + Snow)
+            const w = 60 * s;
+            const h = 90 * s;
+
+            // Rock Body
             ctx.fillStyle = '#757575';
             ctx.beginPath();
-            ctx.moveTo(p.x - 25*s, p.y);
-            ctx.lineTo(p.x - 15*s, p.y - 40*s);
-            ctx.lineTo(p.x, p.y - 60*s);
-            ctx.lineTo(p.x + 20*s, p.y - 30*s);
-            ctx.lineTo(p.x + 30*s, p.y);
-            ctx.closePath();
+            ctx.moveTo(p.x - w, p.y);
+            ctx.lineTo(p.x, p.y - h);
+            ctx.lineTo(p.x + w, p.y);
             ctx.fill();
-            ctx.fillStyle = '#FFF';
+
+            // Shading (Right side dark)
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath();
-            ctx.moveTo(p.x - 11*s, p.y - 50*s);
-            ctx.lineTo(p.x, p.y - 60*s);
-            ctx.lineTo(p.x + 7*s, p.y - 50*s);
-            ctx.lineTo(p.x, p.y - 45*s);
+            ctx.moveTo(p.x, p.y - h);
+            ctx.lineTo(p.x + w, p.y);
+            ctx.lineTo(p.x, p.y);
+            ctx.fill();
+
+            // Snow Cap
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y - h);
+            ctx.lineTo(p.x + w*0.35, p.y - h*0.65);
+            // Jagged snow line
+            ctx.lineTo(p.x + w*0.1, p.y - h*0.55);
+            ctx.lineTo(p.x, p.y - h*0.6);
+            ctx.lineTo(p.x - w*0.1, p.y - h*0.55);
+            ctx.lineTo(p.x - w*0.35, p.y - h*0.65);
+            ctx.closePath();
             ctx.fill();
         }
         else if (type === 'space') {
-            // Grounded objects (Rocks & Craters) replacing floating planets
             if (seed > 0.6) {
-                // Craters
-                ctx.fillStyle = '#333'; // Inner dark hole
-                ctx.beginPath();
-                ctx.ellipse(p.x, p.y, 25*s, 6*s, 0, 0, Math.PI*2);
-                ctx.fill();
+                // REMASTERED CRATER
+                const rx = 30*s;
+                const ry = 8*s;
 
-                // Rim
-                ctx.strokeStyle = '#666';
-                ctx.lineWidth = 2*s;
-                ctx.stroke();
+                // Outer Rim (Highlight)
+                ctx.fillStyle = '#666';
+                ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, Math.PI*2); ctx.fill();
 
+                // Inner Hole (Dark)
+                ctx.fillStyle = '#222';
+                ctx.beginPath(); ctx.ellipse(p.x, p.y + 2*s, rx*0.8, ry*0.8, 0, 0, Math.PI*2); ctx.fill();
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.ellipse(p.x, p.y + 2*s, rx*0.8, ry*0.8, 0, 0, Math.PI, false); ctx.fill();
             } else {
-                // Space Rocks (Grounded)
-                const isRed = (seed > 0.3 && seed < 0.45);
-                ctx.fillStyle = isRed ? '#8B4513' : '#696969'; // Mars-ish or Grey
+                // REMASTERED SPACE ROCK
+                ctx.fillStyle = '#555';
+                const pts = [
+                    {x: p.x - 15*s, y: p.y},
+                    {x: p.x - 12*s, y: p.y - 20*s},
+                    {x: p.x, y: p.y - 30*s},
+                    {x: p.x + 18*s, y: p.y - 15*s},
+                    {x: p.x + 12*s, y: p.y}
+                ];
 
                 ctx.beginPath();
-                const r = 20 * s;
-                const segments = 7;
-                // Draw a jagged dome sitting on the ground (p.y)
-                for(let i=0; i<=segments; i++) {
-                    const theta = Math.PI + (i/segments) * Math.PI; // PI (Left) to 2PI (Right)
-                    const noise = 0.8 + 0.4 * Math.sin(seed * 50 + i * 13);
-                    const d = r * noise;
-
-                    const px = p.x + Math.cos(theta) * d;
-                    const py = p.y + Math.sin(theta) * d * 0.7; // Flattened y-axis
-
-                    if(i===0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
-                }
-                ctx.closePath(); // Closes bottom flat
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+                ctx.closePath();
                 ctx.fill();
 
-                // Shadow/Texture detail
+                // Facet Highlights
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.beginPath();
+                ctx.moveTo(pts[1].x, pts[1].y);
+                ctx.lineTo(pts[2].x, pts[2].y);
+                ctx.lineTo(p.x, p.y - 15*s); // Center point
+                ctx.fill();
+
+                // Facet Shadows
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.beginPath();
-                ctx.arc(p.x - 5*s, p.y - 8*s, 5*s, 0, Math.PI*2);
+                ctx.moveTo(pts[3].x, pts[3].y);
+                ctx.lineTo(pts[4].x, pts[4].y);
+                ctx.lineTo(p.x, p.y - 15*s);
                 ctx.fill();
             }
+        }
+        else if (type === 'carnival_tent') {
+             const tentW = 80*s;
+             const tentH = 100*s;
+
+             // Top Flag
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - tentH); ctx.lineTo(p.x + 15*s, p.y - tentH + 5*s); ctx.lineTo(p.x, p.y - tentH + 10*s); ctx.fill();
+
+             // Stripes with 3D shading
+             for(let i=0; i<6; i++) {
+                 const color = (i%2===0) ? '#e53935' : '#f5f5f5';
+                 ctx.fillStyle = color;
+
+                 // Perspective wedge
+                 const x1 = p.x - tentW/2 + (i)*(tentW/6);
+                 const x2 = p.x - tentW/2 + (i+1)*(tentW/6);
+
+                 ctx.beginPath();
+                 ctx.moveTo(x1, p.y);
+                 ctx.lineTo(x2, p.y);
+                 ctx.lineTo(p.x, p.y - tentH);
+                 ctx.fill();
+
+                 // Gradient overlay on sides for rounded look
+                 if (i===0 || i===5) {
+                     ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                     ctx.beginPath(); ctx.moveTo(x1, p.y); ctx.lineTo(x2, p.y); ctx.lineTo(p.x, p.y - tentH); ctx.fill();
+                 }
+             }
+        }
+        else if (type === 'arena_bleachers') {
+             const w = 120*s;
+             const stepH = 15*s;
+             const rows = 6;
+
+             // Side structure
+             ctx.fillStyle = '#444';
+             ctx.beginPath(); ctx.moveTo(p.x - w/2, p.y); ctx.lineTo(p.x - w/2, p.y - rows*stepH); ctx.lineTo(p.x - w/2 + 20*s, p.y); ctx.fill();
+
+             for(let i=0; i<rows; i++) {
+                 // Seat top
+                 ctx.fillStyle = '#333';
+                 ctx.fillRect(p.x - w/2 + i*5*s, p.y - (i+1)*stepH, w - i*10*s, stepH*0.4);
+                 // Seat front (Riser)
+                 ctx.fillStyle = '#222';
+                 ctx.fillRect(p.x - w/2 + i*5*s, p.y - (i+1)*stepH + stepH*0.4, w - i*10*s, stepH*0.6);
+
+                 // Crowd dots (Dense)
+                 if (i > 0) {
+                     const rowW = w - i*10*s;
+                     const startX = p.x - rowW/2 + 5*s;
+                     const dotCount = Math.floor(rowW / (10*s));
+
+                     for(let j=0; j<dotCount; j++) {
+                         if(Math.random() > 0.3) {
+                             ctx.fillStyle = `hsl(${Math.random()*360}, 60%, 50%)`; // Varied clothes
+                             const hHead = 4*s + Math.random()*2*s;
+                             const dx = startX + j*10*s + (Math.random()-0.5)*5*s;
+                             const dy = p.y - (i+1)*stepH - hHead;
+
+                             // Head
+                             ctx.beginPath(); ctx.arc(dx, dy, 3.5*s, 0, Math.PI*2); ctx.fill();
+                             // Body
+                             ctx.fillStyle = `rgba(255,255,255,0.2)`; // Highlight
+                             ctx.fillRect(dx-2*s, dy+3*s, 4*s, 4*s);
+                         }
+                     }
+                 }
+             }
         }
         else if (type === 'tacocat') {
              const s = p.scale;
@@ -3494,39 +3662,8 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.moveTo(p.x - w/2 - 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x - w/2 + w/8, p.y - h - 50*s); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x + w/4 - 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/4 + 20*s, p.y - h); ctx.lineTo(p.x + w/4 + w/8, p.y - h - 50*s); ctx.fill();
              }
-             else if (type === 'carnival_tent') {
-                 const s = p.scale;
-                 const w = 250 * s; const h = 180 * s;
-                 // Base
-                 ctx.fillStyle = '#FFF';
-                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x - w/2, p.y); ctx.fill();
-                 // Stripes
-                 ctx.fillStyle = '#FF0000';
-                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + 20*s, p.y); ctx.lineTo(p.x - 20*s, p.y); ctx.fill();
-                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x + w/2, p.y); ctx.lineTo(p.x + w/2 - 40*s, p.y); ctx.fill();
-                 ctx.beginPath(); ctx.moveTo(p.x, p.y - h); ctx.lineTo(p.x - w/2, p.y); ctx.lineTo(p.x - w/2 + 40*s, p.y); ctx.fill();
-             }
-             else if (type === 'arena_bleachers') {
-                 const s = p.scale;
-                 const w = 400 * s; const h = 250 * s;
-                 // Structure
-                 ctx.fillStyle = '#1a1a1a';
-                 ctx.fillRect(p.x - w/2, p.y - h, w, h);
-                 // Rows
-                 ctx.fillStyle = '#2a2a2a';
-                 for(let i=0; i<6; i++) {
-                     ctx.fillRect(p.x - w/2, p.y - h + i*40*s, w, 20*s);
-                 }
-                 // Crowd Noise (Visual)
-                 ctx.fillStyle = '#555';
-                 for(let i=0; i<100; i++) {
-                     if(Math.random() > 0.5) ctx.fillStyle = '#EEE'; else ctx.fillStyle = '#333';
-                     ctx.fillRect(p.x - w/2 + Math.random()*w, p.y - h + Math.random()*h, 4*s, 6*s);
-                 }
-             }
         }
     }
-
     var ShadowCache = {
         entries: {},
         keys: [],
@@ -8598,6 +8735,196 @@ var BallRenderer = {
         const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
+    function generateFloorTexture(width, height, type, color1, color2) {
+        const cvs = document.createElement('canvas');
+        cvs.width = width;
+        cvs.height = height;
+        const c = cvs.getContext('2d');
+
+        // 1. Base Gradient
+        const grad = c.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        c.fillStyle = grad;
+        c.fillRect(0, 0, width, height);
+
+        const surface = type || 'grass';
+
+        // 2. Texture Generation
+        if (surface === 'wood') {
+            // NBA Arena Wood
+            c.strokeStyle = 'rgba(0,0,0,0.05)';
+            c.lineWidth = 1;
+            const plankW = 40;
+            // Vertical Planks
+            for(let x=0; x<width; x+=plankW) {
+                c.beginPath(); c.moveTo(x, 0); c.lineTo(x, height); c.stroke();
+                // Random Grain
+                for(let y=0; y<height; y+=20) {
+                    if(Math.random() > 0.7) {
+                        c.fillStyle = 'rgba(0,0,0,0.03)';
+                        c.fillRect(x, y, plankW, 2 + Math.random()*10);
+                    }
+                }
+            }
+        }
+        else if (surface === 'checkerboard') {
+            // Carnival
+            const size = 60;
+            c.fillStyle = 'rgba(0,0,0,0.1)';
+            for(let y=0; y<height; y+=size) {
+                for(let x=0; x<width; x+=size) {
+                    if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
+                        c.fillRect(x, y, size, size);
+                    }
+                }
+            }
+        }
+        else if (surface === 'grass' || surface === 'forest') {
+            // Noise + Blades
+            const density = (surface === 'forest') ? 2000 : 3000;
+            for(let i=0; i<density; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const len = 2 + Math.random() * 3;
+                c.strokeStyle = (Math.random() > 0.5) ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                c.lineWidth = 1;
+                c.beginPath(); c.moveTo(x, y); c.lineTo(x, y+len); c.stroke();
+            }
+        }
+        else if (surface === 'dirt' || surface === 'mars') {
+            // Heavy Noise
+            const density = 5000;
+            for(let i=0; i<density; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                c.fillStyle = (Math.random() > 0.5) ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
+                c.fillRect(x, y, 2, 2);
+            }
+            if (surface === 'mars') {
+                // Craters (Flat)
+                for(let i=0; i<10; i++) {
+                    const x = Math.random() * width;
+                    const y = Math.random() * height;
+                    const r = 10 + Math.random() * 30;
+                    c.fillStyle = 'rgba(0,0,0,0.1)';
+                    c.beginPath(); c.ellipse(x, y, r, r*0.3, 0, 0, Math.PI*2); c.fill();
+                }
+            }
+        }
+        else if (surface === 'asphalt') {
+            // High Freq Grit
+            const id = c.getImageData(0,0,width,height);
+            const d = id.data;
+            for(let i=0; i<d.length; i+=4) {
+                if(Math.random() > 0.8) {
+                    const noise = (Math.random() - 0.5) * 20;
+                    d[i] += noise; d[i+1] += noise; d[i+2] += noise;
+                }
+            }
+            c.putImageData(id, 0, 0);
+            // Road markings? Keep simple.
+        }
+        else if (surface === 'cobblestone') {
+            // Vieux Levis
+            c.strokeStyle = 'rgba(0,0,0,0.2)';
+            c.lineWidth = 1;
+            const stoneW = 30;
+            const stoneH = 15;
+            for(let y=0; y<height; y+=stoneH) {
+                const offset = (y/stoneH % 2) * (stoneW/2);
+                for(let x=-stoneW; x<width; x+=stoneW) {
+                    // Draw rounded rect
+                    const sx = x + offset + 2;
+                    const sy = y + 2;
+                    const sw = stoneW - 4;
+                    const sh = stoneH - 4;
+                    c.strokeRect(sx, sy, sw, sh);
+                }
+            }
+        }
+        else if (surface === 'ice') {
+            // Scratch marks
+            c.strokeStyle = 'rgba(255,255,255,0.3)';
+            c.lineWidth = 1;
+            for(let i=0; i<200; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const l = 5 + Math.random() * 15;
+                const a = Math.random() * Math.PI * 2;
+                c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a)*l, y + Math.sin(a)*l); c.stroke();
+            }
+            // Reflection Gradient Overlay
+            const gradRef = c.createLinearGradient(0, 0, width, height);
+            gradRef.addColorStop(0, 'rgba(255,255,255,0.1)');
+            gradRef.addColorStop(0.5, 'rgba(255,255,255,0)');
+            gradRef.addColorStop(1, 'rgba(255,255,255,0.1)');
+            c.fillStyle = gradRef;
+            c.fillRect(0,0,width,height);
+        }
+        else if (surface === 'water') {
+            // Horizontal Waves
+            c.strokeStyle = 'rgba(255,255,255,0.2)';
+            c.lineWidth = 2;
+            for(let i=0; i<height; i+=5) {
+                if (Math.random() > 0.7) continue;
+                const len = 10 + Math.random() * 40;
+                const x = Math.random() * width;
+                c.beginPath(); c.moveTo(x, i); c.lineTo(x+len, i); c.stroke();
+            }
+        }
+        else if (surface === 'moon' || surface === 'nether') {
+            // Craters / Pockmarks
+            const color = (surface === 'moon') ? 'rgba(0,0,0,0.15)' : 'rgba(50,0,0,0.3)';
+            for(let i=0; i<30; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const r = 5 + Math.random() * 20;
+                c.fillStyle = color;
+                c.beginPath(); c.ellipse(x, y, r, r*0.4, 0, 0, Math.PI*2); c.fill();
+            }
+        }
+        else if (surface === 'snow') {
+             // Snow: Soft noise
+             const density = 5000;
+             for(let i=0; i<density; i++) {
+                 const x = Math.random() * width;
+                 const y = Math.random() * height;
+                 c.fillStyle = 'rgba(255,255,255,0.3)';
+                 c.fillRect(x, y, 2, 2);
+             }
+        }
+        else if (surface === 'space_platform') {
+             // Metal Plates
+             c.strokeStyle = 'rgba(255,255,255,0.1)';
+             c.lineWidth = 1;
+             const plateSize = 100;
+             for(let y=0; y<height; y+=plateSize) {
+                 for(let x=0; x<width; x+=plateSize) {
+                     c.strokeRect(x, y, plateSize, plateSize);
+                     // Rivets
+                     c.fillStyle = 'rgba(200,200,200,0.5)';
+                     c.fillRect(x+5, y+5, 4, 4);
+                     c.fillRect(x+plateSize-9, y+5, 4, 4);
+                     c.fillRect(x+5, y+plateSize-9, 4, 4);
+                     c.fillRect(x+plateSize-9, y+plateSize-9, 4, 4);
+                 }
+             }
+        }
+        else if (surface === 'taco') {
+             // Trippy
+             for(let i=0; i<100; i++) {
+                 c.fillStyle = `hsla(${Math.random()*360}, 70%, 50%, 0.2)`;
+                 const r = 10 + Math.random() * 50;
+                 const x = Math.random() * width;
+                 const y = Math.random() * height;
+                 c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.fill();
+             }
+        }
+
+        return cvs;
+    }
+
     // Optimization: Cache mountain layers to offscreen canvas
     var g_mountainCanvas = null;
     function ensureMountainCache() {
@@ -8701,71 +9028,10 @@ var BallRenderer = {
             // Current Floor
             if (playerData.graphics === 'HIGH') {
                  // Bake texture for high graphics
-                 const fCv = document.createElement('canvas');
-                 fCv.width = vpW;
-                 fCv.height = Math.ceil(vpH - horizonY);
-                 const fCtx = fCv.getContext('2d');
+                 const fW = vpW;
+                 const fH = Math.ceil(vpH - horizonY);
 
-                 // Base Gradient
-                 const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
-                 grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
-                 fCtx.fillStyle = grad;
-                 fCtx.fillRect(0, 0, fCv.width, fCv.height);
-
-                 // Procedural Textures based on Type
-                 if (court.type === 'arena') {
-                     // Wood Planks
-                     fCtx.fillStyle = court.ground2;
-                     const plankW = 40;
-                     for(let i=0; i<fCv.width; i+=plankW) {
-                         fCtx.fillRect(i, 0, 2, fCv.height);
-                     }
-                 }
-                 else if (court.type === 'carnival') {
-                     // Carnival Checkerboard
-                     const size = 50;
-                     fCtx.fillStyle = court.ground2;
-                     for(let y=0; y<fCv.height; y+=size) {
-                         for(let x=0; x<fCv.width; x+=size) {
-                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
-                                 fCtx.fillRect(x, y, size, size);
-                             }
-                         }
-                     }
-                 }
-                 else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades removed for clean High graphics
-                 }
-                 else if (court.type === 'castle') {
-                    // Clean asphalt
-                 }
-                 else if (court.type === 'mountain') {
-                     // Ice / Snow Gloss
-                     // Reflections (Fake)
-                     const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
-                     gradRef.addColorStop(0, 'rgba(255,255,255,0)');
-                     gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                     gradRef.addColorStop(1, 'rgba(255,255,255,0)');
-                     fCtx.fillStyle = gradRef;
-                     fCtx.fillRect(0, 0, fCv.width, fCv.height);
-                 }
-                 else if (court.type === 'water') {
-                    // Clean water
-                 }
-                 else if (court.type === 'space') {
-                     // Craters / Dust
-                     fCtx.fillStyle = 'rgba(0,0,0,0.2)';
-                     for(let i=0; i<20; i++) {
-                         const r = 10 + Math.random() * 40;
-                         const cx = Math.random() * fCv.width;
-                         const cy = Math.random() * fCv.height;
-                         fCtx.beginPath();
-                         fCtx.arc(cx, cy, r, 0, Math.PI*2);
-                         fCtx.fill();
-                     }
-                 }
-
-                 bgCache.floorImage = fCv;
+                 bgCache.floorImage = generateFloorTexture(fW, fH, court.surface, court.ground1, court.ground2);
             } else {
                  const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
                  currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);

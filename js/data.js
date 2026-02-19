@@ -171,6 +171,7 @@
         arena: {
             name: "NBA ARENA",
             type: 'arena',
+            surface: 'wood',
             ground1: '#E0C39C', // Wood Light
             ground2: '#C4A484', // Wood Dark
             sky1: '#050510',
@@ -179,6 +180,7 @@
         carnival: {
             name: "CARNIVAL",
             type: 'carnival',
+            surface: 'checkerboard',
             ground1: '#FF4500', // Red
             ground2: '#FFD700', // Yellow
             sky1: '#000080',
@@ -187,19 +189,19 @@
     };
 
     var COURT_ZONES = [
-        { limit: 50, name: "COUR ARRIÈRE", type: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
-        { limit: 100, name: "PARC DE LA PAIX", type: 'tree', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
-        { limit: 200, name: "VIEUX-LÉVIS", type: 'castle', ground1: '#8B0000', ground2: '#A52A2A', sky1: '#4682B4', sky2: '#87CEEB' },
-        { limit: 350, name: "TERRAIN DE RUE", type: 'castle', ground1: '#696969', ground2: '#808080', sky1: '#4682B4', sky2: '#87CEEB' },
-        { limit: 500, name: "FORÊT BORÉALE", type: 'tree', ground1: '#006400', ground2: '#2F4F4F', sky1: '#2E8B57', sky2: '#8FBC8F' },
-        { limit: 750, name: "LA PATINOIRE", type: 'mountain', ground1: '#E0FFFF', ground2: '#FFFFFF', sky1: '#87CEEB', sky2: '#F0F8FF' },
-        { limit: 1000, name: "FLEUVE ST-LAURENT", type: 'water', ground1: '#00008B', ground2: '#1E90FF', sky1: '#191970', sky2: '#4169E1' },
-        { limit: 1500, name: "MONT-SAINTE-ANNE", type: 'mountain', ground1: '#F0FFFF', ground2: '#E0FFFF', sky1: '#87CEEB', sky2: '#00BFFF' },
-        { limit: 2500, name: "HAUTE ATMOSPHÈRE", type: 'space', ground1: '#483D8B', ground2: '#6A5ACD', sky1: '#000080', sky2: '#000000' },
-        { limit: 4000, name: "BASE LUNAIRE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
-        { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
-        { limit: 8000, name: "LE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
-        { limit: 9999999, name: "DIMENSION TACO", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
+        { limit: 50, name: "COUR ARRIÈRE", type: 'grass', surface: 'grass', ground1: '#228B22', ground2: '#32CD32', sky1: '#87CEEB', sky2: '#FFF' },
+        { limit: 100, name: "PARC DE LA PAIX", type: 'tree', surface: 'dirt', ground1: '#8B4513', ground2: '#D2691E', sky1: '#87CEEB', sky2: '#E0FFFF' },
+        { limit: 200, name: "VIEUX-LÉVIS", type: 'castle', surface: 'cobblestone', ground1: '#8B0000', ground2: '#A52A2A', sky1: '#4682B4', sky2: '#87CEEB' },
+        { limit: 350, name: "TERRAIN DE RUE", type: 'castle', surface: 'asphalt', ground1: '#696969', ground2: '#808080', sky1: '#4682B4', sky2: '#87CEEB' },
+        { limit: 500, name: "FORÊT BORÉALE", type: 'tree', surface: 'forest', ground1: '#006400', ground2: '#2F4F4F', sky1: '#2E8B57', sky2: '#8FBC8F' },
+        { limit: 750, name: "LA PATINOIRE", type: 'mountain', surface: 'ice', ground1: '#E0FFFF', ground2: '#FFFFFF', sky1: '#87CEEB', sky2: '#F0F8FF' },
+        { limit: 1000, name: "FLEUVE ST-LAURENT", type: 'water', surface: 'water', ground1: '#00008B', ground2: '#1E90FF', sky1: '#191970', sky2: '#4169E1' },
+        { limit: 1500, name: "MONT-SAINTE-ANNE", type: 'mountain', surface: 'snow', ground1: '#F0FFFF', ground2: '#E0FFFF', sky1: '#87CEEB', sky2: '#00BFFF' },
+        { limit: 2500, name: "HAUTE ATMOSPHÈRE", type: 'space', surface: 'space_platform', ground1: '#483D8B', ground2: '#6A5ACD', sky1: '#000080', sky2: '#000000' },
+        { limit: 4000, name: "BASE LUNAIRE", type: 'space', surface: 'moon', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
+        { limit: 6000, name: "MARS", type: 'space', surface: 'mars', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
+        { limit: 8000, name: "LE NETHER", type: 'space', surface: 'nether', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
+        { limit: 9999999, name: "DIMENSION TACO", type: 'grass', surface: 'taco', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
     ];
 
     var SCALE_OBJECTS = [
