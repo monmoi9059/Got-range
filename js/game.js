@@ -581,16 +581,16 @@
                 const r = p.life / p.maxLife;
                 if (p.customHue !== undefined) {
                     // Dynamic Streak Fire: White -> Bright -> Base -> Dark
-                    if (r > 0.8) p.color = `hsla(${p.customHue}, 100%, 95%, ${p.alpha})`;
-                    else if (r > 0.5) p.color = `hsla(${p.customHue}, 100%, 75%, ${p.alpha})`;
-                    else if (r > 0.2) p.color = `hsla(${p.customHue}, 100%, 50%, ${p.alpha})`;
-                    else p.color = `hsla(${p.customHue}, 30%, 30%, ${p.alpha})`;
+                    if (r > 0.8) p.baseColor = `hsl(${p.customHue}, 100%, 95%)`;
+                    else if (r > 0.5) p.baseColor = `hsl(${p.customHue}, 100%, 75%)`;
+                    else if (r > 0.2) p.baseColor = `hsl(${p.customHue}, 100%, 50%)`;
+                    else p.baseColor = `hsl(${p.customHue}, 30%, 30%)`;
                 } else {
                     // Classic Fire: White -> Yellow -> Orange -> Dark Grey
-                    if (r > 0.8) p.color = `rgba(255, 255, 255, ${p.alpha})`;
-                    else if (r > 0.5) p.color = `rgba(255, 255, 0, ${p.alpha})`;
-                    else if (r > 0.2) p.color = `rgba(255, 69, 0, ${p.alpha})`;
-                    else p.color = `rgba(50, 50, 50, ${p.alpha})`;
+                    if (r > 0.8) p.baseColor = '#FFFFFF';
+                    else if (r > 0.5) p.baseColor = '#FFFF00';
+                    else if (r > 0.2) p.baseColor = '#FF4500';
+                    else p.baseColor = '#323232';
                 }
             }
 

@@ -1628,8 +1628,16 @@ var BallRenderer = {
 
     function drawSmoke(p, alpha, color) {
         const s = p.scale;
-        ctx.fillStyle = color || `rgba(220, 220, 220, ${alpha * 0.6})`;
+        const oldAlpha = ctx.globalAlpha;
+        if (color) {
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+        } else {
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.fillStyle = '#DCDCDC';
+        }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
     }
 
     // --- FUR & ANATOMY HELPERS ---
@@ -8470,26 +8478,54 @@ var BallRenderer = {
         const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
-    function drawMountainLayer(layer, horizonY, dx, scale) {
-        if (playerData.graphics === 'HIGH') {
-            if (!layer.gradient) {
-                const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
+    // Optimization: Cache mountain layers to offscreen canvas
+    var g_mountainCanvas = null;
+    function ensureMountainCache() {
+        if (g_mountainCanvas) return g_mountainCanvas;
+
+        let maxWidth = 2200; // From js/main.js loop limit
+
+        g_mountainCanvas = [];
+
+        mountainLayers.forEach(layer => {
+            const c = document.createElement('canvas');
+            c.width = maxWidth;
+            c.height = 400; // Fixed height buffer
+            const ctx2 = c.getContext('2d');
+
+            // Normalized height baseline for cache
+            const hY = 350;
+
+            if (playerData.graphics === 'HIGH') {
+                const grad = ctx2.createLinearGradient(0, hY - 150, 0, hY);
                 grad.addColorStop(0, layer.color);
                 grad.addColorStop(1, '#1a1a1a');
-                layer.gradient = grad;
+                ctx2.fillStyle = grad;
+            } else {
+                ctx2.fillStyle = layer.color;
             }
-            ctx.fillStyle = layer.gradient;
-        } else {
-            ctx.fillStyle = layer.color;
-        }
 
-        if (!scale) scale = 1.0;
+            ctx2.beginPath();
+            ctx2.moveTo(layer.points[0].x, hY);
+            layer.points.forEach(p => { ctx2.lineTo(p.x, hY - p.y); });
+            ctx2.lineTo(layer.points[layer.points.length-1].x, hY);
+            ctx2.fill();
 
-        ctx.beginPath();
-        ctx.moveTo((layer.points[0].x * scale) + dx, horizonY);
-        layer.points.forEach(p => { ctx.lineTo((p.x * scale) + dx, horizonY - (p.y * scale)); });
-        ctx.lineTo((layer.points[layer.points.length-1].x * scale) + dx, horizonY);
-        ctx.fill();
+            g_mountainCanvas.push({ cvs: c, w: maxWidth, hY: hY });
+        });
+
+        return g_mountainCanvas;
+    }
+
+    function drawMountainLayerCached(layerIndex, horizonY, dx, scale) {
+        if (!g_mountainCanvas) ensureMountainCache();
+        const cache = g_mountainCanvas[layerIndex];
+        if (!cache) return;
+
+        ctx.drawImage(cache.cvs,
+            0, 0, cache.w, 400,
+            dx, horizonY - (cache.hY * scale), cache.w * scale, 400 * scale
+        );
     }
 
     function drawBackground(vpX, vpY, vpW, vpH) {
@@ -8523,6 +8559,9 @@ var BallRenderer = {
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+
+            // Invalidate Mountain Cache on level change (just in case style changes, though currently static)
+            g_mountainCanvas = null;
 
             let court;
             if (currentGameMode === 'CONTEST') {
@@ -8612,24 +8651,6 @@ var BallRenderer = {
                  currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
                  bgCache.currentFloor = currentZoneGrad;
             }
-
-            // Past Floors (Only for CLASSIC)
-            if (currentGameMode === 'CLASSIC') {
-                const currentDist = 10 + (distanceLevel * 5);
-                for (let i = 0; i < COURT_ZONES.length; i++) {
-                    const z = COURT_ZONES[i];
-                    let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-                    let zEnd = z.limit;
-                    if (zStart >= currentDist) break;
-                    let drawEnd = Math.min(zEnd, currentDist);
-                    const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
-                    if ((yBottom - yTop) > 0.5) {
-                        const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                        grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                        bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
-                    }
-                }
-            }
         }
 
         // DRAW FROM CACHE
@@ -8663,9 +8684,12 @@ var BallRenderer = {
             }
 
             // BACKGROUND MOUNTAINS
+            // Optimization: Use Offscreen Canvas Cache
+            if (!g_mountainCanvas) ensureMountainCache(horizonY);
+
             const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
 
-            mountainLayers.forEach(layer => {
+            mountainLayers.forEach((layer, idx) => {
                  const shift = (camX + camY) * layer.speed;
                  const loopWidth = 2000 * mountainScale;
                  const offset = shift % loopWidth;
@@ -8674,7 +8698,7 @@ var BallRenderer = {
 
                  let currentX = startX;
                  while(currentX < vpW) {
-                     drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                     drawMountainLayerCached(idx, horizonY, currentX, mountainScale);
                      currentX += loopWidth;
                  }
             });
@@ -8711,6 +8735,7 @@ var BallRenderer = {
 
         if (currentGameMode === 'CLASSIC') {
             const currentDist = 10 + (distanceLevel * 5);
+            // Optimization: Reuse Gradient Objects
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
                 let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -8733,10 +8758,27 @@ var BallRenderer = {
                 const yBottom = pEnd ? pEnd.y : window.LOGICAL_HEIGHT;
 
                 if ((yBottom - yTop) > 0.5) {
-                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, yTop, vpW, yBottom - yTop);
+                    // Optimized Gradient Rendering:
+                    // Use normalized gradient (0 to 1) and transform context
+                    if (!z.cachedGradient) {
+                        // Create a vertical gradient from 0 to 1
+                        const grad = ctx.createLinearGradient(0, 0, 0, 1);
+                        grad.addColorStop(0, z.ground1);
+                        grad.addColorStop(1, z.ground2);
+                        z.cachedGradient = grad;
+                    }
+
+                    ctx.save();
+                    // Translate to Top Y
+                    ctx.translate(0, yTop);
+                    // Scale Height to fit (yBottom - yTop)
+                    ctx.scale(1, yBottom - yTop);
+
+                    ctx.fillStyle = z.cachedGradient;
+                    // Draw rect from 0,0 to width,1 (which scales to height)
+                    ctx.fillRect(0, 0, vpW, 1);
+
+                    ctx.restore();
                 }
             }
         }
