@@ -957,7 +957,12 @@
         <!-- TAB: EQUIPMENT (Ball/Shooting) -->
         <div id="tab-equipment" class="shop-section">
             <div class="skin-viewer" style="margin-top:0;">
-                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">BALLONS</h3>
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">CHAT DU PANIER</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeCatSkin(-1)">&lt;</button><span id="catName" class="selector-label">Classique</span><button class="btn" onclick="changeCatSkin(1)">&gt;</button></div>
+                <div id="catStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipCat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatSkin()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
                 <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
                 <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
                 <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
