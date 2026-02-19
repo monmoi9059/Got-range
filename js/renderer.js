@@ -6692,11 +6692,32 @@ var BallRenderer = {
             const boost = 0.5 * 0.10 * 60;
             const adjustedMaxVz = baseMaxVz + boost;
 
-            const curVz = getCurrentVz();
+            // Interpolate Vz logic
+            let interpVz = 0;
+            const alpha = p.alpha !== undefined ? p.alpha : 1.0;
+
+            if (isGroundedShot) {
+                // Ground Shot: 8.0 - (timer * 0.5)
+                const lastT = (typeof lastGroundShotTimer !== 'undefined') ? lastGroundShotTimer : groundShotTimer;
+                const iTimer = lerp(lastT, groundShotTimer, alpha);
+                interpVz = 8.0 - (iTimer * 0.5);
+            } else if (state === 'PRE_JUMP') {
+                // Pre-Jump: base + (0.5 * timer * 60)
+                // Note: preJumpTimer decreases from 0.10
+                const lastT = (typeof lastPreJumpTimer !== 'undefined') ? lastPreJumpTimer : preJumpTimer;
+                const iTimer = lerp(lastT, preJumpTimer, alpha);
+                const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
+                interpVz = jv + (0.5 * iTimer * 60);
+            } else {
+                // Jumping: player3D.vz
+                const lastV = (player3D.lastVz !== undefined) ? player3D.lastVz : player3D.vz;
+                interpVz = lerp(lastV, player3D.vz, alpha);
+            }
+
             const targetVz = getReleaseTargetVz(baseMaxVz);
             const dist = adjustedMaxVz - targetVz;
 
-            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
+            let progress = 1.0 - (Math.abs(interpVz - targetVz) / dist);
             progress = Math.max(0, Math.min(1, progress));
 
             const groundY = p.y + (player3D.z * s);

@@ -290,7 +290,10 @@ let lastDisplayedContestTime = -1;
     let resetStage = 0;
     let isGroundedShot = false;
     let groundShotTimer = 0;
+    let lastGroundShotTimer = 0; // History
     let airbudJumpTime = 0;
+    let preJumpTimer = 0; // Explicit global
+    let lastPreJumpTimer = 0; // History
 
     // Physique
     const GRAVITY = 0.5;

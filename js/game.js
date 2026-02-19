@@ -273,6 +273,7 @@
         // Pre-Jump (Gather/Crouch) for all characters
         state = 'PRE_JUMP';
         preJumpTimer = 0.10; // ~6 frames
+        lastPreJumpTimer = preJumpTimer;
         feedback = "";
 
         const style = getCurrentStyle();
@@ -657,6 +658,14 @@
         player3D.lastX = player3D.x;
         player3D.lastY = player3D.y;
         player3D.lastZ = player3D.z;
+        player3D.lastVz = player3D.vz;
+
+        // Save Timers
+        if (typeof lastGroundShotTimer === 'undefined') lastGroundShotTimer = groundShotTimer;
+        lastGroundShotTimer = groundShotTimer;
+
+        if (typeof lastPreJumpTimer === 'undefined') lastPreJumpTimer = preJumpTimer;
+        lastPreJumpTimer = preJumpTimer;
 
         activeBalls.forEach(b => {
             if (b.lastX === undefined) { b.lastX = b.x; b.lastY = b.y; b.lastZ = b.z; b.lastRotX = b.rotationX; }
