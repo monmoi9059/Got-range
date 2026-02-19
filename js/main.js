@@ -5,6 +5,16 @@
     var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
 
+    // Cat Logic State
+    var g_catState = {
+        state: 'IDLE', // IDLE, MOVING, EATING, RETURNING
+        x: 733, y: 160, // Base position (Hoop + 10)
+        targetX: 0, targetY: 0,
+        targetTacoIndex: -1,
+        eatTimer: 0,
+        animFrame: 0
+    };
+
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),
     // but we might want to center the "court path" a bit more.
@@ -12,8 +22,12 @@
     const PIXELS_PER_FOOT = 4.2426;
 
     var decors = [];
-    // Cat under the hoop
-    decors.push({ x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 });
+    // Cat under the hoop (Moved dynamic cat logic to renderer, placeholder removed or kept for initial scan)
+    // We will render the cat manually in renderer.js using g_catState, so we don't push it to decors here anymore
+    // or we push it but update its position in the render loop.
+    // Let's keep it in decors for consistent depth sorting, but we'll update its x/y in update loop.
+    var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
+    decors.push(catDecor);
 
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
@@ -74,8 +88,7 @@
         }
     });
 
-    // TACO CAT: One per zone guaranteed - REMOVED per user request to only have one under the basket
-    /*
+    // TACO CAT: One per zone guaranteed
     for(let i=0; i<COURT_ZONES.length; i++) {
         const z = COURT_ZONES[i];
         const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -100,7 +113,6 @@
 
         decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
     }
-    */
 
     // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
     decors.sort((a, b) => a.dist - b.dist);
@@ -276,6 +288,7 @@
     let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
+    let viewingCatSkinIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -305,6 +318,7 @@ let lastDisplayedContestTime = -1;
     var player3D = { x: 433, y: 300, z: 0, vz: 0 };
     var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
     var activeBalls = [];
+    var tacosOnGround = []; // New array for tacos
     var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
     var particles = [];
 
@@ -312,6 +326,7 @@ let lastDisplayedContestTime = -1;
     if (DEBUG) {
         window.player3D = player3D;
         window.state = state;
+        window.tacosOnGround = tacosOnGround;
     }
 
     function createDefaultData() {
@@ -325,6 +340,7 @@ let lastDisplayedContestTime = -1;
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -387,6 +403,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
     if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
@@ -696,6 +714,7 @@ let lastDisplayedContestTime = -1;
             feedbackTimer: 0,
             player3D: { x: 433, y: 300, z: 0, vz: 0 },
             activeBalls: [],
+            tacosOnGround: [],
             particles: [],
             currentStreak: 0,
             consecutiveMisses: 0,
@@ -738,6 +757,8 @@ let lastDisplayedContestTime = -1;
         // But the global 'player3D' variable holds the reference.
         ctxObj.player3D = player3D;
         ctxObj.activeBalls = activeBalls;
+        ctxObj.tacosOnGround = tacosOnGround;
+        ctxObj.catState = g_catState; // Save Cat State
         ctxObj.particles = particles;
         ctxObj.currentStreak = currentStreak;
         ctxObj.consecutiveMisses = consecutiveMisses;
@@ -779,6 +800,8 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = ctxObj.feedbackTimer;
         player3D = ctxObj.player3D;
         activeBalls = ctxObj.activeBalls;
+        tacosOnGround = ctxObj.tacosOnGround || [];
+        if(ctxObj.catState) g_catState = ctxObj.catState; // Load Cat State
         particles = ctxObj.particles;
         currentStreak = ctxObj.currentStreak;
         consecutiveMisses = ctxObj.consecutiveMisses;

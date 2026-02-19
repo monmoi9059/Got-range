@@ -200,6 +200,7 @@ RenderEngine.Queue = {
         for (let i = 0; i < this.list.length; i++) {
             const obj = this.list[i];
             if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
+            else if (obj.type === 'taco') drawTaco(obj);
             else if (obj.type === 'hoop') drawHoop(obj);
             else if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
             else if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
@@ -3151,6 +3152,37 @@ var BallRenderer = {
         ctx.stroke();
     }
 
+    function drawTaco(p) {
+        const s = p.scale;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+
+        // Shell
+        ctx.fillStyle = '#DAA520'; // Goldenrod
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 * s, 0, Math.PI, true); // Semi-circle up
+        ctx.fill();
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+
+        // Fillings (visible at top/opening)
+        // Meat
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath(); ctx.ellipse(0, -5*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+        // Lettuce
+        ctx.fillStyle = '#32CD32';
+        ctx.beginPath(); ctx.arc(-5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        // Tomato
+        ctx.fillStyle = '#FF4500';
+        ctx.beginPath(); ctx.arc(-2*s, -6*s, 3*s, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
+    }
+
     function drawDecor(p, type, variant, seed) {
         if (!p) return;
         const s = p.scale;
@@ -3417,24 +3449,61 @@ var BallRenderer = {
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
              let bellyColor = '#F5F5DC'; // Cream
+             let earColor = null;
 
-             if (makes >= 500) {
-                 furColor = '#A9A9A9'; // Grey (Old)
-             } else if (makes >= 200) {
-                 furColor = '#8B4513'; // Darker Brown (Adult)
-             } else if (makes >= 50) {
-                 furColor = '#D2691E'; // Orange (Adolescent)
+             let customSkin = null;
+             if (playerData.currentCatSkin && playerData.currentCatSkin !== 'cat_default') {
+                 if (typeof CAT_SKINS_DB !== 'undefined') {
+                     customSkin = CAT_SKINS_DB.find(s => s.id === playerData.currentCatSkin);
+                 }
+             }
+
+             if (customSkin) {
+                 if (customSkin.furColor) furColor = customSkin.furColor;
+                 if (customSkin.bellyColor) bellyColor = customSkin.bellyColor;
+                 if (customSkin.earColor) earColor = customSkin.earColor;
+             } else {
+                 // Default Dynamic Logic
+                 if (makes >= 500) {
+                     furColor = '#A9A9A9'; // Grey (Old)
+                 } else if (makes >= 200) {
+                     furColor = '#8B4513'; // Darker Brown (Adult)
+                 } else if (makes >= 50) {
+                     furColor = '#D2691E'; // Orange (Adolescent)
+                 }
              }
 
              const s = p.scale * ageScale;
-             const isActive = g_catEatTimer > 0;
-             const animProgress = isActive ? Math.sin((g_catEatTimer/20)*Math.PI) : 0;
 
-             // Animation Mode: Pass (Contest) vs Eat (Others)
-             const isPassing = (currentGameMode === 'CONTEST' && isActive);
-             const isEating = (!isPassing && isActive);
+             let isEating = false;
+             let isPassing = false;
+             let animProgress = 0;
+             let bounce = 0;
 
-             const mouthOpen = isEating ? animProgress * 15 * s : 0;
+             // Dynamic State Logic
+             if (typeof g_catState !== 'undefined') {
+                 if (g_catState.state === 'EATING') {
+                     isEating = true;
+                     animProgress = Math.abs(Math.sin(Date.now() * 0.02)); // Slow chew
+                     bounce = animProgress * 3 * s;
+                 } else if (g_catState.state === 'MOVING' || g_catState.state === 'RETURNING') {
+                     // Walking bounce
+                     bounce = Math.abs(Math.sin(Date.now() * 0.015)) * 8 * s;
+                 } else {
+                     // Idle
+                     bounce = Math.sin(Date.now() * 0.002) * 2 * s;
+                 }
+             } else {
+                 const isActive = (typeof g_catEatTimer !== 'undefined') && g_catEatTimer > 0;
+                 if (isActive) {
+                     animProgress = Math.sin((g_catEatTimer/20)*Math.PI);
+                     isPassing = (currentGameMode === 'CONTEST');
+                     isEating = !isPassing;
+                 }
+             }
+
+             const mouthOpen = isEating ? animProgress * 10 * s : 0;
+             p.y += bounce;
 
              // Body (Sitting)
              ctx.fillStyle = furColor;
@@ -3450,7 +3519,7 @@ var BallRenderer = {
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
              // Ears
-             ctx.fillStyle = furColor;
+             ctx.fillStyle = earColor || furColor;
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
 
@@ -9099,10 +9168,13 @@ var BallRenderer = {
         // We assume a max visible depth of ~15000 pixels.
 
         // Optimization: Inline decor processing to avoid intermediate array allocation
-        const processDecor = (d) => {
+        const processDecor = (d, overrideX, overrideY) => {
+            const dX = (overrideX !== undefined) ? overrideX : d.x;
+            const dY = (overrideY !== undefined) ? overrideY : d.y;
+
             // Fast Z-Check
-            const dx = d.x - camX;
-            const dy = d.y - camY;
+            const dx = dX - camX;
+            const dy = dY - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 550 in project()
@@ -9130,7 +9202,12 @@ var BallRenderer = {
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
                 if (d.dist > cullDist) break;
-                processDecor(d);
+
+                if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
+                    processDecor(d, g_catState.x, g_catState.y);
+                } else {
+                    processDecor(d);
+                }
             }
         } else if (currentGameMode === 'TIME_ATTACK') {
             // Carnival: Circle of tents around hoop
@@ -9148,7 +9225,10 @@ var BallRenderer = {
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) processDecor(cat);
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    else processDecor(cat);
+                }
             }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
@@ -9166,8 +9246,22 @@ var BallRenderer = {
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) processDecor(cat);
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    else processDecor(cat);
+                }
             }
+        }
+
+        // Draw Tacos on Ground
+        if (typeof tacosOnGround !== 'undefined') {
+            tacosOnGround.forEach(t => {
+                 const proj = project(t.x, t.y, 0); // Ground level
+                 if (proj) {
+                     const item = RenderEngine.Queue.add('taco', proj.depth, proj.x, proj.y, proj.scale);
+                     item.rotation = t.rotation;
+                 }
+            });
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
