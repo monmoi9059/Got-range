@@ -273,6 +273,7 @@
         // Pre-Jump (Gather/Crouch) for all characters
         state = 'PRE_JUMP';
         preJumpTimer = 0.10; // ~6 frames
+        lastPreJumpTimer = preJumpTimer;
         feedback = "";
 
         const style = getCurrentStyle();
@@ -497,6 +498,11 @@
     }
 
     function updatePlayerAnimation(dt) {
+        // Save previous state for interpolation
+        if (typeof g_animStateLast !== 'undefined') {
+            g_animStateLast = Object.assign({}, g_animState);
+        }
+
         // dt is 1.0 at 60FPS.
         // Update Breathing
         g_breathingPhase += dt * 0.03; // ~3.5s per breath
@@ -590,7 +596,7 @@
 
         // SMOOTHING (Interpolate State -> Target)
         // Using a fast lerp factor for responsiveness but smooth enough to kill snap
-        const smoothFactor = Math.min(1.0, 0.25 * dt);
+        const smoothFactor = Math.min(1.0, 0.20 * dt);
 
         g_animState.la = lerpAngle(g_animState.la, g_animTarget.la, smoothFactor);
         g_animState.ra = lerpAngle(g_animState.ra, g_animTarget.ra, smoothFactor);
@@ -647,6 +653,28 @@
     }
 
     function update(dt) {
+        // Interpolation History
+        if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
+        player3D.lastX = player3D.x;
+        player3D.lastY = player3D.y;
+        player3D.lastZ = player3D.z;
+        player3D.lastVz = player3D.vz;
+
+        // Save Timers
+        if (typeof lastGroundShotTimer === 'undefined') lastGroundShotTimer = groundShotTimer;
+        lastGroundShotTimer = groundShotTimer;
+
+        if (typeof lastPreJumpTimer === 'undefined') lastPreJumpTimer = preJumpTimer;
+        lastPreJumpTimer = preJumpTimer;
+
+        activeBalls.forEach(b => {
+            if (b.lastX === undefined) { b.lastX = b.x; b.lastY = b.y; b.lastZ = b.z; b.lastRotX = b.rotationX; }
+            b.lastX = b.x;
+            b.lastY = b.y;
+            b.lastZ = b.z;
+            b.lastRotX = b.rotationX;
+        });
+
         if (resetTimer > 0) {
             resetTimer -= dt;
             if (resetTimer <= 0) {
@@ -2269,7 +2297,7 @@
         ctx.restore();
     }
 
-    function draw() {
+    function draw(alpha) {
         if (state === 'STARTUP') {
             drawStartupScene();
             return;
@@ -2280,9 +2308,6 @@
             const h = canvas.height;
             const halfW = w / 2;
 
-            // Clear full canvas first? drawBackground fills rect so maybe not needed, but safe.
-            // Actually drawBackground fills rect defined by args.
-
             // Draw P1 (Left)
             loadContext(game1);
             ctx.save();
@@ -2291,7 +2316,7 @@
             ctx.clip();
             // No translation needed for left side
             ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT, alpha);
             ctx.restore();
 
             // Draw P2 (Right)
@@ -2302,7 +2327,7 @@
             ctx.clip();
             ctx.translate(halfW, 0); // Move origin to middle
             ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT); // Draw as if at 0,0 with half width
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT, alpha);
             ctx.restore();
 
             // Divider Line
@@ -2325,7 +2350,7 @@
             loadContext(game1);
             ctx.save();
             ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
-            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT, alpha);
             ctx.restore();
             drawBroadcastLowerThird();
         }
@@ -2381,7 +2406,8 @@
             accumulator -= FIXED_STEP;
         }
 
-        draw();
+        const alpha = accumulator / FIXED_STEP;
+        draw(alpha);
     }
 
 

@@ -2,6 +2,7 @@
     // Global Animation State
     var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
 
     // Center of screen is 1066/2 = 533.
@@ -287,7 +288,10 @@ let lastDisplayedContestTime = -1;
     let resetStage = 0;
     let isGroundedShot = false;
     let groundShotTimer = 0;
+    let lastGroundShotTimer = 0; // History
     let airbudJumpTime = 0;
+    // preJumpTimer is defined in data.js
+    let lastPreJumpTimer = 0; // History
 
     // Physique
     const GRAVITY = 0.5;
