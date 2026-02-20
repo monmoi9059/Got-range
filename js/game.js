@@ -708,8 +708,10 @@
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
-                cat.eatTimer = 180; // 3 seconds eat time
-                g_catEatTimer = 180; // Sync render animation
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
             } else {
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
@@ -1530,6 +1532,7 @@
             playerData.purchasedStats.luck = 10; playerData.stats.luck = 10;
             playerData.purchasedStats.moonwalk = 5; playerData.stats.moonwalk = 5;
             playerData.purchasedStats.extraLives = 5; playerData.stats.extraLives = 5;
+            playerData.purchasedStats.catNip = 5; playerData.stats.catNip = 5;
 
             checkAchievements('shop');
             saveData();
@@ -1606,6 +1609,7 @@
         if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
+        if (statName === 'catNip') return Math.floor(250 * Math.pow(lvl + 1, 2));
         return 999;
     }
     window.buyUpgrade = function(stat) {
@@ -2259,6 +2263,7 @@
         renderUpgradeControl('luck', 'ctrl_luck');
         renderUpgradeControl('moonwalk', 'ctrl_moonwalk');
         renderUpgradeControl('extraLives', 'ctrl_extraLives');
+        renderUpgradeControl('catNip', 'ctrl_catNip');
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];

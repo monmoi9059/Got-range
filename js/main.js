@@ -333,8 +333,8 @@ let lastDisplayedContestTime = -1;
     function createDefaultData() {
         return {
             tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
+            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
             dailyChallenges: [], weeklyChallenges: [],
             unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
@@ -428,9 +428,11 @@ let lastDisplayedContestTime = -1;
             aim: playerData.stats.aim || 1,
             luck: playerData.stats.luck || 1,
             moonwalk: playerData.stats.moonwalk || 1,
-            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0
+            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0,
+            catNip: 0
         };
     }
+    if (typeof playerData.stats.catNip === 'undefined') { playerData.stats.catNip = 0; playerData.purchasedStats.catNip = 0; }
 
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
