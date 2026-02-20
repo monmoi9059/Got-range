@@ -207,6 +207,7 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
@@ -1668,6 +1669,23 @@ var BallRenderer = {
             ctx.fillStyle = '#DCDCDC';
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
+    }
+
+    function drawFloatingText(p) {
+        const s = p.scale;
+        const oldAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = p.alpha;
+
+        ctx.font = `bold ${24 * s}px 'Russo One', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = p.color || '#FFD700';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3 * s;
+
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillText(p.text, p.x, p.y);
+
         ctx.globalAlpha = oldAlpha;
     }
 
@@ -9391,14 +9409,21 @@ var BallRenderer = {
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
              if(proj) {
-                 // Force streak fire particles behind the player (depth > 550)
-                 let depth = proj.depth;
-                 if (p.isFireParticle && p.customHue !== undefined) {
-                     depth = Math.max(depth, 580);
+                 if (p.type === 'text') {
+                     const item = RenderEngine.Queue.add('text', proj.depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
+                     item.text = p.text;
+                 } else {
+                     // Force streak fire particles behind the player (depth > 550)
+                     let depth = proj.depth;
+                     if (p.isFireParticle && p.customHue !== undefined) {
+                         depth = Math.max(depth, 580);
+                     }
+                     const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
                  }
-                 const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
-                 item.alpha = p.alpha;
-                 item.color = p.color;
              }
         });
 

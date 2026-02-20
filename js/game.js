@@ -723,18 +723,24 @@
             if (cat.eatTimer <= 0) {
                 // Done eating, remove taco
                 if (cat.targetTacoIndex !== -1 && tacosOnGround[cat.targetTacoIndex]) {
-                    // Remove specific taco. Note: Index might have shifted if other tacos removed?
-                    // Better to find by reference or just filter out the one at cat pos
-                    // Actually, since we only remove here, indices shift.
-                    // Let's filter out the one we claimed.
-                    // Or simpler: We claimed it with `beingEaten`. Just filter that one out now.
-                    // But wait, if multiple cats (split screen)? They share tacosOnGround.
-                    // We need to be careful.
-                    // Let's find the taco at cat's feet.
                      const tacoIdx = tacosOnGround.findIndex(t => Math.abs(t.x - cat.x) < 5 && Math.abs(t.y - cat.y) < 5);
                      if (tacoIdx !== -1) {
                          tacosOnGround.splice(tacoIdx, 1);
-                         // AudioSystem.playCrunch(); // Optional
+
+                         // Reward Logic
+                         const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
+                         const reward = Math.ceil(10 * playerData.difficulty * multiplier);
+                         playerData.tacos += reward;
+                         checkDailyProgress('earn_tacos', reward);
+
+                         // Floating Text Particle
+                         particles.push({
+                             x: cat.x, y: cat.y, z: 20,
+                             vx: 0, vy: 0, vz: 1.5,
+                             life: 60, maxLife: 60,
+                             scale: 1.0, alpha: 1.0,
+                             type: 'text', text: '+' + reward, color: '#FFD700'
+                         });
                      }
                 }
                 cat.targetTacoIndex = -1;
