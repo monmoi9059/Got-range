@@ -6612,36 +6612,17 @@ var BallRenderer = {
             }
             else {
                 // STANDARD (Hourglass/Trapezoid) + Anatomical refinement
-                if (options.animal === 'human' && !options.isJersey && playerData.graphics === 'HIGH') {
-                    // Detailed V-Taper for shirtless humans
-                    const armpitY = shoulderY + h * 0.15;
-                    const latY = shoulderY + h * 0.35;
-                    const armpitW = sW * 0.9;
-                    const latW = sW * 0.75; // V-taper
+                // Detailed V-Taper removed per request (caused unwanted 'ribs' artifact)
 
-                    points = [
-                        {x: cx - sW/2, y: shoulderY}, // TL
-                        {x: cx + sW/2, y: shoulderY}, // TR
-                        {x: cx + armpitW/2, y: armpitY}, // Armpit R
-                        {x: cx + latW/2, y: latY}, // Lat R
-                        {x: cx + wW/2, y: waistY}, // Waist R
-                        {x: cx + hW/2, y: hipY}, // Hip R
-                        {x: cx - hW/2, y: hipY}, // Hip L
-                        {x: cx - wW/2, y: waistY}, // Waist L
-                        {x: cx - latW/2, y: latY}, // Lat L
-                        {x: cx - armpitW/2, y: armpitY} // Armpit L
-                    ];
-                } else {
-                    // Simple shape for clothes/low graphics
-                    points = [
-                        {x: cx - sW/2, y: shoulderY},
-                        {x: cx + sW/2, y: shoulderY},
-                        {x: cx + wW/2, y: waistY},
-                        {x: cx + hW/2, y: hipY},
-                        {x: cx - hW/2, y: hipY},
-                        {x: cx - wW/2, y: waistY}
-                    ];
-                }
+                // Simple shape for clothes/low graphics (and now High Graphics Human too)
+                points = [
+                    {x: cx - sW/2, y: shoulderY},
+                    {x: cx + sW/2, y: shoulderY},
+                    {x: cx + wW/2, y: waistY},
+                    {x: cx + hW/2, y: hipY},
+                    {x: cx - hW/2, y: hipY},
+                    {x: cx - wW/2, y: waistY}
+                ];
 
                 if (isFurry && roundness > 0) {
                      const rOffset = w * roundness;
@@ -6970,6 +6951,17 @@ var BallRenderer = {
                     gradCtx.fillStyle = grad;
                     gradCtx.fillRect(0, 0, size, size);
                 });
+
+                 // Align pattern to body center (Fix repeating seam artifact)
+                 if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
+                     const matrix = new DOMMatrix();
+                     // Center the gradient on the body (cx, midY)
+                     // Gradient center is at size/2
+                     // We want (size/2, size/2) -> (cx, topY + h/2)
+                     const halfSize = GRAD_CANVAS_SIZE / 2;
+                     matrix.translateSelf(cx - halfSize, topY + h/2 - halfSize);
+                     fillStyle.setTransform(matrix);
+                 }
             }
 
             ctx.fillStyle = fillStyle;
