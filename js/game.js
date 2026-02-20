@@ -1980,12 +1980,8 @@
         if (isUnlocked) {
             playerData.currentCatSkin = cat.id;
         }
-        else if (playerData.tacos >= cat.cost) {
-            playerData.tacos -= cat.cost;
-            playerData.unlockedCatSkins.push(cat.id);
-            playerData.currentCatSkin = cat.id;
-            checkAchievements('shop');
-        }
+        // Purchasing removed - Evolution only
+
         saveData(); updateShopUI(); updateUI();
         invalidateBackgroundCache(); // Force redraw for cat update
         saveContext(getShopContext());
@@ -2592,7 +2588,7 @@
 
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
-        else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
+        else { statusCat.innerText = "Débloquer via Évolution"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Verrouillé"; btnCat.disabled = true; }
 
         // Cat Accessory UI
         const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
