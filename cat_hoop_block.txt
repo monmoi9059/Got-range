@@ -1,0 +1,225 @@
+        else if (type === 'cat_hoop') {
+             // --- NEW EVOLUTION LOGIC ---
+             const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+             const exp = playerData.basketCatExp || 0;
+             const progress = Math.min(1.0, exp / maxExp);
+
+             // Scale from 0.25 to 2.0
+             const ageScale = 0.25 + (progress * 1.75);
+
+             const s = p.scale * ageScale;
+
+             // Skin Selection
+             const skinIdx = playerData.basketCatSkinIndex || 0;
+             let skinData = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[skinIdx] : null;
+             if (!skinData && typeof CAT_SKINS_DB !== 'undefined') skinData = CAT_SKINS_DB[0];
+
+             let furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
+             let bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
+             let earColor = skinData ? skinData.earColor : null;
+
+             // Stance Logic (Cycle through 4 poses)
+             // 0: Sitting, 1: Loaf, 2: Standing, 3: Sprawled
+             const stance = skinIdx % 4;
+
+             let isEating = false;
+             let isPassing = false;
+             let animProgress = 0;
+             let bounce = 0;
+
+             // Dynamic State Logic
+             if (typeof g_catState !== 'undefined') {
+                 if (g_catState.state === 'EATING') {
+                     isEating = true;
+                     animProgress = Math.abs(Math.sin(Date.now() * 0.02)); // Slow chew
+                     bounce = animProgress * 3 * s;
+                 } else if (g_catState.state === 'MOVING' || g_catState.state === 'RETURNING') {
+                     // Walking bounce
+                     bounce = Math.abs(Math.sin(Date.now() * 0.015)) * 8 * s;
+                 } else {
+                     // Idle
+                     bounce = Math.sin(Date.now() * 0.002) * 2 * s;
+                 }
+             }
+
+             const mouthOpen = isEating ? animProgress * 10 * s : 0;
+             p.y += bounce;
+
+             // --- DRAWING BASED ON STANCE ---
+             let headY = p.y - 38*s;
+             let headR = 18*s;
+
+             if (stance === 0) {
+                 // SITTING (Classic)
+                 // Hind Legs
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
+                 // Hind Paws
+                 drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true);
+                 drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true);
+                 // Belly
+                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = bellyColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Front Paws
+                 let pawLX = p.x - 10*s; let pawRX = p.x + 10*s; let pawY = p.y - 20*s;
+                 if (isPassing) { const push = animProgress * 25 * s; pawLX -= push * 0.5; pawRX += push * 0.5; pawY += push * 0.8; }
+                 drawFuzzyCircle(pawLX, pawY, 6*s, furColor, 1001, s, true, true);
+                 drawFuzzyCircle(pawRX, pawY, 6*s, furColor, 1002, s, true, true);
+
+             } else if (stance === 1) {
+                 // LOAF (Tucked)
+                 headY = p.y - 25*s; // Lower head
+                 // Body (Rectangular/Oval)
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 28*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Tucked Paws (Hidden or bumps)
+                 ctx.beginPath(); ctx.ellipse(p.x - 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.ellipse(p.x + 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Chest
+                 ctx.fillStyle = bellyColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 15*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+
+             } else if (stance === 2) {
+                 // STANDING (Alert on 4 legs)
+                 headY = p.y - 35*s;
+                 // Body
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 22*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Legs (4 posts)
+                 drawFuzzyLimb(p.x - 12*s, p.y - 15*s, p.x - 15*s, p.y + 10*s, 8*s, furColor, s, true, 1005);
+                 drawFuzzyLimb(p.x + 12*s, p.y - 15*s, p.x + 15*s, p.y + 10*s, 8*s, furColor, s, true, 1006);
+                 // Front legs
+                 drawFuzzyLimb(p.x - 8*s, p.y - 15*s, p.x - 8*s, p.y + 10*s, 8*s, furColor, s, true, 1007);
+                 drawFuzzyLimb(p.x + 8*s, p.y - 15*s, p.x + 8*s, p.y + 10*s, 8*s, furColor, s, true, 1008);
+
+             } else if (stance === 3) {
+                 // SPRAWLED (Lying flat, legs out)
+                 headY = p.y - 10*s; // Head on ground
+                 // Body
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y, 30*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Legs splayed
+                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y + 10*s, 8*s, furColor, s, true, 1009);
+                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y + 10*s, 8*s, furColor, s, true, 1010);
+                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y - 10*s, 8*s, furColor, s, true, 1011);
+                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y - 10*s, 8*s, furColor, s, true, 1012);
+             }
+
+             // Head
+             drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+             // Ears
+             ctx.fillStyle = earColor || furColor;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
+
+             // Face
+             // Eyes
+             if (stance === 3 || stance === 1) { // Sleepy for Loaf/Sprawl
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
+                 ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x + 2*s, headY - 5*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.stroke();
+             } else {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+             }
+
+             // Mouth
+             if (isEating) {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 4*s + mouthOpen, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = '#FF69B4';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s + mouthOpen, 4*s, 0, Math.PI*2); ctx.fill();
+             } else {
+                 ctx.fillStyle = '#000';
+                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
+             }
+
+             // Whiskers
+             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
+             ctx.stroke();
+
+             // Accessories
+             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
+                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 if (acc) {
+                     if (acc.type === 'glasses') {
+                         ctx.fillStyle = acc.color || '#000';
+                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
+                     }
+                     else if (acc.type === 'neck') {
+                         if (acc.id === 'acc_bowtie') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
+                         } else if (acc.id === 'acc_scarf') {
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
+                         } else { // Chain
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
+                         }
+                     }
+                     else if (acc.type === 'hat') {
+                         if (acc.id === 'acc_crown') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
+                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
+                         } else if (acc.id === 'acc_cowboy') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
+                         } else if (acc.id === 'acc_tophat') {
+                             ctx.fillStyle = acc.color;
+                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
+                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
+                         } else if (acc.id === 'acc_cap') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
+                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
+                         }
+                     }
+                     else if (acc.type === 'head') { // Flower
+                         ctx.fillStyle = acc.color;
+                         for(let k=0; k<5; k++) {
+                             const a = (k/5)*Math.PI*2;
+                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
+                         }
+                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
+
+             // Tail (Wagging)
+             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
+             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
+             ctx.stroke();
+        }
+        else if (type === 'crowd') {
+             const s = p.scale;
+             const w = 200 * s;
+             const h = 80 * s;
+
+             // Simple Grandstand
+             ctx.fillStyle = '#222';
+             ctx.fillRect(p.x - w/2, p.y - h, w, h);
+             ctx.strokeStyle = '#444'; ctx.lineWidth = 2*s; ctx.strokeRect(p.x - w/2, p.y - h, w, h);
+
+             // Crowd Blobs
+             const dens = variant.density || 0.5;
+             const rows = 3 + Math.floor(dens * 4);

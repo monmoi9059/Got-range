@@ -343,6 +343,7 @@ let lastDisplayedContestTime = -1;
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            basketCatSkinIndex: 0, basketCatExp: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -410,6 +411,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
     if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
     if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
+    if(typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+    if(typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {

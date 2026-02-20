@@ -1,4 +1,8 @@
 
+    const BASKET_CAT_MAX_EXP = 50; // Shots to evolve
+    const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
+    var evolutionData = { timer: 0, phase: 0 };
+
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
     var highScoreName = ["A", "A", "A"];
@@ -426,6 +430,19 @@
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
 
+        // Basket Cat Growth
+        if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
+        playerData.basketCatExp++;
+        if (playerData.basketCatExp >= BASKET_CAT_MAX_EXP && state !== 'EVOLVING') {
+            // Check if there are more skins to unlock
+            if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
+                triggerEvolutionSequence();
+            } else {
+                // Max level reached
+                playerData.basketCatExp = BASKET_CAT_MAX_EXP;
+            }
+        }
+
         playerData.lifetimeStats.makes++; currentStreak++;
 
         // Daily Challenge Hooks
@@ -848,6 +865,12 @@
             }
         }
 
+        if (state === 'EVOLVING') {
+            updateEvolution(dt);
+            updateParticles(dt); // Keep particles active
+            return;
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
@@ -1228,6 +1251,43 @@
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
+        }
+    }
+
+    function triggerEvolutionSequence() {
+        state = 'EVOLVING';
+        evolutionData.timer = BASKET_CAT_EVO_DURATION;
+        evolutionData.phase = 0;
+        // Stop balls
+        activeBalls = [];
+        feedback = "";
+    }
+
+    function updateEvolution(dt) {
+        evolutionData.timer -= dt;
+
+        if (evolutionData.timer <= 100 && evolutionData.phase === 0) {
+            evolutionData.phase = 1; // Flash start
+            AudioSystem.playSwish(); // Sound effect placeholder
+        }
+
+        if (evolutionData.timer <= 0) {
+            // Evolve
+            if (typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+            playerData.basketCatSkinIndex++;
+            playerData.basketCatExp = 0;
+
+            // Unlock skin for player
+            const newSkin = CAT_SKINS_DB[playerData.basketCatSkinIndex];
+            if (newSkin && !playerData.unlockedCatSkins.includes(newSkin.id)) {
+                playerData.unlockedCatSkins.push(newSkin.id);
+                showNotification("NOUVEAU SKIN: " + newSkin.name, 0);
+            }
+
+            state = 'IDLE';
+            saveData();
+            // Force redraw of cat
+            if (typeof invalidateBackgroundCache === 'function') invalidateBackgroundCache();
         }
     }
 
@@ -2592,6 +2652,18 @@
     function draw(alpha) {
         if (state === 'STARTUP') {
             drawStartupScene();
+            return;
+        }
+
+        if (state === 'EVOLVING') {
+            loadContext(game1);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT, alpha);
+            if (typeof drawEvolutionScreen === 'function') {
+                drawEvolutionScreen(evolutionData.timer, BASKET_CAT_EVO_DURATION);
+            }
+            ctx.restore();
             return;
         }
 

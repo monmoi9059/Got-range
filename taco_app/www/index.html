@@ -3360,6 +3360,7 @@ let lastDisplayedContestTime = -1;
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            basketCatSkinIndex: 0, basketCatExp: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -3427,6 +3428,8 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
     if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
     if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
+    if(typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+    if(typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
@@ -7563,47 +7566,28 @@ var BallRenderer = {
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
         else if (type === 'cat_hoop') {
-             // Calculate Age/Size based on Net Score (Dynamic Growth/Loss)
-             const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
-             const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
-             let netScore = Math.max(0, makes - misses);
+             // --- NEW EVOLUTION LOGIC ---
+             const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+             const exp = playerData.basketCatExp || 0;
+             const progress = Math.min(1.0, exp / maxExp);
 
-             if (playerData.catScaleResetOffset) {
-                 netScore = Math.max(0, netScore - playerData.catScaleResetOffset);
-             }
-
-             // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
-             const growthMult = 1 + (playerData.stats.catNip || 0) * 0.5;
-             let ageScale = 0.25 + (netScore * 0.001 * growthMult);
-
-             // Color Logic based on raw experience (makes)
-             let furColor = '#D2B48C'; // Tan/Orange (Kitten)
-             let bellyColor = '#F5F5DC'; // Cream
-             let earColor = null;
-
-             let customSkin = null;
-             if (playerData.currentCatSkin && playerData.currentCatSkin !== 'cat_default') {
-                 if (typeof CAT_SKINS_DB !== 'undefined') {
-                     customSkin = CAT_SKINS_DB.find(s => s.id === playerData.currentCatSkin);
-                 }
-             }
-
-             if (customSkin) {
-                 if (customSkin.furColor) furColor = customSkin.furColor;
-                 if (customSkin.bellyColor) bellyColor = customSkin.bellyColor;
-                 if (customSkin.earColor) earColor = customSkin.earColor;
-             } else {
-                 // Default Dynamic Logic
-                 if (makes >= 500) {
-                     furColor = '#A9A9A9'; // Grey (Old)
-                 } else if (makes >= 200) {
-                     furColor = '#8B4513'; // Darker Brown (Adult)
-                 } else if (makes >= 50) {
-                     furColor = '#D2691E'; // Orange (Adolescent)
-                 }
-             }
+             // Scale from 0.25 to 2.0
+             const ageScale = 0.25 + (progress * 1.75);
 
              const s = p.scale * ageScale;
+
+             // Skin Selection
+             const skinIdx = playerData.basketCatSkinIndex || 0;
+             let skinData = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[skinIdx] : null;
+             if (!skinData && typeof CAT_SKINS_DB !== 'undefined') skinData = CAT_SKINS_DB[0];
+
+             let furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
+             let bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
+             let earColor = skinData ? skinData.earColor : null;
+
+             // Stance Logic (Cycle through 4 poses)
+             // 0: Sitting, 1: Loaf, 2: Standing, 3: Sprawled
+             const stance = skinIdx % 4;
 
              let isEating = false;
              let isPassing = false;
@@ -7623,43 +7607,73 @@ var BallRenderer = {
                      // Idle
                      bounce = Math.sin(Date.now() * 0.002) * 2 * s;
                  }
-             } else {
-                 const isActive = (typeof g_catEatTimer !== 'undefined') && g_catEatTimer > 0;
-                 if (isActive) {
-                     animProgress = Math.sin((g_catEatTimer/20)*Math.PI);
-                     isPassing = (currentGameMode === 'CONTEST');
-                     isEating = !isPassing;
-                 }
              }
 
              const mouthOpen = isEating ? animProgress * 10 * s : 0;
              p.y += bounce;
 
-             // Body (Sitting)
-             // Hind Legs (Haunches) - Behind body
-             ctx.fillStyle = furColor;
-             ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
-             ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
+             // --- DRAWING BASED ON STANCE ---
+             let headY = p.y - 38*s;
+             let headR = 18*s;
 
-             // Hind Paws
-             drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true); // Left Hind
-             drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true); // Right Hind
-             // Toe beans for hind paws
-             ctx.fillStyle = '#FFC0CB'; // Pink
-             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x - 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
-             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x + 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
+             if (stance === 0) {
+                 // SITTING (Classic)
+                 // Hind Legs
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
+                 // Hind Paws
+                 drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true);
+                 drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true);
+                 // Belly
+                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = bellyColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Front Paws
+                 let pawLX = p.x - 10*s; let pawRX = p.x + 10*s; let pawY = p.y - 20*s;
+                 if (isPassing) { const push = animProgress * 25 * s; pawLX -= push * 0.5; pawRX += push * 0.5; pawY += push * 0.8; }
+                 drawFuzzyCircle(pawLX, pawY, 6*s, furColor, 1001, s, true, true);
+                 drawFuzzyCircle(pawRX, pawY, 6*s, furColor, 1002, s, true, true);
 
-             // Main Body
-             ctx.fillStyle = furColor;
-             // Fat belly
-             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
-             // Chest patch
-             ctx.fillStyle = bellyColor;
-             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+             } else if (stance === 1) {
+                 // LOAF (Tucked)
+                 headY = p.y - 25*s; // Lower head
+                 // Body (Rectangular/Oval)
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 28*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Tucked Paws (Hidden or bumps)
+                 ctx.beginPath(); ctx.ellipse(p.x - 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.ellipse(p.x + 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Chest
+                 ctx.fillStyle = bellyColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 15*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+
+             } else if (stance === 2) {
+                 // STANDING (Alert on 4 legs)
+                 headY = p.y - 35*s;
+                 // Body
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 22*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Legs (4 posts)
+                 drawFuzzyLimb(p.x - 12*s, p.y - 15*s, p.x - 15*s, p.y + 10*s, 8*s, furColor, s, true, 1005);
+                 drawFuzzyLimb(p.x + 12*s, p.y - 15*s, p.x + 15*s, p.y + 10*s, 8*s, furColor, s, true, 1006);
+                 // Front legs
+                 drawFuzzyLimb(p.x - 8*s, p.y - 15*s, p.x - 8*s, p.y + 10*s, 8*s, furColor, s, true, 1007);
+                 drawFuzzyLimb(p.x + 8*s, p.y - 15*s, p.x + 8*s, p.y + 10*s, 8*s, furColor, s, true, 1008);
+
+             } else if (stance === 3) {
+                 // SPRAWLED (Lying flat, legs out)
+                 headY = p.y - 10*s; // Head on ground
+                 // Body
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y, 30*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Legs splayed
+                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y + 10*s, 8*s, furColor, s, true, 1009);
+                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y + 10*s, 8*s, furColor, s, true, 1010);
+                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y - 10*s, 8*s, furColor, s, true, 1011);
+                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y - 10*s, 8*s, furColor, s, true, 1012);
+             }
 
              // Head
-             const headY = p.y - 38*s;
-             const headR = 18*s;
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
              // Ears
@@ -7669,8 +7683,7 @@ var BallRenderer = {
 
              // Face
              // Eyes
-             if (makes >= 500) {
-                 // Old sleepy eyes
+             if (stance === 3 || stance === 1) { // Sleepy for Loaf/Sprawl
                  ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
                  ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(p.x + 2*s, headY - 5*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.stroke();
@@ -7691,34 +7704,6 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
-             }
-
-             // Paws (Front)
-             // Default Position: Chest
-             let pawLX = p.x - 10*s;
-             let pawRX = p.x + 10*s;
-             let pawY = p.y - 20*s; // Chest level
-
-             if (isPassing) {
-                 // Push Outward (Chest Pass)
-                 const push = animProgress * 25 * s;
-                 pawLX -= push * 0.5; // Slight spread
-                 pawRX += push * 0.5;
-                 pawY += push * 0.8; // Forward/Down (Projected)
-             }
-
-             // Draw Paws
-             const pawR = 6*s;
-             drawFuzzyCircle(pawLX, pawY, pawR, furColor, 1001, s, true, true);
-             drawFuzzyCircle(pawRX, pawY, pawR, furColor, 1002, s, true, true);
-
-             // Toe Beans (Front) - Visible if pushing or eating
-             if (isPassing || isEating) {
-                  ctx.fillStyle = '#FFC0CB';
-                  for(let k=-1; k<=1; k++) {
-                      ctx.beginPath(); ctx.arc(pawLX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-                      ctx.beginPath(); ctx.arc(pawRX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-                  }
              }
 
              // Whiskers
@@ -13623,6 +13608,146 @@ var BallRenderer = {
         ctx.restore();
     }
 
+    function drawEvolutionScreen(timer, maxTime) {
+        const w = window.LOGICAL_WIDTH;
+        const h = window.LOGICAL_HEIGHT;
+
+        // 1. Dark Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. Spotlight
+        const cx = w / 2;
+        const cy = h / 2;
+        const spotR = 200;
+        const grad = ctx.createRadialGradient(cx, cy, 50, cx, cy, spotR);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // 3. Logic
+        // Phase 1: Suspense (timer > 100) - Wiggle current form
+        // Phase 2: Flash (100 > timer > 60) - White screen fade
+        // Phase 3: Reveal (60 > timer) - New form small
+
+        // We need next skin ID to show silhouette?
+        // Actually, we can just draw the cat shape black.
+        // Current index is basketCatSkinIndex. Next is basketCatSkinIndex + 1.
+
+        let showIndex = playerData.basketCatSkinIndex;
+        let scale = 2.0; // Max size
+        let isSilhouette = true;
+        let shake = 0;
+        let flashAlpha = 0;
+
+        if (timer > 100) {
+            // Suspense
+            shake = Math.sin(timer * 0.5) * 5;
+            isSilhouette = true;
+        } else if (timer > 60) {
+            // Flash transition
+            const t = (100 - timer) / 40; // 0 to 1
+            flashAlpha = Math.sin(t * Math.PI); // Pulse
+            if (timer < 80) {
+                showIndex = playerData.basketCatSkinIndex + 1;
+                scale = 0.25;
+            }
+            isSilhouette = true;
+        } else {
+            // Reveal
+            showIndex = playerData.basketCatSkinIndex + 1;
+            scale = 0.25;
+            isSilhouette = false;
+        }
+
+        // Clamp index
+        if (typeof CAT_SKINS_DB !== 'undefined' && showIndex >= CAT_SKINS_DB.length) showIndex = 0;
+
+        // Draw Cat
+        ctx.save();
+        ctx.translate(cx + shake, cy + 50);
+
+        // Mock a 'p' object for drawDecor logic reuse?
+        // Or better, extract cat drawing logic.
+        // For now, I'll manually call drawDecor with a mock p, but force specific skin.
+        // But drawDecor pulls from global state for logic.
+        // I will implement a simplified cat drawer here or modify drawDecor to accept overrides.
+
+        // HACK: I will temporarily override playerData.currentCatSkin (locally) to draw the specific cat?
+        // No, that's dangerous.
+        // I will copy the cat drawing code into a helper 'drawCatSprite' inside drawDecor, or just duplicate relevant parts.
+        // Given the complexity of drawDecor, I'll use a simplified silhouette/cat for the evolution screen.
+
+        const catObj = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[showIndex] : null;
+        let color = '#FFF';
+        if (catObj && !isSilhouette) color = catObj.furColor || '#D2B48C';
+        if (isSilhouette) color = '#111'; // Silhouette color
+
+        const s = scale * 2.0; // Zoom in for UI
+
+        // Simple Cat Shape for Evo Screen
+        ctx.fillStyle = color;
+        // Body
+        ctx.beginPath(); ctx.ellipse(0, 0, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+        // Head
+        ctx.beginPath(); ctx.arc(0, -35*s, 18*s, 0, Math.PI*2); ctx.fill();
+        // Ears
+        ctx.beginPath(); ctx.moveTo(-10*s, -45*s); ctx.lineTo(-20*s, -65*s); ctx.lineTo(-2*s, -50*s); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10*s, -45*s); ctx.lineTo(20*s, -65*s); ctx.lineTo(2*s, -50*s); ctx.fill();
+
+        if (!isSilhouette && catObj) {
+            // Face
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-5*s, -40*s, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5*s, -40*s, 2*s, 0, Math.PI*2); ctx.fill();
+            if (catObj.bellyColor) {
+                 ctx.fillStyle = catObj.bellyColor;
+                 ctx.beginPath(); ctx.ellipse(0, 0, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // Radiating rays
+        if (!isSilhouette) {
+             ctx.globalCompositeOperation = 'destination-over';
+             ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+             const time = Date.now() * 0.002;
+             for(let i=0; i<12; i++) {
+                 const a = (i/12)*Math.PI*2 + time;
+                 ctx.beginPath(); ctx.moveTo(0, -20*s);
+                 ctx.arc(0, -20*s, 300, a, a+0.1);
+                 ctx.fill();
+             }
+             ctx.globalCompositeOperation = 'source-over';
+        }
+
+        ctx.restore();
+
+        // 4. Flash Overlay
+        if (flashAlpha > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        // 5. Text
+        ctx.fillStyle = '#FFF';
+        ctx.font = "bold 30px 'Russo One', sans-serif";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "#000"; ctx.shadowBlur = 4;
+
+        let text = "What? BASKET CAT is evolving!";
+        if (timer <= 60) {
+             const name = catObj ? catObj.name.toUpperCase() : "CAT";
+             text = `Congratulations! It evolved into ${name}!`;
+        }
+
+        ctx.fillText(text, cx, h - 100);
+        ctx.shadowBlur = 0;
+    }
+
+    // Expose
+    window.drawEvolutionScreen = drawEvolutionScreen;
+
 // --- END renderer.js ---
 
 // --- START input.js ---
@@ -13999,6 +14124,10 @@ var BallRenderer = {
 // --- END input.js ---
 
 // --- START game.js ---
+
+    const BASKET_CAT_MAX_EXP = 50; // Shots to evolve
+    const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
+    var evolutionData = { timer: 0, phase: 0 };
 
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
@@ -14427,6 +14556,19 @@ var BallRenderer = {
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
 
+        // Basket Cat Growth
+        if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
+        playerData.basketCatExp++;
+        if (playerData.basketCatExp >= BASKET_CAT_MAX_EXP && state !== 'EVOLVING') {
+            // Check if there are more skins to unlock
+            if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
+                triggerEvolutionSequence();
+            } else {
+                // Max level reached
+                playerData.basketCatExp = BASKET_CAT_MAX_EXP;
+            }
+        }
+
         playerData.lifetimeStats.makes++; currentStreak++;
 
         // Daily Challenge Hooks
@@ -14849,6 +14991,12 @@ var BallRenderer = {
             }
         }
 
+        if (state === 'EVOLVING') {
+            updateEvolution(dt);
+            updateParticles(dt); // Keep particles active
+            return;
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
@@ -15229,6 +15377,43 @@ var BallRenderer = {
             feedback = ""; feedbackTimer = 0; // Clear Marché feedback
             updateUI();
             invalidateBackgroundCache();
+        }
+    }
+
+    function triggerEvolutionSequence() {
+        state = 'EVOLVING';
+        evolutionData.timer = BASKET_CAT_EVO_DURATION;
+        evolutionData.phase = 0;
+        // Stop balls
+        activeBalls = [];
+        feedback = "";
+    }
+
+    function updateEvolution(dt) {
+        evolutionData.timer -= dt;
+
+        if (evolutionData.timer <= 100 && evolutionData.phase === 0) {
+            evolutionData.phase = 1; // Flash start
+            AudioSystem.playSwish(); // Sound effect placeholder
+        }
+
+        if (evolutionData.timer <= 0) {
+            // Evolve
+            if (typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+            playerData.basketCatSkinIndex++;
+            playerData.basketCatExp = 0;
+
+            // Unlock skin for player
+            const newSkin = CAT_SKINS_DB[playerData.basketCatSkinIndex];
+            if (newSkin && !playerData.unlockedCatSkins.includes(newSkin.id)) {
+                playerData.unlockedCatSkins.push(newSkin.id);
+                showNotification("NOUVEAU SKIN: " + newSkin.name, 0);
+            }
+
+            state = 'IDLE';
+            saveData();
+            // Force redraw of cat
+            if (typeof invalidateBackgroundCache === 'function') invalidateBackgroundCache();
         }
     }
 
@@ -16593,6 +16778,18 @@ var BallRenderer = {
     function draw(alpha) {
         if (state === 'STARTUP') {
             drawStartupScene();
+            return;
+        }
+
+        if (state === 'EVOLVING') {
+            loadContext(game1);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT, alpha);
+            if (typeof drawEvolutionScreen === 'function') {
+                drawEvolutionScreen(evolutionData.timer, BASKET_CAT_EVO_DURATION);
+            }
+            ctx.restore();
             return;
         }
 
