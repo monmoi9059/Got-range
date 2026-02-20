@@ -13727,6 +13727,124 @@ var BallRenderer = {
             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s, p.y - 15*s); ctx.stroke();
 
+        } else if (stance === 8) { // YOGA
+             // Tail (Balanced)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.quadraticCurveTo(p.x - 20*s, p.y, p.x - 30*s, p.y - 10*s); ctx.stroke();
+
+        } else if (stance === 9) { // DAB
+             // Tail (Side)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 10*s); ctx.lineTo(p.x - 20*s, p.y + 10*s); ctx.stroke();
+
+        } else if (stance === 10) { // MEDITATE
+             // Tail (Curled in front)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.arc(p.x, p.y + 5*s, 20*s, 0, Math.PI); ctx.stroke();
+
+        } else if (stance === 11) { // BOXING
+             // Tail (Twitching)
+             const twitch = Math.sin(Date.now()*0.02)*5*s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.quadraticCurveTo(p.x + 15*s, p.y, p.x + 20*s + twitch, p.y - 20*s); ctx.stroke();
+
+        } else if (stance === 12) { // GROOMING
+             // Tail (Side)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 5*s); ctx.lineTo(p.x - 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 14) { // SUPERMAN
+             // Tail (Streaming behind)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y); ctx.lineTo(p.x - 45*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 16) { // SCARED LEAP
+             // Tail (Puffed Straight Down)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 10*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 20*s); ctx.lineTo(p.x, p.y + 10*s); ctx.stroke();
+
+        } else if (stance === 17) { // HIGH FIVE
+             // Tail (Curled)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 25*s, p.y + 5*s, p.x + 30*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 18) { // STALKING
+             // Tail (Low and straight)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 4*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 35*s, p.y - 10*s); ctx.lineTo(p.x - 55*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 19) { // BELLY UP
+             // Tail (Flat on ground)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 20) { // BUTT WIGGLE
+             const wag = Math.sin(Date.now()*0.02) * 5*s;
+             // Tail (Wagging with butt)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 20*s, p.y - 25*s + wag); ctx.lineTo(p.x - 40*s, p.y - 40*s + wag * 2); ctx.stroke();
+
+        } else if (stance === 21) { // FACEPALM
+             // Tail (Droopy)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 25*s, p.y + 5*s, p.x + 30*s, p.y); ctx.stroke();
+
+        } else if (stance === 22) { // THINKING
+             // Tail (Slow swish)
+             const swish = Math.sin(Date.now()*0.005)*5*s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x - 25*s, p.y + 5*s, p.x - 35*s + swish, p.y); ctx.stroke();
+
+        } else if (stance === 23) { // SURPRISED
+             // Tail (Straight up puff)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 8*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x, p.y + 20*s); ctx.stroke();
+
+        } else if (stance === 24) { // RUNNING
+             // Tail (Streaming)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 20*s, p.y - 20*s); ctx.lineTo(p.x - 45*s, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 25) { // SITTING CHAIR
+             // Tail (Dangling)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x, p.y + 20*s); ctx.stroke();
+
+        } else if (stance === 26) { // NINJA KICK
+             // Tail (Dynamic)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 15*s); ctx.quadraticCurveTo(p.x - 25*s, p.y - 25*s, p.x - 30*s, p.y - 10*s); ctx.stroke();
+
+        } else if (stance === 27) { // CRYING
+             // Tail (Curled tight)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.arc(p.x, p.y, 22*s, 0, Math.PI); ctx.stroke();
+
+        } else if (stance === 28) { // SUNGLASSES
+             // Tail (Casual)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 29) { // BOX
+             // Tail (Sticking out of box?)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 25*s, p.y - 20*s); ctx.quadraticCurveTo(p.x + 35*s, p.y - 30*s, p.x + 40*s, p.y - 20*s); ctx.stroke();
+
+        } else if (stance === 30) { // YARN
+             // Tail (Tangled)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x + 10*s, p.y - 40*s); ctx.stroke();
+
+        } else if (stance === 31) { // BREAD
+             // Tail (Nub)
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.arc(p.x + 20*s, p.y - 10*s, 5*s, 0, Math.PI*2); ctx.fill();
+
+        } else if (stance === 32) { // LIQUID
+             // Tail (Puddle)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 30*s, p.y); ctx.lineTo(p.x + 50*s, p.y + 5*s); ctx.stroke();
+
         } else if (stance === 1) { // LOAF
             headY = p.y - 25*s;
             // Body (Boxy)
