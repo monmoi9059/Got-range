@@ -71,6 +71,8 @@ def inject():
         if '<!-- INJECT_CSS_START -->' in html and '<!-- INJECT_CSS_END -->' in html:
             pattern = re.compile(r'<!-- INJECT_CSS_START -->.*?<!-- INJECT_CSS_END -->', re.DOTALL)
             replacement = f'<!-- INJECT_CSS_START -->\n<style>\n{css_content}\n</style>\n<!-- INJECT_CSS_END -->'
+            # Escape backslashes for re.sub
+            replacement = replacement.replace('\\', '\\\\')
             html = pattern.sub(replacement, html)
         else:
             print("  Markers not found for CSS...")
@@ -79,6 +81,8 @@ def inject():
         if '<!-- INJECT_JS_START -->' in html and '<!-- INJECT_JS_END -->' in html:
             pattern = re.compile(r'<!-- INJECT_JS_START -->.*?<!-- INJECT_JS_END -->', re.DOTALL)
             replacement = f'<!-- INJECT_JS_START -->\n<script>\n{js_content}\n</script>\n<!-- INJECT_JS_END -->'
+            # Escape backslashes for re.sub
+            replacement = replacement.replace('\\', '\\\\')
             html = pattern.sub(replacement, html)
         else:
             print("  Markers not found for JS...")

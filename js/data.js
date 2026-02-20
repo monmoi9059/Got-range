@@ -1015,6 +1015,43 @@
         { id: 'cat_void', name: 'Néant', cost: 0, furColor: '#000', bellyColor: '#000', stance: 'sprawled' }
     ];
 
+    // Mapped from js/renderer.js drawCatDecor function
+    var CAT_STANCES = {
+        'sitting': 0,
+        'loaf': 1,
+        'standing': 2,
+        'sprawled': 3,
+        'sleeping': 4,
+        'begging': 5,
+        'stretching': 6,
+        'arched': 7,
+        'yoga': 8,
+        'dab': 9,
+        'meditate': 10,
+        'boxing': 11,
+        'grooming': 12,
+        'upside_down': 13,
+        'superman': 14,
+        'ball': 15,
+        'scared_leap': 16,
+        'high_five': 17,
+        'stalking': 18,
+        'belly_up': 19,
+        'butt_wiggle': 20,
+        'facepalm': 21,
+        'thinking': 22,
+        'surprised': 23,
+        'running': 24,
+        'sitting_chair': 25,
+        'ninja_kick': 26,
+        'crying': 27,
+        'sunglasses_cool': 28,
+        'sleeping_box': 29,
+        'yarn_tangle': 30,
+        'bread_head': 31,
+        'liquid': 32
+    };
+
     var CAT_ACCESSORIES_DB = [
         { id: 'acc_none', name: 'Aucun', cost: 0, type: 'none' },
         { id: 'acc_sunglasses', name: 'Lunettes Soleil', cost: 500, type: 'glasses', color: '#000' },

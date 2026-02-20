@@ -343,6 +343,7 @@ let lastDisplayedContestTime = -1;
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
             basketCatSkinIndex: 0, basketCatExp: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',

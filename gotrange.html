@@ -963,6 +963,32 @@
                 <div id="catStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
                 <button id="btnEquipCat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatSkin()">Équiper</button>
 
+                <div style="background:#111; padding:10px; margin:15px 0; border:1px solid #333;">
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc; margin-bottom:5px;">
+                            <span>POSTURE</span>
+                        </div>
+                        <select id="selCatStance" onchange="changeCatStance()" style="width:100%; background:#222; color:white; border:1px solid #555; padding:5px; font-family:inherit;">
+                            <option value="default">DÉFAUT (AUTO)</option>
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8em; color:#ccc;">
+                            <span>TAILLE</span>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <input type="checkbox" id="chkCatSizeLock" onchange="toggleCatSizeLock()">
+                                <label for="chkCatSizeLock">VERROUILLER</label>
+                            </div>
+                        </div>
+                        <div id="catSizeControl" style="opacity:0.5; pointer-events:none; transition: opacity 0.2s;">
+                            <input type="range" id="sldCatSize" min="0.5" max="3.0" step="0.1" value="1.0" oninput="updateCatSize()">
+                            <div style="text-align:right; font-size:0.8em; color:#FFD700;"><span id="lblCatSize">1.0x</span></div>
+                        </div>
+                    </div>
+                </div>
+
                 <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">ACCESSOIRES CHAT</h3>
                 <div class="skin-nav"><button class="btn" onclick="changeCatAccessory(-1)">&lt;</button><span id="catAccName" class="selector-label">Aucun</span><button class="btn" onclick="changeCatAccessory(1)">&gt;</button></div>
                 <div id="catAccStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
@@ -2181,6 +2207,43 @@ for(var k=0; k<12; k++) {
         { id: 'cat_void', name: 'Néant', cost: 0, furColor: '#000', bellyColor: '#000', stance: 'sprawled' }
     ];
 
+    // Mapped from js/renderer.js drawCatDecor function
+    var CAT_STANCES = {
+        'sitting': 0,
+        'loaf': 1,
+        'standing': 2,
+        'sprawled': 3,
+        'sleeping': 4,
+        'begging': 5,
+        'stretching': 6,
+        'arched': 7,
+        'yoga': 8,
+        'dab': 9,
+        'meditate': 10,
+        'boxing': 11,
+        'grooming': 12,
+        'upside_down': 13,
+        'superman': 14,
+        'ball': 15,
+        'scared_leap': 16,
+        'high_five': 17,
+        'stalking': 18,
+        'belly_up': 19,
+        'butt_wiggle': 20,
+        'facepalm': 21,
+        'thinking': 22,
+        'surprised': 23,
+        'running': 24,
+        'sitting_chair': 25,
+        'ninja_kick': 26,
+        'crying': 27,
+        'sunglasses_cool': 28,
+        'sleeping_box': 29,
+        'yarn_tangle': 30,
+        'bread_head': 31,
+        'liquid': 32
+    };
+
     var CAT_ACCESSORIES_DB = [
         { id: 'acc_none', name: 'Aucun', cost: 0, type: 'none' },
         { id: 'acc_sunglasses', name: 'Lunettes Soleil', cost: 500, type: 'glasses', color: '#000' },
@@ -3385,6 +3448,7 @@ let lastDisplayedContestTime = -1;
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
             basketCatSkinIndex: 0, basketCatExp: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
@@ -7625,7 +7689,12 @@ var BallRenderer = {
              const progress = Math.min(1.0, exp / maxExp);
 
              // Scale from 0.25 to 1.25 (Reduced from 2.0)
-             const ageScale = 0.25 + (progress * 1.0);
+             let ageScale = 0.25 + (progress * 1.0);
+
+             // Override Size if Locked
+             if (playerData.catSizeLocked && playerData.catSizeValue !== undefined) {
+                 ageScale = parseFloat(playerData.catSizeValue);
+             }
 
              const s = p.scale * ageScale;
 
@@ -7647,6 +7716,11 @@ var BallRenderer = {
              };
              if (stanceMap.hasOwnProperty(sVal)) stance = stanceMap[sVal];
              else stance = 0;
+
+             // Override Stance
+             if (playerData.catStanceOverride && playerData.catStanceOverride !== 'default' && CAT_STANCES[playerData.catStanceOverride] !== undefined) {
+                 stance = CAT_STANCES[playerData.catStanceOverride];
+             }
 
              let isEating = false;
              let isPassing = false;
@@ -16904,6 +16978,35 @@ var BallRenderer = {
         }
     }
 
+    window.changeCatStance = function() {
+        loadContext(getShopContext());
+        const val = document.getElementById('selCatStance').value;
+        playerData.catStanceOverride = val;
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.toggleCatSizeLock = function() {
+        loadContext(getShopContext());
+        const locked = document.getElementById('chkCatSizeLock').checked;
+        playerData.catSizeLocked = locked;
+        updateShopUI(); // Refresh UI to toggle slider visibility
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.updateCatSize = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCatSize').value);
+        playerData.catSizeValue = val;
+        document.getElementById('lblCatSize').innerText = val.toFixed(1) + "x";
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
     window.toggleHandedness = function() {
         loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
@@ -17279,6 +17382,41 @@ var BallRenderer = {
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
         else { statusCat.innerText = "Débloquer via Évolution"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Verrouillé"; btnCat.disabled = true; }
+
+        // Cat Stance & Size UI
+        const selStance = document.getElementById('selCatStance');
+        if (selStance && selStance.options.length <= 1) {
+            // Populate if empty (CAT_STANCES defined in data.js)
+            if (typeof CAT_STANCES !== 'undefined') {
+                for (const [key, val] of Object.entries(CAT_STANCES)) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    // Format name: 'sitting_chair' -> 'Sitting Chair'
+                    opt.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    selStance.appendChild(opt);
+                }
+            }
+        }
+        if (selStance) selStance.value = playerData.catStanceOverride || 'default';
+
+        const chkLock = document.getElementById('chkCatSizeLock');
+        const sldSize = document.getElementById('sldCatSize');
+        const lblSize = document.getElementById('lblCatSize');
+        const sizeCtrl = document.getElementById('catSizeControl');
+
+        if (chkLock) chkLock.checked = !!playerData.catSizeLocked;
+        if (sldSize) sldSize.value = playerData.catSizeValue || 1.0;
+        if (lblSize) lblSize.innerText = (playerData.catSizeValue || 1.0).toFixed(1) + "x";
+
+        if (sizeCtrl) {
+            if (playerData.catSizeLocked) {
+                sizeCtrl.style.opacity = '1.0';
+                sizeCtrl.style.pointerEvents = 'auto';
+            } else {
+                sizeCtrl.style.opacity = '0.5';
+                sizeCtrl.style.pointerEvents = 'none';
+            }
+        }
 
         // Cat Accessory UI
         const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
