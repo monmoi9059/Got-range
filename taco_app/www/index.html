@@ -4317,10 +4317,18 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'cat_shadow') drawSimpleShadow(obj);
             else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
+
+function drawSimpleShadow(p) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 25 * p.scale, 10 * p.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+}
 
 // Initialize
 RenderEngine.Camera.init();
@@ -13267,7 +13275,13 @@ var BallRenderer = {
                 if (d.dist > cullDist) break;
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
-                    processDecor(d, g_catState.x, g_catState.y);
+                    processDecor(d, g_catState.x, g_catState.y, g_catState.z);
+                    if ((g_catState.z || 0) > 5) {
+                        const sProj = project(g_catState.x, g_catState.y, 0, g_camCache);
+                        if (sProj) {
+                            RenderEngine.Queue.add('cat_shadow', sProj.depth + 0.1, sProj.x, sProj.y, sProj.scale);
+                        }
+                    }
                 } else {
                     processDecor(d);
                 }
@@ -13289,7 +13303,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }
@@ -13310,7 +13324,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }
@@ -14988,11 +15002,29 @@ var BallRenderer = {
                 }
 
                 if (targetIdx !== -1) {
-                    cat.state = 'MOVING';
                     cat.targetTacoIndex = targetIdx;
                     tacosOnGround[targetIdx].beingEaten = true; // Claim it
                     cat.targetX = tacosOnGround[targetIdx].x;
                     cat.targetY = tacosOnGround[targetIdx].y;
+
+                    const dx = cat.targetX - cat.x;
+                    const dy = cat.targetY - cat.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist > 60) {
+                        cat.state = 'POUNCING';
+                        // Calculate Jump Physics
+                        const pounceSpeed = 10.0; // Faster than walking
+                        const time = Math.max(30, dist / pounceSpeed);
+
+                        cat.vx = dx / time;
+                        cat.vy = dy / time;
+                        // Initial Vz to land at time t: 0 = z + vz*t - 0.5*g*t^2 -> vz = 0.5 * g * t
+                        const g = 0.5; // GRAVITY
+                        cat.vz = 0.5 * g * time;
+                    } else {
+                        cat.state = 'MOVING';
+                    }
                 } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
                     // Return home if no valid targets
                      cat.state = 'RETURNING';
@@ -15004,6 +15036,37 @@ var BallRenderer = {
                 cat.state = 'RETURNING';
                 cat.targetX = HOOP_POS.x;
                 cat.targetY = HOOP_POS.y + 10;
+            }
+        }
+        else if (cat.state === 'POUNCING') {
+            cat.x += cat.vx * dt;
+            cat.y += cat.vy * dt;
+            cat.z += cat.vz * dt;
+            cat.vz -= 0.5 * dt; // Gravity
+
+            // Face target direction
+            // cat.rotation? Renderer doesn't support rotation yet, assumes facing forward/camera.
+            // But pouncing usually implies facing target.
+
+            if (cat.z <= 0) {
+                cat.z = 0;
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+
+                cat.state = 'EATING';
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
+
+                // Impact dust?
+                particles.push({
+                    x: cat.x, y: cat.y, z: 0,
+                    vx: 0, vy: 0, vz: 2,
+                    life: 20, maxLife: 20,
+                    scale: 1.0, alpha: 0.5,
+                    type: 'smoke'
+                });
             }
         }
         else if (cat.state === 'MOVING') {

@@ -207,10 +207,18 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'cat_shadow') drawSimpleShadow(obj);
             else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
+
+function drawSimpleShadow(p) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 25 * p.scale, 10 * p.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+}
 
 // Initialize
 RenderEngine.Camera.init();
@@ -9157,7 +9165,13 @@ var BallRenderer = {
                 if (d.dist > cullDist) break;
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
-                    processDecor(d, g_catState.x, g_catState.y);
+                    processDecor(d, g_catState.x, g_catState.y, g_catState.z);
+                    if ((g_catState.z || 0) > 5) {
+                        const sProj = project(g_catState.x, g_catState.y, 0, g_camCache);
+                        if (sProj) {
+                            RenderEngine.Queue.add('cat_shadow', sProj.depth + 0.1, sProj.x, sProj.y, sProj.scale);
+                        }
+                    }
                 } else {
                     processDecor(d);
                 }
@@ -9179,7 +9193,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }
@@ -9200,7 +9214,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }

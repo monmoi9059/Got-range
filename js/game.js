@@ -719,11 +719,29 @@
                 }
 
                 if (targetIdx !== -1) {
-                    cat.state = 'MOVING';
                     cat.targetTacoIndex = targetIdx;
                     tacosOnGround[targetIdx].beingEaten = true; // Claim it
                     cat.targetX = tacosOnGround[targetIdx].x;
                     cat.targetY = tacosOnGround[targetIdx].y;
+
+                    const dx = cat.targetX - cat.x;
+                    const dy = cat.targetY - cat.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist > 60) {
+                        cat.state = 'POUNCING';
+                        // Calculate Jump Physics
+                        const pounceSpeed = 10.0; // Faster than walking
+                        const time = Math.max(30, dist / pounceSpeed);
+
+                        cat.vx = dx / time;
+                        cat.vy = dy / time;
+                        // Initial Vz to land at time t: 0 = z + vz*t - 0.5*g*t^2 -> vz = 0.5 * g * t
+                        const g = 0.5; // GRAVITY
+                        cat.vz = 0.5 * g * time;
+                    } else {
+                        cat.state = 'MOVING';
+                    }
                 } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
                     // Return home if no valid targets
                      cat.state = 'RETURNING';
@@ -735,6 +753,37 @@
                 cat.state = 'RETURNING';
                 cat.targetX = HOOP_POS.x;
                 cat.targetY = HOOP_POS.y + 10;
+            }
+        }
+        else if (cat.state === 'POUNCING') {
+            cat.x += cat.vx * dt;
+            cat.y += cat.vy * dt;
+            cat.z += cat.vz * dt;
+            cat.vz -= 0.5 * dt; // Gravity
+
+            // Face target direction
+            // cat.rotation? Renderer doesn't support rotation yet, assumes facing forward/camera.
+            // But pouncing usually implies facing target.
+
+            if (cat.z <= 0) {
+                cat.z = 0;
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+
+                cat.state = 'EATING';
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
+
+                // Impact dust?
+                particles.push({
+                    x: cat.x, y: cat.y, z: 0,
+                    vx: 0, vy: 0, vz: 2,
+                    life: 20, maxLife: 20,
+                    scale: 1.0, alpha: 0.5,
+                    type: 'smoke'
+                });
             }
         }
         else if (cat.state === 'MOVING') {
