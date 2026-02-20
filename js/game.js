@@ -730,15 +730,12 @@
 
                     if (dist > 60) {
                         cat.state = 'POUNCING';
-                        // Calculate Jump Physics
-                        const pounceSpeed = 10.0; // Faster than walking
-                        const time = Math.max(30, dist / pounceSpeed);
-
-                        cat.vx = dx / time;
-                        cat.vy = dy / time;
-                        // Initial Vz to land at time t: 0 = z + vz*t - 0.5*g*t^2 -> vz = 0.5 * g * t
-                        const g = 0.5; // GRAVITY
-                        cat.vz = 0.5 * g * time;
+                        // Deterministic Animation Setup
+                        cat.startX = cat.x;
+                        cat.startY = cat.y;
+                        cat.pounceTimer = 0;
+                        const pounceSpeed = 12.0;
+                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
                     } else {
                         cat.state = 'MOVING';
                     }
@@ -756,19 +753,15 @@
             }
         }
         else if (cat.state === 'POUNCING') {
-            cat.x += cat.vx * dt;
-            cat.y += cat.vy * dt;
-            cat.z += cat.vz * dt;
-            cat.vz -= 0.5 * dt; // Gravity
+            cat.pounceTimer += dt;
+            let t = cat.pounceTimer / cat.pounceDuration;
 
-            // Face target direction
-            // cat.rotation? Renderer doesn't support rotation yet, assumes facing forward/camera.
-            // But pouncing usually implies facing target.
-
-            if (cat.z <= 0) {
-                cat.z = 0;
+            if (t >= 1.0) {
+                // Landed
+                t = 1.0;
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
+                cat.z = 0;
 
                 cat.state = 'EATING';
                 const nipLevel = playerData.stats.catNip || 0;
@@ -776,7 +769,7 @@
                 cat.eatTimer = eatTime;
                 g_catEatTimer = eatTime; // Sync render animation
 
-                // Impact dust?
+                // Impact dust
                 particles.push({
                     x: cat.x, y: cat.y, z: 0,
                     vx: 0, vy: 0, vz: 2,
@@ -784,6 +777,15 @@
                     scale: 1.0, alpha: 0.5,
                     type: 'smoke'
                 });
+            } else {
+                // Interpolate
+                // Ease out? Linear is fine for horizontal, parabolic for Z
+                cat.x = cat.startX + (cat.targetX - cat.startX) * t;
+                cat.y = cat.startY + (cat.targetY - cat.startY) * t;
+
+                // Parabolic Arc: 4 * h * t * (1-t)
+                const peakHeight = 150;
+                cat.z = 4 * peakHeight * t * (1 - t);
             }
         }
         else if (cat.state === 'MOVING') {
