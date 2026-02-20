@@ -207,10 +207,18 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'cat_shadow') drawSimpleShadow(obj);
             else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
+
+function drawSimpleShadow(p) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 25 * p.scale, 10 * p.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+}
 
 // Initialize
 RenderEngine.Camera.init();
@@ -1490,7 +1498,7 @@ var BallRenderer = {
 
         // Cat XP Bar (Right of LIVE)
         const exp = (playerData.basketCatExp || 0);
-        const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+        const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
         const expPct = Math.min(1.0, exp / maxExp);
         const xpX = 80 * s;
         const xpY = y + 10 * s;
@@ -3477,7 +3485,7 @@ var BallRenderer = {
         }
         else if (type === 'cat_hoop') {
              // --- NEW EVOLUTION LOGIC ---
-             const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+             const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
              const exp = playerData.basketCatExp || 0;
              const progress = Math.min(1.0, exp / maxExp);
 
@@ -3491,13 +3499,17 @@ var BallRenderer = {
              let skinData = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[skinIdx] : null;
              if (!skinData && typeof CAT_SKINS_DB !== 'undefined') skinData = CAT_SKINS_DB[0];
 
-             let furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
-             let bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
-             let earColor = skinData ? skinData.earColor : null;
-
-             // Stance Logic (Cycle through 4 poses)
-             // 0: Sitting, 1: Loaf, 2: Standing, 3: Sprawled
-             const stance = skinIdx % 4;
+             // Stance Logic
+             let stance = 0; // Default Sitting
+             const sVal = skinData ? skinData.stance : 'sitting';
+             if (sVal === 'loaf') stance = 1;
+             else if (sVal === 'standing') stance = 2;
+             else if (sVal === 'sprawled') stance = 3;
+             else if (sVal === 'sleeping') stance = 4;
+             else if (sVal === 'begging') stance = 5;
+             else if (sVal === 'stretching') stance = 6;
+             else if (sVal === 'arched') stance = 7;
+             else stance = 0;
 
              let isEating = false;
              let isPassing = false;
@@ -3529,170 +3541,9 @@ var BallRenderer = {
              const mouthOpen = isEating ? animProgress * 10 * s : 0;
              p.y += bounce;
 
-             // --- DRAWING BASED ON STANCE ---
-             let headY = p.y - 38*s;
-             let headR = 18*s;
-
-             if (stance === 0) {
-                 // SITTING (Classic)
-                 // Hind Legs
-                 ctx.fillStyle = furColor;
-                 ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
-                 // Hind Paws
-                 drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true);
-                 drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true);
-                 // Belly
-                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = bellyColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
-                 // Front Paws
-                 let pawLX = p.x - 10*s; let pawRX = p.x + 10*s; let pawY = p.y - 20*s;
-                 if (isPassing) { const push = animProgress * 25 * s; pawLX -= push * 0.5; pawRX += push * 0.5; pawY += push * 0.8; }
-                 drawFuzzyCircle(pawLX, pawY, 6*s, furColor, 1001, s, true, true);
-                 drawFuzzyCircle(pawRX, pawY, 6*s, furColor, 1002, s, true, true);
-
-             } else if (stance === 1) {
-                 // LOAF (Tucked)
-                 headY = p.y - 25*s; // Lower head
-                 // Body (Rectangular/Oval)
-                 ctx.fillStyle = furColor;
-                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 28*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
-                 // Tucked Paws (Hidden or bumps)
-                 ctx.beginPath(); ctx.ellipse(p.x - 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.ellipse(p.x + 15*s, p.y + 10*s, 8*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
-                 // Chest
-                 ctx.fillStyle = bellyColor;
-                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 15*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
-
-             } else if (stance === 2) {
-                 // STANDING (Alert on 4 legs)
-                 headY = p.y - 35*s;
-                 // Body
-                 ctx.fillStyle = furColor;
-                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 22*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
-                 // Legs (4 posts)
-                 drawFuzzyLimb(p.x - 12*s, p.y - 15*s, p.x - 15*s, p.y + 10*s, 8*s, furColor, s, true, 1005);
-                 drawFuzzyLimb(p.x + 12*s, p.y - 15*s, p.x + 15*s, p.y + 10*s, 8*s, furColor, s, true, 1006);
-                 // Front legs
-                 drawFuzzyLimb(p.x - 8*s, p.y - 15*s, p.x - 8*s, p.y + 10*s, 8*s, furColor, s, true, 1007);
-                 drawFuzzyLimb(p.x + 8*s, p.y - 15*s, p.x + 8*s, p.y + 10*s, 8*s, furColor, s, true, 1008);
-
-             } else if (stance === 3) {
-                 // SPRAWLED (Lying flat, legs out)
-                 headY = p.y - 10*s; // Head on ground
-                 // Body
-                 ctx.fillStyle = furColor;
-                 ctx.beginPath(); ctx.ellipse(p.x, p.y, 30*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
-                 // Legs splayed
-                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y + 10*s, 8*s, furColor, s, true, 1009);
-                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y + 10*s, 8*s, furColor, s, true, 1010);
-                 drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y - 10*s, 8*s, furColor, s, true, 1011);
-                 drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y - 10*s, 8*s, furColor, s, true, 1012);
+             if (typeof drawCatDecor === 'function') {
+                 drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing);
              }
-
-             // Head
-             drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
-
-             // Ears
-             ctx.fillStyle = earColor || furColor;
-             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x - 20*s, headY - 30*s); ctx.lineTo(p.x - 2*s, headY - 15*s); ctx.fill();
-             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 20*s, headY - 30*s); ctx.lineTo(p.x + 2*s, headY - 15*s); ctx.fill();
-
-             // Face
-             // Eyes
-             if (stance === 3 || stance === 1) { // Sleepy for Loaf/Sprawl
-                 ctx.strokeStyle = '#000'; ctx.lineWidth = 2*s;
-                 ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 5*s); ctx.lineTo(p.x - 2*s, headY - 5*s); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(p.x + 2*s, headY - 5*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.stroke();
-             } else {
-                 ctx.fillStyle = '#000';
-                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2.5*s, 0, Math.PI*2); ctx.fill();
-             }
-
-             // Mouth
-             if (isEating) {
-                 ctx.fillStyle = '#000';
-                 ctx.beginPath(); ctx.ellipse(p.x, headY + 5*s, 8*s, 4*s + mouthOpen, 0, 0, Math.PI*2); ctx.fill();
-                 ctx.fillStyle = '#FF69B4';
-                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s + mouthOpen, 4*s, 0, Math.PI*2); ctx.fill();
-             } else {
-                 ctx.fillStyle = '#000';
-                 ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 2*s, 0, Math.PI*2); ctx.fill();
-                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x-3*s, headY+8*s); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
-             }
-
-             // Whiskers
-             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
-             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
-             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
-             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
-             ctx.stroke();
-
-             // Accessories
-             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
-                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
-                 if (acc) {
-                     if (acc.type === 'glasses') {
-                         ctx.fillStyle = acc.color || '#000';
-                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
-                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
-                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
-                     }
-                     else if (acc.type === 'neck') {
-                         if (acc.id === 'acc_bowtie') {
-                             ctx.fillStyle = acc.color;
-                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
-                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
-                         } else if (acc.id === 'acc_scarf') {
-                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
-                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
-                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
-                         } else { // Chain
-                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
-                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
-                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
-                         }
-                     }
-                     else if (acc.type === 'hat') {
-                         if (acc.id === 'acc_crown') {
-                             ctx.fillStyle = acc.color;
-                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
-                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
-                         } else if (acc.id === 'acc_cowboy') {
-                             ctx.fillStyle = acc.color;
-                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
-                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
-                         } else if (acc.id === 'acc_tophat') {
-                             ctx.fillStyle = acc.color;
-                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
-                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
-                         } else if (acc.id === 'acc_cap') {
-                             ctx.fillStyle = acc.color;
-                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
-                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
-                         }
-                     }
-                     else if (acc.type === 'head') { // Flower
-                         ctx.fillStyle = acc.color;
-                         for(let k=0; k<5; k++) {
-                             const a = (k/5)*Math.PI*2;
-                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
-                         }
-                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-                     }
-                 }
-             }
-
-             // Tail (Wagging)
-             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
-             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
-             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
-             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
-             ctx.stroke();
         }
         else if (type === 'crowd') {
              const s = p.scale;
@@ -9314,7 +9165,13 @@ var BallRenderer = {
                 if (d.dist > cullDist) break;
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
-                    processDecor(d, g_catState.x, g_catState.y);
+                    processDecor(d, g_catState.x, g_catState.y, g_catState.z);
+                    if ((g_catState.z || 0) > 5) {
+                        const sProj = project(g_catState.x, g_catState.y, 0, g_camCache);
+                        if (sProj) {
+                            RenderEngine.Queue.add('cat_shadow', sProj.depth + 0.1, sProj.x, sProj.y, sProj.scale);
+                        }
+                    }
                 } else {
                     processDecor(d);
                 }
@@ -9336,7 +9193,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }
@@ -9357,7 +9214,7 @@ var BallRenderer = {
             if (typeof decors !== 'undefined') {
                 const cat = decors.find(d => d.zoneType === 'cat_hoop');
                 if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y);
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
                 }
             }
@@ -9664,3 +9521,276 @@ var BallRenderer = {
 
     // Expose
     window.drawEvolutionScreen = drawEvolutionScreen;
+    function drawCatFace(ctx, x, y, r, color, isSleeping) {
+        // Eyes
+        if (isSleeping) {
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x - r*0.4, y - r*0.1); ctx.lineTo(x - r*0.2, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + r*0.4, y - r*0.1); ctx.lineTo(x + r*0.2, y); ctx.stroke();
+        } else {
+            ctx.fillStyle = '#FFD700'; // Yellow eyes
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = '#FFC0CB';
+        ctx.beginPath(); ctx.moveTo(x - r*0.1, y + r*0.2); ctx.lineTo(x + r*0.1, y + r*0.2); ctx.lineTo(x, y + r*0.35); ctx.fill();
+
+        // Mouth
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x - r*0.1, y + r*0.45); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x + r*0.1, y + r*0.45); ctx.stroke();
+
+        // Whiskers
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.25); ctx.lineTo(x - r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.3); ctx.lineTo(x - r*0.8, y + r*0.3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.25); ctx.lineTo(x + r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.3); ctx.lineTo(x + r*0.8, y + r*0.3); ctx.stroke();
+    }
+
+    function drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing) {
+        const furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
+        const bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
+        const earColor = skinData ? skinData.earColor : null;
+
+        let headY = p.y - 38*s;
+        let headR = 18*s;
+        let isSleeping = false;
+
+        // --- DRAWING BASED ON STANCE ---
+
+        if (stance === 0) { // SITTING
+            headY = p.y - 45*s;
+            // Hind Legs (Thighs)
+            ctx.fillStyle = furColor;
+            drawFuzzyCircle(p.x - 18*s, p.y - 5*s, 14*s, furColor, 1000, s, true, true);
+            drawFuzzyCircle(p.x + 18*s, p.y - 5*s, 14*s, furColor, 1001, s, true, true);
+
+            // Body (Upright)
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fillStyle = furColor; ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 10*s, 18*s, 0, 0, Math.PI*2); ctx.fillStyle = bellyColor; ctx.fill();
+
+            // Front Legs (Columns)
+            drawFuzzyLimb(p.x - 8*s, p.y - 25*s, p.x - 8*s, p.y, 7*s, furColor, s, true, 1002);
+            drawFuzzyLimb(p.x + 8*s, p.y - 25*s, p.x + 8*s, p.y, 7*s, furColor, s, true, 1003);
+
+            // Paws
+            drawFuzzyCircle(p.x - 8*s, p.y, 5*s, '#FFF', 1004, s, true, true);
+            drawFuzzyCircle(p.x + 8*s, p.y, 5*s, '#FFF', 1005, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, '#FFF', 1006, s, true, true); // Hind paws peeking
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, '#FFF', 1007, s, true, true);
+
+            // Tail (Wrapped side)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 1) { // LOAF
+            headY = p.y - 25*s;
+            // Body (Boxy)
+            ctx.fillStyle = furColor;
+            // Main mass
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y);
+            ctx.quadraticCurveTo(p.x - 30*s, p.y - 20*s, p.x - 15*s, p.y - 25*s); // Rump
+            ctx.lineTo(p.x + 15*s, p.y - 25*s);
+            ctx.quadraticCurveTo(p.x + 30*s, p.y - 20*s, p.x + 25*s, p.y); // Chest
+            ctx.fill();
+
+            // Tucked Paws (Nubs)
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, furColor, 1010, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, furColor, 1011, s, true, true); // Haunches visible
+
+            // Tail (Tucked along side)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 5*s); ctx.quadraticCurveTo(p.x - 35*s, p.y, p.x - 20*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 2) { // STANDING
+            headY = p.y - 40*s;
+            // Body (Horizontal)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 25*s, 15*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Legs (Jointed)
+            // Back Left
+            drawFuzzyLimb(p.x - 15*s, p.y - 25*s, p.x - 20*s, p.y - 10*s, 8*s, furColor, s, true, 1020);
+            drawFuzzyLimb(p.x - 20*s, p.y - 10*s, p.x - 20*s, p.y + 5*s, 6*s, furColor, s, true, 1021);
+            // Back Right
+            drawFuzzyLimb(p.x + 15*s, p.y - 25*s, p.x + 20*s, p.y - 10*s, 8*s, furColor, s, true, 1022);
+            drawFuzzyLimb(p.x + 20*s, p.y - 10*s, p.x + 20*s, p.y + 5*s, 6*s, furColor, s, true, 1023);
+            // Front Left
+            drawFuzzyLimb(p.x - 10*s, p.y - 25*s, p.x - 10*s, p.y + 5*s, 7*s, furColor, s, true, 1024);
+            // Front Right
+            drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 10*s, p.y + 5*s, 7*s, furColor, s, true, 1025);
+
+            // Tail (Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s, p.y - 60*s); ctx.stroke();
+
+        } else if (stance === 3) { // SPRAWLED (Sploot)
+            headY = p.y - 10*s;
+            // Body (Flat)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 30*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs splayed out
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y + 10*s, 7*s, furColor, s, true, 1030); // BL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y + 10*s, 7*s, furColor, s, true, 1031); // BR
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y - 20*s, 7*s, furColor, s, true, 1032); // FL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y - 20*s, 7*s, furColor, s, true, 1033); // FR
+
+            // Tail (Flat)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 40*s); ctx.stroke();
+
+        } else if (stance === 4) { // SLEEPING
+            isSleeping = true;
+            headY = p.y - 10*s;
+            headR = 14*s;
+            // Body (Circle)
+            drawFuzzyCircle(p.x, p.y, 22*s, furColor, 1040, s, true, true);
+            // Tail Wrapped around face
+            ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 8*s;
+            ctx.arc(p.x, p.y, 24*s, 0, Math.PI*1.8); ctx.stroke();
+
+        } else if (stance === 5) { // BEGGING
+            headY = p.y - 55*s;
+            // Body (Tall)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 12*s, 28*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = bellyColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 8*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Hind Legs (Crouched base)
+            drawFuzzyCircle(p.x - 12*s, p.y, 8*s, furColor, 1050, s, true, true);
+            drawFuzzyCircle(p.x + 12*s, p.y, 8*s, furColor, 1051, s, true, true);
+            // Feet
+            drawFuzzyCircle(p.x - 15*s, p.y + 5*s, 4*s, '#FFF', 1052, s, true, true);
+            drawFuzzyCircle(p.x + 15*s, p.y + 5*s, 4*s, '#FFF', 1053, s, true, true);
+
+            // Front Paws (Dangling)
+            drawFuzzyLimb(p.x - 8*s, p.y - 45*s, p.x - 12*s, p.y - 35*s, 4*s, furColor, s, true, 1054);
+            drawFuzzyLimb(p.x + 8*s, p.y - 45*s, p.x + 12*s, p.y - 35*s, 4*s, furColor, s, true, 1055);
+
+        } else if (stance === 6) { // STRETCHING (Downward Dog)
+            headY = p.y; // Head low
+            // Body Slope
+            ctx.fillStyle = furColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - 30*s, p.y - 30*s); // Butt
+            ctx.lineTo(p.x + 20*s, p.y - 5*s); // Shoulders
+            ctx.lineTo(p.x + 20*s, p.y + 10*s);
+            ctx.lineTo(p.x - 30*s, p.y - 10*s); // Belly
+            ctx.fill();
+
+            // Hind Legs (Straightish)
+            drawFuzzyLimb(p.x - 30*s, p.y - 20*s, p.x - 35*s, p.y + 10*s, 6*s, furColor, s, true, 1060);
+            // Front Legs (Extended forward)
+            drawFuzzyLimb(p.x + 20*s, p.y, p.x + 40*s, p.y + 10*s, 6*s, furColor, s, true, 1061);
+
+            // Tail (Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 30*s); ctx.lineTo(p.x - 35*s, p.y - 50*s); ctx.stroke();
+
+            headY = p.y - 5*s;
+            p.x += 25*s; // Shift head anchor
+
+        } else if (stance === 7) { // ARCHED (Scared)
+            headY = p.y - 30*s;
+            // Arched Back
+            ctx.strokeStyle = furColor; ctx.lineWidth = 25*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(p.x, p.y + 20*s, 40*s, Math.PI * 1.25, Math.PI * 1.75); ctx.stroke();
+
+            // Legs (Stiff)
+            drawFuzzyLimb(p.x - 15*s, p.y, p.x - 20*s, p.y + 20*s, 5*s, furColor, s, true, 1070);
+            drawFuzzyLimb(p.x + 15*s, p.y, p.x + 20*s, p.y + 20*s, 5*s, furColor, s, true, 1071);
+
+            // Tail (Puffed Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 10*s; // Puffed
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y - 40*s); ctx.stroke();
+        }
+
+        // Draw Head
+        drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+        // Face Details
+        drawCatFace(ctx, p.x, headY + 2*s, headR, '#000', isSleeping);
+
+        // Ears
+        ctx.fillStyle = earColor || furColor;
+        ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 8*s); ctx.lineTo(p.x - 15*s, headY - 25*s); ctx.lineTo(p.x - 2*s, headY - 12*s); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(p.x + 8*s, headY - 8*s); ctx.lineTo(p.x + 15*s, headY - 25*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.fill();
+             // Whiskers
+             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
+             ctx.stroke();
+
+             // Accessories
+             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
+                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 if (acc) {
+                     if (acc.type === 'glasses') {
+                         ctx.fillStyle = acc.color || '#000';
+                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
+                     }
+                     else if (acc.type === 'neck') {
+                         if (acc.id === 'acc_bowtie') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
+                         } else if (acc.id === 'acc_scarf') {
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
+                         } else { // Chain
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
+                         }
+                     }
+                     else if (acc.type === 'hat') {
+                         if (acc.id === 'acc_crown') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
+                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
+                         } else if (acc.id === 'acc_cowboy') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
+                         } else if (acc.id === 'acc_tophat') {
+                             ctx.fillStyle = acc.color;
+                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
+                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
+                         } else if (acc.id === 'acc_cap') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
+                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
+                         }
+                     }
+                     else if (acc.type === 'head') { // Flower
+                         ctx.fillStyle = acc.color;
+                         for(let k=0; k<5; k++) {
+                             const a = (k/5)*Math.PI*2;
+                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
+                         }
+                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
+
+             // Tail (Wagging)
+             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
+             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
+             ctx.stroke();
+    }

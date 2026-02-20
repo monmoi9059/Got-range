@@ -1,7 +1,11 @@
 
-    const BASKET_CAT_MAX_EXP = 50; // Shots to evolve
     const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
     var evolutionData = { timer: 0, phase: 0 };
+
+    function getBasketCatMaxExp() {
+        // Base 50, increases by 50 per level (50, 100, 150...)
+        return 50 * ((playerData.basketCatSkinIndex || 0) + 1);
+    }
 
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
@@ -434,7 +438,9 @@
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
         playerData.basketCatExp++;
-        if (playerData.basketCatExp >= BASKET_CAT_MAX_EXP && state !== 'EVOLVING') {
+        const maxExp = getBasketCatMaxExp();
+
+        if (playerData.basketCatExp >= maxExp && state !== 'EVOLVING') {
             // Check if there are more skins to unlock
             if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
                 // Determine completion callback based on mode
@@ -447,7 +453,7 @@
                 evolutionTriggered = true;
             } else {
                 // Max level reached
-                playerData.basketCatExp = BASKET_CAT_MAX_EXP;
+                playerData.basketCatExp = maxExp;
             }
         }
 
@@ -713,11 +719,26 @@
                 }
 
                 if (targetIdx !== -1) {
-                    cat.state = 'MOVING';
                     cat.targetTacoIndex = targetIdx;
                     tacosOnGround[targetIdx].beingEaten = true; // Claim it
                     cat.targetX = tacosOnGround[targetIdx].x;
                     cat.targetY = tacosOnGround[targetIdx].y;
+
+                    const dx = cat.targetX - cat.x;
+                    const dy = cat.targetY - cat.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist > 60) {
+                        cat.state = 'POUNCING';
+                        // Deterministic Animation Setup
+                        cat.startX = cat.x;
+                        cat.startY = cat.y;
+                        cat.pounceTimer = 0;
+                        const pounceSpeed = 12.0;
+                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                    } else {
+                        cat.state = 'MOVING';
+                    }
                 } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
                     // Return home if no valid targets
                      cat.state = 'RETURNING';
@@ -729,6 +750,42 @@
                 cat.state = 'RETURNING';
                 cat.targetX = HOOP_POS.x;
                 cat.targetY = HOOP_POS.y + 10;
+            }
+        }
+        else if (cat.state === 'POUNCING') {
+            cat.pounceTimer += dt;
+            let t = cat.pounceTimer / cat.pounceDuration;
+
+            if (t >= 1.0) {
+                // Landed
+                t = 1.0;
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.z = 0;
+
+                cat.state = 'EATING';
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
+
+                // Impact dust
+                particles.push({
+                    x: cat.x, y: cat.y, z: 0,
+                    vx: 0, vy: 0, vz: 2,
+                    life: 20, maxLife: 20,
+                    scale: 1.0, alpha: 0.5,
+                    type: 'smoke'
+                });
+            } else {
+                // Interpolate
+                // Ease out? Linear is fine for horizontal, parabolic for Z
+                cat.x = cat.startX + (cat.targetX - cat.startX) * t;
+                cat.y = cat.startY + (cat.targetY - cat.startY) * t;
+
+                // Parabolic Arc: 4 * h * t * (1-t)
+                const peakHeight = 150;
+                cat.z = 4 * peakHeight * t * (1 - t);
             }
         }
         else if (cat.state === 'MOVING') {
