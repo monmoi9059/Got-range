@@ -513,7 +513,6 @@
         { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 500, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'anchor_man_80s', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
         { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#FFA500' },
         { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000', hairStyle: 'shaggy_top', hairColor: '#000' },
-        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'slicked_back', hairColor: '#333', shoesColor: '#FFA500' },
 
     ];
 
