@@ -1522,6 +1522,7 @@
             SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
             HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
             CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
+            CAT_ACCESSORIES_DB.forEach(a => { if(!playerData.unlockedCatAccessories.includes(a.id)) playerData.unlockedCatAccessories.push(a.id); });
 
             // Max Stats
             playerData.purchasedStats.income = 5; playerData.stats.income = 5;
@@ -1840,6 +1841,33 @@
         invalidateBackgroundCache(); // Force redraw for cat update
         saveContext(getShopContext());
     }
+    window.changeCatAccessory = function(dir) {
+        loadContext(getShopContext());
+        viewingCatAccessoryIndex += dir;
+        if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.length - 1;
+        if(viewingCatAccessoryIndex >= CAT_ACCESSORIES_DB.length) viewingCatAccessoryIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatAccessory = function() {
+        loadContext(getShopContext());
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlocked = playerData.unlockedCatAccessories.includes(acc.id);
+        if (isUnlocked) {
+            playerData.currentCatAccessory = acc.id;
+        }
+        else if (playerData.tacos >= acc.cost) {
+            playerData.tacos -= acc.cost;
+            playerData.unlockedCatAccessories.push(acc.id);
+            playerData.currentCatAccessory = acc.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -1955,6 +1983,12 @@
             if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
         }
 
+        // Cat Accessory
+        if(playerData.currentCatAccessory) {
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
+            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+        }
+
         // Style
         if(playerData.currentStyle) {
             viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
@@ -2014,17 +2048,25 @@
 
     window.resetCatSize = function() {
         loadContext(getShopContext());
-        if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
-        playerData.customSkinSettings.height = 1.0;
-        playerData.customSkinSettings.width = 1.0;
 
-        const sldH = document.getElementById('sldCustomHeight');
-        const sldW = document.getElementById('sldCustomWidth');
-        if(sldH) { sldH.value = 1.0; document.getElementById('lblCustomHeight').innerText = "100%"; }
-        if(sldW) { sldW.value = 1.0; document.getElementById('lblCustomWidth').innerText = "100%"; }
+        // Reset Cat Growth
+        if(playerData.lifetimeStats) {
+             const makes = playerData.lifetimeStats.makes || 0;
+             const misses = playerData.lifetimeStats.misses || 0;
+             const net = Math.max(0, makes - misses);
+             playerData.catScaleResetOffset = net;
+        }
 
         saveData();
         saveContext(getShopContext());
+
+        // Provide visual feedback
+        const btn = document.getElementById('btnResetCatSize');
+        if(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "TAILLE RÉINITIALISÉE !";
+            setTimeout(() => { btn.innerText = originalText; }, 2000);
+        }
     }
 
     window.toggleHandedness = function() {
@@ -2401,6 +2443,20 @@
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
         else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
+
+        // Cat Accessory UI
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        document.getElementById('catAccName').innerText = acc.name;
+        const btnAcc = document.getElementById('btnEquipCatAcc');
+        const statusAcc = document.getElementById('catAccStatus');
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlockedAcc = playerData.unlockedCatAccessories.includes(acc.id);
+        const isEquippedAcc = playerData.currentCatAccessory === acc.id;
+
+        if (isEquippedAcc) { statusAcc.innerText = "Équipé"; btnAcc.style.display = 'none'; }
+        else if (isUnlockedAcc) { statusAcc.innerText = "Possédé"; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Équiper"; btnAcc.disabled = false; }
+        else { statusAcc.innerText = `Coût: ${acc.cost} Tacos`; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Acheter"; btnAcc.disabled = playerData.tacos < acc.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];

@@ -962,6 +962,11 @@
                 <div id="catStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
                 <button id="btnEquipCat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatSkin()">Équiper</button>
 
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">ACCESSOIRES CHAT</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeCatAccessory(-1)">&lt;</button><span id="catAccName" class="selector-label">Aucun</span><button class="btn" onclick="changeCatAccessory(1)">&gt;</button></div>
+                <div id="catAccStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipCatAcc" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatAccessory()">Équiper</button>
+
                 <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
                 <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
                 <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
@@ -2150,6 +2155,19 @@ for(var k=0; k<12; k++) {
         { id: 'cat_void', name: 'Néant', cost: 5000, furColor: '#000', bellyColor: '#000' }
     ];
 
+    var CAT_ACCESSORIES_DB = [
+        { id: 'acc_none', name: 'Aucun', cost: 0, type: 'none' },
+        { id: 'acc_sunglasses', name: 'Lunettes Soleil', cost: 500, type: 'glasses', color: '#000' },
+        { id: 'acc_bowtie', name: 'Nœud Papillon', cost: 750, type: 'neck', color: '#FF0000' },
+        { id: 'acc_crown', name: 'Couronne', cost: 5000, type: 'hat', color: '#FFD700' },
+        { id: 'acc_cowboy', name: 'Chapeau Cowboy', cost: 2000, type: 'hat', color: '#8B4513' },
+        { id: 'acc_tophat', name: 'Haut-de-forme', cost: 2500, type: 'hat', color: '#111' },
+        { id: 'acc_cap', name: 'Casquette', cost: 1000, type: 'hat', color: '#0047AB' },
+        { id: 'acc_chain', name: 'Chaîne Or', cost: 3000, type: 'neck', color: '#FFD700' },
+        { id: 'acc_scarf', name: 'Écharpe', cost: 1500, type: 'neck', color: '#008000' },
+        { id: 'acc_flower', name: 'Fleur', cost: 1000, type: 'head', color: '#FF69B4' }
+    ];
+
     var BALLS_DB = [
         { id: 'ball_classic', name: 'Classique', cost: 0, type: 'basketball', color1: '#ff6600', color2: '#cc5500', texture: 'leather' },
         { id: 'ball_aba', name: 'ABA', cost: 1000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'leather' },
@@ -3287,6 +3305,7 @@ for(var k=0; k<12; k++) {
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
     let viewingCatSkinIndex = 0;
+    let viewingCatAccessoryIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -3339,6 +3358,7 @@ let lastDisplayedContestTime = -1;
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
+            currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -3403,6 +3423,9 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
     if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
     if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
+    if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+    if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
+    if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
@@ -3734,7 +3757,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0, catAcc: 0 } // UI state
         };
     }
 
@@ -3787,7 +3810,8 @@ let lastDisplayedContestTime = -1;
             hat: viewingHatIndex,
             shoe: viewingShoeIndex,
             ball: viewingBallIndex,
-            style: viewingStyleIndex
+            style: viewingStyleIndex,
+            catAcc: viewingCatAccessoryIndex
         };
     }
 
@@ -3837,6 +3861,7 @@ let lastDisplayedContestTime = -1;
             viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
+            viewingCatAccessoryIndex = ctxObj.viewingIndices.catAcc || 0;
         }
 
         // Ensure globals that might be undefined are safe
@@ -7520,7 +7545,11 @@ var BallRenderer = {
              // Calculate Age/Size based on Net Score (Dynamic Growth/Loss)
              const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
              const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
-             const netScore = Math.max(0, makes - misses);
+             let netScore = Math.max(0, makes - misses);
+
+             if (playerData.catScaleResetOffset) {
+                 netScore = Math.max(0, netScore - playerData.catScaleResetOffset);
+             }
 
              // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
              let ageScale = 0.25 + (netScore * 0.001);
@@ -7585,15 +7614,29 @@ var BallRenderer = {
              p.y += bounce;
 
              // Body (Sitting)
+             // Hind Legs (Haunches) - Behind body
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
+
+             // Hind Paws
+             drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true); // Left Hind
+             drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true); // Right Hind
+             // Toe beans for hind paws
+             ctx.fillStyle = '#FFC0CB'; // Pink
+             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x - 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
+             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x + 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
+
+             // Main Body
              ctx.fillStyle = furColor;
              // Fat belly
-             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
-             // Chest
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+             // Chest patch
              ctx.fillStyle = bellyColor;
              ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
 
              // Head
-             const headY = p.y - 35*s;
+             const headY = p.y - 38*s;
              const headR = 18*s;
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
@@ -7628,7 +7671,7 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
              }
 
-             // Paws (For Passing Animation)
+             // Paws (Front)
              // Default Position: Chest
              let pawLX = p.x - 10*s;
              let pawRX = p.x + 10*s;
@@ -7647,6 +7690,15 @@ var BallRenderer = {
              drawFuzzyCircle(pawLX, pawY, pawR, furColor, 1001, s, true, true);
              drawFuzzyCircle(pawRX, pawY, pawR, furColor, 1002, s, true, true);
 
+             // Toe Beans (Front) - Visible if pushing or eating
+             if (isPassing || isEating) {
+                  ctx.fillStyle = '#FFC0CB';
+                  for(let k=-1; k<=1; k++) {
+                      ctx.beginPath(); ctx.arc(pawLX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                      ctx.beginPath(); ctx.arc(pawRX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                  }
+             }
+
              // Whiskers
              ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
              ctx.beginPath();
@@ -7655,6 +7707,61 @@ var BallRenderer = {
              ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
              ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
              ctx.stroke();
+
+             // Accessories
+             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
+                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 if (acc) {
+                     if (acc.type === 'glasses') {
+                         ctx.fillStyle = acc.color || '#000';
+                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
+                     }
+                     else if (acc.type === 'neck') {
+                         if (acc.id === 'acc_bowtie') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
+                         } else if (acc.id === 'acc_scarf') {
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
+                         } else { // Chain
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
+                         }
+                     }
+                     else if (acc.type === 'hat') {
+                         if (acc.id === 'acc_crown') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
+                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
+                         } else if (acc.id === 'acc_cowboy') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
+                         } else if (acc.id === 'acc_tophat') {
+                             ctx.fillStyle = acc.color;
+                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
+                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
+                         } else if (acc.id === 'acc_cap') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
+                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
+                         }
+                     }
+                     else if (acc.type === 'head') { // Flower
+                         ctx.fillStyle = acc.color;
+                         for(let k=0; k<5; k++) {
+                             const a = (k/5)*Math.PI*2;
+                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
+                         }
+                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
 
              // Tail (Wagging)
              const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
@@ -15387,6 +15494,7 @@ var BallRenderer = {
             SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
             HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
             CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
+            CAT_ACCESSORIES_DB.forEach(a => { if(!playerData.unlockedCatAccessories.includes(a.id)) playerData.unlockedCatAccessories.push(a.id); });
 
             // Max Stats
             playerData.purchasedStats.income = 5; playerData.stats.income = 5;
@@ -15705,6 +15813,33 @@ var BallRenderer = {
         invalidateBackgroundCache(); // Force redraw for cat update
         saveContext(getShopContext());
     }
+    window.changeCatAccessory = function(dir) {
+        loadContext(getShopContext());
+        viewingCatAccessoryIndex += dir;
+        if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.length - 1;
+        if(viewingCatAccessoryIndex >= CAT_ACCESSORIES_DB.length) viewingCatAccessoryIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatAccessory = function() {
+        loadContext(getShopContext());
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlocked = playerData.unlockedCatAccessories.includes(acc.id);
+        if (isUnlocked) {
+            playerData.currentCatAccessory = acc.id;
+        }
+        else if (playerData.tacos >= acc.cost) {
+            playerData.tacos -= acc.cost;
+            playerData.unlockedCatAccessories.push(acc.id);
+            playerData.currentCatAccessory = acc.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -15820,6 +15955,12 @@ var BallRenderer = {
             if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
         }
 
+        // Cat Accessory
+        if(playerData.currentCatAccessory) {
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
+            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+        }
+
         // Style
         if(playerData.currentStyle) {
             viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
@@ -15879,17 +16020,25 @@ var BallRenderer = {
 
     window.resetCatSize = function() {
         loadContext(getShopContext());
-        if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
-        playerData.customSkinSettings.height = 1.0;
-        playerData.customSkinSettings.width = 1.0;
 
-        const sldH = document.getElementById('sldCustomHeight');
-        const sldW = document.getElementById('sldCustomWidth');
-        if(sldH) { sldH.value = 1.0; document.getElementById('lblCustomHeight').innerText = "100%"; }
-        if(sldW) { sldW.value = 1.0; document.getElementById('lblCustomWidth').innerText = "100%"; }
+        // Reset Cat Growth
+        if(playerData.lifetimeStats) {
+             const makes = playerData.lifetimeStats.makes || 0;
+             const misses = playerData.lifetimeStats.misses || 0;
+             const net = Math.max(0, makes - misses);
+             playerData.catScaleResetOffset = net;
+        }
 
         saveData();
         saveContext(getShopContext());
+
+        // Provide visual feedback
+        const btn = document.getElementById('btnResetCatSize');
+        if(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "TAILLE RÉINITIALISÉE !";
+            setTimeout(() => { btn.innerText = originalText; }, 2000);
+        }
     }
 
     window.toggleHandedness = function() {
@@ -16266,6 +16415,20 @@ var BallRenderer = {
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
         else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
+
+        // Cat Accessory UI
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        document.getElementById('catAccName').innerText = acc.name;
+        const btnAcc = document.getElementById('btnEquipCatAcc');
+        const statusAcc = document.getElementById('catAccStatus');
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlockedAcc = playerData.unlockedCatAccessories.includes(acc.id);
+        const isEquippedAcc = playerData.currentCatAccessory === acc.id;
+
+        if (isEquippedAcc) { statusAcc.innerText = "Équipé"; btnAcc.style.display = 'none'; }
+        else if (isUnlockedAcc) { statusAcc.innerText = "Possédé"; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Équiper"; btnAcc.disabled = false; }
+        else { statusAcc.innerText = `Coût: ${acc.cost} Tacos`; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Acheter"; btnAcc.disabled = playerData.tacos < acc.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];

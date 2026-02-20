@@ -289,6 +289,7 @@
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
     let viewingCatSkinIndex = 0;
+    let viewingCatAccessoryIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -341,6 +342,7 @@ let lastDisplayedContestTime = -1;
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
+            currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
             unlockedHats: ['hat_none'], currentHat: 'hat_none',
             unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
@@ -405,6 +407,9 @@ let lastDisplayedContestTime = -1;
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
     if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
     if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
+    if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+    if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
+    if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
 
     // Migrate old hair settings if present
     if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
@@ -736,7 +741,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0, catAcc: 0 } // UI state
         };
     }
 
@@ -789,7 +794,8 @@ let lastDisplayedContestTime = -1;
             hat: viewingHatIndex,
             shoe: viewingShoeIndex,
             ball: viewingBallIndex,
-            style: viewingStyleIndex
+            style: viewingStyleIndex,
+            catAcc: viewingCatAccessoryIndex
         };
     }
 
@@ -839,6 +845,7 @@ let lastDisplayedContestTime = -1;
             viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
+            viewingCatAccessoryIndex = ctxObj.viewingIndices.catAcc || 0;
         }
 
         // Ensure globals that might be undefined are safe
