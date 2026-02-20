@@ -3490,7 +3490,12 @@ var BallRenderer = {
              const progress = Math.min(1.0, exp / maxExp);
 
              // Scale from 0.25 to 1.25 (Reduced from 2.0)
-             const ageScale = 0.25 + (progress * 1.0);
+             let ageScale = 0.25 + (progress * 1.0);
+
+             // Override Size if Locked
+             if (playerData.catSizeLocked && playerData.catSizeValue !== undefined) {
+                 ageScale = parseFloat(playerData.catSizeValue);
+             }
 
              const s = p.scale * ageScale;
 
@@ -3512,6 +3517,11 @@ var BallRenderer = {
              };
              if (stanceMap.hasOwnProperty(sVal)) stance = stanceMap[sVal];
              else stance = 0;
+
+             // Override Stance
+             if (playerData.catStanceOverride && playerData.catStanceOverride !== 'default' && CAT_STANCES[playerData.catStanceOverride] !== undefined) {
+                 stance = CAT_STANCES[playerData.catStanceOverride];
+             }
 
              let isEating = false;
              let isPassing = false;

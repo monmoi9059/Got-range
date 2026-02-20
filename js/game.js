@@ -2214,6 +2214,35 @@
         }
     }
 
+    window.changeCatStance = function() {
+        loadContext(getShopContext());
+        const val = document.getElementById('selCatStance').value;
+        playerData.catStanceOverride = val;
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.toggleCatSizeLock = function() {
+        loadContext(getShopContext());
+        const locked = document.getElementById('chkCatSizeLock').checked;
+        playerData.catSizeLocked = locked;
+        updateShopUI(); // Refresh UI to toggle slider visibility
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.updateCatSize = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCatSize').value);
+        playerData.catSizeValue = val;
+        document.getElementById('lblCatSize').innerText = val.toFixed(1) + "x";
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
     window.toggleHandedness = function() {
         loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
@@ -2589,6 +2618,41 @@
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
         else { statusCat.innerText = "Débloquer via Évolution"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Verrouillé"; btnCat.disabled = true; }
+
+        // Cat Stance & Size UI
+        const selStance = document.getElementById('selCatStance');
+        if (selStance && selStance.options.length <= 1) {
+            // Populate if empty (CAT_STANCES defined in data.js)
+            if (typeof CAT_STANCES !== 'undefined') {
+                for (const [key, val] of Object.entries(CAT_STANCES)) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    // Format name: 'sitting_chair' -> 'Sitting Chair'
+                    opt.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    selStance.appendChild(opt);
+                }
+            }
+        }
+        if (selStance) selStance.value = playerData.catStanceOverride || 'default';
+
+        const chkLock = document.getElementById('chkCatSizeLock');
+        const sldSize = document.getElementById('sldCatSize');
+        const lblSize = document.getElementById('lblCatSize');
+        const sizeCtrl = document.getElementById('catSizeControl');
+
+        if (chkLock) chkLock.checked = !!playerData.catSizeLocked;
+        if (sldSize) sldSize.value = playerData.catSizeValue || 1.0;
+        if (lblSize) lblSize.innerText = (playerData.catSizeValue || 1.0).toFixed(1) + "x";
+
+        if (sizeCtrl) {
+            if (playerData.catSizeLocked) {
+                sizeCtrl.style.opacity = '1.0';
+                sizeCtrl.style.pointerEvents = 'auto';
+            } else {
+                sizeCtrl.style.opacity = '0.5';
+                sizeCtrl.style.pointerEvents = 'none';
+            }
+        }
 
         // Cat Accessory UI
         const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
