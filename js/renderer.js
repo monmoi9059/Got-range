@@ -3491,13 +3491,17 @@ var BallRenderer = {
              let skinData = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[skinIdx] : null;
              if (!skinData && typeof CAT_SKINS_DB !== 'undefined') skinData = CAT_SKINS_DB[0];
 
-             let furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
-             let bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
-             let earColor = skinData ? skinData.earColor : null;
-
-             // Stance Logic (Cycle through 4 poses)
-             // 0: Sitting, 1: Loaf, 2: Standing, 3: Sprawled
-             const stance = skinIdx % 4;
+             // Stance Logic
+             let stance = 0; // Default Sitting
+             const sVal = skinData ? skinData.stance : 'sitting';
+             if (sVal === 'loaf') stance = 1;
+             else if (sVal === 'standing') stance = 2;
+             else if (sVal === 'sprawled') stance = 3;
+             else if (sVal === 'sleeping') stance = 4;
+             else if (sVal === 'begging') stance = 5;
+             else if (sVal === 'stretching') stance = 6;
+             else if (sVal === 'arched') stance = 7;
+             else stance = 0;
 
              let isEating = false;
              let isPassing = false;
@@ -3588,6 +3592,65 @@ var BallRenderer = {
                  drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y + 10*s, 8*s, furColor, s, true, 1010);
                  drawFuzzyLimb(p.x - 10*s, p.y, p.x - 30*s, p.y - 10*s, 8*s, furColor, s, true, 1011);
                  drawFuzzyLimb(p.x + 10*s, p.y, p.x + 30*s, p.y - 10*s, 8*s, furColor, s, true, 1012);
+
+             } else if (stance === 4) {
+                 // SLEEPING (Curled)
+                 headY = p.y - 15*s;
+                 headR = 15*s; // Slightly smaller head look
+                 // Body (Circle)
+                 drawFuzzyCircle(p.x, p.y, 20*s, furColor, 1020, s, true, true);
+                 // Tail Wrapped
+                 ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+                 ctx.arc(p.x, p.y, 22*s, 0, Math.PI*1.5); ctx.stroke();
+
+             } else if (stance === 5) {
+                 // BEGGING (Meerkat)
+                 headY = p.y - 50*s;
+                 // Body (Vertical)
+                 ctx.fillStyle = furColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 14*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = bellyColor;
+                 ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 8*s, 18*s, 0, 0, Math.PI*2); ctx.fill();
+                 // Hind Paws
+                 drawFuzzyCircle(p.x - 12*s, p.y + 5*s, 6*s, furColor, 1030, s, true, true);
+                 drawFuzzyCircle(p.x + 12*s, p.y + 5*s, 6*s, furColor, 1031, s, true, true);
+                 // Front Paws (Held up)
+                 drawFuzzyCircle(p.x - 6*s, p.y - 30*s, 5*s, furColor, 1032, s, true, true);
+                 drawFuzzyCircle(p.x + 6*s, p.y - 30*s, 5*s, furColor, 1033, s, true, true);
+
+             } else if (stance === 6) {
+                 // STRETCHING (Yoga)
+                 headY = p.y - 5*s; // Head low
+                 // Body (Elongated)
+                 ctx.fillStyle = furColor;
+                 // Butt High (Left) -> Head Low (Right) or vice versa. Let's do Butt Left.
+                 // Butt: (-30, -20), Shoulders: (10, 0)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - 30*s, p.y - 25*s); // Top Butt
+                 ctx.quadraticCurveTo(p.x, p.y - 5*s, p.x + 20*s, p.y - 5*s); // Top Back
+                 ctx.lineTo(p.x + 20*s, p.y + 5*s); // Bottom Neck
+                 ctx.lineTo(p.x - 30*s, p.y - 5*s); // Bottom Belly
+                 ctx.fill();
+
+                 // Legs
+                 drawFuzzyLimb(p.x - 30*s, p.y - 15*s, p.x - 35*s, p.y + 10*s, 7*s, furColor, s, true, 1040); // Hind
+                 drawFuzzyLimb(p.x + 20*s, p.y, p.x + 35*s, p.y + 10*s, 7*s, furColor, s, true, 1041); // Front
+
+                 headY = p.y - 5*s;
+                 p.x += 25*s; // Shift head anchor right
+
+             } else if (stance === 7) {
+                 // ARCHED (Spooky)
+                 headY = p.y - 25*s;
+                 // Arched Body
+                 ctx.strokeStyle = furColor; ctx.lineWidth = 20*s;
+                 ctx.lineCap = 'round';
+                 ctx.beginPath();
+                 ctx.arc(p.x, p.y + 15*s, 30*s, Math.PI * 1.2, Math.PI * 1.8);
+                 ctx.stroke();
+                 // Legs (Straight down)
+                 drawFuzzyLimb(p.x - 15*s, p.y, p.x - 15*s, p.y + 20*s, 6*s, furColor, s, true, 1050);
+                 drawFuzzyLimb(p.x + 15*s, p.y, p.x + 15*s, p.y + 20*s, 6*s, furColor, s, true, 1051);
              }
 
              // Head
@@ -9664,3 +9727,206 @@ var BallRenderer = {
 
     // Expose
     window.drawEvolutionScreen = drawEvolutionScreen;
+    function drawCatFace(ctx, x, y, r, color, isSleeping) {
+        // Eyes
+        if (isSleeping) {
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x - r*0.4, y - r*0.1); ctx.lineTo(x - r*0.2, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + r*0.4, y - r*0.1); ctx.lineTo(x + r*0.2, y); ctx.stroke();
+        } else {
+            ctx.fillStyle = '#FFD700'; // Yellow eyes
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = '#FFC0CB';
+        ctx.beginPath(); ctx.moveTo(x - r*0.1, y + r*0.2); ctx.lineTo(x + r*0.1, y + r*0.2); ctx.lineTo(x, y + r*0.35); ctx.fill();
+
+        // Mouth
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x - r*0.1, y + r*0.45); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x + r*0.1, y + r*0.45); ctx.stroke();
+
+        // Whiskers
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.25); ctx.lineTo(x - r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.3); ctx.lineTo(x - r*0.8, y + r*0.3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.25); ctx.lineTo(x + r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.3); ctx.lineTo(x + r*0.8, y + r*0.3); ctx.stroke();
+    }
+
+    function drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing) {
+        const furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
+        const bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
+        const earColor = skinData ? skinData.earColor : null;
+
+        let headY = p.y - 38*s;
+        let headR = 18*s;
+        let isSleeping = false;
+
+        // --- DRAWING BASED ON STANCE ---
+
+        if (stance === 0) { // SITTING
+            headY = p.y - 45*s;
+            // Hind Legs (Thighs)
+            ctx.fillStyle = furColor;
+            drawFuzzyCircle(p.x - 18*s, p.y - 5*s, 14*s, furColor, 1000, s, true, true);
+            drawFuzzyCircle(p.x + 18*s, p.y - 5*s, 14*s, furColor, 1001, s, true, true);
+
+            // Body (Upright)
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fillStyle = furColor; ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 10*s, 18*s, 0, 0, Math.PI*2); ctx.fillStyle = bellyColor; ctx.fill();
+
+            // Front Legs (Columns)
+            drawFuzzyLimb(p.x - 8*s, p.y - 25*s, p.x - 8*s, p.y, 7*s, furColor, s, true, 1002);
+            drawFuzzyLimb(p.x + 8*s, p.y - 25*s, p.x + 8*s, p.y, 7*s, furColor, s, true, 1003);
+
+            // Paws
+            drawFuzzyCircle(p.x - 8*s, p.y, 5*s, '#FFF', 1004, s, true, true);
+            drawFuzzyCircle(p.x + 8*s, p.y, 5*s, '#FFF', 1005, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, '#FFF', 1006, s, true, true); // Hind paws peeking
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, '#FFF', 1007, s, true, true);
+
+            // Tail (Wrapped side)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 1) { // LOAF
+            headY = p.y - 25*s;
+            // Body (Boxy)
+            ctx.fillStyle = furColor;
+            // Main mass
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y);
+            ctx.quadraticCurveTo(p.x - 30*s, p.y - 20*s, p.x - 15*s, p.y - 25*s); // Rump
+            ctx.lineTo(p.x + 15*s, p.y - 25*s);
+            ctx.quadraticCurveTo(p.x + 30*s, p.y - 20*s, p.x + 25*s, p.y); // Chest
+            ctx.fill();
+
+            // Tucked Paws (Nubs)
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, furColor, 1010, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, furColor, 1011, s, true, true); // Haunches visible
+
+            // Tail (Tucked along side)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 5*s); ctx.quadraticCurveTo(p.x - 35*s, p.y, p.x - 20*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 2) { // STANDING
+            headY = p.y - 40*s;
+            // Body (Horizontal)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 25*s, 15*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Legs (Jointed)
+            // Back Left
+            drawFuzzyLimb(p.x - 15*s, p.y - 25*s, p.x - 20*s, p.y - 10*s, 8*s, furColor, s, true, 1020);
+            drawFuzzyLimb(p.x - 20*s, p.y - 10*s, p.x - 20*s, p.y + 5*s, 6*s, furColor, s, true, 1021);
+            // Back Right
+            drawFuzzyLimb(p.x + 15*s, p.y - 25*s, p.x + 20*s, p.y - 10*s, 8*s, furColor, s, true, 1022);
+            drawFuzzyLimb(p.x + 20*s, p.y - 10*s, p.x + 20*s, p.y + 5*s, 6*s, furColor, s, true, 1023);
+            // Front Left
+            drawFuzzyLimb(p.x - 10*s, p.y - 25*s, p.x - 10*s, p.y + 5*s, 7*s, furColor, s, true, 1024);
+            // Front Right
+            drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 10*s, p.y + 5*s, 7*s, furColor, s, true, 1025);
+
+            // Tail (Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s, p.y - 60*s); ctx.stroke();
+
+        } else if (stance === 3) { // SPRAWLED (Sploot)
+            headY = p.y - 10*s;
+            // Body (Flat)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 30*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs splayed out
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y + 10*s, 7*s, furColor, s, true, 1030); // BL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y + 10*s, 7*s, furColor, s, true, 1031); // BR
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y - 20*s, 7*s, furColor, s, true, 1032); // FL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y - 20*s, 7*s, furColor, s, true, 1033); // FR
+
+            // Tail (Flat)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 40*s); ctx.stroke();
+
+        } else if (stance === 4) { // SLEEPING
+            isSleeping = true;
+            headY = p.y - 10*s;
+            headR = 14*s;
+            // Body (Circle)
+            drawFuzzyCircle(p.x, p.y, 22*s, furColor, 1040, s, true, true);
+            // Tail Wrapped around face
+            ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 8*s;
+            ctx.arc(p.x, p.y, 24*s, 0, Math.PI*1.8); ctx.stroke();
+
+        } else if (stance === 5) { // BEGGING
+            headY = p.y - 55*s;
+            // Body (Tall)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 12*s, 28*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = bellyColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 8*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Hind Legs (Crouched base)
+            drawFuzzyCircle(p.x - 12*s, p.y, 8*s, furColor, 1050, s, true, true);
+            drawFuzzyCircle(p.x + 12*s, p.y, 8*s, furColor, 1051, s, true, true);
+            // Feet
+            drawFuzzyCircle(p.x - 15*s, p.y + 5*s, 4*s, '#FFF', 1052, s, true, true);
+            drawFuzzyCircle(p.x + 15*s, p.y + 5*s, 4*s, '#FFF', 1053, s, true, true);
+
+            // Front Paws (Dangling)
+            drawFuzzyLimb(p.x - 8*s, p.y - 45*s, p.x - 12*s, p.y - 35*s, 4*s, furColor, s, true, 1054);
+            drawFuzzyLimb(p.x + 8*s, p.y - 45*s, p.x + 12*s, p.y - 35*s, 4*s, furColor, s, true, 1055);
+
+        } else if (stance === 6) { // STRETCHING (Downward Dog)
+            headY = p.y; // Head low
+            // Body Slope
+            ctx.fillStyle = furColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - 30*s, p.y - 30*s); // Butt
+            ctx.lineTo(p.x + 20*s, p.y - 5*s); // Shoulders
+            ctx.lineTo(p.x + 20*s, p.y + 10*s);
+            ctx.lineTo(p.x - 30*s, p.y - 10*s); // Belly
+            ctx.fill();
+
+            // Hind Legs (Straightish)
+            drawFuzzyLimb(p.x - 30*s, p.y - 20*s, p.x - 35*s, p.y + 10*s, 6*s, furColor, s, true, 1060);
+            // Front Legs (Extended forward)
+            drawFuzzyLimb(p.x + 20*s, p.y, p.x + 40*s, p.y + 10*s, 6*s, furColor, s, true, 1061);
+
+            // Tail (Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 30*s); ctx.lineTo(p.x - 35*s, p.y - 50*s); ctx.stroke();
+
+            headY = p.y - 5*s;
+            p.x += 25*s; // Shift head anchor
+
+        } else if (stance === 7) { // ARCHED (Scared)
+            headY = p.y - 30*s;
+            // Arched Back
+            ctx.strokeStyle = furColor; ctx.lineWidth = 25*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(p.x, p.y + 20*s, 40*s, Math.PI * 1.25, Math.PI * 1.75); ctx.stroke();
+
+            // Legs (Stiff)
+            drawFuzzyLimb(p.x - 15*s, p.y, p.x - 20*s, p.y + 20*s, 5*s, furColor, s, true, 1070);
+            drawFuzzyLimb(p.x + 15*s, p.y, p.x + 20*s, p.y + 20*s, 5*s, furColor, s, true, 1071);
+
+            // Tail (Puffed Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 10*s; // Puffed
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y - 40*s); ctx.stroke();
+        }
+
+        // Draw Head
+        drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+        // Face Details
+        drawCatFace(ctx, p.x, headY + 2*s, headR, '#000', isSleeping);
+
+        // Ears
+        ctx.fillStyle = earColor || furColor;
+        ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 8*s); ctx.lineTo(p.x - 15*s, headY - 25*s); ctx.lineTo(p.x - 2*s, headY - 12*s); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(p.x + 8*s, headY - 8*s); ctx.lineTo(p.x + 15*s, headY - 25*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.fill();
+    }
