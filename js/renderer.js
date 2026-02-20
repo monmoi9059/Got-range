@@ -2023,11 +2023,11 @@ var BallRenderer = {
 
         // Upper Arm Shading (Top to Bottom: p1R -> p1L)
         const grad1 = ctx.createLinearGradient(p1R.x, p1R.y, p1L.x, p1L.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.5)'); // Top Occlusion
-        grad1.addColorStop(0.15, 'rgba(255,255,255,0.2)'); // Highlight
-        grad1.addColorStop(0.4, 'rgba(0,0,0,0)'); // Mid
-        grad1.addColorStop(0.75, 'rgba(0,0,0,0.3)'); // Shadow
-        grad1.addColorStop(1, 'rgba(0,0,0,0.5)'); // Bounce
+        grad1.addColorStop(0, 'rgba(0,0,0,0.3)'); // Top Edge
+        grad1.addColorStop(0.2, 'rgba(255,255,255,0.1)'); // Soft Highlight
+        grad1.addColorStop(0.5, 'rgba(0,0,0,0)'); // Mid
+        grad1.addColorStop(0.85, 'rgba(0,0,0,0.15)'); // Soft Shadow
+        grad1.addColorStop(1, 'rgba(0,0,0,0.3)'); // Bottom Edge
         ctx.fillStyle = grad1;
 
         // Draw rect covering upper segment (slightly oversized to cover joint)
@@ -2037,11 +2037,11 @@ var BallRenderer = {
 
         // Forearm Shading
         const grad2 = ctx.createLinearGradient(p2R_out.x, p2R_out.y, p2L_out.x, p2L_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.5)');
-        grad2.addColorStop(0.15, 'rgba(255,255,255,0.2)');
-        grad2.addColorStop(0.4, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.75, 'rgba(0,0,0,0.3)');
-        grad2.addColorStop(1, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(0, 'rgba(0,0,0,0.3)');
+        grad2.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+        grad2.addColorStop(0.5, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.85, 'rgba(0,0,0,0.15)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.3)');
         ctx.fillStyle = grad2;
 
         ctx.beginPath();
@@ -2112,13 +2112,13 @@ var BallRenderer = {
         ctx.rotate(angle);
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
 
-        // Gradient: High Quality Lit Cylinder
+        // Gradient: Soft & Clean Cylinder
         const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Top Occlusion
-        grad3d.addColorStop(0.15, 'rgba(255,255,255,0.2)'); // Top Highlight
-        grad3d.addColorStop(0.4, 'rgba(0,0,0,0)'); // Midtone
-        grad3d.addColorStop(0.75, 'rgba(0,0,0,0.3)'); // Core Shadow
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Bottom Bounce
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.3)'); // Top Edge
+        grad3d.addColorStop(0.2, 'rgba(255,255,255,0.1)'); // Soft Highlight
+        grad3d.addColorStop(0.5, 'rgba(0,0,0,0)'); // Midtone
+        grad3d.addColorStop(0.85, 'rgba(0,0,0,0.15)'); // Soft Shadow
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.3)'); // Bottom Edge
 
         ctx.fillStyle = grad3d;
         ctx.beginPath();
@@ -2882,82 +2882,32 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // 2.0 High Quality Human Back Anatomy
-                     // Uses soft radial gradients for volume instead of hard shapes
+                     // 3.0 Clean "High Quality" Back
+                     // Pure form gradient, no muscle "lumps" or busy details.
 
-                     const spineX = cx;
-                     const scapY = topY + h * 0.22;
-                     const waistY = topY + h * 0.65;
+                     // 1. Main Body Cylinder Gradient
+                     // Simulates a smooth rounded torso.
+                     // Darker edges -> Soft Shadow -> Highlight Center
+                     const bodyGrad = ctx.createLinearGradient(cx - w/2, 0, cx + w/2, 0);
+                     bodyGrad.addColorStop(0, 'rgba(0,0,0,0.3)');   // Left Edge Dark
+                     bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)'); // Soft Falloff
+                     bodyGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Center Highlight (Spine)
+                     bodyGrad.addColorStop(0.85, 'rgba(0,0,0,0.1)'); // Soft Falloff
+                     bodyGrad.addColorStop(1, 'rgba(0,0,0,0.3)');   // Right Edge Dark
 
-                     // A. Spine Channel (Subtle dark groove down center)
-                     // Using a narrow vertical gradient that fades out quickly
-                     const spineW = w * 0.15;
-                     const spineGrad = ctx.createLinearGradient(spineX - spineW, 0, spineX + spineW, 0);
+                     ctx.fillStyle = bodyGrad;
+                     ctx.fillRect(cx - w/2, topY, w, h);
+
+                     // 2. Extremely Subtle Spine Hint
+                     // Just a very faint vertical darkening to suggest the groove without drawing a line
+                     const spineW = w * 0.05;
+                     const spineGrad = ctx.createLinearGradient(cx - spineW, 0, cx + spineW, 0);
                      spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                     spineGrad.addColorStop(0.4, 'rgba(0,0,0,0.05)'); // Soft edge
-                     spineGrad.addColorStop(0.5, 'rgba(0,0,0,0.15)'); // Deepest groove
-                     spineGrad.addColorStop(0.6, 'rgba(0,0,0,0.05)');
+                     spineGrad.addColorStop(0.5, 'rgba(0,0,0,0.08)'); // Very faint
                      spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
                      ctx.fillStyle = spineGrad;
                      ctx.fillRect(cx - spineW, topY + h*0.1, spineW*2, h*0.8);
-
-                     // B. Trapezius / Upper Back Definition
-                     // Soft "M" shape shadow for upper back muscles
-                     ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.4); // Mid back point
-                     ctx.quadraticCurveTo(cx - w*0.2, topY + h*0.25, cx - w*0.35, topY + h*0.05); // Left Trap
-                     ctx.lineTo(cx + w*0.35, topY + h*0.05); // Right Trap
-                     ctx.quadraticCurveTo(cx + w*0.2, topY + h*0.25, cx, topY + h*0.4);
-                     ctx.fill();
-
-                     // C. Scapula (Shoulder Blades) - Volumetric Highlights
-                     // Instead of drawing the bone, we draw the "mound" of muscle over it with a highlight
-                     // and the shadow under it.
-                     const drawScapulaVolume = (isRight) => {
-                         const dir = isRight ? 1 : -1;
-                         const sx = cx + (w * 0.25 * dir);
-                         const sy = scapY;
-
-                         // 1. Muscle Highlight (Top of blade)
-                         const highGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, w*0.25);
-                         highGrad.addColorStop(0, 'rgba(255,255,255,0.15)');
-                         highGrad.addColorStop(1, 'rgba(255,255,255,0)');
-                         ctx.fillStyle = highGrad;
-                         ctx.beginPath(); ctx.arc(sx, sy, w*0.25, 0, Math.PI*2); ctx.fill();
-
-                         // 2. Bone Shadow (Under/Inner edge)
-                         ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                         ctx.beginPath();
-                         ctx.moveTo(sx + (w*0.1*dir), sy + h*0.1);
-                         ctx.quadraticCurveTo(sx + (w*0.2*dir), sy, sx + (w*0.05*dir), sy - h*0.05);
-                         ctx.lineTo(sx - (w*0.05*dir), sy + h*0.05);
-                         ctx.fill();
-                     };
-                     drawScapulaVolume(false);
-                     drawScapulaVolume(true);
-
-                     // D. Latissimus Dorsi (V-Taper) - Side Shadows
-                     // Deep shading on the sides to create roundness
-                     const sideShadowW = w * 0.4;
-                     const leftLat = ctx.createLinearGradient(cx - w/2, 0, cx - w/2 + sideShadowW, 0);
-                     leftLat.addColorStop(0, 'rgba(0,0,0,0.25)'); // Darkest at edge
-                     leftLat.addColorStop(1, 'rgba(0,0,0,0)');
-                     ctx.fillStyle = leftLat;
-                     ctx.fillRect(cx - w/2, latY, sideShadowW, h*0.5);
-
-                     const rightLat = ctx.createLinearGradient(cx + w/2, 0, cx + w/2 - sideShadowW, 0);
-                     rightLat.addColorStop(0, 'rgba(0,0,0,0.25)');
-                     rightLat.addColorStop(1, 'rgba(0,0,0,0)');
-                     ctx.fillStyle = rightLat;
-                     ctx.fillRect(cx + w/2 - sideShadowW, latY, sideShadowW, h*0.5);
-
-                     // E. Lower Back Dimples (Sacrum)
-                     const dimpleY = topY + h * 0.85;
-                     ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                     ctx.beginPath(); ctx.arc(cx - w*0.15, dimpleY, w*0.04, 0, Math.PI*2); ctx.fill();
-                     ctx.beginPath(); ctx.arc(cx + w*0.15, dimpleY, w*0.04, 0, Math.PI*2); ctx.fill();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
@@ -3156,18 +3106,18 @@ var BallRenderer = {
         }
         ctx.fill();
 
-        // Cylindrical Shading Overlay (High Quality Lit Cylinder)
+        // Cylindrical Shading Overlay (Soft & Clean)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        // 1. Top Ambient Occlusion (Dark Edge)
-        grad.addColorStop(0, 'rgba(0,0,0,0.5)');
-        // 2. Highlight (Offset to top - Main Light)
-        grad.addColorStop(0.15, 'rgba(255,255,255,0.2)');
-        // 3. Midtone (Natural Skin)
-        grad.addColorStop(0.4, 'rgba(0,0,0,0)');
-        // 4. Core Shadow (Dark band)
-        grad.addColorStop(0.75, 'rgba(0,0,0,0.3)');
-        // 5. Bounce Light / Rim (Bottom Edge - Subtle reflection)
-        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+        // 1. Top Edge (Subtle Occlusion)
+        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+        // 2. Highlight (Soft & Broad)
+        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+        // 3. Center (Clear Skin)
+        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+        // 4. Shadow (Soft Gradient)
+        grad.addColorStop(0.85, 'rgba(0,0,0,0.15)');
+        // 5. Bottom Edge (Darker Outline)
+        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
 
         ctx.fillStyle = grad;
         ctx.fill();
