@@ -1487,6 +1487,26 @@ var BallRenderer = {
         ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * s, y + 10 * s, 6 * s, 6 * s);
         ctx.fillStyle = "#fff"; ctx.font = fontLive; ctx.textAlign = "left";
         ctx.fillText("LIVE", 30 * s, y + 16 * s);
+
+        // Cat XP Bar (Right of LIVE)
+        const exp = (playerData.basketCatExp || 0);
+        const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+        const expPct = Math.min(1.0, exp / maxExp);
+        const xpX = 80 * s;
+        const xpY = y + 10 * s;
+        const xpW = 80 * s;
+        const xpH = 6 * s;
+
+        // Bg
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fillRect(xpX, xpY, xpW, xpH);
+        // Fill
+        ctx.fillStyle = "#FFA500"; // Orange
+        ctx.fillRect(xpX, xpY, xpW * expPct, xpH);
+        // Label
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.font = `bold ${6 * s}px sans-serif`;
+        ctx.fillText(`CAT LVL ${playerData.basketCatSkinIndex || 0}`, xpX, xpY - 2 * s);
     }
 
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
@@ -3461,8 +3481,8 @@ var BallRenderer = {
              const exp = playerData.basketCatExp || 0;
              const progress = Math.min(1.0, exp / maxExp);
 
-             // Scale from 0.25 to 2.0
-             const ageScale = 0.25 + (progress * 1.75);
+             // Scale from 0.25 to 1.25 (Reduced from 2.0)
+             const ageScale = 0.25 + (progress * 1.0);
 
              const s = p.scale * ageScale;
 
