@@ -1490,7 +1490,7 @@ var BallRenderer = {
 
         // Cat XP Bar (Right of LIVE)
         const exp = (playerData.basketCatExp || 0);
-        const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+        const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
         const expPct = Math.min(1.0, exp / maxExp);
         const xpX = 80 * s;
         const xpY = y + 10 * s;
@@ -3477,7 +3477,7 @@ var BallRenderer = {
         }
         else if (type === 'cat_hoop') {
              // --- NEW EVOLUTION LOGIC ---
-             const maxExp = (typeof BASKET_CAT_MAX_EXP !== 'undefined') ? BASKET_CAT_MAX_EXP : 50;
+             const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
              const exp = playerData.basketCatExp || 0;
              const progress = Math.min(1.0, exp / maxExp);
 

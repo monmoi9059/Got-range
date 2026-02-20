@@ -1,7 +1,11 @@
 
-    const BASKET_CAT_MAX_EXP = 50; // Shots to evolve
     const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
     var evolutionData = { timer: 0, phase: 0 };
+
+    function getBasketCatMaxExp() {
+        // Base 50, increases by 50 per level (50, 100, 150...)
+        return 50 * ((playerData.basketCatSkinIndex || 0) + 1);
+    }
 
     // --- HIGH SCORE LOGIC ---
     var highScoreCursor = 0;
@@ -434,7 +438,9 @@
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
         playerData.basketCatExp++;
-        if (playerData.basketCatExp >= BASKET_CAT_MAX_EXP && state !== 'EVOLVING') {
+        const maxExp = getBasketCatMaxExp();
+
+        if (playerData.basketCatExp >= maxExp && state !== 'EVOLVING') {
             // Check if there are more skins to unlock
             if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
                 // Determine completion callback based on mode
@@ -447,7 +453,7 @@
                 evolutionTriggered = true;
             } else {
                 // Max level reached
-                playerData.basketCatExp = BASKET_CAT_MAX_EXP;
+                playerData.basketCatExp = maxExp;
             }
         }
 
