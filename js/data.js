@@ -958,36 +958,61 @@
 
     // --- BALL GEOMETRY & RENDERER ---
     var CAT_SKINS_DB = [
-        { id: 'cat_default', name: 'Classique (Évolutif)', cost: 0, type: 'dynamic', stance: 'sitting' },
-        { id: 'cat_white', name: 'Boule de Neige', cost: 500, furColor: '#FFFFFF', bellyColor: '#F0F8FF', stance: 'sleeping' },
-        { id: 'cat_black', name: 'Ombre', cost: 500, furColor: '#111111', bellyColor: '#333333', stance: 'arched' },
-        { id: 'cat_grey', name: 'Fumée', cost: 500, furColor: '#808080', bellyColor: '#A9A9A9', stance: 'loaf' },
-        { id: 'cat_orange', name: 'Marmelade', cost: 500, furColor: '#FFA500', bellyColor: '#FFD700', stance: 'stretching' },
-        { id: 'cat_cream', name: 'Vanille', cost: 500, furColor: '#F5DEB3', bellyColor: '#FFF8DC', stance: 'begging' },
-        { id: 'cat_brown', name: 'Chocolat', cost: 500, furColor: '#8B4513', bellyColor: '#D2691E', stance: 'sleeping' },
-        { id: 'cat_tuxedo', name: 'Félix', cost: 1000, furColor: '#111', bellyColor: '#FFF', stance: 'begging' },
-        { id: 'cat_calico', name: 'Patchwork', cost: 1000, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E', stance: 'sitting' },
-        { id: 'cat_siamese', name: 'Siamois', cost: 1000, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333', stance: 'stretching' },
-        { id: 'cat_tabby', name: 'Tigré', cost: 1000, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes', stance: 'loaf' },
-        { id: 'cat_pink', name: 'Barbe à Papa', cost: 2000, furColor: '#FFB6C1', bellyColor: '#FFC0CB', stance: 'sprawled' },
-        { id: 'cat_blue', name: 'Ciel', cost: 2000, furColor: '#87CEEB', bellyColor: '#E0FFFF', stance: 'sleeping' },
-        { id: 'cat_green', name: 'Radioactif', cost: 2500, furColor: '#00FF00', bellyColor: '#ADFF2F', stance: 'standing' },
-        { id: 'cat_purple', name: 'Galaxie', cost: 3000, furColor: '#4B0082', bellyColor: '#8A2BE2', stance: 'stretching' },
-        { id: 'cat_gold', name: 'Luxe', cost: 5000, furColor: '#FFD700', bellyColor: '#FFFACD', shininess: 1.0, stance: 'sitting' },
-        { id: 'cat_red', name: 'Diablotin', cost: 3000, furColor: '#FF0000', bellyColor: '#8B0000', stance: 'arched' },
-        { id: 'cat_silver', name: 'Robo-Chat', cost: 4000, furColor: '#C0C0C0', bellyColor: '#A9A9A9', stance: 'standing' },
-        { id: 'cat_ghost', name: 'Fantôme', cost: 3500, furColor: 'rgba(255,255,255,0.5)', bellyColor: 'rgba(255,255,255,0.3)', stance: 'sprawled' },
-        { id: 'cat_tiger', name: 'Tigre', cost: 2500, furColor: '#FFA500', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000', stance: 'standing' },
-        { id: 'cat_leopard', name: 'Léopard', cost: 2500, furColor: '#FFD700', bellyColor: '#FFF', pattern: 'spots', spotColor: '#000', stance: 'stretching' },
-        { id: 'cat_zebra', name: 'Zèbre', cost: 2500, furColor: '#FFF', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000', stance: 'standing' },
-        { id: 'cat_panda', name: 'Panda', cost: 3000, furColor: '#FFF', bellyColor: '#FFF', earColor: '#000', pattern: 'panda', stance: 'sitting' },
-        { id: 'cat_camo', name: 'Camouflage', cost: 2000, furColor: '#556B2F', bellyColor: '#8B4513', pattern: 'camo', stance: 'loaf' },
-        { id: 'cat_rainbow', name: 'Arc-en-ciel', cost: 5000, furColor: '#FF0000', bellyColor: '#0000FF', pattern: 'rainbow', stance: 'begging' },
-        { id: 'cat_lava', name: 'Magma', cost: 4000, furColor: '#FF4500', bellyColor: '#FFFF00', pattern: 'lava', stance: 'arched' },
-        { id: 'cat_ice', name: 'Glace', cost: 3000, furColor: '#E0FFFF', bellyColor: '#FFFFFF', shininess: 0.8, stance: 'sleeping' },
-        { id: 'cat_stone', name: 'Statue', cost: 2000, furColor: '#696969', bellyColor: '#808080', stance: 'sitting' },
-        { id: 'cat_neon', name: 'Cyberpunk', cost: 4500, furColor: '#00FFFF', bellyColor: '#FF00FF', stance: 'stretching' },
-        { id: 'cat_void', name: 'Néant', cost: 5000, furColor: '#000', bellyColor: '#000', stance: 'sprawled' }
+        { id: 'cat_default', name: 'Classique', cost: 0, type: 'dynamic', stance: 'sitting' },
+        { id: 'cat_white', name: 'Boule de Neige', cost: 0, furColor: '#FFFFFF', bellyColor: '#F0F8FF', stance: 'sleeping' },
+        { id: 'cat_yoga', name: 'Namaste', cost: 0, furColor: '#FFA07A', bellyColor: '#FFDAB9', stance: 'yoga' }, // NEW 1
+        { id: 'cat_black', name: 'Ombre', cost: 0, furColor: '#111111', bellyColor: '#333333', stance: 'arched' },
+        { id: 'cat_dab', name: 'Le Dab', cost: 0, furColor: '#4169E1', bellyColor: '#87CEFA', stance: 'dab' }, // NEW 2
+        { id: 'cat_grey', name: 'Fumée', cost: 0, furColor: '#808080', bellyColor: '#A9A9A9', stance: 'loaf' },
+        { id: 'cat_meditate', name: 'Zen', cost: 0, furColor: '#98FB98', bellyColor: '#F0FFF0', stance: 'meditate' }, // NEW 3
+        { id: 'cat_orange', name: 'Marmelade', cost: 0, furColor: '#FFA500', bellyColor: '#FFD700', stance: 'stretching' },
+        { id: 'cat_boxing', name: 'Rocky', cost: 0, furColor: '#A52A2A', bellyColor: '#DEB887', stance: 'boxing' }, // NEW 4
+        { id: 'cat_cream', name: 'Vanille', cost: 0, furColor: '#F5DEB3', bellyColor: '#FFF8DC', stance: 'begging' },
+        { id: 'cat_grooming', name: 'Propre', cost: 0, furColor: '#D3D3D3', bellyColor: '#FFFFFF', stance: 'grooming' }, // NEW 5
+        { id: 'cat_brown', name: 'Chocolat', cost: 0, furColor: '#8B4513', bellyColor: '#D2691E', stance: 'sleeping' },
+        { id: 'cat_upside_down', name: 'Chauve-souris', cost: 0, furColor: '#2F4F4F', bellyColor: '#708090', stance: 'upside_down' }, // NEW 6
+        { id: 'cat_tuxedo', name: 'Félix', cost: 0, furColor: '#111', bellyColor: '#FFF', stance: 'begging' },
+        { id: 'cat_superman', name: 'Superchat', cost: 0, furColor: '#0000FF', bellyColor: '#FF0000', stance: 'superman' }, // NEW 7
+        { id: 'cat_calico', name: 'Patchwork', cost: 0, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E', stance: 'sitting' },
+        { id: 'cat_ball', name: 'Boule de Poils', cost: 0, furColor: '#8B0000', bellyColor: '#CD5C5C', stance: 'ball' }, // NEW 8
+        { id: 'cat_siamese', name: 'Siamois', cost: 0, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333', stance: 'stretching' },
+        { id: 'cat_scared_leap', name: 'Sursaut', cost: 0, furColor: '#FF4500', bellyColor: '#FFA07A', stance: 'scared_leap' }, // NEW 9
+        { id: 'cat_tabby', name: 'Tigré', cost: 0, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes', stance: 'loaf' },
+        { id: 'cat_high_five', name: 'Tope Là', cost: 0, furColor: '#FFD700', bellyColor: '#FFFFE0', stance: 'high_five' }, // NEW 10
+        { id: 'cat_pink', name: 'Barbe à Papa', cost: 0, furColor: '#FFB6C1', bellyColor: '#FFC0CB', stance: 'sprawled' },
+        { id: 'cat_stalking', name: 'Chasseur', cost: 0, furColor: '#556B2F', bellyColor: '#8FBC8F', stance: 'stalking' }, // NEW 11
+        { id: 'cat_blue', name: 'Ciel', cost: 0, furColor: '#87CEEB', bellyColor: '#E0FFFF', stance: 'sleeping' },
+        { id: 'cat_belly_up', name: 'Gratouille', cost: 0, furColor: '#D8BFD8', bellyColor: '#E6E6FA', stance: 'belly_up' }, // NEW 12
+        { id: 'cat_green', name: 'Radioactif', cost: 0, furColor: '#00FF00', bellyColor: '#ADFF2F', stance: 'standing' },
+        { id: 'cat_butt_wiggle', name: 'Prêt', cost: 0, furColor: '#CD853F', bellyColor: '#F4A460', stance: 'butt_wiggle' }, // NEW 13
+        { id: 'cat_purple', name: 'Galaxie', cost: 0, furColor: '#4B0082', bellyColor: '#8A2BE2', stance: 'stretching' },
+        { id: 'cat_facepalm', name: 'Désespoir', cost: 0, furColor: '#708090', bellyColor: '#B0C4DE', stance: 'facepalm' }, // NEW 14
+        { id: 'cat_gold', name: 'Luxe', cost: 0, furColor: '#FFD700', bellyColor: '#FFFACD', shininess: 1.0, stance: 'sitting' },
+        { id: 'cat_thinking', name: 'Penseur', cost: 0, furColor: '#4682B4', bellyColor: '#87CEEB', stance: 'thinking' }, // NEW 15
+        { id: 'cat_red', name: 'Diablotin', cost: 0, furColor: '#FF0000', bellyColor: '#8B0000', stance: 'arched' },
+        { id: 'cat_surprised', name: 'Kevin', cost: 0, furColor: '#FF6347', bellyColor: '#FFA07A', stance: 'surprised' }, // NEW 16
+        { id: 'cat_silver', name: 'Robo-Chat', cost: 0, furColor: '#C0C0C0', bellyColor: '#A9A9A9', stance: 'standing' },
+        { id: 'cat_running', name: 'Zoomies', cost: 0, furColor: '#FFFF00', bellyColor: '#FFFFE0', stance: 'running' }, // NEW 17
+        { id: 'cat_ghost', name: 'Fantôme', cost: 0, furColor: 'rgba(255,255,255,0.5)', bellyColor: 'rgba(255,255,255,0.3)', stance: 'sprawled' },
+        { id: 'cat_sitting_chair', name: 'Humain', cost: 0, furColor: '#8B4513', bellyColor: '#D2B48C', stance: 'sitting_chair' }, // NEW 18
+        { id: 'cat_tiger', name: 'Tigre', cost: 0, furColor: '#FFA500', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000', stance: 'standing' },
+        { id: 'cat_ninja_kick', name: 'Ninja', cost: 0, furColor: '#000000', bellyColor: '#1a1a1a', stance: 'ninja_kick' }, // NEW 19
+        { id: 'cat_leopard', name: 'Léopard', cost: 0, furColor: '#FFD700', bellyColor: '#FFF', pattern: 'spots', spotColor: '#000', stance: 'stretching' },
+        { id: 'cat_crying', name: 'Triste', cost: 0, furColor: '#4169E1', bellyColor: '#87CEFA', stance: 'crying' }, // NEW 20
+        { id: 'cat_zebra', name: 'Zèbre', cost: 0, furColor: '#FFF', bellyColor: '#FFF', pattern: 'stripes', spotColor: '#000', stance: 'standing' },
+        { id: 'cat_sunglasses', name: 'Cool', cost: 0, furColor: '#FF1493', bellyColor: '#FF69B4', stance: 'sunglasses_cool' }, // NEW 21
+        { id: 'cat_panda', name: 'Panda', cost: 0, furColor: '#FFF', bellyColor: '#FFF', earColor: '#000', pattern: 'panda', stance: 'sitting' },
+        { id: 'cat_box', name: 'Livraison', cost: 0, furColor: '#D2691E', bellyColor: '#DEB887', stance: 'sleeping_box' }, // NEW 22
+        { id: 'cat_camo', name: 'Camouflage', cost: 0, furColor: '#556B2F', bellyColor: '#8B4513', pattern: 'camo', stance: 'loaf' },
+        { id: 'cat_yarn', name: 'Tricot', cost: 0, furColor: '#FF4500', bellyColor: '#FFA07A', stance: 'yarn_tangle' }, // NEW 23
+        { id: 'cat_rainbow', name: 'Arc-en-ciel', cost: 0, furColor: '#FF0000', bellyColor: '#0000FF', pattern: 'rainbow', stance: 'begging' },
+        { id: 'cat_bread', name: 'Sandwich', cost: 0, furColor: '#F4A460', bellyColor: '#FFE4B5', stance: 'bread_head' }, // NEW 24
+        { id: 'cat_lava', name: 'Magma', cost: 0, furColor: '#FF4500', bellyColor: '#FFFF00', pattern: 'lava', stance: 'arched' },
+        { id: 'cat_liquid', name: 'Liquide', cost: 0, furColor: '#00CED1', bellyColor: '#AFEEEE', stance: 'liquid' }, // NEW 25
+        { id: 'cat_ice', name: 'Glace', cost: 0, furColor: '#E0FFFF', bellyColor: '#FFFFFF', shininess: 0.8, stance: 'sleeping' },
+        { id: 'cat_stone', name: 'Statue', cost: 0, furColor: '#696969', bellyColor: '#808080', stance: 'sitting' },
+        { id: 'cat_neon', name: 'Cyberpunk', cost: 0, furColor: '#00FFFF', bellyColor: '#FF00FF', stance: 'stretching' },
+        { id: 'cat_void', name: 'Néant', cost: 0, furColor: '#000', bellyColor: '#000', stance: 'sprawled' }
     ];
 
     var CAT_ACCESSORIES_DB = [

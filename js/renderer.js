@@ -3502,13 +3502,15 @@ var BallRenderer = {
              // Stance Logic
              let stance = 0; // Default Sitting
              const sVal = skinData ? skinData.stance : 'sitting';
-             if (sVal === 'loaf') stance = 1;
-             else if (sVal === 'standing') stance = 2;
-             else if (sVal === 'sprawled') stance = 3;
-             else if (sVal === 'sleeping') stance = 4;
-             else if (sVal === 'begging') stance = 5;
-             else if (sVal === 'stretching') stance = 6;
-             else if (sVal === 'arched') stance = 7;
+             const stanceMap = {
+                 'sitting': 0, 'loaf': 1, 'standing': 2, 'sprawled': 3, 'sleeping': 4, 'begging': 5, 'stretching': 6, 'arched': 7,
+                 'yoga': 8, 'dab': 9, 'meditate': 10, 'boxing': 11, 'grooming': 12, 'upside_down': 13,
+                 'superman': 14, 'ball': 15, 'scared_leap': 16, 'high_five': 17, 'stalking': 18, 'belly_up': 19,
+                 'butt_wiggle': 20, 'facepalm': 21, 'thinking': 22, 'surprised': 23, 'running': 24, 'sitting_chair': 25,
+                 'ninja_kick': 26, 'crying': 27, 'sunglasses_cool': 28, 'sleeping_box': 29, 'yarn_tangle': 30, 'bread_head': 31,
+                 'liquid': 32
+             };
+             if (stanceMap.hasOwnProperty(sVal)) stance = stanceMap[sVal];
              else stance = 0;
 
              let isEating = false;
@@ -9586,9 +9588,128 @@ var BallRenderer = {
             drawFuzzyCircle(p.x - 20*s, p.y, 5*s, '#FFF', 1006, s, true, true); // Hind paws peeking
             drawFuzzyCircle(p.x + 20*s, p.y, 5*s, '#FFF', 1007, s, true, true);
 
-            // Tail (Wrapped side)
+            // Tail (Wrapped side - Wagging tip)
+            const s0Wag = Math.sin(Date.now()*0.005) * 5 * s;
             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s, p.y - 15*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s + s0Wag, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 8) { // YOGA
+             // Tail (Balanced)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.quadraticCurveTo(p.x - 20*s, p.y, p.x - 30*s, p.y - 10*s); ctx.stroke();
+
+        } else if (stance === 9) { // DAB
+             // Tail (Side)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 10*s); ctx.lineTo(p.x - 20*s, p.y + 10*s); ctx.stroke();
+
+        } else if (stance === 10) { // MEDITATE
+             // Tail (Curled in front)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.arc(p.x, p.y + 5*s, 20*s, 0, Math.PI); ctx.stroke();
+
+        } else if (stance === 11) { // BOXING
+             // Tail (Twitching)
+             const twitch = Math.sin(Date.now()*0.02)*5*s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.quadraticCurveTo(p.x + 15*s, p.y, p.x + 20*s + twitch, p.y - 20*s); ctx.stroke();
+
+        } else if (stance === 12) { // GROOMING
+             // Tail (Side)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 5*s); ctx.lineTo(p.x - 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 14) { // SUPERMAN
+             // Tail (Streaming behind)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y); ctx.lineTo(p.x - 45*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 16) { // SCARED LEAP
+             // Tail (Puffed Straight Down)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 10*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 20*s); ctx.lineTo(p.x, p.y + 10*s); ctx.stroke();
+
+        } else if (stance === 17) { // HIGH FIVE
+             // Tail (Curled)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 25*s, p.y + 5*s, p.x + 30*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 18) { // STALKING
+             // Tail (Low and straight)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 4*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 35*s, p.y - 10*s); ctx.lineTo(p.x - 55*s, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 19) { // BELLY UP
+             // Tail (Flat on ground)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 20) { // BUTT WIGGLE
+             const wag = Math.sin(Date.now()*0.02) * 5*s;
+             // Tail (Wagging with butt)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 20*s, p.y - 25*s + wag); ctx.lineTo(p.x - 40*s, p.y - 40*s + wag * 2); ctx.stroke();
+
+        } else if (stance === 21) { // FACEPALM
+             // Tail (Droopy)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 25*s, p.y + 5*s, p.x + 30*s, p.y); ctx.stroke();
+
+        } else if (stance === 22) { // THINKING
+             // Tail (Slow swish)
+             const swish = Math.sin(Date.now()*0.005)*5*s;
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 5*s); ctx.quadraticCurveTo(p.x - 25*s, p.y + 5*s, p.x - 35*s + swish, p.y); ctx.stroke();
+
+        } else if (stance === 23) { // SURPRISED
+             // Tail (Straight up puff)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 8*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x, p.y + 20*s); ctx.stroke();
+
+        } else if (stance === 24) { // RUNNING
+             // Tail (Streaming)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 20*s, p.y - 20*s); ctx.lineTo(p.x - 45*s, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 25) { // SITTING CHAIR
+             // Tail (Dangling)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x, p.y + 20*s); ctx.stroke();
+
+        } else if (stance === 26) { // NINJA KICK
+             // Tail (Dynamic)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 15*s); ctx.quadraticCurveTo(p.x - 25*s, p.y - 25*s, p.x - 30*s, p.y - 10*s); ctx.stroke();
+
+        } else if (stance === 27) { // CRYING
+             // Tail (Curled tight)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.arc(p.x, p.y, 22*s, 0, Math.PI); ctx.stroke();
+
+        } else if (stance === 28) { // SUNGLASSES
+             // Tail (Casual)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x - 15*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 29) { // BOX
+             // Tail (Sticking out of box?)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 25*s, p.y - 20*s); ctx.quadraticCurveTo(p.x + 35*s, p.y - 30*s, p.x + 40*s, p.y - 20*s); ctx.stroke();
+
+        } else if (stance === 30) { // YARN
+             // Tail (Tangled)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x, p.y - 10*s); ctx.lineTo(p.x + 10*s, p.y - 40*s); ctx.stroke();
+
+        } else if (stance === 31) { // BREAD
+             // Tail (Nub)
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.arc(p.x + 20*s, p.y - 10*s, 5*s, 0, Math.PI*2); ctx.fill();
+
+        } else if (stance === 32) { // LIQUID
+             // Tail (Puddle)
+             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+             ctx.beginPath(); ctx.moveTo(p.x + 30*s, p.y); ctx.lineTo(p.x + 50*s, p.y + 5*s); ctx.stroke();
 
         } else if (stance === 1) { // LOAF
             headY = p.y - 25*s;
@@ -9627,9 +9748,10 @@ var BallRenderer = {
             // Front Right
             drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 10*s, p.y + 5*s, 7*s, furColor, s, true, 1025);
 
-            // Tail (Up)
+            // Tail (Up - Wagging)
+            const s2Wag = Math.sin(Date.now()*0.01) * 5 * s;
             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
-            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s, p.y - 60*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s + s2Wag, p.y - 60*s); ctx.stroke();
 
         } else if (stance === 3) { // SPRAWLED (Sploot)
             headY = p.y - 10*s;
@@ -9675,6 +9797,11 @@ var BallRenderer = {
             drawFuzzyLimb(p.x - 8*s, p.y - 45*s, p.x - 12*s, p.y - 35*s, 4*s, furColor, s, true, 1054);
             drawFuzzyLimb(p.x + 8*s, p.y - 45*s, p.x + 12*s, p.y - 35*s, 4*s, furColor, s, true, 1055);
 
+            // Tail (Balancing - Wagging)
+            const s5Wag = Math.sin(Date.now()*0.005) * 5 * s;
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + 30*s, p.y + 5*s, p.x + 40*s + s5Wag, p.y - 5*s); ctx.stroke();
+
         } else if (stance === 6) { // STRETCHING (Downward Dog)
             headY = p.y; // Head low
             // Body Slope
@@ -9711,6 +9838,267 @@ var BallRenderer = {
             // Tail (Puffed Up)
             ctx.strokeStyle = furColor; ctx.lineWidth = 10*s; // Puffed
             ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y - 40*s); ctx.stroke();
+        }
+        else if (stance === 8) { // YOGA (Warrior)
+            headY = p.y - 45*s;
+            // Body (Upright)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 15*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arms (Outstretched)
+            drawFuzzyLimb(p.x - 10*s, p.y - 40*s, p.x - 35*s, p.y - 40*s, 6*s, furColor, s, true, 1080);
+            drawFuzzyLimb(p.x + 10*s, p.y - 40*s, p.x + 35*s, p.y - 40*s, 6*s, furColor, s, true, 1081);
+            // Legs (Lunge)
+            drawFuzzyLimb(p.x - 5*s, p.y - 10*s, p.x - 20*s, p.y + 10*s, 8*s, furColor, s, true, 1082); // Straight
+            drawFuzzyLimb(p.x + 5*s, p.y - 10*s, p.x + 15*s, p.y + 5*s, 8*s, furColor, s, true, 1083); // Bent
+            drawFuzzyLimb(p.x + 15*s, p.y + 5*s, p.x + 15*s, p.y + 15*s, 6*s, furColor, s, true, 1084);
+        }
+        else if (stance === 9) { // DAB
+            headY = p.y - 35*s;
+            // Body (Leaning)
+            ctx.save(); ctx.translate(p.x, p.y - 20*s); ctx.rotate(0.2);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 18*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Arms
+            // Right Arm (Straight Out Up)
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 40*s, p.y - 50*s, 6*s, furColor, s, true, 1090);
+            // Left Arm (Bent over face)
+            drawFuzzyLimb(p.x - 10*s, p.y - 30*s, p.x + 5*s, p.y - 45*s, 6*s, furColor, s, true, 1091);
+            // Head tucked (Override headY slightly)
+            headY += 5*s;
+        }
+        else if (stance === 10) { // MEDITATE
+            headY = p.y - 35*s;
+            // Legs Crossed
+            drawFuzzyLimb(p.x - 15*s, p.y - 5*s, p.x, p.y + 5*s, 7*s, furColor, s, true, 1100);
+            drawFuzzyLimb(p.x + 15*s, p.y - 5*s, p.x, p.y + 5*s, 7*s, furColor, s, true, 1101);
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arms (Mudra)
+            drawFuzzyLimb(p.x - 10*s, p.y - 25*s, p.x - 25*s, p.y - 15*s, 5*s, furColor, s, true, 1102);
+            drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 25*s, p.y - 15*s, 5*s, furColor, s, true, 1103);
+            drawFuzzyCircle(p.x - 25*s, p.y - 15*s, 4*s, furColor, 1104, s, true);
+            drawFuzzyCircle(p.x + 25*s, p.y - 15*s, 4*s, furColor, 1105, s, true);
+        }
+        else if (stance === 11) { // BOXING
+            headY = p.y - 45*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 16*s, 24*s, 0, 0, Math.PI*2); ctx.fill();
+            // Gloves (Red Paws)
+            const gloveColor = '#FF0000';
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x - 20*s, p.y - 25*s, 6*s, furColor, s, true, 1110);
+            drawFuzzyCircle(p.x - 20*s, p.y - 25*s, 8*s, gloveColor, 1111, s, true, true);
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true, 1112);
+            drawFuzzyCircle(p.x + 25*s, p.y - 30*s, 8*s, gloveColor, 1113, s, true, true);
+            // Feet
+            drawFuzzyLimb(p.x - 8*s, p.y - 10*s, p.x - 12*s, p.y + 10*s, 7*s, furColor, s, true, 1114);
+            drawFuzzyLimb(p.x + 8*s, p.y - 10*s, p.x + 12*s, p.y + 10*s, 7*s, furColor, s, true, 1115);
+        }
+        else if (stance === 12) { // GROOMING
+            headY = p.y - 30*s;
+            // Body Sitting
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Leg up
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 15*s, p.y - 25*s, 6*s, furColor, s, true, 1120);
+            // Tongue (Licking leg)
+            ctx.fillStyle = '#FFC0CB';
+            ctx.beginPath(); ctx.ellipse(p.x + 12*s, p.y - 25*s, 3*s, 5*s, 0.5, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 13) { // UPSIDE DOWN
+            headY = p.y + 30*s; // Head at bottom
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs Hanging Up
+            drawFuzzyLimb(p.x - 10*s, p.y - 20*s, p.x - 10*s, p.y - 40*s, 6*s, furColor, s, true, 1130);
+            drawFuzzyLimb(p.x + 10*s, p.y - 20*s, p.x + 10*s, p.y - 40*s, 6*s, furColor, s, true, 1131);
+            // Tail Hanging Down
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x, p.y + 10*s); ctx.stroke();
+        }
+        else if (stance === 14) { // SUPERMAN
+            headY = p.y - 10*s;
+            // Body Horizontal Flying
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            // Cape
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 5*s); ctx.lineTo(p.x - 40*s, p.y - 15*s); ctx.lineTo(p.x - 40*s, p.y + 15*s); ctx.fill();
+            // Arms Forward
+            drawFuzzyLimb(p.x + 15*s, p.y, p.x + 40*s, p.y, 6*s, furColor, s, true, 1140);
+        }
+        else if (stance === 15) { // BALL
+            headY = p.y - 10*s;
+            // Perfect Circle Body
+            drawFuzzyCircle(p.x, p.y, 20*s, furColor, 1150, s, true, true);
+            // Tail Wrapped
+            ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+            ctx.arc(p.x, p.y, 22*s, 0, Math.PI*2); ctx.stroke();
+            headR = 15*s; // Smaller head tucked
+        }
+        else if (stance === 16) { // SCARED LEAP
+            headY = p.y - 50*s;
+            // Body High
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 35*s, 15*s, 20*s, 0.2, 0, Math.PI*2); ctx.fill();
+            // Limbs Splayed
+            drawFuzzyLimb(p.x - 10*s, p.y - 40*s, p.x - 25*s, p.y - 50*s, 5*s, furColor, s, true, 1160);
+            drawFuzzyLimb(p.x + 10*s, p.y - 40*s, p.x + 25*s, p.y - 50*s, 5*s, furColor, s, true, 1161);
+            drawFuzzyLimb(p.x - 10*s, p.y - 20*s, p.x - 20*s, p.y - 5*s, 5*s, furColor, s, true, 1162);
+            drawFuzzyLimb(p.x + 10*s, p.y - 20*s, p.x + 20*s, p.y - 5*s, 5*s, furColor, s, true, 1163);
+        }
+        else if (stance === 17) { // HIGH FIVE
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Right Arm Up
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 20*s, p.y - 60*s, 7*s, furColor, s, true, 1170);
+            // Paw Open (Pads)
+            drawFuzzyCircle(p.x + 20*s, p.y - 60*s, 6*s, '#FFC0CB', 1171, s, true);
+        }
+        else if (stance === 18) { // STALKING
+            headY = p.y - 15*s;
+            // Low elongated body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 10*s, 35*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            // Shoulders High
+            drawFuzzyCircle(p.x + 20*s, p.y - 15*s, 10*s, furColor, 1180, s, true);
+            // Haunches High
+            drawFuzzyCircle(p.x - 20*s, p.y - 15*s, 10*s, furColor, 1181, s, true);
+        }
+        else if (stance === 19) { // BELLY UP
+            headY = p.y - 10*s;
+            // Body on back
+            ctx.fillStyle = bellyColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 10*s, 25*s, 15*s, 0, 0, Math.PI*2); ctx.fill();
+            // Limbs up
+            drawFuzzyLimb(p.x - 15*s, p.y - 10*s, p.x - 20*s, p.y - 30*s, 6*s, furColor, s, true, 1190);
+            drawFuzzyLimb(p.x + 15*s, p.y - 10*s, p.x + 20*s, p.y - 30*s, 6*s, furColor, s, true, 1191);
+            drawFuzzyLimb(p.x - 15*s, p.y + 5*s, p.x - 25*s, p.y - 10*s, 6*s, furColor, s, true, 1192);
+            drawFuzzyLimb(p.x + 15*s, p.y + 5*s, p.x + 25*s, p.y - 10*s, 6*s, furColor, s, true, 1193);
+        }
+        else if (stance === 20) { // BUTT WIGGLE
+            const wag = Math.sin(Date.now()*0.02) * 5*s;
+            headY = p.y - 15*s;
+            // Front Low
+            drawFuzzyCircle(p.x + 20*s, p.y - 10*s, 10*s, furColor, 1200, s, true);
+            // Butt High & Wiggling
+            drawFuzzyCircle(p.x - 20*s, p.y - 25*s + wag, 14*s, furColor, 1201, s, true);
+            // Body Connect
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.moveTo(p.x+20*s, p.y-10*s); ctx.lineTo(p.x-20*s, p.y-25*s+wag); ctx.lineTo(p.x-20*s, p.y-15*s+wag); ctx.lineTo(p.x+20*s, p.y); ctx.fill();
+        }
+        else if (stance === 21) { // FACEPALM
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arm covering face
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x, headY, 6*s, furColor, s, true, 1210);
+        }
+        else if (stance === 22) { // THINKING
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Paw on chin
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 5*s, headY + 10*s, 6*s, furColor, s, true, 1220);
+        }
+        else if (stance === 23) { // SURPRISED
+            headY = p.y - 45*s;
+            // Standing Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 15*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Paws on cheeks
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x - 12*s, headY + 5*s, 5*s, furColor, s, true, 1230);
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 12*s, headY + 5*s, 5*s, furColor, s, true, 1231);
+            // Wide Eyes Override? (Handled in face but headY is set)
+        }
+        else if (stance === 24) { // RUNNING
+            headY = p.y - 30*s;
+            // Body Leaning Forward
+            ctx.save(); ctx.translate(p.x, p.y-20*s); ctx.rotate(0.3);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 20*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Legs Split
+            const runOffset = Math.sin(Date.now()*0.02) * 10*s;
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x - 20*s + runOffset, p.y, 6*s, furColor, s, true, 1240);
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x + 20*s - runOffset, p.y, 6*s, furColor, s, true, 1241);
+        }
+        else if (stance === 25) { // SITTING CHAIR (Human)
+            headY = p.y - 50*s;
+            // Body Upright
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 30*s, 18*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs Dangling
+            drawFuzzyLimb(p.x - 10*s, p.y - 15*s, p.x - 10*s, p.y + 10*s, 7*s, furColor, s, true, 1250);
+            drawFuzzyLimb(p.x + 10*s, p.y - 15*s, p.x + 10*s, p.y + 10*s, 7*s, furColor, s, true, 1251);
+        }
+        else if (stance === 26) { // NINJA KICK
+            headY = p.y - 35*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 15*s, 20*s, -0.3, 0, Math.PI*2); ctx.fill();
+            // Kick Leg
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x + 30*s, p.y - 30*s, 7*s, furColor, s, true, 1260);
+            // Headband? (Handled by accessory logic if equipped, but this is a stance)
+        }
+        else if (stance === 27) { // CRYING
+            headY = p.y - 30*s;
+            // Curled Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Tears
+            ctx.fillStyle = '#00FFFF';
+            ctx.beginPath(); ctx.arc(p.x - 15*s, p.y, 3*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 15*s, p.y, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 28) { // SUNGLASSES COOL (Lean)
+            headY = p.y - 45*s;
+            // Leaning Body
+            ctx.save(); ctx.translate(p.x, p.y-25*s); ctx.rotate(-0.2);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Arms Crossed
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x + 10*s, p.y - 35*s, 7*s, furColor, s, true, 1280);
+        }
+        else if (stance === 29) { // BOX
+            // Draw Box
+            ctx.fillStyle = '#CD853F';
+            ctx.fillRect(p.x - 25*s, p.y - 30*s, 50*s, 30*s);
+            ctx.strokeRect(p.x - 25*s, p.y - 30*s, 50*s, 30*s);
+            // Cat Peeking Out
+            headY = p.y - 45*s;
+            // Paws on edge
+            drawFuzzyCircle(p.x - 15*s, p.y - 30*s, 5*s, '#FFF', 1290, s, true);
+            drawFuzzyCircle(p.x + 15*s, p.y - 30*s, 5*s, '#FFF', 1291, s, true);
+        }
+        else if (stance === 30) { // YARN
+            headY = p.y - 35*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Yarn Lines
+            ctx.strokeStyle = '#FF69B4'; ctx.lineWidth = 3*s;
+            ctx.beginPath();
+            for(let i=0; i<5; i++) {
+                ctx.moveTo(p.x - 20*s, p.y - 30*s + i*5*s);
+                ctx.lineTo(p.x + 20*s, p.y - 20*s + i*5*s);
+            }
+            ctx.stroke();
+        }
+        else if (stance === 31) { // BREAD HEAD
+            headY = p.y - 35*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Bread Slice (Behind/Around Head)
+            ctx.fillStyle = '#DEB887'; // Crust
+            ctx.beginPath();
+            ctx.moveTo(p.x - 25*s, headY - 10*s);
+            ctx.quadraticCurveTo(p.x, headY - 40*s, p.x + 25*s, headY - 10*s);
+            ctx.lineTo(p.x + 25*s, headY + 20*s);
+            ctx.lineTo(p.x - 25*s, headY + 20*s);
+            ctx.fill();
+            ctx.fillStyle = '#FFF8DC'; // Crumb
+            ctx.beginPath(); ctx.ellipse(p.x, headY, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 32) { // LIQUID
+            headY = p.y - 10*s;
+            // Puddle
+            ctx.fillStyle = furColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - 30*s, p.y);
+            ctx.bezierCurveTo(p.x - 40*s, p.y - 20*s, p.x + 40*s, p.y - 20*s, p.x + 30*s, p.y);
+            ctx.fill();
+            // Head Melting
+            headR = 15*s;
         }
 
         // Draw Head
@@ -9787,10 +10175,4 @@ var BallRenderer = {
                  }
              }
 
-             // Tail (Wagging)
-             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
-             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
-             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
-             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
-             ctx.stroke();
     }
