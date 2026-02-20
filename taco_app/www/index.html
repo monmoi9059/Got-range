@@ -3350,8 +3350,8 @@ let lastDisplayedContestTime = -1;
     function createDefaultData() {
         return {
             tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
+            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
             dailyChallenges: [], weeklyChallenges: [],
             unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
@@ -3445,9 +3445,11 @@ let lastDisplayedContestTime = -1;
             aim: playerData.stats.aim || 1,
             luck: playerData.stats.luck || 1,
             moonwalk: playerData.stats.moonwalk || 1,
-            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0
+            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0,
+            catNip: 0
         };
     }
+    if (typeof playerData.stats.catNip === 'undefined') { playerData.stats.catNip = 0; playerData.purchasedStats.catNip = 0; }
 
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
@@ -4312,6 +4314,7 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
@@ -5773,6 +5776,23 @@ var BallRenderer = {
             ctx.fillStyle = '#DCDCDC';
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
+    }
+
+    function drawFloatingText(p) {
+        const s = p.scale;
+        const oldAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = p.alpha;
+
+        ctx.font = `bold ${24 * s}px 'Russo One', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = p.color || '#FFD700';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3 * s;
+
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillText(p.text, p.x, p.y);
+
         ctx.globalAlpha = oldAlpha;
     }
 
@@ -7553,7 +7573,8 @@ var BallRenderer = {
              }
 
              // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
-             let ageScale = 0.25 + (netScore * 0.001);
+             const growthMult = 1 + (playerData.stats.catNip || 0) * 0.5;
+             let ageScale = 0.25 + (netScore * 0.001 * growthMult);
 
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
@@ -13495,14 +13516,21 @@ var BallRenderer = {
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
              if(proj) {
-                 // Force streak fire particles behind the player (depth > 550)
-                 let depth = proj.depth;
-                 if (p.isFireParticle && p.customHue !== undefined) {
-                     depth = Math.max(depth, 580);
+                 if (p.type === 'text') {
+                     const item = RenderEngine.Queue.add('text', proj.depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
+                     item.text = p.text;
+                 } else {
+                     // Force streak fire particles behind the player (depth > 550)
+                     let depth = proj.depth;
+                     if (p.isFireParticle && p.customHue !== undefined) {
+                         depth = Math.max(depth, 580);
+                     }
+                     const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
                  }
-                 const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
-                 item.alpha = p.alpha;
-                 item.color = p.color;
              }
         });
 
@@ -14681,8 +14709,10 @@ var BallRenderer = {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
-                cat.eatTimer = 180; // 3 seconds eat time
-                g_catEatTimer = 180; // Sync render animation
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
             } else {
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
@@ -14694,18 +14724,24 @@ var BallRenderer = {
             if (cat.eatTimer <= 0) {
                 // Done eating, remove taco
                 if (cat.targetTacoIndex !== -1 && tacosOnGround[cat.targetTacoIndex]) {
-                    // Remove specific taco. Note: Index might have shifted if other tacos removed?
-                    // Better to find by reference or just filter out the one at cat pos
-                    // Actually, since we only remove here, indices shift.
-                    // Let's filter out the one we claimed.
-                    // Or simpler: We claimed it with `beingEaten`. Just filter that one out now.
-                    // But wait, if multiple cats (split screen)? They share tacosOnGround.
-                    // We need to be careful.
-                    // Let's find the taco at cat's feet.
                      const tacoIdx = tacosOnGround.findIndex(t => Math.abs(t.x - cat.x) < 5 && Math.abs(t.y - cat.y) < 5);
                      if (tacoIdx !== -1) {
                          tacosOnGround.splice(tacoIdx, 1);
-                         // AudioSystem.playCrunch(); // Optional
+
+                         // Reward Logic
+                         const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
+                         const reward = Math.ceil(10 * playerData.difficulty * multiplier);
+                         playerData.tacos += reward;
+                         checkDailyProgress('earn_tacos', reward);
+
+                         // Floating Text Particle
+                         particles.push({
+                             x: cat.x, y: cat.y, z: 20,
+                             vx: 0, vy: 0, vz: 1.5,
+                             life: 60, maxLife: 60,
+                             scale: 1.0, alpha: 1.0,
+                             type: 'text', text: '+' + reward, color: '#FFD700'
+                         });
                      }
                 }
                 cat.targetTacoIndex = -1;
@@ -15503,6 +15539,7 @@ var BallRenderer = {
             playerData.purchasedStats.luck = 10; playerData.stats.luck = 10;
             playerData.purchasedStats.moonwalk = 5; playerData.stats.moonwalk = 5;
             playerData.purchasedStats.extraLives = 5; playerData.stats.extraLives = 5;
+            playerData.purchasedStats.catNip = 5; playerData.stats.catNip = 5;
 
             checkAchievements('shop');
             saveData();
@@ -15579,6 +15616,7 @@ var BallRenderer = {
         if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
+        if (statName === 'catNip') return Math.floor(250 * Math.pow(lvl + 1, 2));
         return 999;
     }
     window.buyUpgrade = function(stat) {
@@ -16232,6 +16270,7 @@ var BallRenderer = {
         renderUpgradeControl('luck', 'ctrl_luck');
         renderUpgradeControl('moonwalk', 'ctrl_moonwalk');
         renderUpgradeControl('extraLives', 'ctrl_extraLives');
+        renderUpgradeControl('catNip', 'ctrl_catNip');
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
