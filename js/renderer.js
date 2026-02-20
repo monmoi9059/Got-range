@@ -2688,14 +2688,18 @@ var BallRenderer = {
             drawPatterns();
 
             // Cylindrical Shading (Horizontal gradient)
-            const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
-            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
-            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
-            ctx.fillStyle = grad;
-            ctx.fill();
+            // REMOVED FOR HUMAN SKIN (Caused unwanted vertical spine line)
+            // If needed for other furry animals, can wrap in conditional, but user wants it gone.
+            if (options.animal !== 'human') {
+                const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
+                grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
+                grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+                grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
+                grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
             ctx.restore();
         } else {
             ctx.beginPath();
