@@ -6971,26 +6971,31 @@ var BallRenderer = {
                      fillStyle.setTransform(matrix);
                 }
             } else {
-                 const cacheKey = `anatomic_body_${color}`;
-                 fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-                    gradCtx.fillStyle = color;
-                    gradCtx.fillRect(0, 0, size, size);
-                    const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
-                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-                    gradCtx.fillStyle = grad;
-                    gradCtx.fillRect(0, 0, size, size);
-                });
+                 if (options.animal === 'human') {
+                     // Human: Flat skin, no texture pattern to avoid artifacts
+                     fillStyle = color;
+                 } else {
+                     const cacheKey = `anatomic_body_${color}`;
+                     fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                        gradCtx.fillStyle = color;
+                        gradCtx.fillRect(0, 0, size, size);
+                        const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+                        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+                        gradCtx.fillStyle = grad;
+                        gradCtx.fillRect(0, 0, size, size);
+                    });
 
-                 // Align pattern to body center (Fix repeating seam artifact)
-                 if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
-                     const matrix = new DOMMatrix();
-                     // Center the gradient on the body (cx, midY)
-                     // Gradient center is at size/2
-                     // We want (size/2, size/2) -> (cx, topY + h/2)
-                     const halfSize = GRAD_CANVAS_SIZE / 2;
-                     matrix.translateSelf(cx - halfSize, topY + h/2 - halfSize);
-                     fillStyle.setTransform(matrix);
+                     // Align pattern to body center (Fix repeating seam artifact)
+                     if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
+                         const matrix = new DOMMatrix();
+                         // Center the gradient on the body (cx, midY)
+                         // Gradient center is at size/2
+                         // We want (size/2, size/2) -> (cx, topY + h/2)
+                         const halfSize = GRAD_CANVAS_SIZE / 2;
+                         matrix.translateSelf(cx - halfSize, topY + h/2 - halfSize);
+                         fillStyle.setTransform(matrix);
+                     }
                  }
             }
 
