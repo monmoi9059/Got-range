@@ -207,6 +207,7 @@ RenderEngine.Queue = {
             else if (obj.type === 'player') PlayerRenderer.draw(obj);
             else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
             else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'text') drawFloatingText(obj);
         }
     }
 };
@@ -1668,6 +1669,23 @@ var BallRenderer = {
             ctx.fillStyle = '#DCDCDC';
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
+    }
+
+    function drawFloatingText(p) {
+        const s = p.scale;
+        const oldAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = p.alpha;
+
+        ctx.font = `bold ${24 * s}px 'Russo One', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = p.color || '#FFD700';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3 * s;
+
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillText(p.text, p.x, p.y);
+
         ctx.globalAlpha = oldAlpha;
     }
 
@@ -3441,10 +3459,15 @@ var BallRenderer = {
              // Calculate Age/Size based on Net Score (Dynamic Growth/Loss)
              const makes = (playerData.lifetimeStats && playerData.lifetimeStats.makes) || 0;
              const misses = (playerData.lifetimeStats && playerData.lifetimeStats.misses) || 0;
-             const netScore = Math.max(0, makes - misses);
+             let netScore = Math.max(0, makes - misses);
+
+             if (playerData.catScaleResetOffset) {
+                 netScore = Math.max(0, netScore - playerData.catScaleResetOffset);
+             }
 
              // Dynamic Scaling: 0.25 Base + 0.001 per net make (No Limit)
-             let ageScale = 0.25 + (netScore * 0.001);
+             const growthMult = 1 + (playerData.stats.catNip || 0) * 0.5;
+             let ageScale = 0.25 + (netScore * 0.001 * growthMult);
 
              // Color Logic based on raw experience (makes)
              let furColor = '#D2B48C'; // Tan/Orange (Kitten)
@@ -3506,15 +3529,29 @@ var BallRenderer = {
              p.y += bounce;
 
              // Body (Sitting)
+             // Hind Legs (Haunches) - Behind body
+             ctx.fillStyle = furColor;
+             ctx.beginPath(); ctx.ellipse(p.x - 18*s, p.y - 5*s, 12*s, 18*s, -0.4, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + 18*s, p.y - 5*s, 12*s, 18*s, 0.4, 0, Math.PI*2); ctx.fill();
+
+             // Hind Paws
+             drawFuzzyCircle(p.x - 22*s, p.y + 8*s, 6*s, furColor, 1003, s, true, true); // Left Hind
+             drawFuzzyCircle(p.x + 22*s, p.y + 8*s, 6*s, furColor, 1004, s, true, true); // Right Hind
+             // Toe beans for hind paws
+             ctx.fillStyle = '#FFC0CB'; // Pink
+             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x - 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
+             for(let k=-1; k<=1; k++) ctx.beginPath(), ctx.arc(p.x + 22*s + k*2*s, p.y + 8*s + 2*s, 1.5*s, 0, Math.PI*2), ctx.fill();
+
+             // Main Body
              ctx.fillStyle = furColor;
              // Fat belly
-             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
-             // Chest
+             ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+             // Chest patch
              ctx.fillStyle = bellyColor;
              ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
 
              // Head
-             const headY = p.y - 35*s;
+             const headY = p.y - 38*s;
              const headR = 18*s;
              drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
 
@@ -3549,7 +3586,7 @@ var BallRenderer = {
                  ctx.beginPath(); ctx.moveTo(p.x, headY+5*s); ctx.lineTo(p.x+3*s, headY+8*s); ctx.stroke();
              }
 
-             // Paws (For Passing Animation)
+             // Paws (Front)
              // Default Position: Chest
              let pawLX = p.x - 10*s;
              let pawRX = p.x + 10*s;
@@ -3568,6 +3605,15 @@ var BallRenderer = {
              drawFuzzyCircle(pawLX, pawY, pawR, furColor, 1001, s, true, true);
              drawFuzzyCircle(pawRX, pawY, pawR, furColor, 1002, s, true, true);
 
+             // Toe Beans (Front) - Visible if pushing or eating
+             if (isPassing || isEating) {
+                  ctx.fillStyle = '#FFC0CB';
+                  for(let k=-1; k<=1; k++) {
+                      ctx.beginPath(); ctx.arc(pawLX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                      ctx.beginPath(); ctx.arc(pawRX + k*2*s, pawY + 2*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                  }
+             }
+
              // Whiskers
              ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
              ctx.beginPath();
@@ -3576,6 +3622,61 @@ var BallRenderer = {
              ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
              ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
              ctx.stroke();
+
+             // Accessories
+             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
+                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 if (acc) {
+                     if (acc.type === 'glasses') {
+                         ctx.fillStyle = acc.color || '#000';
+                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
+                     }
+                     else if (acc.type === 'neck') {
+                         if (acc.id === 'acc_bowtie') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
+                         } else if (acc.id === 'acc_scarf') {
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
+                         } else { // Chain
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
+                         }
+                     }
+                     else if (acc.type === 'hat') {
+                         if (acc.id === 'acc_crown') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
+                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
+                         } else if (acc.id === 'acc_cowboy') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
+                         } else if (acc.id === 'acc_tophat') {
+                             ctx.fillStyle = acc.color;
+                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
+                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
+                         } else if (acc.id === 'acc_cap') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
+                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
+                         }
+                     }
+                     else if (acc.type === 'head') { // Flower
+                         ctx.fillStyle = acc.color;
+                         for(let k=0; k<5; k++) {
+                             const a = (k/5)*Math.PI*2;
+                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
+                         }
+                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
 
              // Tail (Wagging)
              const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
@@ -9308,14 +9409,21 @@ var BallRenderer = {
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
              if(proj) {
-                 // Force streak fire particles behind the player (depth > 550)
-                 let depth = proj.depth;
-                 if (p.isFireParticle && p.customHue !== undefined) {
-                     depth = Math.max(depth, 580);
+                 if (p.type === 'text') {
+                     const item = RenderEngine.Queue.add('text', proj.depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
+                     item.text = p.text;
+                 } else {
+                     // Force streak fire particles behind the player (depth > 550)
+                     let depth = proj.depth;
+                     if (p.isFireParticle && p.customHue !== undefined) {
+                         depth = Math.max(depth, 580);
+                     }
+                     const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
                  }
-                 const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
-                 item.alpha = p.alpha;
-                 item.color = p.color;
              }
         });
 

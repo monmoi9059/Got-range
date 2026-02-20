@@ -990,6 +990,19 @@
         { id: 'cat_void', name: 'Néant', cost: 5000, furColor: '#000', bellyColor: '#000' }
     ];
 
+    var CAT_ACCESSORIES_DB = [
+        { id: 'acc_none', name: 'Aucun', cost: 0, type: 'none' },
+        { id: 'acc_sunglasses', name: 'Lunettes Soleil', cost: 500, type: 'glasses', color: '#000' },
+        { id: 'acc_bowtie', name: 'Nœud Papillon', cost: 750, type: 'neck', color: '#FF0000' },
+        { id: 'acc_crown', name: 'Couronne', cost: 5000, type: 'hat', color: '#FFD700' },
+        { id: 'acc_cowboy', name: 'Chapeau Cowboy', cost: 2000, type: 'hat', color: '#8B4513' },
+        { id: 'acc_tophat', name: 'Haut-de-forme', cost: 2500, type: 'hat', color: '#111' },
+        { id: 'acc_cap', name: 'Casquette', cost: 1000, type: 'hat', color: '#0047AB' },
+        { id: 'acc_chain', name: 'Chaîne Or', cost: 3000, type: 'neck', color: '#FFD700' },
+        { id: 'acc_scarf', name: 'Écharpe', cost: 1500, type: 'neck', color: '#008000' },
+        { id: 'acc_flower', name: 'Fleur', cost: 1000, type: 'head', color: '#FF69B4' }
+    ];
+
     var BALLS_DB = [
         { id: 'ball_classic', name: 'Classique', cost: 0, type: 'basketball', color1: '#ff6600', color2: '#cc5500', texture: 'leather' },
         { id: 'ball_aba', name: 'ABA', cost: 1000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'leather' },

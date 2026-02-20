@@ -708,8 +708,10 @@
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
-                cat.eatTimer = 180; // 3 seconds eat time
-                g_catEatTimer = 180; // Sync render animation
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
             } else {
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
@@ -721,18 +723,24 @@
             if (cat.eatTimer <= 0) {
                 // Done eating, remove taco
                 if (cat.targetTacoIndex !== -1 && tacosOnGround[cat.targetTacoIndex]) {
-                    // Remove specific taco. Note: Index might have shifted if other tacos removed?
-                    // Better to find by reference or just filter out the one at cat pos
-                    // Actually, since we only remove here, indices shift.
-                    // Let's filter out the one we claimed.
-                    // Or simpler: We claimed it with `beingEaten`. Just filter that one out now.
-                    // But wait, if multiple cats (split screen)? They share tacosOnGround.
-                    // We need to be careful.
-                    // Let's find the taco at cat's feet.
                      const tacoIdx = tacosOnGround.findIndex(t => Math.abs(t.x - cat.x) < 5 && Math.abs(t.y - cat.y) < 5);
                      if (tacoIdx !== -1) {
                          tacosOnGround.splice(tacoIdx, 1);
-                         // AudioSystem.playCrunch(); // Optional
+
+                         // Reward Logic
+                         const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
+                         const reward = Math.ceil(10 * playerData.difficulty * multiplier);
+                         playerData.tacos += reward;
+                         checkDailyProgress('earn_tacos', reward);
+
+                         // Floating Text Particle
+                         particles.push({
+                             x: cat.x, y: cat.y, z: 20,
+                             vx: 0, vy: 0, vz: 1.5,
+                             life: 60, maxLife: 60,
+                             scale: 1.0, alpha: 1.0,
+                             type: 'text', text: '+' + reward, color: '#FFD700'
+                         });
                      }
                 }
                 cat.targetTacoIndex = -1;
@@ -1522,6 +1530,7 @@
             SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
             HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
             CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
+            CAT_ACCESSORIES_DB.forEach(a => { if(!playerData.unlockedCatAccessories.includes(a.id)) playerData.unlockedCatAccessories.push(a.id); });
 
             // Max Stats
             playerData.purchasedStats.income = 5; playerData.stats.income = 5;
@@ -1529,6 +1538,7 @@
             playerData.purchasedStats.luck = 10; playerData.stats.luck = 10;
             playerData.purchasedStats.moonwalk = 5; playerData.stats.moonwalk = 5;
             playerData.purchasedStats.extraLives = 5; playerData.stats.extraLives = 5;
+            playerData.purchasedStats.catNip = 5; playerData.stats.catNip = 5;
 
             checkAchievements('shop');
             saveData();
@@ -1605,6 +1615,7 @@
         if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
+        if (statName === 'catNip') return Math.floor(250 * Math.pow(lvl + 1, 2));
         return 999;
     }
     window.buyUpgrade = function(stat) {
@@ -1840,6 +1851,33 @@
         invalidateBackgroundCache(); // Force redraw for cat update
         saveContext(getShopContext());
     }
+    window.changeCatAccessory = function(dir) {
+        loadContext(getShopContext());
+        viewingCatAccessoryIndex += dir;
+        if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.length - 1;
+        if(viewingCatAccessoryIndex >= CAT_ACCESSORIES_DB.length) viewingCatAccessoryIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatAccessory = function() {
+        loadContext(getShopContext());
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlocked = playerData.unlockedCatAccessories.includes(acc.id);
+        if (isUnlocked) {
+            playerData.currentCatAccessory = acc.id;
+        }
+        else if (playerData.tacos >= acc.cost) {
+            playerData.tacos -= acc.cost;
+            playerData.unlockedCatAccessories.push(acc.id);
+            playerData.currentCatAccessory = acc.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
     window.changeBall = function(dir) {
         loadContext(getShopContext());
         viewingBallIndex += dir;
@@ -1955,6 +1993,12 @@
             if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
         }
 
+        // Cat Accessory
+        if(playerData.currentCatAccessory) {
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
+            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+        }
+
         // Style
         if(playerData.currentStyle) {
             viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
@@ -2014,17 +2058,25 @@
 
     window.resetCatSize = function() {
         loadContext(getShopContext());
-        if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
-        playerData.customSkinSettings.height = 1.0;
-        playerData.customSkinSettings.width = 1.0;
 
-        const sldH = document.getElementById('sldCustomHeight');
-        const sldW = document.getElementById('sldCustomWidth');
-        if(sldH) { sldH.value = 1.0; document.getElementById('lblCustomHeight').innerText = "100%"; }
-        if(sldW) { sldW.value = 1.0; document.getElementById('lblCustomWidth').innerText = "100%"; }
+        // Reset Cat Growth
+        if(playerData.lifetimeStats) {
+             const makes = playerData.lifetimeStats.makes || 0;
+             const misses = playerData.lifetimeStats.misses || 0;
+             const net = Math.max(0, makes - misses);
+             playerData.catScaleResetOffset = net;
+        }
 
         saveData();
         saveContext(getShopContext());
+
+        // Provide visual feedback
+        const btn = document.getElementById('btnResetCatSize');
+        if(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "TAILLE RÉINITIALISÉE !";
+            setTimeout(() => { btn.innerText = originalText; }, 2000);
+        }
     }
 
     window.toggleHandedness = function() {
@@ -2217,6 +2269,7 @@
         renderUpgradeControl('luck', 'ctrl_luck');
         renderUpgradeControl('moonwalk', 'ctrl_moonwalk');
         renderUpgradeControl('extraLives', 'ctrl_extraLives');
+        renderUpgradeControl('catNip', 'ctrl_catNip');
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
@@ -2401,6 +2454,20 @@
         if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
         else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
         else { statusCat.innerText = `Coût: ${cat.cost} Tacos`; btnCat.style.display = 'inline-block'; btnCat.innerText = "Acheter"; btnCat.disabled = playerData.tacos < cat.cost; }
+
+        // Cat Accessory UI
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        document.getElementById('catAccName').innerText = acc.name;
+        const btnAcc = document.getElementById('btnEquipCatAcc');
+        const statusAcc = document.getElementById('catAccStatus');
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlockedAcc = playerData.unlockedCatAccessories.includes(acc.id);
+        const isEquippedAcc = playerData.currentCatAccessory === acc.id;
+
+        if (isEquippedAcc) { statusAcc.innerText = "Équipé"; btnAcc.style.display = 'none'; }
+        else if (isUnlockedAcc) { statusAcc.innerText = "Possédé"; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Équiper"; btnAcc.disabled = false; }
+        else { statusAcc.innerText = `Coût: ${acc.cost} Tacos`; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Acheter"; btnAcc.disabled = playerData.tacos < acc.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];
