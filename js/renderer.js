@@ -2824,7 +2824,7 @@ var BallRenderer = {
                  const animal = options.animal || 'human';
 
                  // Universal Spine Shadow removed per request
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                 // ctx.strokeStyle = 'rgba(0,0,0,0.1)';
 
                  if (animal === 'dino') {
                      // Dino: Spine Ridge (Protruding vertebrae)
@@ -2875,31 +2875,7 @@ var BallRenderer = {
                  }
                  else if (animal === 'human' || animal === 'monkey') {
                      // Remastered Human Back Anatomy
-                     // const scapY = topY + h * 0.25; // Removed
-                     const latY = topY + h * 0.5;
-
-                     // 1. Trapezius removed per request
-                     // 2. Scapula removed per request
-
-                     // 3. Lats (Side shadows)
-                     const latGrad = ctx.createLinearGradient(cx, 0, cx + w, 0);
-                     latGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                     latGrad.addColorStop(0.8, 'rgba(0,0,0,0.1)'); // Shadow under arm
-
-                     // Left Lat
-                     ctx.fillStyle = 'rgba(0,0,0,0.06)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx - w*0.2, latY);
-                     ctx.quadraticCurveTo(cx - w*0.4, latY + h*0.2, cx - w*0.15, topY + h*0.8); // To lower back
-                     ctx.lineTo(cx - w*0.1, latY);
-                     ctx.fill();
-
-                     // Right Lat
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.2, latY);
-                     ctx.quadraticCurveTo(cx + w*0.4, latY + h*0.2, cx + w*0.15, topY + h*0.8);
-                     ctx.lineTo(cx + w*0.1, latY);
-                     ctx.fill();
+                     // All muscle definitions (Spine, Traps, Scapula, Lats) removed per request for cleaner look
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
