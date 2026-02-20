@@ -2023,11 +2023,11 @@ var BallRenderer = {
 
         // Upper Arm Shading (Top to Bottom: p1R -> p1L)
         const grad1 = ctx.createLinearGradient(p1R.x, p1R.y, p1L.x, p1L.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.3)'); // Top Edge
-        grad1.addColorStop(0.2, 'rgba(255,255,255,0.1)'); // Soft Highlight
+        grad1.addColorStop(0, 'rgba(0,0,0,0.4)'); // Top Occlusion
+        grad1.addColorStop(0.25, 'rgba(255,255,255,0.15)'); // Highlight
         grad1.addColorStop(0.5, 'rgba(0,0,0,0)'); // Mid
-        grad1.addColorStop(0.85, 'rgba(0,0,0,0.15)'); // Soft Shadow
-        grad1.addColorStop(1, 'rgba(0,0,0,0.3)'); // Bottom Edge
+        grad1.addColorStop(0.8, 'rgba(0,0,0,0.2)'); // Shadow
+        grad1.addColorStop(1, 'rgba(0,0,0,0.4)'); // Bounce
         ctx.fillStyle = grad1;
 
         // Draw rect covering upper segment (slightly oversized to cover joint)
@@ -2037,11 +2037,11 @@ var BallRenderer = {
 
         // Forearm Shading
         const grad2 = ctx.createLinearGradient(p2R_out.x, p2R_out.y, p2L_out.x, p2L_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.3)');
-        grad2.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+        grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
+        grad2.addColorStop(0.25, 'rgba(255,255,255,0.15)');
         grad2.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.85, 'rgba(0,0,0,0.15)');
-        grad2.addColorStop(1, 'rgba(0,0,0,0.3)');
+        grad2.addColorStop(0.8, 'rgba(0,0,0,0.2)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
         ctx.fillStyle = grad2;
 
         ctx.beginPath();
@@ -2112,13 +2112,13 @@ var BallRenderer = {
         ctx.rotate(angle);
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
 
-        // Gradient: Soft & Clean Cylinder
+        // Gradient: Unified Lit Cylinder
         const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.3)'); // Top Edge
-        grad3d.addColorStop(0.2, 'rgba(255,255,255,0.1)'); // Soft Highlight
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.4)'); // Top Occlusion
+        grad3d.addColorStop(0.25, 'rgba(255,255,255,0.15)'); // Highlight
         grad3d.addColorStop(0.5, 'rgba(0,0,0,0)'); // Midtone
-        grad3d.addColorStop(0.85, 'rgba(0,0,0,0.15)'); // Soft Shadow
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.3)'); // Bottom Edge
+        grad3d.addColorStop(0.8, 'rgba(0,0,0,0.2)'); // Shadow
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.4)'); // Bounce
 
         ctx.fillStyle = grad3d;
         ctx.beginPath();
@@ -2882,32 +2882,75 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // 3.0 Clean "High Quality" Back
-                     // Pure form gradient, no muscle "lumps" or busy details.
+                     // 4.0 "Jersey Style" Back
+                     // Simulates fabric drape, folds, and matte texture.
 
-                     // 1. Main Body Cylinder Gradient
-                     // Simulates a smooth rounded torso.
-                     // Darker edges -> Soft Shadow -> Highlight Center
-                     const bodyGrad = ctx.createLinearGradient(cx - w/2, 0, cx + w/2, 0);
-                     bodyGrad.addColorStop(0, 'rgba(0,0,0,0.3)');   // Left Edge Dark
-                     bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)'); // Soft Falloff
-                     bodyGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Center Highlight (Spine)
-                     bodyGrad.addColorStop(0.85, 'rgba(0,0,0,0.1)'); // Soft Falloff
-                     bodyGrad.addColorStop(1, 'rgba(0,0,0,0.3)');   // Right Edge Dark
+                     // 1. Base Fabric Texture (Matte Gradient)
+                     // Less contrast than skin to look like cloth
+                     const fabricGrad = ctx.createLinearGradient(cx - w/2, 0, cx + w/2, 0);
+                     fabricGrad.addColorStop(0, 'rgba(0,0,0,0.3)');   // Dark Fold Edge
+                     fabricGrad.addColorStop(0.2, 'rgba(0,0,0,0.05)'); // Flat
+                     fabricGrad.addColorStop(0.5, 'rgba(255,255,255,0.05)'); // Very Subtle Highlight
+                     fabricGrad.addColorStop(0.8, 'rgba(0,0,0,0.05)');
+                     fabricGrad.addColorStop(1, 'rgba(0,0,0,0.3)');   // Dark Fold Edge
 
-                     ctx.fillStyle = bodyGrad;
+                     ctx.fillStyle = fabricGrad;
                      ctx.fillRect(cx - w/2, topY, w, h);
 
-                     // 2. Extremely Subtle Spine Hint
-                     // Just a very faint vertical darkening to suggest the groove without drawing a line
-                     const spineW = w * 0.05;
-                     const spineGrad = ctx.createLinearGradient(cx - spineW, 0, cx + spineW, 0);
-                     spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                     spineGrad.addColorStop(0.5, 'rgba(0,0,0,0.08)'); // Very faint
-                     spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                     // 2. Tension Folds (from Armpits)
+                     // Diagonal shadows suggesting fabric stretching across the back
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
 
-                     ctx.fillStyle = spineGrad;
-                     ctx.fillRect(cx - spineW, topY + h*0.1, spineW*2, h*0.8);
+                     // Left Armpit Fold
+                     ctx.beginPath();
+                     ctx.moveTo(cx - w*0.45, topY + h*0.2);
+                     ctx.lineTo(cx - w*0.1, topY + h*0.5);
+                     ctx.lineTo(cx - w*0.45, topY + h*0.35);
+                     ctx.fill();
+
+                     // Right Armpit Fold
+                     ctx.beginPath();
+                     ctx.moveTo(cx + w*0.45, topY + h*0.2);
+                     ctx.lineTo(cx + w*0.1, topY + h*0.5);
+                     ctx.lineTo(cx + w*0.45, topY + h*0.35);
+                     ctx.fill();
+
+                     // 3. Lower Back/Tuck Folds (Vertical bunching)
+                     const foldW = w * 0.6;
+                     const foldH = h * 0.2;
+                     const foldY = topY + h * 0.75;
+
+                     // Subtle wave gradient for loose fabric at bottom
+                     const foldGrad = ctx.createLinearGradient(cx - foldW/2, 0, cx + foldW/2, 0);
+                     foldGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                     foldGrad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+                     foldGrad.addColorStop(0.4, 'rgba(0,0,0,0)');
+                     foldGrad.addColorStop(0.6, 'rgba(0,0,0,0.1)');
+                     foldGrad.addColorStop(0.8, 'rgba(0,0,0,0)');
+                     foldGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                     ctx.fillStyle = foldGrad;
+                     ctx.fillRect(cx - foldW/2, foldY, foldW, foldH);
+
+                     // 4. Jersey Seams/Trim (Shoulders/Neck)
+                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                     ctx.lineWidth = 1 * scale;
+
+                     // Neckline (Back)
+                     ctx.beginPath();
+                     ctx.arc(cx, topY, w*0.3, 0, Math.PI);
+                     ctx.stroke();
+
+                     // Armhole Seams
+                     ctx.beginPath();
+                     ctx.moveTo(cx - w*0.4, topY + h*0.05);
+                     ctx.quadraticCurveTo(cx - w*0.3, topY + h*0.2, cx - w*0.45, topY + h*0.3);
+                     ctx.stroke();
+
+                     ctx.beginPath();
+                     ctx.moveTo(cx + w*0.4, topY + h*0.05);
+                     ctx.quadraticCurveTo(cx + w*0.3, topY + h*0.2, cx + w*0.45, topY + h*0.3);
+                     ctx.stroke();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
@@ -3106,18 +3149,18 @@ var BallRenderer = {
         }
         ctx.fill();
 
-        // Cylindrical Shading Overlay (Soft & Clean)
+        // Cylindrical Shading Overlay (Natural Skin/Fabric Match)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        // 1. Top Edge (Subtle Occlusion)
-        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
-        // 2. Highlight (Soft & Broad)
-        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
-        // 3. Center (Clear Skin)
+        // 1. Top Edge (Occlusion)
+        grad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        // 2. Highlight (Matte/Soft)
+        grad.addColorStop(0.25, 'rgba(255,255,255,0.15)');
+        // 3. Midtone
         grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-        // 4. Shadow (Soft Gradient)
-        grad.addColorStop(0.85, 'rgba(0,0,0,0.15)');
-        // 5. Bottom Edge (Darker Outline)
-        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        // 4. Core Shadow
+        grad.addColorStop(0.8, 'rgba(0,0,0,0.2)');
+        // 5. Bottom Edge (Bounce Light for realism)
+        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
 
         ctx.fillStyle = grad;
         ctx.fill();
