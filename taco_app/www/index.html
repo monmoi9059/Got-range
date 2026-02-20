@@ -13723,9 +13723,10 @@ var BallRenderer = {
             drawFuzzyCircle(p.x - 20*s, p.y, 5*s, '#FFF', 1006, s, true, true); // Hind paws peeking
             drawFuzzyCircle(p.x + 20*s, p.y, 5*s, '#FFF', 1007, s, true, true);
 
-            // Tail (Wrapped side)
+            // Tail (Wrapped side - Wagging tip)
+            const s0Wag = Math.sin(Date.now()*0.005) * 5 * s;
             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s, p.y - 15*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s + s0Wag, p.y - 15*s); ctx.stroke();
 
         } else if (stance === 8) { // YOGA
              // Tail (Balanced)
@@ -13882,9 +13883,10 @@ var BallRenderer = {
             // Front Right
             drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 10*s, p.y + 5*s, 7*s, furColor, s, true, 1025);
 
-            // Tail (Up)
+            // Tail (Up - Wagging)
+            const s2Wag = Math.sin(Date.now()*0.01) * 5 * s;
             ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
-            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s, p.y - 60*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s + s2Wag, p.y - 60*s); ctx.stroke();
 
         } else if (stance === 3) { // SPRAWLED (Sploot)
             headY = p.y - 10*s;
@@ -13929,6 +13931,11 @@ var BallRenderer = {
             // Front Paws (Dangling)
             drawFuzzyLimb(p.x - 8*s, p.y - 45*s, p.x - 12*s, p.y - 35*s, 4*s, furColor, s, true, 1054);
             drawFuzzyLimb(p.x + 8*s, p.y - 45*s, p.x + 12*s, p.y - 35*s, 4*s, furColor, s, true, 1055);
+
+            // Tail (Balancing - Wagging)
+            const s5Wag = Math.sin(Date.now()*0.005) * 5 * s;
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + 30*s, p.y + 5*s, p.x + 40*s + s5Wag, p.y - 5*s); ctx.stroke();
 
         } else if (stance === 6) { // STRETCHING (Downward Dog)
             headY = p.y; // Head low
@@ -14303,12 +14310,6 @@ var BallRenderer = {
                  }
              }
 
-             // Tail (Wagging)
-             const tailWag = Math.sin(Date.now() * 0.005) * 10 * s;
-             ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
-             ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 10*s);
-             ctx.quadraticCurveTo(p.x + 40*s, p.y - 30*s + tailWag, p.x + 50*s, p.y - 10*s);
-             ctx.stroke();
     }
 
 // --- END renderer.js ---
