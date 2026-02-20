@@ -1957,16 +1957,7 @@ var BallRenderer = {
             ctx.quadraticCurveTo(p1.x - Math.cos(a1)*w1*0.5, p1.y - Math.sin(a1)*w1*0.5, p1R.x, p1R.y);
 
             // Upper Arm Side
-            // Check for muscle bulge (Bicep) if human
-            if (options.muscle && playerData.graphics === 'HIGH') {
-                const midX = (p1R.x + p2R_in.x)/2;
-                const midY = (p1R.y + p2R_in.y)/2;
-                // Bulge outward relative to normal
-                const bulge = 4 * scale;
-                ctx.quadraticCurveTo(midX - Math.cos(n1)*bulge, midY - Math.sin(n1)*bulge, p2R_in.x, p2R_in.y);
-            } else {
-                ctx.lineTo(p2R_in.x, p2R_in.y);
-            }
+            ctx.lineTo(p2R_in.x, p2R_in.y);
 
             // Elbow Outer/Inner
             // Quadratic curve between IN and OUT points to smooth the joint
@@ -1996,15 +1987,7 @@ var BallRenderer = {
             ctx.quadraticCurveTo(p2.x + Math.cos(bisectAngle)*miterLen, p2.y + Math.sin(bisectAngle)*miterLen, p2L_in.x, p2L_in.y);
 
             // Upper Arm Return
-            if (options.muscle && playerData.graphics === 'HIGH') {
-                 // Tricep/Shoulder bulge
-                 const midX = (p2L_in.x + p1L.x)/2;
-                 const midY = (p2L_in.y + p1L.y)/2;
-                 const bulge = 2 * scale;
-                 ctx.quadraticCurveTo(midX + Math.cos(n1)*bulge, midY + Math.sin(n1)*bulge, p1L.x, p1L.y);
-            } else {
-                ctx.lineTo(p1L.x, p1L.y);
-            }
+            ctx.lineTo(p1L.x, p1L.y);
 
             ctx.closePath();
             ctx.fillStyle = color;
@@ -2819,122 +2802,7 @@ var BallRenderer = {
                 ctx.restore();
             }
 
-            // Muscle Definition (High Graphics) - BACK VIEW
-            if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
-                 const animal = options.animal || 'human';
-
-                 // Universal Spine Shadow (Soft Channel)
-                 const spineGrad = ctx.createLinearGradient(cx - w*0.1, 0, cx + w*0.1, 0);
-                 spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                 spineGrad.addColorStop(0.4, 'rgba(0,0,0,0.15)'); // Spine Groove
-                 spineGrad.addColorStop(0.6, 'rgba(0,0,0,0.15)');
-                 spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                 ctx.fillStyle = spineGrad;
-                 ctx.fillRect(cx - w*0.2, topY + h*0.1, w*0.4, h*0.8);
-
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-
-                 if (animal === 'dino') {
-                     // Dino: Spine Ridge (Protruding vertebrae)
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h * 0.1);
-                     ctx.lineTo(cx, topY + h * 0.9);
-                     ctx.lineWidth = w * 0.08;
-                     ctx.strokeStyle = 'rgba(0,0,0,0.2)'; // Darker spine
-                     ctx.stroke();
-
-                     // Horizontal Skin Folds
-                     ctx.lineWidth = w * 0.04;
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.3); ctx.lineTo(cx + w*0.3, topY + h*0.35); ctx.stroke();
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.5); ctx.lineTo(cx + w*0.3, topY + h*0.55); ctx.stroke();
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.7); ctx.lineTo(cx + w*0.3, topY + h*0.75); ctx.stroke();
-                 }
-                 else if (animal === 'elephant') {
-                     // Elephant: Deep Spine Indent + Wrinkles
-                     ctx.lineWidth = w * 0.05;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.1); ctx.lineTo(cx, topY + h * 0.9); ctx.stroke();
-
-                     // Wrinkles
-                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-                     ctx.lineWidth = w * 0.02;
-                     for(let i=1; i<5; i++) {
-                         let y = topY + h * (0.2 * i);
-                         ctx.beginPath();
-                         ctx.moveTo(cx - w*0.4, y);
-                         ctx.quadraticCurveTo(cx, y + h*0.05, cx + w*0.4, y);
-                         ctx.stroke();
-                     }
-                 }
-                 else if (animal === 'frog') {
-                     // Frog: Angular Spine hump
-                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                     ctx.lineWidth = w * 0.06;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
-                     // Hip Bumps
-                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                     ctx.beginPath(); ctx.arc(cx - w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
-                     ctx.beginPath(); ctx.arc(cx + w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
-                 }
-                 else if (animal === 'penguin') {
-                     // Smooth, just faint spine
-                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     ctx.lineWidth = w * 0.03;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
-                 }
-                 else if (animal === 'human' || animal === 'monkey') {
-                     // Remastered Human Back Anatomy
-                     const scapY = topY + h * 0.25;
-                     const latY = topY + h * 0.5;
-
-                     // 1. Trapezius (Diamond shape at top)
-                     ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.05); // Neck base
-                     ctx.lineTo(cx - w*0.25, scapY);
-                     ctx.lineTo(cx, topY + h*0.45); // Mid-back
-                     ctx.lineTo(cx + w*0.25, scapY);
-                     ctx.closePath();
-                     ctx.fill();
-
-                     // 2. Scapula (Shoulder Blades) - Soft Shadows
-                     const drawScapula = (isRight) => {
-                         const sx = isRight ? cx + w*0.25 : cx - w*0.25;
-                         const dir = isRight ? 1 : -1;
-                         const scapGrad = ctx.createRadialGradient(sx, scapY, 0, sx, scapY, w*0.25);
-                         scapGrad.addColorStop(0, 'rgba(0,0,0,0.05)');
-                         scapGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                         ctx.fillStyle = scapGrad;
-                         ctx.beginPath();
-                         ctx.moveTo(sx, scapY - h*0.05);
-                         ctx.lineTo(sx + dir*w*0.15, scapY + h*0.05);
-                         ctx.lineTo(sx, scapY + h*0.15);
-                         ctx.fill();
-                     };
-                     drawScapula(false);
-                     drawScapula(true);
-
-                     // 3. Lats (Side shadows)
-                     const latGrad = ctx.createLinearGradient(cx, 0, cx + w, 0);
-                     latGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                     latGrad.addColorStop(0.8, 'rgba(0,0,0,0.1)'); // Shadow under arm
-
-                     // Left Lat
-                     ctx.fillStyle = 'rgba(0,0,0,0.06)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx - w*0.2, latY);
-                     ctx.quadraticCurveTo(cx - w*0.4, latY + h*0.2, cx - w*0.15, topY + h*0.8); // To lower back
-                     ctx.lineTo(cx - w*0.1, latY);
-                     ctx.fill();
-
-                     // Right Lat
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.2, latY);
-                     ctx.quadraticCurveTo(cx + w*0.4, latY + h*0.2, cx + w*0.15, topY + h*0.8);
-                     ctx.lineTo(cx + w*0.1, latY);
-                     ctx.fill();
-                 }
-                 // Turtles and others get no muscle definition (shell or smooth)
-            }
+            // Muscle Definition removed for smooth look
 
             // Rim Light
             ctx.save();
@@ -3110,24 +2978,11 @@ var BallRenderer = {
 
         ctx.beginPath();
 
-        if (playerData.graphics === 'HIGH') {
-            // Curvy "Muscle" Limb
-            const bulge = width * 0.15;
-
-            // Start (Shoulder/Hip)
-            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
-            // Top Edge (Bicep/Quad bulge)
-            ctx.quadraticCurveTo(len*0.5, -width/2 - bulge, len, -width*0.4);
-            // End Cap (Elbow/Knee - narrower)
-            ctx.arc(len, 0, width*0.4, -Math.PI/2, Math.PI/2);
-            // Bottom Edge
-            ctx.quadraticCurveTo(len*0.5, width/2 + bulge*0.5, 0, width/2);
-        } else {
-            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
-            ctx.lineTo(len, -width/2);
-            ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
-            ctx.lineTo(0, width/2);
-        }
+        // Standard Limb
+        ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
+        ctx.lineTo(len, -width/2);
+        ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
+        ctx.lineTo(0, width/2);
         ctx.fill();
 
         // Cylindrical Shading Overlay
