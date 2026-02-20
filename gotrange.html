@@ -7081,80 +7081,60 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
                  }
                  else if (animal === 'human' || animal === 'monkey') {
-                     // 5.0 Realistic Asymmetrical Fabric
-                     // Uses seeded randomization for organic folds and dynamic lighting
+                     // 6.0 BRAND NEW SHADING FROM SCRATCH
+                     // Resetting to a high-contrast, stylized look to guarantee visibility of change.
 
-                     // 1. Rich Base Fabric Gradient
-                     // Deeper shadows at edges, broad soft highlight off-center
-                     const fabricGrad = ctx.createLinearGradient(cx - w/2, 0, cx + w/2, 0);
-                     fabricGrad.addColorStop(0, 'rgba(0,0,0,0.4)');     // Deep Occlusion
-                     fabricGrad.addColorStop(0.3, 'rgba(255,255,255,0.08)'); // Broad Soft Highlight
-                     fabricGrad.addColorStop(0.6, 'rgba(0,0,0,0)');     // Midtone
-                     fabricGrad.addColorStop(0.9, 'rgba(0,0,0,0.2)');   // Soft Shadow
-                     fabricGrad.addColorStop(1, 'rgba(0,0,0,0.5)');     // Deep Occlusion
-
-                     ctx.fillStyle = fabricGrad;
+                     // 1. Base Gradient (Vertical Light)
+                     // Light top -> Dark bottom to simulate overhead stadium light
+                     const baseGrad = ctx.createLinearGradient(0, topY, 0, topY + h);
+                     baseGrad.addColorStop(0, 'rgba(255,255,255,0.1)');  // Shoulders lit
+                     baseGrad.addColorStop(0.5, 'rgba(0,0,0,0)');       // Mid back natural
+                     baseGrad.addColorStop(1, 'rgba(0,0,0,0.4)');       // Lower back shadow
+                     ctx.fillStyle = baseGrad;
                      ctx.fillRect(cx - w/2, topY, w, h);
 
-                     // 2. Asymmetrical Tension Folds
-                     // Realistic ripple effect: A large fold crossing diagonally, reacting to "movement"
-                     // We use a pseudo-random seed based on the character's 'seed' prop (defaulted to 40)
-                     const fSeed = seed + 123;
-                     const isRightDominant = (fSeed % 2 === 0); // Random direction
+                     // 2. Soft Spine Groove (Inverted Radial)
+                     // A soft vertical shadow that fades out quickly width-wise
+                     const spineGrad = ctx.createRadialGradient(cx, topY + h*0.4, 0, cx, topY + h*0.4, w*0.3);
+                     spineGrad.addColorStop(0, 'rgba(0,0,0,0.15)'); // Center darkness
+                     spineGrad.addColorStop(1, 'rgba(0,0,0,0)');    // Fade to nothing
 
-                     ctx.fillStyle = 'rgba(0,0,0,0.12)'; // Soft fold shadow
+                     ctx.save();
+                     ctx.scale(0.5, 1.0); // Squeeze horizontally to make it an oval/groove
+                     ctx.translate(cx, 0); // Re-center after scale? No, simplified approach:
+                     ctx.restore();
 
-                     // Major Fold (Diagonal Drape)
-                     // Starts high on one side, flows down across back
-                     const startX = isRightDominant ? cx + w*0.3 : cx - w*0.3;
-                     const endX = isRightDominant ? cx - w*0.2 : cx + w*0.2;
-
+                     // Simpler approach for spine: Vertical linear gradient masked by an oval
+                     ctx.save();
                      ctx.beginPath();
-                     ctx.moveTo(startX, topY + h*0.2); // Shoulder blade area
-                     ctx.quadraticCurveTo(cx, topY + h*0.5, endX, topY + h*0.8); // Curve down
-                     ctx.lineTo(endX + (isRightDominant ? -10*s : 10*s), topY + h*0.85); // Taper out
-                     ctx.quadraticCurveTo(cx, topY + h*0.55, startX + (isRightDominant ? -15*s : 15*s), topY + h*0.25); // Curve back
+                     ctx.ellipse(cx, topY + h*0.4, w*0.15, h*0.4, 0, 0, Math.PI*2);
+                     ctx.clip();
+                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
                      ctx.fill();
+                     ctx.restore();
 
-                     // Minor Fold (Counter-balance)
-                     // Smaller ripple on the opposite side lower down
-                     const minorX = isRightDominant ? cx - w*0.35 : cx + w*0.35;
+                     // 3. Shoulder Blade Highlights (Soft Spots)
+                     const drawBlade = (offsetX) => {
+                         const bx = cx + offsetX;
+                         const by = topY + h * 0.2;
+                         const bGrad = ctx.createRadialGradient(bx, by, 0, bx, by, w*0.2);
+                         bGrad.addColorStop(0, 'rgba(255,255,255,0.1)'); // Highlight
+                         bGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                         ctx.fillStyle = bGrad;
+                         ctx.beginPath(); ctx.arc(bx, by, w*0.2, 0, Math.PI*2); ctx.fill();
+                     };
+                     drawBlade(-w*0.25);
+                     drawBlade(w*0.25);
+
+                     // 4. Stylized "Drape" Shadow (The Swoop)
+                     // Large, soft shadow swooping across the bottom to simulate a loose shirt
+                     ctx.fillStyle = 'rgba(0,0,0,0.15)';
                      ctx.beginPath();
-                     ctx.moveTo(minorX, topY + h*0.6);
-                     ctx.quadraticCurveTo(minorX + (isRightDominant?10*s:-10*s), topY + h*0.7, minorX, topY + h*0.8);
-                     ctx.lineTo(minorX + (isRightDominant?5*s:-5*s), topY + h*0.8);
-                     ctx.quadraticCurveTo(minorX + (isRightDominant?15*s:-15*s), topY + h*0.7, minorX + (isRightDominant?5*s:-5*s), topY + h*0.6);
+                     ctx.moveTo(cx - w/2, topY + h*0.7);
+                     ctx.quadraticCurveTo(cx, topY + h*0.9, cx + w/2, topY + h*0.6);
+                     ctx.lineTo(cx + w/2, topY + h);
+                     ctx.lineTo(cx - w/2, topY + h);
                      ctx.fill();
-
-                     // 3. Subtle Horizontal Ripple (Movement)
-                     // Very faint wash near the bottom to show looseness
-                     const rippleY = topY + h * 0.7;
-                     const rippleGrad = ctx.createRadialGradient(cx, rippleY, 0, cx, rippleY, w*0.6);
-                     rippleGrad.addColorStop(0, 'rgba(255,255,255,0.05)');
-                     rippleGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                     ctx.fillStyle = rippleGrad;
-                     ctx.beginPath(); ctx.ellipse(cx, rippleY, w*0.5, h*0.1, 0, 0, Math.PI*2); ctx.fill();
-
-                     // 4. Clean Seams
-                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                     ctx.lineWidth = 1 * scale;
-
-                     // Simple Neck Line
-                     ctx.beginPath();
-                     ctx.arc(cx, topY, w*0.28, 0, Math.PI);
-                     ctx.stroke();
-
-                     // Armhole Seams (Asymmetrical based on dominance slightly?)
-                     // Keep them clean and consistent
-                     ctx.beginPath();
-                     ctx.moveTo(cx - w*0.45, topY + h*0.1); // Armpit top
-                     ctx.quadraticCurveTo(cx - w*0.35, topY + h*0.25, cx - w*0.5, topY + h*0.35);
-                     ctx.stroke();
-
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.45, topY + h*0.1);
-                     ctx.quadraticCurveTo(cx + w*0.35, topY + h*0.25, cx + w*0.5, topY + h*0.35);
-                     ctx.stroke();
                  }
                  // Turtles and others get no muscle definition (shell or smooth)
             }
