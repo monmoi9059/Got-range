@@ -2823,15 +2823,7 @@ var BallRenderer = {
             if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
                  const animal = options.animal || 'human';
 
-                 // Universal Spine Shadow (Soft Channel)
-                 const spineGrad = ctx.createLinearGradient(cx - w*0.1, 0, cx + w*0.1, 0);
-                 spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                 spineGrad.addColorStop(0.4, 'rgba(0,0,0,0.15)'); // Spine Groove
-                 spineGrad.addColorStop(0.6, 'rgba(0,0,0,0.15)');
-                 spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                 ctx.fillStyle = spineGrad;
-                 ctx.fillRect(cx - w*0.2, topY + h*0.1, w*0.4, h*0.8);
-
+                 // Universal Spine Shadow removed per request
                  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
 
                  if (animal === 'dino') {
@@ -2883,35 +2875,11 @@ var BallRenderer = {
                  }
                  else if (animal === 'human' || animal === 'monkey') {
                      // Remastered Human Back Anatomy
-                     const scapY = topY + h * 0.25;
+                     // const scapY = topY + h * 0.25; // Removed
                      const latY = topY + h * 0.5;
 
-                     // 1. Trapezius (Diamond shape at top)
-                     ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.05); // Neck base
-                     ctx.lineTo(cx - w*0.25, scapY);
-                     ctx.lineTo(cx, topY + h*0.45); // Mid-back
-                     ctx.lineTo(cx + w*0.25, scapY);
-                     ctx.closePath();
-                     ctx.fill();
-
-                     // 2. Scapula (Shoulder Blades) - Soft Shadows
-                     const drawScapula = (isRight) => {
-                         const sx = isRight ? cx + w*0.25 : cx - w*0.25;
-                         const dir = isRight ? 1 : -1;
-                         const scapGrad = ctx.createRadialGradient(sx, scapY, 0, sx, scapY, w*0.25);
-                         scapGrad.addColorStop(0, 'rgba(0,0,0,0.05)');
-                         scapGrad.addColorStop(1, 'rgba(0,0,0,0)');
-                         ctx.fillStyle = scapGrad;
-                         ctx.beginPath();
-                         ctx.moveTo(sx, scapY - h*0.05);
-                         ctx.lineTo(sx + dir*w*0.15, scapY + h*0.05);
-                         ctx.lineTo(sx, scapY + h*0.15);
-                         ctx.fill();
-                     };
-                     drawScapula(false);
-                     drawScapula(true);
+                     // 1. Trapezius removed per request
+                     // 2. Scapula removed per request
 
                      // 3. Lats (Side shadows)
                      const latGrad = ctx.createLinearGradient(cx, 0, cx + w, 0);
