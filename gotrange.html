@@ -6051,14 +6051,15 @@ var BallRenderer = {
         if (!baseColor || !baseColor.startsWith('#')) return baseColor;
         let hsl = hexToHsl(baseColor);
         if (type === 'shadow') {
-            hsl.l = Math.max(0, hsl.l - 15); // Slightly Darker
-            hsl.s = Math.min(100, hsl.s + 5); // Slightly More saturated
-            hsl.h = (hsl.h + 5) % 360; // Slight cool shift
+            hsl.l = Math.max(0, hsl.l - 20); // Darker Shadow for more volume
+            hsl.s = Math.min(100, hsl.s + 10);
+            hsl.h = (hsl.h + 5) % 360;
         } else if (type === 'rim') {
-            hsl.l = Math.min(100, hsl.l + 15); // Subtle lightness boost (was +40)
-            hsl.s = Math.max(0, hsl.s - 5); // Slight desaturate
+            // REMOVE HIGHLIGHT BOOST - User Request "remove the highlight around everything"
+            // Rim is now just Base Color or very slightly shifted, not brighter
+            hsl.l = Math.min(100, hsl.l + 2); // Barely noticeable if at all
         } else if (type === 'highlight') {
-             hsl.l = Math.min(100, hsl.l + 10);
+             hsl.l = Math.min(100, hsl.l + 5);
         }
         return hslToHex(hsl.h, hsl.s, hsl.l);
     }
@@ -6118,11 +6119,12 @@ var BallRenderer = {
             const shadowColor = getCelColor(c, 'shadow');
             const baseColor = c;
 
-            // Volumetric Gradient (Backlit Sphere)
-            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            grad.addColorStop(0.0, shadowColor); // Deep Shadow Center
-            grad.addColorStop(0.6, baseColor);   // Mid-tone
-            grad.addColorStop(1.0, rimColor);    // Rim Edge
+            // Volumetric Gradient (Top-Left Light Source)
+            // Highlight offset to top-left (-0.3r, -0.3r)
+            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, 0, cx, cy, r);
+            grad.addColorStop(0.0, baseColor);   // Highlight/Light
+            grad.addColorStop(0.5, baseColor);   // Mid-tone
+            grad.addColorStop(1.0, shadowColor); // Shadow Edge
 
             if (furry) {
                 for(let i=0; i<CIRCLE_SEGS; i++) {
@@ -6130,20 +6132,15 @@ var BallRenderer = {
                     p.x = cx + g_circleCos[i]*r;
                     p.y = cy + g_circleSin[i]*r;
                 }
-                // Rim Stroke (Optional, keeps fuzzy edge defined)
-                drawFuzzyPath(g_circlePoints, null, scale, true, seed, true);
-                ctx.strokeStyle = rimColor;
-                ctx.lineWidth = 2*scale;
-                ctx.lineCap = 'round';
-                ctx.stroke();
 
                 // Gradient Fill (Pass Gradient Object as Color)
                 drawFuzzyPath(g_circlePoints, grad, scale, true, seed);
+
+                // Optional: No Rim Stroke as requested ("remove highlight")
+                // Just fuzzy edge defined by shadow falloff
             } else {
                 // Smooth Cel Circle
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-                // Rim Stroke
-                ctx.strokeStyle = rimColor; ctx.lineWidth = 2*scale; ctx.stroke();
                 // Gradient Fill
                 ctx.fillStyle = grad; ctx.fill();
             }
@@ -6273,25 +6270,18 @@ var BallRenderer = {
 
         if (isFurry) {
             if (playerData.graphics === 'HIGH') {
-                 const rimColor = getCelColor(color, 'rim');
                  const shadowColor = getCelColor(color, 'shadow');
                  const baseColor = color;
 
-                 // Gradient perpendicular to first segment (approx for whole limb)
+                 // Gradient: Light (Left) -> Shadow (Right)
                  const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-                 grad.addColorStop(0.0, rimColor);
-                 grad.addColorStop(0.15, baseColor);
-                 grad.addColorStop(0.5, shadowColor);
-                 grad.addColorStop(0.85, baseColor);
-                 grad.addColorStop(1.0, rimColor);
+                 grad.addColorStop(0.0, baseColor);    // Light Side
+                 grad.addColorStop(0.4, baseColor);    // Mid
+                 grad.addColorStop(1.0, shadowColor);  // Shadow Side
 
-                 // Rim Stroke
-                 drawFuzzyPath(points, null, scale, true, seed, true);
-                 ctx.strokeStyle = rimColor;
-                 ctx.lineWidth = 2*scale;
-                 ctx.stroke();
                  // Fill
                  drawFuzzyPath(points, grad, scale, true, seed);
+                 // No Rim Stroke
             } else {
                 // Add intermediate points for fuzzy texture continuity
                 drawFuzzyPath(points, color, scale, true, seed);
@@ -6345,24 +6335,18 @@ var BallRenderer = {
             ctx.closePath();
 
             if (playerData.graphics === 'HIGH') {
-                const rimColor = getCelColor(color, 'rim');
                 const shadowColor = getCelColor(color, 'shadow');
                 const baseColor = color;
 
-                // Gradient perpendicular to first segment
+                // Gradient: Light (Left) -> Shadow (Right)
                 const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-                grad.addColorStop(0.0, rimColor);
-                grad.addColorStop(0.15, baseColor);
-                grad.addColorStop(0.5, shadowColor);
-                grad.addColorStop(0.85, baseColor);
-                grad.addColorStop(1.0, rimColor);
+                grad.addColorStop(0.0, baseColor);
+                grad.addColorStop(0.4, baseColor);
+                grad.addColorStop(1.0, shadowColor);
 
-                ctx.strokeStyle = rimColor;
-                ctx.lineWidth = 2*scale;
-                ctx.lineCap = 'round';
-                ctx.stroke();
                 ctx.fillStyle = grad;
                 ctx.fill();
+                // No Rim Stroke
             } else {
                 ctx.fillStyle = color;
                 ctx.fill();
@@ -6458,27 +6442,18 @@ var BallRenderer = {
 
         // 1. Draw Base Fur
         if (playerData.graphics === 'HIGH') {
-            const rimColor = getCelColor(color, 'rim');
             const shadowColor = getCelColor(color, 'shadow');
             const baseColor = color;
 
-            // Gradient perpendicular to limb axis (p4 to p1)
+            // Gradient: Light (Left/Top) -> Shadow (Right/Bottom)
             const grad = ctx.createLinearGradient(p4.x, p4.y, p1.x, p1.y);
-            grad.addColorStop(0.0, rimColor);
-            grad.addColorStop(0.15, baseColor);
-            grad.addColorStop(0.5, shadowColor);
-            grad.addColorStop(0.85, baseColor);
-            grad.addColorStop(1.0, rimColor);
-
-            // Rim Stroke
-            drawFuzzyPath(g_limbPoints, null, scale, true, seed, true);
-            ctx.strokeStyle = rimColor;
-            ctx.lineWidth = 2 * scale;
-            ctx.lineCap = 'round';
-            ctx.stroke();
+            grad.addColorStop(0.0, baseColor);
+            grad.addColorStop(0.4, baseColor);
+            grad.addColorStop(1.0, shadowColor);
 
             // Gradient Fill
             drawFuzzyPath(g_limbPoints, grad, scale, true, seed);
+            // No Rim Stroke
         } else {
             drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
@@ -7116,23 +7091,48 @@ var BallRenderer = {
             ctx.closePath();
 
             if (playerData.graphics === 'HIGH') {
-                // VOLUMETRIC BACK VIEW (Backlit Torso)
-                const rimColor = getCelColor(color, 'rim');
+                // VOLUMETRIC BACK VIEW - "More Details and 3D"
+                // Light Source: Top Left (Studio) instead of Backlit
                 const shadowColor = getCelColor(color, 'shadow');
                 const baseColor = color;
 
-                // Horizontal Gradient (Left -> Right)
-                // Center is Darkest (Shadow), Edges are Lightest (Rim)
+                // Gradient: Left (Light) -> Right (Shadow)
                 const grad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
-                grad.addColorStop(0.0, rimColor);   // Left Edge
-                grad.addColorStop(0.2, baseColor);  // Turn
-                grad.addColorStop(0.5, shadowColor);// Spine/Center (Deep Shadow)
-                grad.addColorStop(0.8, baseColor);  // Turn
-                grad.addColorStop(1.0, rimColor);   // Right Edge
+                grad.addColorStop(0.0, baseColor);    // Light Side
+                grad.addColorStop(0.4, baseColor);    // Mid
+                grad.addColorStop(0.8, shadowColor);  // Shadow Side
+                grad.addColorStop(1.0, shadowColor);  // Core Shadow
 
                 // Fill
                 ctx.fillStyle = grad;
                 ctx.fill();
+
+                // ADD DETAILS: Subtle Muscle Hints (Spine & Lats)
+                if (!options.isJersey) {
+                    ctx.save();
+                    ctx.clip(); // Clip to body
+
+                    // Spine Groove (Shadow down middle)
+                    const spineGrad = ctx.createLinearGradient(cx - 5*scale, 0, cx + 5*scale, 0);
+                    spineGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                    spineGrad.addColorStop(0.5, 'rgba(0,0,0,0.15)'); // Subtle indentation
+                    spineGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = spineGrad;
+                    ctx.fillRect(cx - 10*scale, topY, 20*scale, h);
+
+                    // Scapula / Shoulder Blades (Subtle blobs)
+                    ctx.fillStyle = 'rgba(0,0,0,0.08)'; // Very subtle shadow
+                    // Left Blade
+                    ctx.beginPath();
+                    ctx.ellipse(cx - w*0.4, topY + h*0.25, w*0.15, h*0.1, -0.3, 0, Math.PI*2);
+                    ctx.fill();
+                    // Right Blade
+                    ctx.beginPath();
+                    ctx.ellipse(cx + w*0.4, topY + h*0.25, w*0.15, h*0.1, 0.3, 0, Math.PI*2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
             } else {
                 // LEGACY / LOW GRAPHICS
                 let fillStyle = color;
@@ -7380,23 +7380,17 @@ var BallRenderer = {
         ctx.lineTo(0, width/2);
 
         if (playerData.graphics === 'HIGH') {
-            // CEL SHADED LIMB
-            const rimColor = getCelColor(color, 'rim');
+            // VOLUMETRIC SHADING (Studio Light)
             const shadowColor = getCelColor(color, 'shadow');
+            const baseColor = color;
 
-            // Rim
-            ctx.strokeStyle = rimColor;
-            ctx.lineWidth = width * 0.2; // Thick rim relative to limb width? Or fixed?
-            // Actually fixed might be better for consistent line weight
-            // But limb width varies. Let's use scale based constant if we had 's'.
-            // drawLimb doesn't take 's' explicitly, but 'width' is scaled.
-            // Let's assume width * 0.2 is okay for rim or 3px.
-            ctx.lineWidth = Math.max(2, width * 0.15);
-            ctx.lineCap = 'round';
-            ctx.stroke();
+            // Gradient Top -> Bottom (Light -> Shadow)
+            const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
+            grad.addColorStop(0.0, baseColor);
+            grad.addColorStop(0.4, baseColor);
+            grad.addColorStop(1.0, shadowColor);
 
-            // Fill
-            ctx.fillStyle = shadowColor;
+            ctx.fillStyle = grad;
             ctx.fill();
         } else {
             // STANDARD
