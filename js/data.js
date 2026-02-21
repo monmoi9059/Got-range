@@ -118,8 +118,8 @@
     var DAILY_CHALLENGES = [
         { id: 'makes_50', type: 'makes', desc: 'Marquer 50 Paniers', target: 50, reward: 500 },
         { id: 'makes_100', type: 'makes', desc: 'Marquer 100 Paniers', target: 100, reward: 1200 },
-        { id: 'streak_5', type: 'streak', desc: 'Faire une série de 5', target: 5, reward: 300 },
-        { id: 'streak_10', type: 'streak', desc: 'Faire une série de 10', target: 10, reward: 1000 },
+        { id: 'daily_streak_5', type: 'streak', desc: 'Faire une série de 5', target: 5, reward: 300 },
+        { id: 'daily_streak_10', type: 'streak', desc: 'Faire une série de 10', target: 10, reward: 1000 },
         { id: 'contest_20', type: 'contest_score', desc: 'Marquer 20 pts (Concours)', target: 20, reward: 600 },
         { id: 'contest_50', type: 'contest_score', desc: 'Marquer 50 pts (Concours)', target: 50, reward: 1500 },
         { id: 'time_30', type: 'time_attack_score', desc: 'Marquer 30 pts (Time Attack)', target: 30, reward: 600 },
@@ -129,7 +129,7 @@
         { id: 'play_time_3', type: 'play_time_attack', desc: 'Jouer 3 Time Attack', target: 3, reward: 500 },
         // New Additions for Variety
         { id: 'makes_25', type: 'makes', desc: 'Marquer 25 Paniers', target: 25, reward: 250 },
-        { id: 'streak_3', type: 'streak', desc: 'Faire une série de 3', target: 3, reward: 150 },
+        { id: 'daily_streak_3', type: 'streak', desc: 'Faire une série de 3', target: 3, reward: 150 },
         { id: 'distance_250', type: 'distance', desc: 'Parcourir 250 pieds', target: 250, reward: 250 },
         { id: 'play_contest_1', type: 'play_contest', desc: 'Jouer 1 Concours', target: 1, reward: 200 },
         { id: 'play_time_1', type: 'play_time_attack', desc: 'Jouer 1 Time Attack', target: 1, reward: 200 }
@@ -477,8 +477,8 @@
         { id: 'human_reggie_alt', animal: 'human', name: 'Pinstripe', jerseyName: 'REGGIE', cost: 25000, heightScale: 1.140, widthScale: 0.85, jerseyColor: '#FDB927', shortsColor: '#FDB927', pinstripesColor: '#002D62', number: '31', numberColor: '#002D62', skinTone: '#8d5524', hairStyle: 'bald_clean', hairColor: '#000', socksColor: '#FFF', shoesColor: '#002D62' },
         { id: 'human_tmac', animal: 'human', name: 'T-Mac', jerseyName: 'T-MAC', cost: 25000, heightScale: 1.160, widthScale: 0.9, jerseyColor: '#007DC5', shortsColor: '#007DC5', pinstripesColor: '#C4CED4', number: '1', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000' },
         { id: 'human_tmac_alt', animal: 'human', name: 'Houston', jerseyName: 'T-MAC', cost: 25000, heightScale: 1.160, widthScale: 0.9, jerseyColor: '#CE1141', shortsColor: '#CE1141', pinstripesColor: '#FFF', number: '1', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#CE1141', shoesColor: '#FFF' },
-        { id: 'human_vince', animal: 'human', name: 'Vinsanity', jerseyName: 'VINSANITY', cost: 30000, heightScale: 1.130, widthScale: 0.92, jerseyColor: '#753BBD', shortsColor: '#753BBD', pinstripesColor: '#CE1141', number: '15', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'bald_clean', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', beard: true },
-        { id: 'human_vince_alt', animal: 'human', name: 'Dino White', jerseyName: 'VINSANITY', cost: 30000, heightScale: 1.130, widthScale: 0.92, jerseyColor: '#FFF', shortsColor: '#FFF', pinstripesColor: '#CE1141', number: '15', numberColor: '#CE1141', skinTone: '#3e271a', hairStyle: 'bald_clean', hairColor: '#000', socksColor: '#FFF', shoesColor: '#CE1141', beard: true },
+        { id: 'human_vince_legend', animal: 'human', name: 'Vinsanity', jerseyName: 'VINSANITY', cost: 30000, heightScale: 1.130, widthScale: 0.92, jerseyColor: '#753BBD', shortsColor: '#753BBD', pinstripesColor: '#CE1141', number: '15', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'bald_clean', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', beard: true },
+        { id: 'human_vince_alt_legend', animal: 'human', name: 'Dino White', jerseyName: 'VINSANITY', cost: 30000, heightScale: 1.130, widthScale: 0.92, jerseyColor: '#FFF', shortsColor: '#FFF', pinstripesColor: '#CE1141', number: '15', numberColor: '#CE1141', skinTone: '#3e271a', hairStyle: 'bald_clean', hairColor: '#000', socksColor: '#FFF', shoesColor: '#CE1141', beard: true },
         { id: 'human_nash', animal: 'human', name: 'Captain Canada', cost: 35000, heightScale: 1.05, widthScale: 0.88, jerseyColor: '#1D1160', shortsColor: '#1D1160', sideStripesColor: '#E56020', number: '13', numberColor: '#E56020', skinTone: '#f0d5be', hairStyle: 'long_flow', hairColor: '#6B4423', socksColor: '#FFF', shoesColor: '#000' },
         { id: 'human_nash_alt', animal: 'human', name: 'Dallas', jerseyName: 'STEVE', cost: 35000, heightScale: 1.05, widthScale: 0.88, jerseyColor: '#00538C', shortsColor: '#00538C', sideStripesColor: '#B8C4CA', number: '13', numberColor: '#B8C4CA', skinTone: '#f0d5be', hairStyle: 'long_flow', hairColor: '#6B4423', socksColor: '#000', shoesColor: '#FFF' },
         { id: 'human_dream', animal: 'human', name: 'The Dream', cost: 40000, heightScale: 1.21, widthScale: 0.95, jerseyColor: '#CE1141', shortsColor: '#CE1141', trimColor: '#FDB927', number: '34', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'fade_retro', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', shortsLength: 'short' },
@@ -507,8 +507,8 @@
         { id: 'human_dame', animal: 'human', name: 'Dame Time', cost: 30000, heightScale: 1.04, widthScale: 0.95, jerseyColor: '#000', shortsColor: '#000', pinstripesColor: '#CE1141', number: '0', numberColor: '#CE1141', skinTone: '#5c3a21', hairStyle: 'fade_low', hairColor: '#000', sleeveLeft: '#000', socksColor: '#000', shoesColor: '#000', tattoos: true, beard: true },
         { id: 'human_dame_alt', animal: 'human', name: 'Rip City', jerseyName: 'DAME', cost: 30000, heightScale: 1.04, widthScale: 0.95, jerseyColor: '#FFF', shortsColor: '#FFF', pinstripesColor: '#CE1141', number: '0', numberColor: '#CE1141', skinTone: '#5c3a21', hairStyle: 'fade_low', hairColor: '#000', sleeveLeft: '#FFF', socksColor: '#FFF', shoesColor: '#CE1141', tattoos: true, beard: true },
         { id: 'human_process', animal: 'human', name: 'The Process', cost: 30000, heightScale: 1.25, widthScale: 1.1, jerseyColor: '#006BB6', shortsColor: '#006BB6', trimColor: '#ED174C', number: '21', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'fade_chef', hairColor: '#000', socksColor: '#FFF', shoesColor: '#000', beard: true },
-        { id: 'human_wade', animal: 'human', name: 'Flash', jerseyName: 'FLASH', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#98002E', number: '3', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#000', shoesColor: '#000', beard: true },
-        { id: 'human_wade_alt', animal: 'human', name: 'Vice City', jerseyName: 'FLASH', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#FF69B4', number: '3', numberColor: '#00FFFF', skinTone: '#4a3020', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#00FFFF', shoesColor: '#FF69B4', beard: true },
+        { id: 'human_wade_legend', animal: 'human', name: 'Flash', jerseyName: 'FLASH', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#98002E', number: '3', numberColor: '#FFF', skinTone: '#4a3020', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#000', shoesColor: '#000', beard: true },
+        { id: 'human_wade_alt_legend', animal: 'human', name: 'Vice City', jerseyName: 'FLASH', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#FF69B4', number: '3', numberColor: '#00FFFF', skinTone: '#4a3020', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#00FFFF', shoesColor: '#FF69B4', beard: true },
         { id: 'human_process_alt', animal: 'human', name: 'Kansas', jerseyName: 'PROCESS', cost: 30000, heightScale: 1.25, widthScale: 1.1, jerseyColor: '#0051BA', shortsColor: '#0051BA', trimColor: '#E8000D', number: '21', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'buzz_cut', hairColor: '#000', beard: true, socksColor: '#FFF', shoesColor: '#0051BA' },
         { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 500, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'anchor_man_80s', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
         { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#FFA500' },
@@ -970,13 +970,13 @@
         { id: 'cat_grooming', name: 'Propre', cost: 0, furColor: '#D3D3D3', bellyColor: '#FFFFFF', stance: 'grooming' }, // NEW 5
         { id: 'cat_brown', name: 'Chocolat', cost: 0, furColor: '#8B4513', bellyColor: '#D2691E', stance: 'sleeping' },
         { id: 'cat_upside_down', name: 'Chauve-souris', cost: 0, furColor: '#2F4F4F', bellyColor: '#708090', stance: 'upside_down' }, // NEW 6
-        { id: 'cat_tuxedo', name: 'Félix', cost: 0, furColor: '#111', bellyColor: '#FFF', stance: 'begging' },
+        { id: 'basket_cat_tuxedo', name: 'Félix', cost: 0, furColor: '#111', bellyColor: '#FFF', stance: 'begging' },
         { id: 'cat_superman', name: 'Superchat', cost: 0, furColor: '#0000FF', bellyColor: '#FF0000', stance: 'superman' }, // NEW 7
-        { id: 'cat_calico', name: 'Patchwork', cost: 0, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E', stance: 'sitting' },
+        { id: 'basket_cat_calico', name: 'Patchwork', cost: 0, furColor: '#FFF', bellyColor: '#FFF', pattern: 'spots', spotColor: '#D2691E', stance: 'sitting' },
         { id: 'cat_ball', name: 'Boule de Poils', cost: 0, furColor: '#8B0000', bellyColor: '#CD5C5C', stance: 'ball' }, // NEW 8
-        { id: 'cat_siamese', name: 'Siamois', cost: 0, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333', stance: 'stretching' },
+        { id: 'basket_cat_siamese', name: 'Siamois', cost: 0, furColor: '#F5DEB3', bellyColor: '#F5DEB3', earColor: '#333', stance: 'stretching' },
         { id: 'cat_scared_leap', name: 'Sursaut', cost: 0, furColor: '#FF4500', bellyColor: '#FFA07A', stance: 'scared_leap' }, // NEW 9
-        { id: 'cat_tabby', name: 'Tigré', cost: 0, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes', stance: 'loaf' },
+        { id: 'basket_cat_tabby', name: 'Tigré', cost: 0, furColor: '#808080', bellyColor: '#A9A9A9', pattern: 'stripes', stance: 'loaf' },
         { id: 'cat_high_five', name: 'Tope Là', cost: 0, furColor: '#FFD700', bellyColor: '#FFFFE0', stance: 'high_five' }, // NEW 10
         { id: 'cat_pink', name: 'Barbe à Papa', cost: 0, furColor: '#FFB6C1', bellyColor: '#FFC0CB', stance: 'sprawled' },
         { id: 'cat_stalking', name: 'Chasseur', cost: 0, furColor: '#556B2F', bellyColor: '#8FBC8F', stance: 'stalking' }, // NEW 11

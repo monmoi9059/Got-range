@@ -437,7 +437,11 @@
         // Basket Cat Growth
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
-        playerData.basketCatExp++;
+
+        // Cat Nip Bonus: +20% growth per level
+        const nipLevel = playerData.stats.catNip || 0;
+        playerData.basketCatExp += (1 + nipLevel * 0.2);
+
         const maxExp = getBasketCatMaxExp();
 
         if (playerData.basketCatExp >= maxExp && state !== 'EVOLVING') {
