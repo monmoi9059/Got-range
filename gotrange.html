@@ -6115,16 +6115,16 @@ var BallRenderer = {
 
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if (playerData.graphics === 'HIGH') {
-            const rimColor = getCelColor(c, 'rim');
             const shadowColor = getCelColor(c, 'shadow');
             const baseColor = c;
+            const highlightColor = getCelColor(c, 'highlight');
 
-            // Volumetric Gradient (Top-Left Light Source)
-            // Highlight offset to top-left (-0.3r, -0.3r)
-            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, 0, cx, cy, r);
-            grad.addColorStop(0.0, baseColor);   // Highlight/Light
-            grad.addColorStop(0.5, baseColor);   // Mid-tone
-            grad.addColorStop(1.0, shadowColor); // Shadow Edge
+            // Volumetric Gradient (Light from Behind/Camera)
+            // Centered Highlight, Shadow Edges
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+            grad.addColorStop(0.0, highlightColor);
+            grad.addColorStop(0.4, baseColor);
+            grad.addColorStop(1.0, shadowColor);
 
             if (furry) {
                 for(let i=0; i<CIRCLE_SEGS; i++) {
@@ -6272,12 +6272,15 @@ var BallRenderer = {
             if (playerData.graphics === 'HIGH') {
                  const shadowColor = getCelColor(color, 'shadow');
                  const baseColor = color;
+                 const highlightColor = getCelColor(color, 'highlight');
 
-                 // Gradient: Light (Left) -> Shadow (Right)
+                 // Gradient: Symmetrical Cylindrical (Shadow -> Light -> Shadow)
                  const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-                 grad.addColorStop(0.0, baseColor);    // Light Side
-                 grad.addColorStop(0.4, baseColor);    // Mid
-                 grad.addColorStop(1.0, shadowColor);  // Shadow Side
+                 grad.addColorStop(0.0, shadowColor);
+                 grad.addColorStop(0.2, baseColor);
+                 grad.addColorStop(0.5, highlightColor);
+                 grad.addColorStop(0.8, baseColor);
+                 grad.addColorStop(1.0, shadowColor);
 
                  // Fill
                  drawFuzzyPath(points, grad, scale, true, seed);
@@ -6337,11 +6340,14 @@ var BallRenderer = {
             if (playerData.graphics === 'HIGH') {
                 const shadowColor = getCelColor(color, 'shadow');
                 const baseColor = color;
+                const highlightColor = getCelColor(color, 'highlight');
 
-                // Gradient: Light (Left) -> Shadow (Right)
+                // Gradient: Symmetrical Cylindrical (Shadow -> Light -> Shadow)
                 const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-                grad.addColorStop(0.0, baseColor);
-                grad.addColorStop(0.4, baseColor);
+                grad.addColorStop(0.0, shadowColor);
+                grad.addColorStop(0.2, baseColor);
+                grad.addColorStop(0.5, highlightColor);
+                grad.addColorStop(0.8, baseColor);
                 grad.addColorStop(1.0, shadowColor);
 
                 ctx.fillStyle = grad;
@@ -6444,16 +6450,19 @@ var BallRenderer = {
         if (playerData.graphics === 'HIGH') {
             const shadowColor = getCelColor(color, 'shadow');
             const baseColor = color;
+            const highlightColor = getCelColor(color, 'highlight');
 
-            // Gradient: Light (Left/Top) -> Shadow (Right/Bottom)
-            const grad = ctx.createLinearGradient(p4.x, p4.y, p1.x, p1.y);
-            grad.addColorStop(0.0, baseColor);
-            grad.addColorStop(0.4, baseColor);
+            // Gradient: Symmetrical Cylindrical (Shadow -> Light -> Shadow)
+            // p1 is Left, p4 is Right (roughly, depending on winding)
+            const grad = ctx.createLinearGradient(p1.x, p1.y, p4.x, p4.y);
+            grad.addColorStop(0.0, shadowColor);
+            grad.addColorStop(0.2, baseColor);
+            grad.addColorStop(0.5, highlightColor);
+            grad.addColorStop(0.8, baseColor);
             grad.addColorStop(1.0, shadowColor);
 
             // Gradient Fill
             drawFuzzyPath(g_limbPoints, grad, scale, true, seed);
-            // No Rim Stroke
         } else {
             drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
@@ -7091,17 +7100,18 @@ var BallRenderer = {
             ctx.closePath();
 
             if (playerData.graphics === 'HIGH') {
-                // VOLUMETRIC BACK VIEW - "More Details and 3D"
-                // Light Source: Top Left (Studio) instead of Backlit
+                // VOLUMETRIC BACK VIEW - Light from Behind (Camera)
                 const shadowColor = getCelColor(color, 'shadow');
                 const baseColor = color;
+                const highlightColor = getCelColor(color, 'highlight');
 
-                // Gradient: Left (Light) -> Right (Shadow)
+                // Gradient: Edge (Shadow) -> Center (Light) -> Edge (Shadow)
                 const grad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
-                grad.addColorStop(0.0, baseColor);    // Light Side
-                grad.addColorStop(0.4, baseColor);    // Mid
-                grad.addColorStop(0.8, shadowColor);  // Shadow Side
-                grad.addColorStop(1.0, shadowColor);  // Core Shadow
+                grad.addColorStop(0.0, shadowColor);
+                grad.addColorStop(0.2, baseColor);
+                grad.addColorStop(0.5, highlightColor);
+                grad.addColorStop(0.8, baseColor);
+                grad.addColorStop(1.0, shadowColor);
 
                 // Fill
                 ctx.fillStyle = grad;
@@ -7380,15 +7390,19 @@ var BallRenderer = {
         ctx.lineTo(0, width/2);
 
         if (playerData.graphics === 'HIGH') {
-            // VOLUMETRIC SHADING (Studio Light)
+            // VOLUMETRIC SHADING (Top-Right Light Source)
+            // Rotated Space: Top (-w/2) is Left side relative to limb axis?
+            // Actually drawLimb uses local Y from -width/2 to +width/2.
+            // If limb is vertical, -width/2 is Left.
+            // We want Light on Right (+width/2).
             const shadowColor = getCelColor(color, 'shadow');
             const baseColor = color;
 
-            // Gradient Top -> Bottom (Light -> Shadow)
+            // Gradient: Shadow -> Light
             const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-            grad.addColorStop(0.0, baseColor);
-            grad.addColorStop(0.4, baseColor);
-            grad.addColorStop(1.0, shadowColor);
+            grad.addColorStop(0.0, shadowColor); // Left (Shadow)
+            grad.addColorStop(0.6, baseColor);   // Mid
+            grad.addColorStop(1.0, baseColor);   // Right (Light)
 
             ctx.fillStyle = grad;
             ctx.fill();
@@ -7421,11 +7435,12 @@ var BallRenderer = {
             const shadowColor = getCelColor(color, 'shadow');
             const baseColor = color;
 
-            // Radial Gradient (Backlit Sphere)
-            const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-            grad.addColorStop(0.0, shadowColor);
-            grad.addColorStop(0.6, baseColor);
-            grad.addColorStop(1.0, rimColor);
+            // Radial Gradient (Top-Right Light)
+            // Offset highlight to (+, -)
+            const grad = ctx.createRadialGradient(x + radius*0.3, y - radius*0.3, 0, x, y, radius);
+            grad.addColorStop(0.0, baseColor); // Highlight
+            grad.addColorStop(0.5, baseColor);
+            grad.addColorStop(1.0, shadowColor); // Shadow
 
             ctx.fillStyle = grad;
             ctx.fill();
@@ -9365,7 +9380,10 @@ var BallRenderer = {
         if (style === 'short') style = 'buzz_cut';
 
         const hairScale = skinObj.hairScale || 1.0;
-        const modRadius = headRadius * hairScale;
+        // User Request: Make base size 5% bigger and raise them on the skull by 5%
+        // User Request: Another 5% (Total 10%)
+        const modRadius = headRadius * hairScale * 1.10;
+        headY -= headRadius * 0.10;
 
         // Deterministic Seed
         let seed = 0;
