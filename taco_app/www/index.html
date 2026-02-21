@@ -6025,14 +6025,14 @@ var BallRenderer = {
         if (!baseColor || !baseColor.startsWith('#')) return baseColor;
         let hsl = hexToHsl(baseColor);
         if (type === 'shadow') {
-            hsl.l = Math.max(0, hsl.l - 20); // Darker
-            hsl.s = Math.min(100, hsl.s + 10); // More saturated
-            hsl.h = (hsl.h + 10) % 360; // Slight cool shift
+            hsl.l = Math.max(0, hsl.l - 15); // Slightly Darker
+            hsl.s = Math.min(100, hsl.s + 5); // Slightly More saturated
+            hsl.h = (hsl.h + 5) % 360; // Slight cool shift
         } else if (type === 'rim') {
-            hsl.l = Math.min(100, hsl.l + 40); // Much lighter
-            hsl.s = Math.max(0, hsl.s - 20); // Desaturate
+            hsl.l = Math.min(100, hsl.l + 15); // Subtle lightness boost (was +40)
+            hsl.s = Math.max(0, hsl.s - 5); // Slight desaturate
         } else if (type === 'highlight') {
-             hsl.l = Math.min(100, hsl.l + 15);
+             hsl.l = Math.min(100, hsl.l + 10);
         }
         return hslToHex(hsl.h, hsl.s, hsl.l);
     }
@@ -6090,6 +6090,13 @@ var BallRenderer = {
         if (playerData.graphics === 'HIGH') {
             const rimColor = getCelColor(c, 'rim');
             const shadowColor = getCelColor(c, 'shadow');
+            const baseColor = c;
+
+            // Volumetric Gradient (Backlit Sphere)
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+            grad.addColorStop(0.0, shadowColor); // Deep Shadow Center
+            grad.addColorStop(0.6, baseColor);   // Mid-tone
+            grad.addColorStop(1.0, rimColor);    // Rim Edge
 
             if (furry) {
                 for(let i=0; i<CIRCLE_SEGS; i++) {
@@ -6097,19 +6104,22 @@ var BallRenderer = {
                     p.x = cx + g_circleCos[i]*r;
                     p.y = cy + g_circleSin[i]*r;
                 }
-                // Rim Stroke
+                // Rim Stroke (Optional, keeps fuzzy edge defined)
                 drawFuzzyPath(g_circlePoints, null, scale, true, seed, true);
                 ctx.strokeStyle = rimColor;
-                ctx.lineWidth = 3*scale;
+                ctx.lineWidth = 2*scale;
                 ctx.lineCap = 'round';
                 ctx.stroke();
-                // Shadow Fill
-                drawFuzzyPath(g_circlePoints, shadowColor, scale, true, seed);
+
+                // Gradient Fill (Pass Gradient Object as Color)
+                drawFuzzyPath(g_circlePoints, grad, scale, true, seed);
             } else {
                 // Smooth Cel Circle
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-                ctx.strokeStyle = rimColor; ctx.lineWidth = 3*scale; ctx.stroke();
-                ctx.fillStyle = shadowColor; ctx.fill();
+                // Rim Stroke
+                ctx.strokeStyle = rimColor; ctx.lineWidth = 2*scale; ctx.stroke();
+                // Gradient Fill
+                ctx.fillStyle = grad; ctx.fill();
             }
             return;
         }
@@ -6237,13 +6247,25 @@ var BallRenderer = {
 
         if (isFurry) {
             if (playerData.graphics === 'HIGH') {
+                 const rimColor = getCelColor(color, 'rim');
+                 const shadowColor = getCelColor(color, 'shadow');
+                 const baseColor = color;
+
+                 // Gradient perpendicular to first segment (approx for whole limb)
+                 const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
+                 grad.addColorStop(0.0, rimColor);
+                 grad.addColorStop(0.15, baseColor);
+                 grad.addColorStop(0.5, shadowColor);
+                 grad.addColorStop(0.85, baseColor);
+                 grad.addColorStop(1.0, rimColor);
+
                  // Rim Stroke
                  drawFuzzyPath(points, null, scale, true, seed, true);
-                 ctx.strokeStyle = getCelColor(color, 'rim');
-                 ctx.lineWidth = 3*scale;
+                 ctx.strokeStyle = rimColor;
+                 ctx.lineWidth = 2*scale;
                  ctx.stroke();
                  // Fill
-                 drawFuzzyPath(points, getCelColor(color, 'shadow'), scale, true, seed);
+                 drawFuzzyPath(points, grad, scale, true, seed);
             } else {
                 // Add intermediate points for fuzzy texture continuity
                 drawFuzzyPath(points, color, scale, true, seed);
@@ -6299,11 +6321,21 @@ var BallRenderer = {
             if (playerData.graphics === 'HIGH') {
                 const rimColor = getCelColor(color, 'rim');
                 const shadowColor = getCelColor(color, 'shadow');
+                const baseColor = color;
+
+                // Gradient perpendicular to first segment
+                const grad = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
+                grad.addColorStop(0.0, rimColor);
+                grad.addColorStop(0.15, baseColor);
+                grad.addColorStop(0.5, shadowColor);
+                grad.addColorStop(0.85, baseColor);
+                grad.addColorStop(1.0, rimColor);
+
                 ctx.strokeStyle = rimColor;
-                ctx.lineWidth = 3*scale;
+                ctx.lineWidth = 2*scale;
                 ctx.lineCap = 'round';
                 ctx.stroke();
-                ctx.fillStyle = shadowColor;
+                ctx.fillStyle = grad;
                 ctx.fill();
             } else {
                 ctx.fillStyle = color;
@@ -6402,16 +6434,25 @@ var BallRenderer = {
         if (playerData.graphics === 'HIGH') {
             const rimColor = getCelColor(color, 'rim');
             const shadowColor = getCelColor(color, 'shadow');
+            const baseColor = color;
+
+            // Gradient perpendicular to limb axis (p4 to p1)
+            const grad = ctx.createLinearGradient(p4.x, p4.y, p1.x, p1.y);
+            grad.addColorStop(0.0, rimColor);
+            grad.addColorStop(0.15, baseColor);
+            grad.addColorStop(0.5, shadowColor);
+            grad.addColorStop(0.85, baseColor);
+            grad.addColorStop(1.0, rimColor);
 
             // Rim Stroke
             drawFuzzyPath(g_limbPoints, null, scale, true, seed, true);
             ctx.strokeStyle = rimColor;
-            ctx.lineWidth = 3 * scale;
+            ctx.lineWidth = 2 * scale;
             ctx.lineCap = 'round';
             ctx.stroke();
 
-            // Shadow Fill
-            drawFuzzyPath(g_limbPoints, shadowColor, scale, true, seed);
+            // Gradient Fill
+            drawFuzzyPath(g_limbPoints, grad, scale, true, seed);
         } else {
             drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
@@ -7049,28 +7090,23 @@ var BallRenderer = {
             ctx.closePath();
 
             if (playerData.graphics === 'HIGH') {
-                // CEL SHADED BACK VIEW
-                // 1. Rim Light
+                // VOLUMETRIC BACK VIEW (Backlit Torso)
                 const rimColor = getCelColor(color, 'rim');
-                ctx.strokeStyle = rimColor;
-                ctx.lineWidth = 3 * scale;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.stroke();
+                const shadowColor = getCelColor(color, 'shadow');
+                const baseColor = color;
 
-                // 2. Flat Shadow Fill
-                ctx.fillStyle = getCelColor(color, 'shadow');
+                // Horizontal Gradient (Left -> Right)
+                // Center is Darkest (Shadow), Edges are Lightest (Rim)
+                const grad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+                grad.addColorStop(0.0, rimColor);   // Left Edge
+                grad.addColorStop(0.2, baseColor);  // Turn
+                grad.addColorStop(0.5, shadowColor);// Spine/Center (Deep Shadow)
+                grad.addColorStop(0.8, baseColor);  // Turn
+                grad.addColorStop(1.0, rimColor);   // Right Edge
+
+                // Fill
+                ctx.fillStyle = grad;
                 ctx.fill();
-
-                // 3. Subtle Spine Detail
-                if (!options.isJersey) { // Only on skin
-                    ctx.beginPath();
-                    ctx.moveTo(cx, topY + h * 0.1);
-                    ctx.lineTo(cx, topY + h * 0.8);
-                    ctx.lineWidth = 2 * scale;
-                    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Very subtle dark line
-                    ctx.stroke();
-                }
             } else {
                 // LEGACY / LOW GRAPHICS
                 let fillStyle = color;
@@ -7358,14 +7394,25 @@ var BallRenderer = {
         // Always draw joint to prevent gaps (especially shoulders)
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI*2);
-        ctx.fillStyle = color;
-        ctx.fill();
 
         // Shading
         if (playerData.graphics === 'HIGH') {
-            ctx.fillStyle = getCelColor(color, 'shadow');
+            const rimColor = getCelColor(color, 'rim');
+            const shadowColor = getCelColor(color, 'shadow');
+            const baseColor = color;
+
+            // Radial Gradient (Backlit Sphere)
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            grad.addColorStop(0.0, shadowColor);
+            grad.addColorStop(0.6, baseColor);
+            grad.addColorStop(1.0, rimColor);
+
+            ctx.fillStyle = grad;
             ctx.fill();
         } else {
+            ctx.fillStyle = color;
+            ctx.fill();
+
             if (isMechanical) {
                 const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
                 grad.addColorStop(0, 'rgba(255,255,255,0.3)');
@@ -8253,81 +8300,8 @@ var BallRenderer = {
     var g_muscleMatrix = (typeof DOMMatrix !== 'undefined') ? new DOMMatrix() : null;
 
     function drawMuscleLimb(x1, y1, x2, y2, width, color, type, s, hasTattoos) {
-        // type: 'thigh' or 'calf' or 'standard'
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-
-        ctx.save();
-        ctx.translate(x1, y1);
-        ctx.rotate(angle);
-
-        const w = width / 2;
-        let startW = w;
-        let endW = w;
-
-        if (type === 'thigh') {
-            endW = w * 0.7;
-        } else if (type === 'calf') {
-            startW = w * 0.7;
-            endW = w * 0.5;
-        }
-
-        ctx.beginPath();
-
-        // Start Cap
-        ctx.arc(0, 0, startW, Math.PI/2, -Math.PI/2);
-
-        if (type === 'thigh') {
-             ctx.lineTo(len, -endW);
-             ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-             ctx.lineTo(0, startW);
-        } else if (type === 'calf') {
-            ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
-            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-            ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
-        } else {
-            ctx.lineTo(len, -endW);
-            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-            ctx.lineTo(0, startW);
-        }
-        ctx.closePath();
-
-        // 1. Base Color Fill
-        ctx.fillStyle = color;
-        ctx.fill();
-
-            // 3. Tattoos Overlay
-            if (hasTattoos) {
-                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                 // Tribal pattern - repeated along limb
-                 for(let i=0; i<3; i++) {
-                     const tx = (len * 0.2) + (i * (len * 0.25));
-                     ctx.beginPath();
-                     ctx.moveTo(tx, -startW*0.4);
-                     ctx.lineTo(tx + (len*0.1), 0);
-                     ctx.lineTo(tx, startW*0.4);
-                     ctx.lineTo(tx - (len*0.05), 0);
-                     ctx.fill();
-                 }
-                 // Crosshatch
-                 ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
-                 ctx.beginPath();
-                 ctx.moveTo(len*0.1, -startW); ctx.lineTo(len*0.9, startW);
-                 ctx.moveTo(len*0.1, startW); ctx.lineTo(len*0.9, -startW);
-                 ctx.stroke();
-            }
-
-            // 4. Muscle Definition Highlights
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = w * 0.3;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(len * 0.2, -w * 0.5);
-            ctx.quadraticCurveTo(len * 0.5, -w * 0.8, len * 0.8, -w * 0.5);
-            ctx.stroke();
-        }
-
-        ctx.restore();
+        // Redirect legacy muscle calls to the new smooth limb renderer
+        drawLimb(x1, y1, x2, y2, width, color);
     }
 
         function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s) {
