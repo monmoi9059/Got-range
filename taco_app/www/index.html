@@ -963,6 +963,32 @@
                 <div id="catStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
                 <button id="btnEquipCat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatSkin()">Équiper</button>
 
+                <div style="background:#111; padding:10px; margin:15px 0; border:1px solid #333;">
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc; margin-bottom:5px;">
+                            <span>POSTURE</span>
+                        </div>
+                        <select id="selCatStance" onchange="changeCatStance()" style="width:100%; background:#222; color:white; border:1px solid #555; padding:5px; font-family:inherit;">
+                            <option value="default">DÉFAUT (AUTO)</option>
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8em; color:#ccc;">
+                            <span>TAILLE</span>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <input type="checkbox" id="chkCatSizeLock" onchange="toggleCatSizeLock()">
+                                <label for="chkCatSizeLock">VERROUILLER</label>
+                            </div>
+                        </div>
+                        <div id="catSizeControl" style="opacity:0.5; pointer-events:none; transition: opacity 0.2s;">
+                            <input type="range" id="sldCatSize" min="0.5" max="3.0" step="0.1" value="1.0" oninput="updateCatSize()">
+                            <div style="text-align:right; font-size:0.8em; color:#FFD700;"><span id="lblCatSize">1.0x</span></div>
+                        </div>
+                    </div>
+                </div>
+
                 <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">ACCESSOIRES CHAT</h3>
                 <div class="skin-nav"><button class="btn" onclick="changeCatAccessory(-1)">&lt;</button><span id="catAccName" class="selector-label">Aucun</span><button class="btn" onclick="changeCatAccessory(1)">&gt;</button></div>
                 <div id="catAccStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
