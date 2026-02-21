@@ -6155,16 +6155,7 @@ var BallRenderer = {
 
             drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, legColor, s, false, 0);
 
-            // Shorts
-            if (!skinObj.legType) {
-                const shortsLenVal = (skinObj.shortsLength === 'short') ? 0.35 : 0.5;
-                const shortsEnd = {
-                    x: hipP.x + (kneeP.x - hipP.x) * shortsLenVal,
-                    y: hipP.y + (kneeP.y - hipP.y) * shortsLenVal
-                };
-                const shortsW = thighStartW * 1.2;
-                drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, skinObj.shortsColor || '#000080', s, false, 0);
-            }
+            // Shorts (Removed: now drawn as single mesh in drawShorts)
 
             // Socks
             if (skinObj.socksColor) {
@@ -6188,6 +6179,18 @@ var BallRenderer = {
         drawHumanLeg({x:p.x-hipX, y:torsoY+bodyH}, {x:lKneeX, y:lKneeY}, {x:lFootX, y:lFootY}, false);
         drawHumanLeg({x:p.x+hipX, y:torsoY+bodyH}, {x:rKneeX, y:rKneeY}, {x:rFootX, y:rFootY}, true);
 
+        // SHORTS (Drawn over legs)
+        if (!skinObj.legType) {
+            let shortsLen = (0.45 * legLen) + (0.15 * bodyH); // Default knee length
+            if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
+            const hipWidth = bodyW * 1.1; // Base width for shorts
+            const waistY = torsoY + bodyH * 0.85; // Waist starts near bottom of torso
+
+            // Draw Shorts Function (uses p.x as center)
+            // Note: drawShorts expects h to be the length of the shorts from waistY
+            drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        }
+
         // NECK (Improved Trapezoid)
         const neckW = 10 * s * sizeMod.w;
         ctx.fillStyle = skinTone;
@@ -6201,13 +6204,39 @@ var BallRenderer = {
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         ctx.fillRect(p.x - 1*s, headY + headRadius*0.8, 2*s, 10*s);
 
-        // BODY
+        // BODY & JERSEY
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
             hips: { left: {x: p.x - hipX, y: torsoY + bodyH}, right: {x: p.x + hipX, y: torsoY + bodyH} }
         };
-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, skinObj.jerseyColor || skinTone, false, 0,
-            { isJersey: !!skinObj.jerseyType && skinObj.jerseyType !== 'none', pattern: skinObj.pattern, ...skinObj }, anchors);
+
+        if (skinObj.jerseyType === 'none') {
+            // Skin Torso
+            drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, skinTone, false, 0, { isJersey: false, pattern: skinObj.pattern, ...skinObj }, anchors);
+            // Spine Indent
+            ctx.fillStyle = 'rgba(0,0,0,0.05)';
+            ctx.fillRect(p.x - 1*s, torsoY, 2*s, bodyH*0.8);
+        } else if (skinObj.clothingType || skinObj.jerseyType) {
+            // Clothing / Jersey
+            // Check if we should use drawJersey (Legacy sports jersey logic) or drawAnatomicBody (New clothing shapes)
+            // If clothingType is set (e.g. hoodie, jacket), drawAnatomicBody handles the shape.
+            // If it's a standard jersey, drawJersey handles trim/stripes better.
+
+            if (skinObj.clothingType && ['hoodie', 'jacket', 'robe', 'sweatshirt', 'track', 'suit'].includes(skinObj.clothingType)) {
+                 drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, skinObj.jerseyColor || skinTone, false, 0,
+                    { isJersey: true, pattern: skinObj.pattern, ...skinObj }, anchors);
+            } else {
+                 // Standard Jersey
+                 // We need to calculate hipWidth for drawJersey
+                 const hipW = bodyW * 1.05;
+                 // Adjust torsoY? drawJersey expects topY.
+                 drawJersey(p.x, torsoY, hipW, bodyH, s, skinObj, anchors);
+            }
+        } else {
+             // Fallback to Jersey default
+             const hipW = bodyW * 1.05;
+             drawJersey(p.x, torsoY, hipW, bodyH, s, skinObj, anchors);
+        }
 
         // --- HEAD (Crown View) ---
         // Back of Ears (Helix visible)
