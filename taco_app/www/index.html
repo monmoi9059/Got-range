@@ -6170,19 +6170,31 @@ var BallRenderer = {
             ctx.clip();
         }
 
-        // Apply Cylindrical Shading (Gradients)
-        // We create a linear gradient for the upper arm and forearm separately or try to merge.
-        // Merging is hard with CanvasGradient on a bent path.
-        // Strategy: Gradient from "Center line" to "Edges".
-        // Since we clipped, we can draw a large radial gradient or multiple linear gradients.
+        // Texture Overlay
+        if (playerData.graphics === 'HIGH') {
+            const pat = getFabricPattern(ctx);
+            if (pat) {
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = pat;
+                // Fill entire bounds
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        // Apply Photorealistic Cartoon Shading (Rim Light + Volume)
 
         // Upper Arm Shading
         const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.4)'); // Dark edge
-        grad1.addColorStop(0.3, 'rgba(0,0,0,0)');
-        grad1.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight
-        grad1.addColorStop(0.7, 'rgba(0,0,0,0)');
-        grad1.addColorStop(1, 'rgba(0,0,0,0.4)'); // Dark edge
+        grad1.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark edge
+        grad1.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad1.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Shine
+        grad1.addColorStop(0.5, 'rgba(0,0,0,0)');
+        grad1.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+        grad1.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
         ctx.fillStyle = grad1;
 
         // Draw rect covering upper segment (slightly oversized to cover joint)
@@ -6192,11 +6204,12 @@ var BallRenderer = {
 
         // Forearm Shading
         const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
-        grad2.addColorStop(0.3, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.5, 'rgba(255,255,255,0.15)');
-        grad2.addColorStop(0.7, 'rgba(0,0,0,0)');
-        grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
+        grad2.addColorStop(0, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad2.addColorStop(0.3, 'rgba(255,255,255,0.25)');
+        grad2.addColorStop(0.5, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+        grad2.addColorStop(1, 'rgba(255,255,255,0.3)');
         ctx.fillStyle = grad2;
 
         ctx.beginPath();
@@ -6863,11 +6876,11 @@ var BallRenderer = {
 
             // Cylindrical Shading (Horizontal gradient)
             const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
-            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
-            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
+            grad.addColorStop(0, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(0.2, 'rgba(255,255,255,0.2)'); // Shine
+            grad.addColorStop(0.5, 'rgba(0,0,0,0.05)');
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.4)');
+            grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
             ctx.fillStyle = grad;
             ctx.fill();
             ctx.restore();
@@ -6974,16 +6987,31 @@ var BallRenderer = {
                 ctx.restore();
             }
 
-            // Muscle Definition removed for smooth look
+            // Texture Overlay (Body)
+            if (playerData.graphics === 'HIGH') {
+                const pat = getFabricPattern(ctx);
+                if (pat) {
+                    ctx.save();
+                    ctx.clip();
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = pat;
+                    ctx.fillRect(cx - w, topY, w*2, h);
+                    ctx.restore();
+                }
+            }
 
-            // Rim Light
+            // Photorealistic Cartoon Shading (Body)
+            const bodyGrad = ctx.createLinearGradient(cx - w*0.9, topY, cx + w*0.9, topY);
+            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark left
+            bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+            bodyGrad.addColorStop(0.3, 'rgba(255,255,255,0.15)'); // Spine/Center shine
+            bodyGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
+            bodyGrad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+            bodyGrad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+
             ctx.save();
             ctx.clip();
-            const rimGrad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
-            rimGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
-            rimGrad.addColorStop(0.8, 'rgba(255,255,255,0.0)');
-            rimGrad.addColorStop(1, 'rgba(255,255,255,0.3)');
-            ctx.fillStyle = rimGrad;
+            ctx.fillStyle = bodyGrad;
             ctx.fill();
             ctx.restore();
 
@@ -7137,6 +7165,21 @@ var BallRenderer = {
     }
 
 
+    var g_fabricPattern = null;
+    function getFabricPattern(ctx) {
+        if (g_fabricPattern) return g_fabricPattern;
+        const cvs = document.createElement('canvas');
+        cvs.width = 64; cvs.height = 64;
+        const c = cvs.getContext('2d');
+        // Noise
+        for(let i=0; i<200; i++) {
+            c.fillStyle = (i%2===0) ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+            c.fillRect(Math.random()*64, Math.random()*64, 1, 1);
+        }
+        g_fabricPattern = ctx.createPattern(cvs, 'repeat');
+        return g_fabricPattern;
+    }
+
     function drawLimb(x1, y1, x2, y2, width, color) {
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
         const angle = Math.atan2(y2 - y1, x2 - x1);
@@ -7157,12 +7200,25 @@ var BallRenderer = {
         ctx.lineTo(0, width/2);
         ctx.fill();
 
-        // Cylindrical Shading Overlay
+        // Texture Overlay (High Graphics)
+        if (playerData.graphics === 'HIGH') {
+            const pat = getFabricPattern(ctx);
+            if (pat) {
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = pat;
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        // Photorealistic Cartoon Shading (Rim Light + Volume)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
-        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
-        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+        grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Specular Shine
+        grad.addColorStop(0.5, 'rgba(0,0,0,0)'); // Base Color
+        grad.addColorStop(0.85, 'rgba(0,0,0,0.3)'); // Shadow
+        grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light (Backlit)
 
         ctx.fillStyle = grad;
         ctx.fill();
@@ -12796,6 +12852,108 @@ var BallRenderer = {
         const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
+    function drawZonePattern(ctx, y, h, width, zone, horizonY) {
+        // Base Gradient
+        const grad = ctx.createLinearGradient(0, y, 0, y + h);
+        grad.addColorStop(0, zone.ground1);
+        grad.addColorStop(1, zone.ground2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, y, width, h);
+
+        // Texture Overlay
+        // Clip to zone area
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, y, width, h);
+        ctx.clip();
+
+        const type = zone.type;
+        const cx = width / 2;
+        // Deterministic Seed based on zone index/name to prevent jitter if we used random
+        // Using simple modulo logic on coordinates for noise is stable.
+
+        if (type === 'arena') {
+            // Wood Planks (Perspective Lines)
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 2;
+            const rayCount = 40;
+            // Draw rays from vanishing point (cx, horizonY)
+            // We only draw the segment within y -> y+h
+            for(let i = -rayCount; i <= rayCount; i++) {
+                const bottomX = cx + (i * width * 0.05); // Fan out
+                ctx.beginPath();
+                ctx.moveTo(cx, horizonY);
+                ctx.lineTo(bottomX, y + h + 100);
+                ctx.stroke();
+            }
+        }
+        else if (type === 'carnival') {
+            // Checkerboard
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            // Vertical Lines
+            for(let i = -10; i <= 10; i++) {
+                const bottomX = cx + (i * width * 0.15);
+                ctx.beginPath(); ctx.moveTo(cx, horizonY); ctx.lineTo(bottomX, y+h+100); ctx.stroke();
+            }
+            // Horizontal lines (Perspective spacing)
+            let ly = horizonY + 20;
+            let step = 5;
+            while(ly < y + h) {
+                if(ly > y) ctx.fillRect(0, ly, width, 2);
+                ly += step;
+                step *= 1.1; // Exponential growth
+            }
+        }
+        else if (type === 'grass' || type === 'tree') {
+            // Grass Noise
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            const density = (width * h) / 1000;
+            // Simple stable noise
+            for(let i=0; i<density; i++) {
+                const nx = (i * 157) % width;
+                const ny = y + (i * 83) % h;
+                ctx.fillRect(nx, ny, 2, 2);
+            }
+        }
+        else if (type === 'water') {
+            // Waves
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            const density = h / 8;
+            for(let i=0; i<density; i++) {
+                const ly = y + (i * 8 + (Date.now()*0.01 + i)%8);
+                const lx = (i * 123) % width;
+                const len = 20 + (i*17)%40;
+                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+len, ly); ctx.stroke();
+                // Mirrored for density
+                ctx.beginPath(); ctx.moveTo(width - lx, ly); ctx.lineTo(width - lx - len, ly); ctx.stroke();
+            }
+        }
+        else if (type === 'space') {
+            // Stars Reflection / Craters
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            const density = 20;
+            for(let i=0; i<density; i++) {
+                const rx = (i * 211) % width;
+                const ry = y + (i * 103) % h;
+                const r = 1 + (i % 3);
+                ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        else if (type === 'castle' || type === 'street') {
+            // Cobblestone/Asphalt Noise
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            const density = (width * h) / 500;
+            for(let i=0; i<density; i++) {
+                const nx = (i * 97) % width;
+                const ny = y + (i * 47) % h;
+                ctx.fillRect(nx, ny, 3, 2);
+            }
+        }
+
+        ctx.restore();
+    }
+
     // Optimization: Cache mountain layers to offscreen canvas
     var g_mountainCanvas = null;
     function ensureMountainCache() {
@@ -12919,35 +13077,58 @@ var BallRenderer = {
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
                  // Procedural Textures based on Type
+                 const cx = fCv.width / 2;
                  if (court.type === 'arena') {
-                     // Wood Planks
-                     fCtx.fillStyle = court.ground2;
-                     const plankW = 40;
-                     for(let i=0; i<fCv.width; i+=plankW) {
-                         fCtx.fillRect(i, 0, 2, fCv.height);
+                     // Wood Planks (Perspective Lines)
+                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     fCtx.lineWidth = 2;
+                     const rayCount = 40;
+                     // Draw rays from vanishing point (cx, 0) relative to this canvas which starts at horizonY
+                     // Actually, this canvas IS the floor from horizonY downwards.
+                     // So vanishing point Y is 0 (top of this canvas).
+                     for(let i = -rayCount; i <= rayCount; i++) {
+                         const bottomX = cx + (i * fCv.width * 0.05);
+                         fCtx.beginPath();
+                         fCtx.moveTo(cx, 0); // Top center
+                         fCtx.lineTo(bottomX, fCv.height + 100);
+                         fCtx.stroke();
                      }
                  }
                  else if (court.type === 'carnival') {
                      // Carnival Checkerboard
-                     const size = 50;
-                     fCtx.fillStyle = court.ground2;
-                     for(let y=0; y<fCv.height; y+=size) {
-                         for(let x=0; x<fCv.width; x+=size) {
-                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
-                                 fCtx.fillRect(x, y, size, size);
-                             }
-                         }
+                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                     // Vertical Lines
+                     for(let i = -10; i <= 10; i++) {
+                         const bottomX = cx + (i * fCv.width * 0.15);
+                         fCtx.beginPath(); fCtx.moveTo(cx, 0); fCtx.lineTo(bottomX, fCv.height+100); fCtx.stroke();
+                     }
+                     // Horizontal lines (Perspective spacing)
+                     let ly = 20;
+                     let step = 5;
+                     while(ly < fCv.height) {
+                         fCtx.fillRect(0, ly, fCv.width, 2);
+                         ly += step;
+                         step *= 1.1;
                      }
                  }
                  else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades removed for clean High graphics
+                     // Grass Noise
+                     fCtx.fillStyle = 'rgba(0,0,0,0.08)';
+                     const density = (fCv.width * fCv.height) / 1000;
+                     for(let i=0; i<density; i++) {
+                         fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 2, 2);
+                     }
                  }
                  else if (court.type === 'castle') {
-                    // Clean asphalt
+                    // Clean asphalt/cobblestone noise
+                    fCtx.fillStyle = 'rgba(0,0,0,0.15)';
+                    const density = (fCv.width * fCv.height) / 500;
+                    for(let i=0; i<density; i++) {
+                        fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 3, 2);
+                    }
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
-                     // Reflections (Fake)
                      const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
                      gradRef.addColorStop(0, 'rgba(255,255,255,0)');
                      gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
@@ -12956,17 +13137,25 @@ var BallRenderer = {
                      fCtx.fillRect(0, 0, fCv.width, fCv.height);
                  }
                  else if (court.type === 'water') {
-                    // Clean water
+                    // Waves
+                    fCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    fCtx.lineWidth = 1;
+                    const density = fCv.height / 8;
+                    for(let i=0; i<density; i++) {
+                        const ly = i * 8 + (Math.random()*4);
+                        const lx = Math.random() * fCv.width;
+                        const len = 20 + Math.random()*20;
+                        fCtx.beginPath(); fCtx.moveTo(lx, ly); fCtx.lineTo(lx+len, ly); fCtx.stroke();
+                        // Mirror
+                        fCtx.beginPath(); fCtx.moveTo(fCv.width - lx, ly); fCtx.lineTo(fCv.width - lx - len, ly); fCtx.stroke();
+                    }
                  }
                  else if (court.type === 'space') {
                      // Craters / Dust
-                     fCtx.fillStyle = 'rgba(0,0,0,0.2)';
-                     for(let i=0; i<20; i++) {
-                         const r = 10 + Math.random() * 40;
-                         const cx = Math.random() * fCv.width;
-                         const cy = Math.random() * fCv.height;
+                     fCtx.fillStyle = 'rgba(255,255,255,0.2)';
+                     for(let i=0; i<50; i++) {
                          fCtx.beginPath();
-                         fCtx.arc(cx, cy, r, 0, Math.PI*2);
+                         fCtx.arc(Math.random() * fCv.width, Math.random() * fCv.height, 1 + Math.random() * 2, 0, Math.PI*2);
                          fCtx.fill();
                      }
                  }
@@ -13084,27 +13273,7 @@ var BallRenderer = {
                 const yBottom = pEnd ? pEnd.y : window.LOGICAL_HEIGHT;
 
                 if ((yBottom - yTop) > 0.5) {
-                    // Optimized Gradient Rendering:
-                    // Use normalized gradient (0 to 1) and transform context
-                    if (!z.cachedGradient) {
-                        // Create a vertical gradient from 0 to 1
-                        const grad = ctx.createLinearGradient(0, 0, 0, 1);
-                        grad.addColorStop(0, z.ground1);
-                        grad.addColorStop(1, z.ground2);
-                        z.cachedGradient = grad;
-                    }
-
-                    ctx.save();
-                    // Translate to Top Y
-                    ctx.translate(0, yTop);
-                    // Scale Height to fit (yBottom - yTop)
-                    ctx.scale(1, yBottom - yTop);
-
-                    ctx.fillStyle = z.cachedGradient;
-                    // Draw rect from 0,0 to width,1 (which scales to height)
-                    ctx.fillRect(0, 0, vpW, 1);
-
-                    ctx.restore();
+                    drawZonePattern(ctx, yTop, yBottom - yTop, vpW, z, horizonY);
                 }
             }
         }
