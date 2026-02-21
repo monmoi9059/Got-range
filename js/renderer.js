@@ -4442,47 +4442,6 @@ var BallRenderer = {
 
         ctx.globalCompositeOperation = 'source-over';
 
-        // High Graphics Folds
-        if (playerData.graphics === 'HIGH') {
-             ctx.save();
-             ctx.clip();
-
-             // Spine Indent (Deeper)
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath();
-             ctx.moveTo(cx, topY + 5*scale);
-             ctx.lineTo(cx + 3*scale, bottomY);
-             ctx.lineTo(cx - 3*scale, bottomY);
-             ctx.fill();
-
-             // Tension Lines (Wrinkles)
-             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-             ctx.lineWidth = 1.5 * scale;
-             ctx.lineCap = 'round';
-
-             // Radiating from armpits
-             for(let i=0; i<3; i++) {
-                 // Left
-                 ctx.beginPath();
-                 ctx.moveTo(cx - shoulderW/2 + 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx - waistW*0.3, armpitY + 10*scale + i*5*scale, cx - waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
-
-                 // Right
-                 ctx.beginPath();
-                 ctx.moveTo(cx + shoulderW/2 - 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx + waistW*0.3, armpitY + 10*scale + i*5*scale, cx + waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
-             }
-
-             // Horizontal crunch at waist
-             ctx.beginPath();
-             ctx.moveTo(cx - waistW*0.3, bottomY - 5*scale);
-             ctx.quadraticCurveTo(cx, bottomY - 8*scale, cx + waistW*0.3, bottomY - 5*scale);
-             ctx.stroke();
-
-             ctx.restore();
-        }
 
         // --- PATTERNS ---
         // Pinstripes
