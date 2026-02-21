@@ -5999,6 +5999,104 @@ var BallRenderer = {
         return {minX, minY, maxX, maxY};
     }
 
+    // --- CEL SHADING UTILS ---
+    function hexToHsl(hex) {
+        let r = 0, g = 0, b = 0;
+        if (hex.length === 4) {
+            r = "0x" + hex[1] + hex[1];
+            g = "0x" + hex[2] + hex[2];
+            b = "0x" + hex[3] + hex[3];
+        } else if (hex.length === 7) {
+            r = "0x" + hex[1] + hex[2];
+            g = "0x" + hex[3] + hex[4];
+            b = "0x" + hex[5] + hex[6];
+        }
+        r /= 255; g /= 255; b /= 255;
+        let cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin;
+        let h = 0, s = 0, l = 0;
+
+        if (delta === 0) h = 0;
+        else if (cmax === r) h = ((g - b) / delta) % 6;
+        else if (cmax === g) h = (b - r) / delta + 2;
+        else h = (r - g) / delta + 4;
+
+        h = Math.round(h * 60);
+        if (h < 0) h += 360;
+        l = (cmax + cmin) / 2;
+        s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+        s = +(s * 100).toFixed(1);
+        l = +(l * 100).toFixed(1);
+        return {h, s, l};
+    }
+
+    function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        let c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c/2, r = 0, g = 0, b = 0;
+        if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+        else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+        else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+        else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+        else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+        else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+        r = Math.round((r + m) * 255).toString(16);
+        g = Math.round((g + m) * 255).toString(16);
+        b = Math.round((b + m) * 255).toString(16);
+        if (r.length === 1) r = "0" + r;
+        if (g.length === 1) g = "0" + g;
+        if (b.length === 1) b = "0" + b;
+        return "#" + r + g + b;
+    }
+
+    function getCelColor(baseColor, type) {
+        if (!baseColor || !baseColor.startsWith('#')) return baseColor;
+        let hsl = hexToHsl(baseColor);
+        if (type === 'shadow') {
+            hsl.l = Math.max(0, hsl.l - 20); // Darker
+            hsl.s = Math.min(100, hsl.s + 10); // More saturated
+            hsl.h = (hsl.h + 10) % 360; // Slight cool shift
+        } else if (type === 'rim') {
+            hsl.l = Math.min(100, hsl.l + 40); // Much lighter
+            hsl.s = Math.max(0, hsl.s - 20); // Desaturate
+        } else if (type === 'highlight') {
+             hsl.l = Math.min(100, hsl.l + 15);
+        }
+        return hslToHex(hsl.h, hsl.s, hsl.l);
+    }
+
+    function drawBacklitShape(ctx, points, color, lineWidth, s) {
+        if (!points || points.length < 2) return;
+
+        let drawColor = color;
+        let rimColor = null;
+
+        if (playerData.graphics === 'HIGH') {
+            drawColor = getCelColor(color, 'shadow');
+            rimColor = getCelColor(color, 'rim');
+        }
+
+        // 1. Rim Light (Stroke)
+        if (rimColor) {
+            ctx.strokeStyle = rimColor;
+            ctx.lineWidth = (lineWidth > 0 ? lineWidth : 2*s) * 1.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            // Close if needed? Usually shapes are closed.
+            if (points.length > 2) ctx.closePath();
+            ctx.stroke();
+        }
+
+        // 2. Fill
+        ctx.fillStyle = drawColor;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
     const g_circlePoints = [];
@@ -6015,6 +6113,33 @@ var BallRenderer = {
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
+        if (playerData.graphics === 'HIGH') {
+            const rimColor = getCelColor(c, 'rim');
+            const shadowColor = getCelColor(c, 'shadow');
+
+            if (furry) {
+                for(let i=0; i<CIRCLE_SEGS; i++) {
+                    const p = g_circlePoints[i];
+                    p.x = cx + g_circleCos[i]*r;
+                    p.y = cy + g_circleSin[i]*r;
+                }
+                // Rim Stroke
+                drawFuzzyPath(g_circlePoints, null, scale, true, seed, true);
+                ctx.strokeStyle = rimColor;
+                ctx.lineWidth = 3*scale;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                // Shadow Fill
+                drawFuzzyPath(g_circlePoints, shadowColor, scale, true, seed);
+            } else {
+                // Smooth Cel Circle
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+                ctx.strokeStyle = rimColor; ctx.lineWidth = 3*scale; ctx.stroke();
+                ctx.fillStyle = shadowColor; ctx.fill();
+            }
+            return;
+        }
+
         if(!furry) {
             if (applyShading) {
                 // Apply simple 3D shading even for smooth circles
@@ -6137,17 +6262,26 @@ var BallRenderer = {
         points.push(p1R);
 
         if (isFurry) {
-            // Add intermediate points for fuzzy texture continuity
-            // Just pass the main outline points, drawFuzzyPath handles subdivision
-            drawFuzzyPath(points, color, scale, true, seed);
+            if (playerData.graphics === 'HIGH') {
+                 // Rim Stroke
+                 drawFuzzyPath(points, null, scale, true, seed, true);
+                 ctx.strokeStyle = getCelColor(color, 'rim');
+                 ctx.lineWidth = 3*scale;
+                 ctx.stroke();
+                 // Fill
+                 drawFuzzyPath(points, getCelColor(color, 'shadow'), scale, true, seed);
+            } else {
+                // Add intermediate points for fuzzy texture continuity
+                drawFuzzyPath(points, color, scale, true, seed);
 
-            // Add shading
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(points[0].x, points[0].y);
-            for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-            ctx.closePath();
-            ctx.clip();
+                // Add shading
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+                ctx.closePath();
+                ctx.clip();
+            }
         } else {
             ctx.beginPath();
             // Start Cap
@@ -6186,48 +6320,55 @@ var BallRenderer = {
 
             // Upper Arm Return
             ctx.lineTo(p1L.x, p1L.y);
-
             ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.fill();
 
-            // Clip for shading
-            ctx.save();
-            ctx.clip();
+            if (playerData.graphics === 'HIGH') {
+                const rimColor = getCelColor(color, 'rim');
+                const shadowColor = getCelColor(color, 'shadow');
+                ctx.strokeStyle = rimColor;
+                ctx.lineWidth = 3*scale;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                ctx.fillStyle = shadowColor;
+                ctx.fill();
+            } else {
+                ctx.fillStyle = color;
+                ctx.fill();
+                // Clip for shading
+                ctx.save();
+                ctx.clip();
+            }
         }
 
-        // Apply Cylindrical Shading (Gradients)
-        // We create a linear gradient for the upper arm and forearm separately or try to merge.
-        // Merging is hard with CanvasGradient on a bent path.
-        // Strategy: Gradient from "Center line" to "Edges".
-        // Since we clipped, we can draw a large radial gradient or multiple linear gradients.
+        // Apply Cylindrical Shading (Gradients) - LOW/MED ONLY
+        if (playerData.graphics !== 'HIGH') {
+            // Upper Arm Shading
+            const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
+            grad1.addColorStop(0, 'rgba(0,0,0,0.4)'); // Dark edge
+            grad1.addColorStop(0.3, 'rgba(0,0,0,0)');
+            grad1.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight
+            grad1.addColorStop(0.7, 'rgba(0,0,0,0)');
+            grad1.addColorStop(1, 'rgba(0,0,0,0.4)'); // Dark edge
+            ctx.fillStyle = grad1;
 
-        // Upper Arm Shading
-        const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.4)'); // Dark edge
-        grad1.addColorStop(0.3, 'rgba(0,0,0,0)');
-        grad1.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight
-        grad1.addColorStop(0.7, 'rgba(0,0,0,0)');
-        grad1.addColorStop(1, 'rgba(0,0,0,0.4)'); // Dark edge
-        ctx.fillStyle = grad1;
+            // Draw rect covering upper segment
+            ctx.beginPath();
+            ctx.moveTo(p1L.x, p1L.y); ctx.lineTo(p2L_in.x, p2L_in.y); ctx.lineTo(p2R_in.x, p2R_in.y); ctx.lineTo(p1R.x, p1R.y);
+            ctx.fill();
 
-        // Draw rect covering upper segment (slightly oversized to cover joint)
-        ctx.beginPath();
-        ctx.moveTo(p1L.x, p1L.y); ctx.lineTo(p2L_in.x, p2L_in.y); ctx.lineTo(p2R_in.x, p2R_in.y); ctx.lineTo(p1R.x, p1R.y);
-        ctx.fill();
+            // Forearm Shading
+            const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
+            grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
+            grad2.addColorStop(0.3, 'rgba(0,0,0,0)');
+            grad2.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+            grad2.addColorStop(0.7, 'rgba(0,0,0,0)');
+            grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
+            ctx.fillStyle = grad2;
 
-        // Forearm Shading
-        const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
-        grad2.addColorStop(0.3, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.5, 'rgba(255,255,255,0.15)');
-        grad2.addColorStop(0.7, 'rgba(0,0,0,0)');
-        grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
-        ctx.fillStyle = grad2;
-
-        ctx.beginPath();
-        ctx.moveTo(p2L_out.x, p2L_out.y); ctx.lineTo(p3L.x, p3L.y); ctx.lineTo(p3R.x, p3R.y); ctx.lineTo(p2R_out.x, p2R_out.y);
-        ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(p2L_out.x, p2L_out.y); ctx.lineTo(p3L.x, p3L.y); ctx.lineTo(p3R.x, p3R.y); ctx.lineTo(p2R_out.x, p2R_out.y);
+            ctx.fill();
+        }
 
         // Joint Occlusion Shadow (The crease)
         // Draw a shadow gradient at the elbow crease
@@ -6284,31 +6425,46 @@ var BallRenderer = {
         const p4 = g_limbPoints[3]; p4.x = x1 + dx1; p4.y = y1 - dy1;
 
         // 1. Draw Base Fur
-        drawFuzzyPath(g_limbPoints, color, scale, true, seed);
+        if (playerData.graphics === 'HIGH') {
+            const rimColor = getCelColor(color, 'rim');
+            const shadowColor = getCelColor(color, 'shadow');
 
-        // 2. Apply 3D Shading (Cylinder effect)
-        // We use a linear gradient perpendicular to the limb axis
-        ctx.save();
-        ctx.translate(x1, y1);
-        ctx.rotate(angle);
-        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+            // Rim Stroke
+            drawFuzzyPath(g_limbPoints, null, scale, true, seed, true);
+            ctx.strokeStyle = rimColor;
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
 
-        // Gradient: Dark edges, lighter center
-        const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
-        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
-        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+            // Shadow Fill
+            drawFuzzyPath(g_limbPoints, shadowColor, scale, true, seed);
+        } else {
+            drawFuzzyPath(g_limbPoints, color, scale, true, seed);
 
-        ctx.fillStyle = grad3d;
-        ctx.beginPath();
-        ctx.moveTo(0, -w1);
-        ctx.lineTo(len, -w2);
-        ctx.lineTo(len, w2);
-        ctx.lineTo(0, w1);
-        ctx.fill();
-        ctx.restore();
+            // 2. Apply 3D Shading (Cylinder effect)
+            // We use a linear gradient perpendicular to the limb axis
+            ctx.save();
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+            const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+
+            // Gradient: Dark edges, lighter center
+            const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
+            grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+            grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
+            grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
+            grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
+            grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+
+            ctx.fillStyle = grad3d;
+            ctx.beginPath();
+            ctx.moveTo(0, -w1);
+            ctx.lineTo(len, -w2);
+            ctx.lineTo(len, w2);
+            ctx.lineTo(0, w1);
+            ctx.fill();
+            ctx.restore();
+        }
 
         // 3. Axial Shadow (Depth along length)
         // Kept for joint shading
@@ -6619,37 +6775,16 @@ var BallRenderer = {
                 ];
             }
             else {
-                // STANDARD (Hourglass/Trapezoid) + Anatomical refinement
-                if (options.animal === 'human' && !options.isJersey && playerData.graphics === 'HIGH') {
-                    // Detailed V-Taper for shirtless humans
-                    const armpitY = shoulderY + h * 0.15;
-                    const latY = shoulderY + h * 0.35;
-                    const armpitW = sW * 0.9;
-                    const latW = sW * 0.75; // V-taper
-
-                    points = [
-                        {x: cx - sW/2, y: shoulderY}, // TL
-                        {x: cx + sW/2, y: shoulderY}, // TR
-                        {x: cx + armpitW/2, y: armpitY}, // Armpit R
-                        {x: cx + latW/2, y: latY}, // Lat R
-                        {x: cx + wW/2, y: waistY}, // Waist R
-                        {x: cx + hW/2, y: hipY}, // Hip R
-                        {x: cx - hW/2, y: hipY}, // Hip L
-                        {x: cx - wW/2, y: waistY}, // Waist L
-                        {x: cx - latW/2, y: latY}, // Lat L
-                        {x: cx - armpitW/2, y: armpitY} // Armpit L
-                    ];
-                } else {
-                    // Simple shape for clothes/low graphics
-                    points = [
-                        {x: cx - sW/2, y: shoulderY},
-                        {x: cx + sW/2, y: shoulderY},
-                        {x: cx + wW/2, y: waistY},
-                        {x: cx + hW/2, y: hipY},
-                        {x: cx - hW/2, y: hipY},
-                        {x: cx - wW/2, y: waistY}
-                    ];
-                }
+                // STANDARD (Hourglass/Trapezoid)
+                // Simple shape for clothes/low graphics
+                points = [
+                    {x: cx - sW/2, y: shoulderY},
+                    {x: cx + sW/2, y: shoulderY},
+                    {x: cx + wW/2, y: waistY},
+                    {x: cx + hW/2, y: hipY},
+                    {x: cx - hW/2, y: hipY},
+                    {x: cx - wW/2, y: waistY}
+                ];
 
                 if (isFurry && roundness > 0) {
                      const rOffset = w * roundness;
@@ -6939,49 +7074,75 @@ var BallRenderer = {
 
             ctx.closePath();
 
-            let fillStyle = color;
-            if (options.isJersey) {
-                 const meshKey = `mesh_${color}`;
-                 fillStyle = getCachedPattern(meshKey, (c, size) => {
-                      c.fillStyle = color;
-                      c.fillRect(0,0,size,size);
-                      c.fillStyle = 'rgba(0,0,0,0.15)';
-                      const spacing = 4;
-                      for(let y=0; y<size; y+=spacing) {
-                          for(let x=0; x<size; x+=spacing) {
-                              if ((Math.floor(x/spacing) + Math.floor(y/spacing)) % 2 === 0) c.fillRect(x,y,1,1);
-                          }
-                      }
-                      // Gradient overlay
-                      const grad = c.createLinearGradient(0,0,size,0);
-                      grad.addColorStop(0, 'rgba(0,0,0,0.2)');
-                      grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                      grad.addColorStop(1, 'rgba(0,0,0,0.2)');
-                      c.fillStyle = grad;
-                      c.fillRect(0,0,size,size);
-                 });
+            if (playerData.graphics === 'HIGH') {
+                // CEL SHADED BACK VIEW
+                // 1. Rim Light
+                const rimColor = getCelColor(color, 'rim');
+                ctx.strokeStyle = rimColor;
+                ctx.lineWidth = 3 * scale;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
 
-                 // Apply pattern transform
-                 if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
-                     const matrix = new DOMMatrix();
-                     matrix.translateSelf(cx, topY);
-                     fillStyle.setTransform(matrix);
+                // 2. Flat Shadow Fill
+                ctx.fillStyle = getCelColor(color, 'shadow');
+                ctx.fill();
+
+                // 3. Subtle Spine Detail
+                if (!options.isJersey) { // Only on skin
+                    ctx.beginPath();
+                    ctx.moveTo(cx, topY + h * 0.1);
+                    ctx.lineTo(cx, topY + h * 0.8);
+                    ctx.lineWidth = 2 * scale;
+                    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Very subtle dark line
+                    ctx.stroke();
                 }
             } else {
-                 const cacheKey = `anatomic_body_${color}`;
-                 fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-                    gradCtx.fillStyle = color;
-                    gradCtx.fillRect(0, 0, size, size);
-                    const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
-                    grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
-                    gradCtx.fillStyle = grad;
-                    gradCtx.fillRect(0, 0, size, size);
-                });
-            }
+                // LEGACY / LOW GRAPHICS
+                let fillStyle = color;
+                if (options.isJersey) {
+                     const meshKey = `mesh_${color}`;
+                     fillStyle = getCachedPattern(meshKey, (c, size) => {
+                          c.fillStyle = color;
+                          c.fillRect(0,0,size,size);
+                          c.fillStyle = 'rgba(0,0,0,0.15)';
+                          const spacing = 4;
+                          for(let y=0; y<size; y+=spacing) {
+                              for(let x=0; x<size; x+=spacing) {
+                                  if ((Math.floor(x/spacing) + Math.floor(y/spacing)) % 2 === 0) c.fillRect(x,y,1,1);
+                              }
+                          }
+                          // Gradient overlay
+                          const grad = c.createLinearGradient(0,0,size,0);
+                          grad.addColorStop(0, 'rgba(0,0,0,0.2)');
+                          grad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                          grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+                          c.fillStyle = grad;
+                          c.fillRect(0,0,size,size);
+                     });
 
-            ctx.fillStyle = fillStyle;
-            ctx.fill();
+                     // Apply pattern transform
+                     if (fillStyle.setTransform && typeof DOMMatrix !== 'undefined') {
+                         const matrix = new DOMMatrix();
+                         matrix.translateSelf(cx, topY);
+                         fillStyle.setTransform(matrix);
+                    }
+                } else {
+                     const cacheKey = `anatomic_body_${color}`;
+                     fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                        gradCtx.fillStyle = color;
+                        gradCtx.fillRect(0, 0, size, size);
+                        const grad = gradCtx.createRadialGradient(size/2, size/2, 5, size/2, size/2, size/2);
+                        grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+                        gradCtx.fillStyle = grad;
+                        gradCtx.fillRect(0, 0, size, size);
+                    });
+                }
+
+                ctx.fillStyle = fillStyle;
+                ctx.fill();
+            }
 
             if (options.pattern === 'spartan_tattoo') {
                 ctx.save();
@@ -7181,17 +7342,40 @@ var BallRenderer = {
         ctx.lineTo(len, -width/2);
         ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
         ctx.lineTo(0, width/2);
-        ctx.fill();
 
-        // Cylindrical Shading Overlay
-        const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
-        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
-        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+        if (playerData.graphics === 'HIGH') {
+            // CEL SHADED LIMB
+            const rimColor = getCelColor(color, 'rim');
+            const shadowColor = getCelColor(color, 'shadow');
 
-        ctx.fillStyle = grad;
-        ctx.fill();
+            // Rim
+            ctx.strokeStyle = rimColor;
+            ctx.lineWidth = width * 0.2; // Thick rim relative to limb width? Or fixed?
+            // Actually fixed might be better for consistent line weight
+            // But limb width varies. Let's use scale based constant if we had 's'.
+            // drawLimb doesn't take 's' explicitly, but 'width' is scaled.
+            // Let's assume width * 0.2 is okay for rim or 3px.
+            ctx.lineWidth = Math.max(2, width * 0.15);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Fill
+            ctx.fillStyle = shadowColor;
+            ctx.fill();
+        } else {
+            // STANDARD
+            ctx.fill();
+
+            // Cylindrical Shading Overlay
+            const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
+            grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+            grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
+            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
 
         ctx.restore();
     }
@@ -7204,23 +7388,28 @@ var BallRenderer = {
         ctx.fill();
 
         // Shading
-        if (isMechanical) {
-            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
-            grad.addColorStop(0, 'rgba(255,255,255,0.3)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
-            ctx.fillStyle = grad;
+        if (playerData.graphics === 'HIGH') {
+            ctx.fillStyle = getCelColor(color, 'shadow');
             ctx.fill();
-            // Mechanical Outline
-            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
         } else {
-            // Softer shading for organic/cloth
-            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
-            grad.addColorStop(0, 'rgba(255,255,255,0.1)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.2)');
-            ctx.fillStyle = grad;
-            ctx.fill();
+            if (isMechanical) {
+                const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+                grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+                ctx.fillStyle = grad;
+                ctx.fill();
+                // Mechanical Outline
+                ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            } else {
+                // Softer shading for organic/cloth
+                const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+                grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
         }
     }
 
@@ -7877,55 +8066,37 @@ var BallRenderer = {
     function drawRealisticShadow(obj, type) {
         if (!obj) return;
 
-        // Quality check
-        if (playerData.graphics === 'LOW') {
-             // Fallback to simple blob if needed
-             ctx.fillStyle = 'rgba(0,0,0,0.3)';
-             ctx.beginPath();
-             ctx.ellipse(obj.x, obj.y, 25 * obj.scale, 8 * obj.scale, 0, 0, Math.PI * 2);
-             ctx.fill();
-             return;
-        }
+        // Soft Oval Shadow (Wind Waker / High Graphics Style)
 
         var z = 0;
         if (type === 'player') z = player3D.z;
         if (type === 'ball') z = obj.ballRef ? obj.ballRef.z : 0;
 
-        // Calculate opacity and blur based on Z
-        var alpha = Math.max(0.05, 0.4 - (z / 800));
-        var blur = Math.min(10, 2 + (z / 50));
+        // Base radius
+        let r = (type === 'player') ? 25 : 10;
+        r *= obj.scale;
 
-        // Render Silhouette
-        var cacheKey = getShadowKey(type, obj);
-        var sCanvas = ShadowSystem.render(function() {
-            if (type === 'player') {
-                // Skip supersampling for shadows
-                if (typeof _drawPlayerInternal === 'function') {
-                    _drawPlayerInternal(obj);
-                } else {
-                    PlayerRenderer.draw(obj);
-                }
-            } else if (type === 'ball') {
-                drawBall(obj, obj.ballRef);
-            }
-        }, obj.x, obj.y, cacheKey);
+        // Z effect: Shadow shrinks slightly and fades
+        let zFactor = Math.max(0, 1 - (z / 1000));
+        r *= (0.8 + 0.2 * zFactor);
 
+        let alpha = 0.4 * zFactor;
+
+        if (alpha <= 0.01) return;
+
+        // Soft Gradient
         ctx.save();
         ctx.translate(obj.x, obj.y);
+        ctx.scale(1, 0.35); // Perspective flattening
 
-        // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
-        // Shear X by -0.6, Scale Y by 0.3 (Flatten)
-        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
+        const grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
+        grad.addColorStop(0, `rgba(0,0,0,${alpha})`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
 
-        ctx.globalAlpha = alpha;
-
-        // Blur
-        if (ctx.filter) {
-            ctx.filter = 'blur(' + blur + 'px)';
-        }
-
-        ctx.drawImage(sCanvas, -256, -400);
-
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI*2);
+        ctx.fill();
         ctx.restore();
     }
 
@@ -8133,27 +8304,13 @@ var BallRenderer = {
         ctx.arc(0, 0, startW, Math.PI/2, -Math.PI/2);
 
         if (type === 'thigh') {
-            if (playerData.graphics === 'HIGH') {
-                 // Enhanced Quadriceps
-                 ctx.bezierCurveTo(len*0.3, -w*1.5, len*0.7, -w*1.5, len, -endW);
-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-                 ctx.bezierCurveTo(len*0.7, w*1.3, len*0.3, w*1.3, 0, startW);
-            } else {
-                 ctx.lineTo(len, -endW);
-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-                 ctx.lineTo(0, startW);
-            }
+             ctx.lineTo(len, -endW);
+             ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+             ctx.lineTo(0, startW);
         } else if (type === 'calf') {
-            if (playerData.graphics === 'HIGH') {
-                 // Defined Calf
-                 ctx.bezierCurveTo(len*0.25, -w*1.6, len*0.6, -w*1.3, len, -endW);
-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-                 ctx.bezierCurveTo(len*0.5, w*1.2, len*0.2, w*1.2, 0, startW);
-            } else {
-                ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
-                ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
-                ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
-            }
+            ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
+            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+            ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
         } else {
             ctx.lineTo(len, -endW);
             ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
@@ -8164,51 +8321,6 @@ var BallRenderer = {
         // 1. Base Color Fill
         ctx.fillStyle = color;
         ctx.fill();
-
-        // 2. 3D Volume Gradient (Cylinder Effect)
-        if (playerData.graphics === 'HIGH') {
-            if (g_muscleMatrix && ctx.createPattern) {
-                // Optimization: Reuse CanvasPattern and DOMMatrix
-                if (!g_muscleGradientPattern) {
-                    const gradCanvas = document.createElement('canvas');
-                    gradCanvas.width = 1;
-                    gradCanvas.height = 256;
-                    const gCtx = gradCanvas.getContext('2d');
-                    const grad = gCtx.createLinearGradient(0, 0, 0, 256);
-                    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
-                    grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-                    grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-                    grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
-                    gCtx.fillStyle = grad;
-                    gCtx.fillRect(0, 0, 1, 256);
-                    g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
-                }
-
-                // Update Matrix: Scale 256px height to 2*w height, translate to -w
-                // Target Y range: -w to w. Source Y range: 0 to 256.
-                // y_new = y_old * scale + translate
-                // 0 -> -w  => translate = -w
-                // 256 -> w => 256 * scale - w = w => 256 * scale = 2w => scale = 2w / 256
-                g_muscleMatrix.a = 1; g_muscleMatrix.b = 0;
-                g_muscleMatrix.c = 0; g_muscleMatrix.d = (2 * w) / 256;
-                g_muscleMatrix.e = 0; g_muscleMatrix.f = -w;
-
-                g_muscleGradientPattern.setTransform(g_muscleMatrix);
-                ctx.fillStyle = g_muscleGradientPattern;
-            } else {
-                // Fallback for environments without DOMMatrix
-                const grad = ctx.createLinearGradient(0, -w, 0, w);
-                grad.addColorStop(0, 'rgba(0,0,0,0.6)');
-                grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-                grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-                grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-                grad.addColorStop(1, 'rgba(0,0,0,0.6)');
-                ctx.fillStyle = grad;
-            }
-            ctx.fill();
 
             // 3. Tattoos Overlay
             if (hasTattoos) {
@@ -8627,60 +8739,33 @@ var BallRenderer = {
         ctx.closePath();
 
         // Fill
-        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
-        grad.addColorStop(0, color);
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-        grad.addColorStop(1, color);
-
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.fillStyle = grad;
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fill();
-
-        ctx.globalCompositeOperation = 'source-over';
-
-        // High Graphics Folds
         if (playerData.graphics === 'HIGH') {
-             ctx.save();
-             ctx.clip();
+            const rimColor = getCelColor(color, 'rim');
+            const shadowColor = getCelColor(color, 'shadow');
 
-             // Spine Indent (Deeper)
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath();
-             ctx.moveTo(cx, topY + 5*scale);
-             ctx.lineTo(cx + 3*scale, bottomY);
-             ctx.lineTo(cx - 3*scale, bottomY);
-             ctx.fill();
+            ctx.strokeStyle = rimColor;
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
 
-             // Tension Lines (Wrinkles)
-             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-             ctx.lineWidth = 1.5 * scale;
-             ctx.lineCap = 'round';
+            ctx.fillStyle = shadowColor;
+            ctx.fill();
+        } else {
+            const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+            grad.addColorStop(0, color);
+            grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+            grad.addColorStop(1, color);
 
-             // Radiating from armpits
-             for(let i=0; i<3; i++) {
-                 // Left
-                 ctx.beginPath();
-                 ctx.moveTo(cx - shoulderW/2 + 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx - waistW*0.3, armpitY + 10*scale + i*5*scale, cx - waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.fillStyle = grad;
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fill();
 
-                 // Right
-                 ctx.beginPath();
-                 ctx.moveTo(cx + shoulderW/2 - 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx + waistW*0.3, armpitY + 10*scale + i*5*scale, cx + waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
-             }
-
-             // Horizontal crunch at waist
-             ctx.beginPath();
-             ctx.moveTo(cx - waistW*0.3, bottomY - 5*scale);
-             ctx.quadraticCurveTo(cx, bottomY - 8*scale, cx + waistW*0.3, bottomY - 5*scale);
-             ctx.stroke();
-
-             ctx.restore();
+            ctx.globalCompositeOperation = 'source-over';
         }
+
 
         // --- PATTERNS ---
         // Pinstripes
@@ -8903,20 +8988,25 @@ var BallRenderer = {
         const crotchY = waistY + h * 0.45;
 
         // --- Get Base Pattern (Color + Shading) ---
-        const cacheKey = `shorts_base_${color}`;
-        let fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
-            // Base Color
-            gradCtx.fillStyle = color;
-            gradCtx.fillRect(0, 0, size, size);
-            // Gradient Overlay
-            const grad = gradCtx.createLinearGradient(0, 0, size, 0);
-            grad.addColorStop(0, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.1)');
-            gradCtx.fillStyle = grad;
-            gradCtx.fillRect(0, 0, size, size);
-        });
-        if (!fillStyle) fillStyle = color;
+        let fillStyle;
+        if (playerData.graphics === 'HIGH') {
+             fillStyle = getCelColor(color, 'shadow');
+        } else {
+             const cacheKey = `shorts_base_${color}`;
+             fillStyle = getCachedPattern(cacheKey, (gradCtx, size) => {
+                // Base Color
+                gradCtx.fillStyle = color;
+                gradCtx.fillRect(0, 0, size, size);
+                // Gradient Overlay
+                const grad = gradCtx.createLinearGradient(0, 0, size, 0);
+                grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+                grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+                gradCtx.fillStyle = grad;
+                gradCtx.fillRect(0, 0, size, size);
+            });
+            if (!fillStyle) fillStyle = color;
+        }
 
         // --- Draw Main Shape ---
         ctx.beginPath();
@@ -8957,6 +9047,14 @@ var BallRenderer = {
         ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
         ctx.closePath();
 
+        if (playerData.graphics === 'HIGH') {
+             const rimColor = getCelColor(color, 'rim');
+             ctx.strokeStyle = rimColor;
+             ctx.lineWidth = 3*scale;
+             ctx.lineCap = 'round';
+             ctx.lineJoin = 'round';
+             ctx.stroke();
+        }
         ctx.fillStyle = fillStyle;
         ctx.fill();
 
@@ -9065,50 +9163,6 @@ var BallRenderer = {
         ctx.beginPath(); ctx.moveTo(cx - hipW/2, waistY); ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.5, cx - hipW/2, bottomY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx + hipW/2, waistY); ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.5, cx + hipW/2, bottomY); ctx.stroke();
 
-        // FOLDS (High Graphics)
-        if (playerData.graphics === 'HIGH' && skinObj.shortsType !== 'kilt') {
-             ctx.save();
-             // Re-trace path for clipping
-             ctx.beginPath();
-             ctx.moveTo(cx - waistW/2, waistY); ctx.lineTo(cx + waistW/2, waistY);
-             ctx.quadraticCurveTo(cx + hipW/2, waistY + h*0.2, cx + hipW/2, bottomY);
-             ctx.lineTo(cx + hipW/2 - legW, bottomY);
-             ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx, crotchY);
-             ctx.quadraticCurveTo(cx, crotchY + h*0.2, cx - hipW/2 + legW, bottomY);
-             ctx.lineTo(cx - hipW/2, bottomY);
-             ctx.quadraticCurveTo(cx - hipW/2, waistY + h*0.2, cx - waistW/2, waistY);
-             ctx.closePath();
-             ctx.clip();
-
-             ctx.globalCompositeOperation = 'source-over';
-             // Crotch Creases
-             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-             ctx.lineWidth = 1.5 * scale;
-             ctx.lineCap = 'round';
-
-             ctx.beginPath();
-             ctx.moveTo(cx, crotchY);
-             ctx.quadraticCurveTo(cx - hipW*0.2, crotchY + h*0.1, cx - hipW*0.3, bottomY - 5*scale);
-             ctx.stroke();
-
-             ctx.beginPath();
-             ctx.moveTo(cx, crotchY);
-             ctx.quadraticCurveTo(cx + hipW*0.2, crotchY + h*0.1, cx + hipW*0.3, bottomY - 5*scale);
-             ctx.stroke();
-
-             // Side Bunching
-             ctx.beginPath();
-             ctx.moveTo(cx - waistW/2, waistY + 10*scale);
-             ctx.lineTo(cx - waistW/2 + 10*scale, waistY + 15*scale);
-             ctx.stroke();
-
-             ctx.beginPath();
-             ctx.moveTo(cx + waistW/2, waistY + 10*scale);
-             ctx.lineTo(cx + waistW/2 - 10*scale, waistY + 15*scale);
-             ctx.stroke();
-
-             ctx.restore();
-        }
 
         if(skinObj.trimColor) {
             ctx.strokeStyle = skinObj.trimColor;
@@ -10497,24 +10551,15 @@ var BallRenderer = {
             ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
 
             if (playerData.graphics === 'HIGH') {
-                 const r = headRadius;
-                 ctx.fillStyle = skinTone;
-                 ctx.fill();
-                 const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
-                 shade.addColorStop(0, 'rgba(255,255,255,0.1)');
-                 shade.addColorStop(0.5, 'rgba(0,0,0,0)');
-                 shade.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = shade;
-                 ctx.fill();
-                 const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.9, 0, p.x, headY + r*0.9, r*0.7);
-                 neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
-                 neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
-                 ctx.fillStyle = neckShadow;
-                 ctx.beginPath(); ctx.ellipse(p.x, headY + r*0.7, r*0.5, r*0.3, 0, 0, Math.PI*2); ctx.fill();
+                const rimColor = getCelColor(skinTone, 'rim');
+                const shadowColor = getCelColor(skinTone, 'shadow');
+                ctx.strokeStyle = rimColor;
+                ctx.lineWidth = 3 * s;
+                ctx.stroke();
+                ctx.fillStyle = shadowColor;
+                ctx.fill();
             } else {
-                 ctx.fill();
-                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                 ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2); ctx.fill();
+                ctx.fill();
             }
         }
 
@@ -12881,14 +12926,7 @@ var BallRenderer = {
             // Normalized height baseline for cache
             const hY = 350;
 
-            if (playerData.graphics === 'HIGH') {
-                const grad = ctx2.createLinearGradient(0, hY - 150, 0, hY);
-                grad.addColorStop(0, layer.color);
-                grad.addColorStop(1, '#1a1a1a');
-                ctx2.fillStyle = grad;
-            } else {
-                ctx2.fillStyle = layer.color;
-            }
+            ctx2.fillStyle = layer.color;
 
             ctx2.beginPath();
             ctx2.moveTo(layer.points[0].x, hY);
@@ -12973,70 +13011,25 @@ var BallRenderer = {
 
             // Current Floor
             if (playerData.graphics === 'HIGH') {
-                 // Bake texture for high graphics
+                 // High Graphics: Baked canvas with Sun Glare (Wind Waker style)
                  const fCv = document.createElement('canvas');
-                 fCv.width = vpW;
+                 fCv.width = Math.ceil(vpW);
                  fCv.height = Math.ceil(vpH - horizonY);
                  const fCtx = fCv.getContext('2d');
 
-                 // Base Gradient
+                 // Base
                  const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
-                 grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
+                 grad.addColorStop(0, court.ground1);
+                 grad.addColorStop(1, court.ground2);
                  fCtx.fillStyle = grad;
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
-                 // Procedural Textures based on Type
-                 if (court.type === 'arena') {
-                     // Wood Planks
-                     fCtx.fillStyle = court.ground2;
-                     const plankW = 40;
-                     for(let i=0; i<fCv.width; i+=plankW) {
-                         fCtx.fillRect(i, 0, 2, fCv.height);
-                     }
-                 }
-                 else if (court.type === 'carnival') {
-                     // Carnival Checkerboard
-                     const size = 50;
-                     fCtx.fillStyle = court.ground2;
-                     for(let y=0; y<fCv.height; y+=size) {
-                         for(let x=0; x<fCv.width; x+=size) {
-                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
-                                 fCtx.fillRect(x, y, size, size);
-                             }
-                         }
-                     }
-                 }
-                 else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades removed for clean High graphics
-                 }
-                 else if (court.type === 'castle') {
-                    // Clean asphalt
-                 }
-                 else if (court.type === 'mountain') {
-                     // Ice / Snow Gloss
-                     // Reflections (Fake)
-                     const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
-                     gradRef.addColorStop(0, 'rgba(255,255,255,0)');
-                     gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                     gradRef.addColorStop(1, 'rgba(255,255,255,0)');
-                     fCtx.fillStyle = gradRef;
-                     fCtx.fillRect(0, 0, fCv.width, fCv.height);
-                 }
-                 else if (court.type === 'water') {
-                    // Clean water
-                 }
-                 else if (court.type === 'space') {
-                     // Craters / Dust
-                     fCtx.fillStyle = 'rgba(0,0,0,0.2)';
-                     for(let i=0; i<20; i++) {
-                         const r = 10 + Math.random() * 40;
-                         const cx = Math.random() * fCv.width;
-                         const cy = Math.random() * fCv.height;
-                         fCtx.beginPath();
-                         fCtx.arc(cx, cy, r, 0, Math.PI*2);
-                         fCtx.fill();
-                     }
-                 }
+                 // Sun Glare (Horizon Sheen)
+                 const glare = fCtx.createLinearGradient(0, 0, 0, fCv.height * 0.4);
+                 glare.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+                 glare.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                 fCtx.fillStyle = glare;
+                 fCtx.fillRect(0, 0, fCv.width, fCv.height * 0.4);
 
                  bgCache.floorImage = fCv;
             } else {
