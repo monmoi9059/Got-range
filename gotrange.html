@@ -11949,20 +11949,60 @@ var BallRenderer = {
 
             // 1. Draw Main Structure (Continuous)
             if (legMode === 'pants') {
-                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, isFurry && thighColor === furColor, seedBase);
+                if (skinObj.legType === 'tights') {
+                    // Tights (Form fitting, no flare)
+                    drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
+                } else {
+                    // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
+                    // Override widths to be wider and straighter (hiding animal shape/taper)
+                    // Ensure it is at least wide enough to look like pants (12*s base)
+                    const pantWidth = Math.max(thighStartW * 1.1, 12 * s);
+                    // Draw pants as cloth (force isFurry=false)
+                    // Width tapers slightly but remains baggy at ankle
+                    drawContinuousLimb(hipP, kneeP, ankleP, pantWidth, pantWidth * 0.95, pantWidth * 0.9, thighColor, s, false, seedBase);
+
+                    // Draw Cuff / Hem Opening at ankle (The "Sleeve" effect)
+                    const dx = ankleP.x - kneeP.x;
+                    const dy = ankleP.y - kneeP.y;
+                    const angle = Math.atan2(dy, dx);
+                    const hemW = pantWidth * 0.9;
+
+                    ctx.save();
+                    ctx.translate(ankleP.x, ankleP.y);
+                    ctx.rotate(angle + Math.PI/2); // Rotate to be perpendicular to leg axis
+
+                    // Dark hollow opening (simulating volume)
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, hemW/2, 3*s, 0, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Hem edge line/highlight
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 1*s;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, hemW/2, 3*s, 0, 0, Math.PI*2);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
             } else {
-                // Skin Leg
+                // Skin Leg (Furry or Human Skin)
                 drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
 
                 // Shorts Overlay
                 if (!legFurry) {
-                    const shortsLen = (skinObj.shortsLength === 'short') ? 0.35 : 0.5;
+                    // Shorts Length Choice (Short vs Normal)
+                    const isShortShorts = (skinObj.shortsLength === 'short');
+                    const shortsLen = isShortShorts ? 0.35 : 0.5;
+                    const shortsFlare = isShortShorts ? 1.1 : 1.25; // Normal shorts are baggier
+
                     // Interpolate shorts end
                     const shortsEnd = {
                         x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
                         y: hipP.y + (kneeP.y - hipP.y) * shortsLen
                     };
-                    const shortsW = thighStartW * 1.2; // Flare
+                    const shortsW = thighStartW * shortsFlare;
                     // Draw shorts as a short limb
                     drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
 
