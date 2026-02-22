@@ -11947,77 +11947,7 @@ var BallRenderer = {
             let legMode = 'skin';
             if (skinObj.legType === 'pants' || skinObj.legType === 'tights') legMode = 'pants';
 
-            // 1. Draw Main Structure (Continuous)
-            if (legMode === 'pants') {
-                if (skinObj.legType === 'tights') {
-                    // Tights (Form fitting, no flare)
-                    drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
-                } else {
-                    // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
-                    // Override widths to be wider and straighter (hiding animal shape/taper)
-                    // Ensure it is at least wide enough to look like pants (12*s base)
-                    const pantWidth = Math.max(thighStartW * 1.1, 12 * s);
-
-                    // Straight leg cut (no taper at ankle) for "sleeve" look
-                    // Passing pantWidth for all segments creates a straight cylinder
-                    drawContinuousLimb(hipP, kneeP, ankleP, pantWidth, pantWidth, pantWidth, thighColor, s, false, seedBase);
-
-                    // Draw Cuff / Hem Opening at ankle (The "Sleeve" effect)
-                    const dx = ankleP.x - kneeP.x;
-                    const dy = ankleP.y - kneeP.y;
-                    const angle = Math.atan2(dy, dx);
-                    const hemW = pantWidth; // Match full width
-
-                    ctx.save();
-                    ctx.translate(ankleP.x, ankleP.y);
-                    ctx.rotate(angle + Math.PI/2); // Rotate to be perpendicular to leg axis
-
-                    // Dark hollow opening (simulating volume)
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, hemW/2, 3*s, 0, 0, Math.PI*2);
-                    ctx.fill();
-
-                    // Hem edge line/highlight
-                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                    ctx.lineWidth = 1*s;
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, hemW/2, 3*s, 0, 0, Math.PI*2);
-                    ctx.stroke();
-
-                    ctx.restore();
-                }
-            } else {
-                // Skin Leg (Furry or Human Skin)
-                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
-
-                // Shorts Overlay
-                if (!legFurry) {
-                    // Shorts Length Choice (Short vs Normal)
-                    const isShortShorts = (skinObj.shortsLength === 'short');
-                    const shortsLen = isShortShorts ? 0.35 : 0.5;
-                    const shortsFlare = isShortShorts ? 1.1 : 1.25; // Normal shorts are baggier
-
-                    // Interpolate shorts end
-                    const shortsEnd = {
-                        x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
-                        y: hipP.y + (kneeP.y - hipP.y) * shortsLen
-                    };
-                    const shortsW = thighStartW * shortsFlare;
-                    // Draw shorts as a short limb
-                    drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
-
-                    // Side Stripes on Shorts
-                    if (skinObj.sideStripesColor) {
-                        ctx.strokeStyle = skinObj.sideStripesColor;
-                        ctx.lineWidth = 2 * s;
-                        const sideX = isRight ? (hipP.x + shortsW*0.4) : (hipP.x - shortsW*0.4);
-                        const sideXEnd = isRight ? (shortsEnd.x + shortsW*0.45) : (shortsEnd.x - shortsW*0.45);
-                        ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
-                    }
-                }
-            }
-
+            // Helper to draw feet (Socks + Shoes/Paws)
             const drawFeet = () => {
                 // Socks
                 if (skinObj.socksColor) {
@@ -12057,23 +11987,21 @@ var BallRenderer = {
                 }
             };
 
-            // Reordered Rendering: For Long Pants, Shoe First -> Pants Second (Creates sleeve/untucked look)
-            if (legMode === 'pants' && skinObj.legType !== 'tights') {
-                drawFeet();
-            } else {
-                // Socks/Shoes render AFTER tight pants/skin/shorts (Tucked look)
-            }
-
-            // Draw Main Structure (Continuous)
+            // 1. Draw Main Structure (Continuous)
             if (legMode === 'pants') {
                 if (skinObj.legType === 'tights') {
                     // Tights (Form fitting, no flare)
                     drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
+                    drawFeet(); // Draw feet OVER tights
                 } else {
                     // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
+
+                    // LAYER FIX: Draw Shoes FIRST so pants drape over them
+                    drawFeet();
+
                     // Override widths to be wider and straighter (hiding animal shape/taper)
-                    // Ensure it is at least wide enough to look like pants (12*s base)
-                    const pantWidth = Math.max(thighStartW * 1.1, 13 * s); // Slightly wider to clear shoes
+                    // Ensure it is at least wide enough to look like pants (13*s base)
+                    const pantWidth = Math.max(thighStartW * 1.1, 13 * s);
 
                     // Straight leg cut (no taper at ankle) for "sleeve" look
                     // Passing pantWidth for all segments creates a straight cylinder
@@ -12133,10 +12061,8 @@ var BallRenderer = {
                         ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
                     }
                 }
-            }
 
-            // Draw Feet (If not already drawn for long pants)
-            if (!(legMode === 'pants' && skinObj.legType !== 'tights')) {
+                // Draw Feet Second (Over skin)
                 drawFeet();
             }
         };
