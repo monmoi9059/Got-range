@@ -1822,16 +1822,16 @@ var BallRenderer = {
                 // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
                 grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.2, c);
+                grad.addColorStop(0.3, c);
                 grad.addColorStop(1, '#000000'); // Shadow
                 // Blend with base color to avoid white/black takeover
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
 
                 // Overlay gradient
                 const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.4)');
                 gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.5)');
                 ctx.fillStyle = gradOverlay; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
@@ -1850,9 +1850,9 @@ var BallRenderer = {
         if (applyShading) {
             // Radial Shading Overlay
             const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
-            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+            grad.addColorStop(0, 'rgba(255,255,255,0.25)'); // Stronger Highlight
+            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.6)'); // Deeper Shadow edge
 
             ctx.save();
             ctx.beginPath();
@@ -1995,6 +1995,29 @@ var BallRenderer = {
 
             // Clip for shading
             ctx.save();
+            // OPTIMIZATION: Polygon clip instead of Bezier clip for performance
+            ctx.beginPath();
+            ctx.moveTo(p1L.x, p1L.y);
+            // Cap 1 (Approximate curve with 2 lines)
+            const cap1Mid = {x: p1.x - Math.cos(a1)*w1*0.5, y: p1.y - Math.sin(a1)*w1*0.5};
+            ctx.lineTo(cap1Mid.x, cap1Mid.y);
+            ctx.lineTo(p1R.x, p1R.y);
+            ctx.lineTo(p2R_in.x, p2R_in.y);
+            // Elbow Outer
+            const elbowOutMid = {x: p2.x - Math.cos(bisectAngle)*miterLen, y: p2.y - Math.sin(bisectAngle)*miterLen};
+            ctx.lineTo(elbowOutMid.x, elbowOutMid.y);
+            ctx.lineTo(p2R_out.x, p2R_out.y);
+            ctx.lineTo(p3R.x, p3R.y);
+            // Cap 2
+            const cap2Mid = {x: p3.x + Math.cos(a2)*w3*0.5, y: p3.y + Math.sin(a2)*w3*0.5};
+            ctx.lineTo(cap2Mid.x, cap2Mid.y);
+            ctx.lineTo(p3L.x, p3L.y);
+            ctx.lineTo(p2L_out.x, p2L_out.y);
+            // Elbow Inner
+            const elbowInMid = {x: p2.x + Math.cos(bisectAngle)*miterLen, y: p2.y + Math.sin(bisectAngle)*miterLen};
+            ctx.lineTo(elbowInMid.x, elbowInMid.y);
+            ctx.lineTo(p2L_in.x, p2L_in.y);
+            ctx.closePath();
             ctx.clip();
         }
 
@@ -2017,12 +2040,12 @@ var BallRenderer = {
 
         // Upper Arm Shading
         const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark edge
+        grad1.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark edge
         grad1.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad1.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Shine
-        grad1.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad1.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-        grad1.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+        grad1.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Shine
+        grad1.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad1.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad1.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
         ctx.fillStyle = grad1;
 
         // Draw rect covering upper segment (slightly oversized to cover joint)
@@ -2032,12 +2055,12 @@ var BallRenderer = {
 
         // Forearm Shading
         const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(0, 'rgba(0,0,0,0.6)');
         grad2.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad2.addColorStop(0.3, 'rgba(255,255,255,0.25)');
-        grad2.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-        grad2.addColorStop(1, 'rgba(255,255,255,0.3)');
+        grad2.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+        grad2.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.7)');
         ctx.fillStyle = grad2;
 
         ctx.beginPath();
@@ -2110,11 +2133,12 @@ var BallRenderer = {
 
         // Gradient: Dark edges, lighter center
         const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
-        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
-        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark Edge
+        grad3d.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Highlight Center
+        grad3d.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad3d.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark Edge
 
         ctx.fillStyle = grad3d;
         ctx.beginPath();
@@ -2150,6 +2174,7 @@ var BallRenderer = {
         const hipY = topY + h;
 
         let points = [];
+        let clothingW = w; // Track effective width for clothing overlays
 
         if (anchors && anchors.shoulders && anchors.hips) {
             const sl = anchors.shoulders.left;
@@ -2161,6 +2186,7 @@ var BallRenderer = {
                  const bellyY = topY + h * 0.55;
                  const hipY_adj = hr.y - h*0.05;
                  const bellyW = w * 1.45;
+                 clothingW = bellyW; // Bear is wide
 
                  points = [];
                  points.push(sl);
@@ -2180,6 +2206,7 @@ var BallRenderer = {
                  points.push({x: sl.x - (Math.abs(sl.x-cx) - bellyW/2)*0.25, y: sl.y + (bellyY - sl.y)*0.3});
             } else if (options.bodyShape === 'round') {
                  const bellyW = w * 1.9;
+                 clothingW = bellyW;
                  const bellyY = topY + h * 0.7;
                  points = [
                      sl, sr,
@@ -2200,6 +2227,7 @@ var BallRenderer = {
             } else if (options.bodyShape === 'heavy') {
                  // Elephant: Wide belly
                  const bellyW = w * 1.4;
+                 clothingW = bellyW;
                  points = [
                      sl, sr,
                      {x: cx + bellyW/2, y: topY + h*0.5},
@@ -2209,6 +2237,7 @@ var BallRenderer = {
             } else if (options.bodyShape === 'penguin') {
                  // Tear drop
                  const botW = w * 1.5;
+                 clothingW = botW;
                  points = [
                      sl, sr,
                      {x: cx + botW/2, y: hl.y - h*0.2},
@@ -2221,6 +2250,7 @@ var BallRenderer = {
                  let midWScale = 1.0;
                  if (options.bodyShape === 'oval') midWScale = 1.2;
                  else if (options.bodyShape === 'athletic_animal') midWScale = 0.9;
+                 clothingW = w * midWScale;
                  const midR = { x: cx + (w*midWScale)/2, y: midY };
                  const midL = { x: cx - (w*midWScale)/2, y: midY };
                  points = [sl, sr, midR, hr, hl, midL];
@@ -2233,6 +2263,7 @@ var BallRenderer = {
              const hipW = w * 1.25; // Rounded bottom
              const bellyY = topY + h * 0.55;
              const hipY_adj = hipY - h*0.05; // Slightly up to round bottom
+             clothingW = bellyW;
 
              // Dense Points for Smoothness (Fuzzy & Poly fallback)
              points = [];
@@ -2262,6 +2293,7 @@ var BallRenderer = {
              // Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
              const shoulderW = w * 0.6;
              const bellyW = w * 1.9;
+             clothingW = bellyW;
              const hipW = w * 1.8;
              const bellyY = topY + h * 0.7;
 
@@ -2283,6 +2315,7 @@ var BallRenderer = {
              // Small Animal (Rat, Cat, etc.) - Simple Ovalish body
              const shoulderW = w * 0.9;
              const midW = w * 1.2;
+             clothingW = midW;
              const hipW = w * 1.0;
              const midY = topY + h * 0.5;
 
@@ -2322,6 +2355,7 @@ var BallRenderer = {
              // Elephant/Hippo - Boxy and wide
              const shoulderW = w * 1.3;
              const bellyW = w * 1.4;
+             clothingW = bellyW;
              const hipW = w * 1.3;
              points = [
                  {x: cx - shoulderW/2, y: shoulderY},
@@ -2336,6 +2370,7 @@ var BallRenderer = {
              // Tear drop
              const topW = w * 0.5;
              const botW = w * 1.5;
+             clothingW = botW;
              points = [
                  {x: cx - topW/2, y: shoulderY},
                  {x: cx + topW/2, y: shoulderY},
@@ -2365,6 +2400,7 @@ var BallRenderer = {
                 // PEAR SHAPE (Wide bottom, drooping shoulders)
                 const bagS = sW * 1.1; // Broad shoulders
                 const bagW = hW * 1.15; // Bulge wider than hips
+                clothingW = bagW;
                 const bagH = hW * 1.0; // Elastic hem matches hips
 
                 const dropY = shoulderY + h * 0.15; // Shoulders start lower/sloped
@@ -2385,6 +2421,7 @@ var BallRenderer = {
                 // RECTANGLE SHAPE (Hard lines, no taper)
                 // Straight down from shoulders
                 const boxS = sW * 1.1;
+                clothingW = boxS;
 
                 points = [
                     {x: cx - boxS/2, y: shoulderY},
@@ -2397,6 +2434,7 @@ var BallRenderer = {
                 // TRAPEZOID SHAPE (Flared bottom)
                 const robeTop = sW * 1.05;
                 const robeBot = hW * 1.5; // Dramatic flare
+                clothingW = robeBot;
 
                 points = [
                     {x: cx - robeTop/2, y: shoulderY},
@@ -2409,6 +2447,7 @@ var BallRenderer = {
                 // DIAMOND/TRIANGLE SHAPE
                 const ponchoTop = sW * 0.9;
                 const ponchoBot = hW * 2.0;
+                clothingW = ponchoBot;
 
                 points = [
                     {x: cx - ponchoTop/2, y: shoulderY},
@@ -2489,6 +2528,24 @@ var BallRenderer = {
                      ];
                 }
             }
+        }
+
+        // Expand for Clothing (Animal Fix)
+        if (options.clothingType && options.clothingType !== 'none' && !isFurry && points.length > 2) {
+             const expansion = 3 * scale;
+             let centroidX = 0, centroidY = 0;
+             points.forEach(p => { centroidX+=p.x; centroidY+=p.y; });
+             centroidX /= points.length; centroidY /= points.length;
+
+             for(let i=0; i<points.length; i++) {
+                 const dx = points[i].x - centroidX;
+                 const dy = points[i].y - centroidY;
+                 const len = Math.sqrt(dx*dx + dy*dy);
+                 if(len > 0) {
+                     points[i].x += (dx/len) * expansion;
+                     points[i].y += (dy/len) * expansion;
+                 }
+             }
         }
 
         const drawPatterns = () => {
@@ -2704,11 +2761,12 @@ var BallRenderer = {
 
             // Cylindrical Shading (Horizontal gradient)
             const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)');
-            grad.addColorStop(0.2, 'rgba(255,255,255,0.2)'); // Shine
-            grad.addColorStop(0.5, 'rgba(0,0,0,0.05)');
-            grad.addColorStop(0.8, 'rgba(0,0,0,0.4)');
-            grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+            grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Shine
+            grad.addColorStop(0.6, 'rgba(0,0,0,0.05)');
+            grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
             ctx.fillStyle = grad;
             ctx.fill();
             ctx.restore();
@@ -2830,12 +2888,12 @@ var BallRenderer = {
 
             // Photorealistic Cartoon Shading (Body)
             const bodyGrad = ctx.createLinearGradient(cx - w*0.9, topY, cx + w*0.9, topY);
-            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark left
+            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark left
             bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-            bodyGrad.addColorStop(0.3, 'rgba(255,255,255,0.15)'); // Spine/Center shine
+            bodyGrad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Stronger Spine/Center shine
             bodyGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            bodyGrad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-            bodyGrad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+            bodyGrad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            bodyGrad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark right (No Rim)
 
             ctx.save();
             ctx.clip();
@@ -2897,46 +2955,63 @@ var BallRenderer = {
                     const y = topY + (h * (i/numSegs));
                     // Curved line for volume
                     ctx.beginPath();
-                    ctx.moveTo(cx - w, y);
-                    ctx.quadraticCurveTo(cx, y + 5*scale, cx + w, y);
+                    ctx.moveTo(cx - clothingW, y);
+                    ctx.quadraticCurveTo(cx, y + 5*scale, cx + clothingW, y);
                     ctx.stroke();
 
                     // Highlight top of puff
                     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    ctx.fillRect(cx - w, y - (h/numSegs)*0.8, w*2, (h/numSegs)*0.4);
+                    ctx.fillRect(cx - clothingW, y - (h/numSegs)*0.8, clothingW*2, (h/numSegs)*0.4);
                 }
                 ctx.restore();
             }
 
             // 2. INTERNAL WRINKLES & FOLDS
+            // Enable for animals too if they have clothing
             if (cStyle === 'baggy' || cType === 'hoodie' || cType === 'sweatshirt') {
                 ctx.save();
                 // Clip to body path again if needed, or assume containment
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true);
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*scale;
                 // Armpit folds
-                ctx.beginPath(); ctx.moveTo(cx - w*0.9, topY + h*0.3); ctx.lineTo(cx - w*0.7, topY + h*0.4); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(cx + w*0.9, topY + h*0.3); ctx.lineTo(cx + w*0.7, topY + h*0.4); ctx.stroke();
-                // Lower Back bunching
-                ctx.beginPath(); ctx.moveTo(cx - w*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + w*0.4, topY + h*0.8); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx - clothingW*0.9, topY + h*0.3); ctx.lineTo(cx - clothingW*0.7, topY + h*0.4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx + clothingW*0.9, topY + h*0.3); ctx.lineTo(cx + clothingW*0.7, topY + h*0.4); ctx.stroke();
+                // Lower Back bunching (Humans only)
+                if (options.animal === 'human') {
+                    ctx.beginPath(); ctx.moveTo(cx - clothingW*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + clothingW*0.4, topY + h*0.8); ctx.stroke();
+                }
                 ctx.restore();
 
                 // Hoodie Pocket Pouch Outline (Back view - just side bulges or stitching?)
                 // Actually back view shouldn't see pocket.
                 // But we can see the gathered hem.
                 ctx.fillStyle = adjustColor(color, -10);
-                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 8*scale); // Hem band
+
+                if (options.animal === 'human') {
+                    // Standard Rectangular Hem for Humans
+                    ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 8*scale);
+                }
             }
 
             // 3. ROBE (Long Skirt)
             if (cType === 'robe') {
                 const robeLen = h * 1.2;
                 const skirtY = topY + h * 0.8;
-                const baseW = w * 1.5;
+                const baseW = clothingW * 1.5;
 
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.moveTo(cx - w*0.9, skirtY);
-                ctx.lineTo(cx + w*0.9, skirtY);
+                ctx.moveTo(cx - clothingW*0.9, skirtY);
+                ctx.lineTo(cx + clothingW*0.9, skirtY);
                 ctx.lineTo(cx + baseW, skirtY + robeLen);
                 ctx.lineTo(cx - baseW, skirtY + robeLen);
                 ctx.fill();
@@ -2951,12 +3026,12 @@ var BallRenderer = {
                 ctx.fillStyle = options.clothingTrim ? options.clothingTrim : adjustColor(color, -20);
                 // Collar geometry behind neck
                 ctx.beginPath();
-                ctx.moveTo(cx - w*0.5, topY + 5*scale);
-                ctx.quadraticCurveTo(cx, topY - 5*scale, cx + w*0.5, topY + 5*scale); // Back curve
-                ctx.lineTo(cx + w*0.6, topY + 12*scale);
-                ctx.lineTo(cx + w*0.4, topY + 12*scale);
-                ctx.quadraticCurveTo(cx, topY + 2*scale, cx - w*0.4, topY + 12*scale);
-                ctx.lineTo(cx - w*0.6, topY + 12*scale);
+                ctx.moveTo(cx - clothingW*0.5, topY + 5*scale);
+                ctx.quadraticCurveTo(cx, topY - 5*scale, cx + clothingW*0.5, topY + 5*scale); // Back curve
+                ctx.lineTo(cx + clothingW*0.6, topY + 12*scale);
+                ctx.lineTo(cx + clothingW*0.4, topY + 12*scale);
+                ctx.quadraticCurveTo(cx, topY + 2*scale, cx - clothingW*0.4, topY + 12*scale);
+                ctx.lineTo(cx - clothingW*0.6, topY + 12*scale);
                 ctx.fill();
             }
 
@@ -2966,9 +3041,9 @@ var BallRenderer = {
                  ctx.save();
                  // Re-clip to body
                  // (Simplified clip rect for performance)
-                 ctx.beginPath(); ctx.rect(cx-w, topY, w*2, h); ctx.clip();
+                 ctx.beginPath(); ctx.rect(cx-clothingW, topY, clothingW*2, h); ctx.clip();
 
-                 const grad = ctx.createLinearGradient(cx-w, topY, cx+w, topY);
+                 const grad = ctx.createLinearGradient(cx-clothingW, topY, cx+clothingW, topY);
                  grad.addColorStop(0.2, 'rgba(255,255,255,0)');
                  grad.addColorStop(0.3, 'rgba(255,255,255,0.2)'); // Sharp highlight
                  grad.addColorStop(0.4, 'rgba(255,255,255,0)');
@@ -2983,11 +3058,11 @@ var BallRenderer = {
             if (cStyle === 'varsity') {
                 // Ribbed Waistband
                 ctx.fillStyle = '#FFF'; // Default white trim if no sleeve color available, but we can't access skinObj here easily. Assume white/contrast.
-                ctx.fillRect(cx - w, topY + h - 10*scale, w*2, 10*scale);
+                ctx.fillRect(cx - clothingW, topY + h - 10*scale, clothingW*2, 10*scale);
                 // Stripes on waistband
                 ctx.fillStyle = color;
-                ctx.fillRect(cx - w, topY + h - 8*scale, w*2, 2*scale);
-                ctx.fillRect(cx - w, topY + h - 4*scale, w*2, 2*scale);
+                ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 2*scale);
+                ctx.fillRect(cx - clothingW, topY + h - 4*scale, clothingW*2, 2*scale);
             }
         }
     }
@@ -3039,14 +3114,14 @@ var BallRenderer = {
             }
         }
 
-        // Photorealistic Cartoon Shading (Rim Light + Volume)
+        // Photorealistic Cartoon Shading (Volume Only - No Rim)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Darker Edge
         grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Specular Shine
-        grad.addColorStop(0.5, 'rgba(0,0,0,0)'); // Base Color
-        grad.addColorStop(0.85, 'rgba(0,0,0,0.3)'); // Shadow
-        grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light (Backlit)
+        grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+        grad.addColorStop(0.6, 'rgba(0,0,0,0)'); // Base Color
+        grad.addColorStop(0.9, 'rgba(0,0,0,0.5)'); // Deeper Shadow
+        grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge (No Rim)
 
         ctx.fillStyle = grad;
         ctx.fill();
@@ -4035,10 +4110,10 @@ var BallRenderer = {
                     const grad = gCtx.createLinearGradient(0, 0, 0, 256);
                     grad.addColorStop(0, 'rgba(0,0,0,0.6)');
                     grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-                    grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-                    grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge
                     gCtx.fillStyle = grad;
                     gCtx.fillRect(0, 0, 1, 256);
                     g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
