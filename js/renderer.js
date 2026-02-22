@@ -7754,15 +7754,16 @@ var BallRenderer = {
                     // Override widths to be wider and straighter (hiding animal shape/taper)
                     // Ensure it is at least wide enough to look like pants (12*s base)
                     const pantWidth = Math.max(thighStartW * 1.1, 12 * s);
-                    // Draw pants as cloth (force isFurry=false)
-                    // Width tapers slightly but remains baggy at ankle
-                    drawContinuousLimb(hipP, kneeP, ankleP, pantWidth, pantWidth * 0.95, pantWidth * 0.9, thighColor, s, false, seedBase);
+
+                    // Straight leg cut (no taper at ankle) for "sleeve" look
+                    // Passing pantWidth for all segments creates a straight cylinder
+                    drawContinuousLimb(hipP, kneeP, ankleP, pantWidth, pantWidth, pantWidth, thighColor, s, false, seedBase);
 
                     // Draw Cuff / Hem Opening at ankle (The "Sleeve" effect)
                     const dx = ankleP.x - kneeP.x;
                     const dy = ankleP.y - kneeP.y;
                     const angle = Math.atan2(dy, dx);
-                    const hemW = pantWidth * 0.9;
+                    const hemW = pantWidth; // Match full width
 
                     ctx.save();
                     ctx.translate(ankleP.x, ankleP.y);
