@@ -1246,45 +1246,94 @@ var BallRenderer = {
 
     const weather = new WeatherSystem();
 
-    // Boat System
-    class BoatSystem {
+    // Aquatic Life System
+    class AquaticLifeSystem {
         constructor() {
-            this.boats = [];
+            this.entities = [];
             this.timer = 0;
-            // Pre-populate
-            for(let i=0; i<5; i++) this.spawnBoat(true);
+            // Pre-populate with surface objects
+            for(let i=0; i<3; i++) this.spawnEntity(true);
         }
 
-        spawnBoat(randomX = false) {
+        spawnEntity(randomX = false) {
             const isLeft = Math.random() > 0.5;
             const u = randomX ? Math.random() : (isLeft ? -0.1 : 1.1);
-            const v = Math.random(); // 0 (horizon) to 1 (pole)
-            const speed = (0.05 + Math.random() * 0.05) * (isLeft ? 1 : -1);
+            const v = 0.1 + Math.random() * 0.9; // Keep away from horizon line slightly
+            const dir = isLeft ? 1 : -1;
 
-            const types = ['sailboat', 'canoe', 'duck'];
-            const type = types[Math.floor(Math.random() * types.length)];
+            // Selection Logic
+            const r = Math.random();
+            let type = 'sailboat';
+            let category = 'boat'; // boat, bird, jumper
 
-            this.boats.push({
+            if (r < 0.4) {
+                // BOATS (40%)
+                const opts = ['sailboat', 'canoe', 'cruise', 'pirate', 'jetski'];
+                type = opts[Math.floor(Math.random() * opts.length)];
+                category = 'boat';
+            } else if (r < 0.7) {
+                // BIRDS (30%)
+                const opts = ['duck', 'swan', 'seagull'];
+                type = opts[Math.floor(Math.random() * opts.length)];
+                category = 'bird';
+            } else {
+                // JUMPERS (30%)
+                const opts = ['whale', 'dolphin', 'fish'];
+                type = opts[Math.floor(Math.random() * opts.length)];
+                category = 'jumper';
+            }
+
+            // Speed tuning
+            let speedBase = 0.05;
+            if (type === 'jetski') speedBase = 0.15;
+            if (type === 'cruise') speedBase = 0.02;
+            if (category === 'jumper') speedBase = 0.08;
+
+            const speed = (speedBase + Math.random() * 0.02) * dir;
+
+            this.entities.push({
                 u: u,
                 v: v,
                 speed: speed,
                 type: type,
-                wobbleOffset: Math.random() * Math.PI * 2
+                category: category,
+                wobbleOffset: Math.random() * Math.PI * 2,
+                // Jumper specific
+                jumpPhase: 0, // 0 to PI
+                jumpHeightMult: (type === 'whale' ? 1.5 : (type === 'fish' ? 0.5 : 1.0)),
+                hasSplashed: false
             });
         }
 
         update(dt) {
+            // Spawn Rate: "Occasional"
+            // ~1 every 3-5 seconds
             this.timer += dt;
-            if (this.timer > 120) {
-                if (Math.random() < 0.3) this.spawnBoat();
+            if (this.timer > 200) {
+                if (Math.random() < 0.5) this.spawnEntity();
                 this.timer = 0;
             }
 
-            for (let i = this.boats.length - 1; i >= 0; i--) {
-                let b = this.boats[i];
-                b.u += b.speed * 0.005 * dt;
-                if (b.u < -0.2 || b.u > 1.2) {
-                    this.boats.splice(i, 1);
+            for (let i = this.entities.length - 1; i >= 0; i--) {
+                let e = this.entities[i];
+                e.u += e.speed * 0.005 * dt;
+
+                // Jumper Logic
+                if (e.category === 'jumper') {
+                    // Jump arc logic: Use a portion of the screen width as the "jump zone"
+                    // Or just cycle phase based on time
+                    e.jumpPhase += Math.abs(e.speed) * 0.2 * dt;
+                    // Reset phase to loop jumps? Or just jump once?
+                    // Let's loop jumps for dolphins/fish, but make them submerge for a bit.
+                    if (e.jumpPhase > Math.PI * 2) { // Period includes submerged time
+                        e.jumpPhase = 0;
+                        e.hasSplashed = false;
+                    }
+                }
+
+                // Despawn
+                if (e.u < -0.3 || e.u > 1.3) {
+                    this.entities.splice(i, 1);
                 }
             }
         }
@@ -1302,52 +1351,243 @@ var BallRenderer = {
 
             // Sparkles
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            for(let i=0; i<10; i++) {
+            for(let i=0; i<15; i++) {
                 const time = Date.now() * 0.001;
                 const x = (Math.sin(i * 132 + time) * 0.5 + 0.5) * vpW;
                 const y = horizonY + (Math.cos(i * 54 + time) * 0.5 + 0.5) * riverH;
                 if (Math.random() > 0.95) ctx.fillRect(x, y, 2, 2);
             }
 
-            const sorted = this.boats.slice().sort(function(a,b){ return a.v - b.v; });
+            // Sort by depth (v)
+            const sorted = this.entities.slice().sort(function(a,b){ return a.v - b.v; });
 
             sorted.forEach(function(b) {
-                const y = horizonY + b.v * riverH;
+                const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
                 const scale = 0.3 + b.v * 0.7;
-                const size = 30 * scale;
-                const wobble = Math.sin(Date.now() * 0.005 + b.wobbleOffset) * 2 * scale;
-                const by = y + wobble;
+                const size = 30 * scale; // Base size unit
+
+                // Vertical Offset calculation
+                let offsetY = 0;
+                let rotation = 0;
+                let isSubmerged = false;
+
+                if (b.category === 'jumper') {
+                    // Jump Logic: Sin wave where 0->PI is Jump, PI->2PI is Submerged
+                    const phase = b.jumpPhase % (Math.PI * 2);
+
+                    if (phase < Math.PI) {
+                        // In Air
+                        const h = Math.sin(phase);
+                        offsetY = -h * 60 * scale * b.jumpHeightMult;
+
+                        // Rotate to follow arc
+                        // derivative of sin is cos
+                        const slope = Math.cos(phase);
+                        rotation = -slope * 0.8 * (b.speed > 0 ? 1 : -1);
+
+                        // Splash on entry/exit (approx)
+                        if (phase < 0.2 || phase > 2.9) {
+                            // Draw Splash
+                            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                            for(let k=0; k<3; k++) {
+                                ctx.beginPath();
+                                ctx.arc(x + (Math.random()-0.5)*10*scale, yBase, 3*scale, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+                        }
+
+                        // Whale Spout at apex
+                        if (b.type === 'whale' && phase > 1.4 && phase < 1.7) {
+                            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                            const sx = x;
+                            const sy = yBase + offsetY - 10*scale; // Top of whale
+                            // Draw spray
+                            for(let s=0; s<5; s++) {
+                                ctx.beginPath();
+                                ctx.arc(sx + (Math.random()-0.5)*10*scale, sy - 15*scale - Math.random()*15*scale, 2*scale, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+                        }
+
+                    } else {
+                        isSubmerged = true;
+                    }
+                } else {
+                    // Floating wobble
+                    offsetY = Math.sin(Date.now() * 0.005 + b.wobbleOffset) * 2 * scale;
+                }
+
+                if (isSubmerged) return;
+
+                const drawY = yBase + offsetY;
 
                 ctx.save();
-                ctx.translate(x, by);
+                ctx.translate(x, drawY);
                 if (b.speed < 0) ctx.scale(-1, 1);
+                if (rotation !== 0) ctx.rotate(rotation);
 
+                // --- DRAWING LOGIC ---
+
+                // BOATS
                 if (b.type === 'sailboat') {
                     ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.quadraticCurveTo(0, size/2, size/2, 0); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.quadraticCurveTo(0, size/2, size/2, 0); ctx.fill(); // Hull
+                    // Sails
                     ctx.fillStyle = '#EEE';
-                    ctx.beginPath(); ctx.moveTo(0, -size/4); ctx.lineTo(0, -size); ctx.lineTo(size/2, -size/3); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size); ctx.lineTo(size/1.5, -size*0.4); ctx.fill();
+                    ctx.fillStyle = '#DDD';
+                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size*0.9); ctx.lineTo(-size/2, -size*0.3); ctx.fill();
+                    // Mast
                     ctx.strokeStyle = '#555'; ctx.lineWidth = 1*scale;
                     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -size); ctx.stroke();
-                } else if (b.type === 'canoe') {
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath(); ctx.ellipse(0, 0, size/2, size/6, 0, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath(); ctx.arc(0, -size/6, size/8, 0, Math.PI*2); ctx.fill();
-                } else {
-                    ctx.fillStyle = '#FFD700';
-                    ctx.beginPath(); ctx.ellipse(0, 0, size/3, size/5, 0, 0, Math.PI*2); ctx.fill();
-                    ctx.beginPath(); ctx.arc(size/4, -size/6, size/6, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = 'orange';
-                    ctx.beginPath(); ctx.moveTo(size/3, -size/6); ctx.lineTo(size/2, -size/6); ctx.stroke(); // Beak
                 }
+                else if (b.type === 'canoe') {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.6, size*0.15, 0, 0, Math.PI*2); ctx.fill();
+                    // Person
+                    ctx.fillStyle = '#333';
+                    ctx.beginPath(); ctx.arc(0, -size*0.2, size*0.15, 0, Math.PI*2); ctx.fill(); // Head
+                    ctx.fillStyle = '#CD5C5C'; // Shirt
+                    ctx.fillRect(-size*0.15, -size*0.2, size*0.3, size*0.2);
+                    // Paddle
+                    ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2*scale;
+                    ctx.beginPath(); ctx.moveTo(0, -size*0.1); ctx.lineTo(size*0.2, size*0.2); ctx.stroke();
+                }
+                else if (b.type === 'jetski') {
+                    // Fast movement visual
+                    ctx.fillStyle = '#FF4500'; // Red Body
+                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.lineTo(size/2, 0); ctx.lineTo(size/2, -size*0.2); ctx.lineTo(-size/2, -size*0.1); ctx.fill();
+                    // Rider
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath(); ctx.arc(0, -size*0.4, size*0.12, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#FFF'; // Life jacket
+                    ctx.beginPath(); ctx.ellipse(0, -size*0.25, size*0.15, size*0.2, -0.5, 0, Math.PI*2); ctx.fill();
+                    // Spray
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.beginPath(); ctx.arc(-size*0.6, 0, size*0.2, 0, Math.PI*2); ctx.fill();
+                }
+                else if (b.type === 'pirate') {
+                    // Hull
+                    ctx.fillStyle = '#2F4F4F';
+                    ctx.beginPath(); ctx.moveTo(-size*0.8, 0); ctx.quadraticCurveTo(0, size*0.4, size*0.8, 0); ctx.lineTo(size*0.6, -size*0.3); ctx.lineTo(-size*0.6, -size*0.3); ctx.fill();
+                    // Mast
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 2*scale;
+                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size*1.2); ctx.stroke();
+                    // Sail (Black)
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath(); ctx.moveTo(0, -size*0.4); ctx.quadraticCurveTo(size*0.5, -size*0.8, 0, -size*1.2); ctx.fill();
+                    // Skull (White dot)
+                    ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(size*0.15, -size*0.8, size*0.08, 0, Math.PI*2); ctx.fill();
+                    // Flag
+                    ctx.fillStyle = '#FF0000'; ctx.beginPath(); ctx.moveTo(0, -size*1.2); ctx.lineTo(size*0.2, -size*1.15); ctx.lineTo(0, -size*1.1); ctx.fill();
+                }
+                else if (b.type === 'cruise') {
+                    // Large White Hull
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath(); ctx.moveTo(-size, 0); ctx.lineTo(size, 0); ctx.lineTo(size*0.9, -size*0.4); ctx.lineTo(-size*0.9, -size*0.4); ctx.fill();
+                    // Decks
+                    ctx.fillStyle = '#EEE';
+                    ctx.fillRect(-size*0.6, -size*0.6, size*1.2, size*0.2);
+                    ctx.fillRect(-size*0.4, -size*0.8, size*0.8, size*0.2);
+                    // Windows
+                    ctx.fillStyle = '#87CEEB';
+                    for(let w=0; w<5; w++) ctx.fillRect(-size*0.5 + w*size*0.2, -size*0.55, size*0.1, size*0.1);
+                    // Funnels
+                    ctx.fillStyle = '#CE1126';
+                    ctx.fillRect(-size*0.2, -size*1.0, size*0.15, size*0.3);
+                    ctx.fillRect(size*0.1, -size*1.0, size*0.15, size*0.3);
+                }
+
+                // BIRDS
+                else if (b.type === 'duck') {
+                    // Improved Duck
+                    // Body
+                    ctx.fillStyle = '#FFD700'; // Gold
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.4, size*0.25, 0, 0, Math.PI*2); ctx.fill();
+                    // Wing
+                    ctx.fillStyle = '#DAA520'; // Darker Gold
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.25, size*0.15, 0.2, 0, Math.PI*2); ctx.fill();
+                    // Head
+                    ctx.fillStyle = '#FFD700'; // Green head for mallard? Or classic rubber duck yellow? User said "ugly as shit", assuming generic duck. Let's do Mallard style for variety? No, Classic Yellow or White is safer.
+                    ctx.fillStyle = '#006400'; // Mallard Green Head
+                    ctx.beginPath(); ctx.arc(size*0.3, -size*0.25, size*0.15, 0, Math.PI*2); ctx.fill();
+                    // Neck ring
+                    ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*scale;
+                    ctx.beginPath(); ctx.arc(size*0.3, -size*0.25, size*0.15, 0.5, 2.5); ctx.stroke();
+                    // Bill
+                    ctx.fillStyle = '#FFA500';
+                    ctx.beginPath(); ctx.moveTo(size*0.4, -size*0.25); ctx.lineTo(size*0.6, -size*0.2); ctx.lineTo(size*0.4, -size*0.15); ctx.fill();
+                }
+                else if (b.type === 'swan') {
+                    ctx.fillStyle = '#FFF';
+                    // Body
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.5, size*0.3, 0, 0, Math.PI*2); ctx.fill();
+                    // Neck (S curve)
+                    ctx.lineWidth = size*0.15; ctx.strokeStyle = '#FFF'; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(size*0.3, -size*0.1);
+                    ctx.bezierCurveTo(size*0.6, -size*0.4, size*0.1, -size*0.6, size*0.4, -size*0.8); ctx.stroke();
+                    // Head
+                    ctx.beginPath(); ctx.arc(size*0.4, -size*0.8, size*0.12, 0, Math.PI*2); ctx.fill();
+                    // Beak
+                    ctx.fillStyle = '#FFA500';
+                    ctx.beginPath(); ctx.moveTo(size*0.5, -size*0.8); ctx.lineTo(size*0.65, -size*0.75); ctx.lineTo(size*0.5, -size*0.7); ctx.fill();
+                }
+                else if (b.type === 'seagull') {
+                    ctx.fillStyle = '#EEE';
+                    // Body
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.3, size*0.15, 0, 0, Math.PI*2); ctx.fill();
+                    // Head
+                    ctx.beginPath(); ctx.arc(size*0.2, -size*0.2, size*0.1, 0, Math.PI*2); ctx.fill();
+                    // Beak
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath(); ctx.moveTo(size*0.3, -size*0.2); ctx.lineTo(size*0.4, -size*0.15); ctx.lineTo(size*0.3, -size*0.1); ctx.fill();
+                }
+
+                // JUMPERS
+                else if (b.type === 'whale') {
+                    // Big Grey Body
+                    ctx.fillStyle = '#708090'; // SlateGrey
+                    ctx.beginPath();
+                    // Curved body
+                    ctx.moveTo(-size*1.2, 0);
+                    ctx.quadraticCurveTo(0, -size*0.8, size*0.8, 0); // Back
+                    ctx.quadraticCurveTo(0, size*0.5, -size*1.2, 0); // Belly
+                    ctx.fill();
+                    // Tail Flukes
+                    ctx.beginPath(); ctx.moveTo(-size*1.2, 0); ctx.lineTo(-size*1.5, -size*0.3); ctx.lineTo(-size*1.5, size*0.3); ctx.fill();
+                    // Eye
+                    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(size*0.4, -size*0.1, size*0.05, 0, Math.PI*2); ctx.fill();
+                    // Belly stripes
+                    ctx.strokeStyle = '#A9A9A9'; ctx.lineWidth = 1*scale;
+                    ctx.beginPath(); ctx.moveTo(-size*0.5, size*0.1); ctx.lineTo(size*0.2, size*0.1); ctx.stroke();
+                }
+                else if (b.type === 'dolphin') {
+                    ctx.fillStyle = '#B0C4DE'; // LightSteelBlue
+                    // Streamlined body
+                    ctx.beginPath();
+                    ctx.moveTo(-size, 0);
+                    ctx.quadraticCurveTo(0, -size*0.5, size, 0); // Top
+                    ctx.quadraticCurveTo(0, size*0.3, -size, 0); // Bottom
+                    ctx.fill();
+                    // Dorsal Fin
+                    ctx.beginPath(); ctx.moveTo(-size*0.1, -size*0.3); ctx.lineTo(size*0.1, -size*0.6); ctx.lineTo(size*0.2, -size*0.3); ctx.fill();
+                    // Snout
+                    ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(size*1.2, 0.1); ctx.lineTo(size, 0.2); ctx.fill();
+                }
+                else if (b.type === 'fish') {
+                    ctx.fillStyle = '#FFA07A'; // Salmon
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.3, size*0.15, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#FF4500';
+                    ctx.beginPath(); ctx.moveTo(-size*0.3, 0); ctx.lineTo(-size*0.45, -size*0.15); ctx.lineTo(-size*0.45, size*0.15); ctx.fill();
+                }
+
                 ctx.restore();
             });
         }
     }
 
-    const boatSystem = new BoatSystem();
+    const boatSystem = new AquaticLifeSystem();
 
     function drawBroadcastLowerThird() {
         const dpr = window.devicePixelRatio || 1;
