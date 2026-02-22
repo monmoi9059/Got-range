@@ -1822,16 +1822,16 @@ var BallRenderer = {
                 // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
                 grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.2, c);
+                grad.addColorStop(0.3, c);
                 grad.addColorStop(1, '#000000'); // Shadow
                 // Blend with base color to avoid white/black takeover
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
 
                 // Overlay gradient
                 const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.4)');
                 gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.5)');
                 ctx.fillStyle = gradOverlay; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
@@ -1850,9 +1850,9 @@ var BallRenderer = {
         if (applyShading) {
             // Radial Shading Overlay
             const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
-            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+            grad.addColorStop(0, 'rgba(255,255,255,0.25)'); // Stronger Highlight
+            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.6)'); // Deeper Shadow edge
 
             ctx.save();
             ctx.beginPath();
@@ -2017,12 +2017,12 @@ var BallRenderer = {
 
         // Upper Arm Shading
         const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
-        grad1.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark edge
+        grad1.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark edge
         grad1.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad1.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Shine
-        grad1.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad1.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-        grad1.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+        grad1.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Shine
+        grad1.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad1.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad1.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
         ctx.fillStyle = grad1;
 
         // Draw rect covering upper segment (slightly oversized to cover joint)
@@ -2032,12 +2032,12 @@ var BallRenderer = {
 
         // Forearm Shading
         const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
-        grad2.addColorStop(0, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(0, 'rgba(0,0,0,0.6)');
         grad2.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad2.addColorStop(0.3, 'rgba(255,255,255,0.25)');
-        grad2.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad2.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-        grad2.addColorStop(1, 'rgba(255,255,255,0.3)');
+        grad2.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+        grad2.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.7)');
         ctx.fillStyle = grad2;
 
         ctx.beginPath();
@@ -2110,11 +2110,12 @@ var BallRenderer = {
 
         // Gradient: Dark edges, lighter center
         const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
-        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
-        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark Edge
+        grad3d.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Highlight Center
+        grad3d.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad3d.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark Edge
 
         ctx.fillStyle = grad3d;
         ctx.beginPath();
@@ -2704,11 +2705,12 @@ var BallRenderer = {
 
             // Cylindrical Shading (Horizontal gradient)
             const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)');
-            grad.addColorStop(0.2, 'rgba(255,255,255,0.2)'); // Shine
-            grad.addColorStop(0.5, 'rgba(0,0,0,0.05)');
-            grad.addColorStop(0.8, 'rgba(0,0,0,0.4)');
-            grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+            grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Shine
+            grad.addColorStop(0.6, 'rgba(0,0,0,0.05)');
+            grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
             ctx.fillStyle = grad;
             ctx.fill();
             ctx.restore();
@@ -2830,12 +2832,12 @@ var BallRenderer = {
 
             // Photorealistic Cartoon Shading (Body)
             const bodyGrad = ctx.createLinearGradient(cx - w*0.9, topY, cx + w*0.9, topY);
-            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark left
+            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark left
             bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-            bodyGrad.addColorStop(0.3, 'rgba(255,255,255,0.15)'); // Spine/Center shine
+            bodyGrad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Stronger Spine/Center shine
             bodyGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            bodyGrad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-            bodyGrad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light
+            bodyGrad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            bodyGrad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark right (No Rim)
 
             ctx.save();
             ctx.clip();
@@ -3039,14 +3041,14 @@ var BallRenderer = {
             }
         }
 
-        // Photorealistic Cartoon Shading (Rim Light + Volume)
+        // Photorealistic Cartoon Shading (Volume Only - No Rim)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Darker Edge
         grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-        grad.addColorStop(0.3, 'rgba(255,255,255,0.25)'); // Specular Shine
-        grad.addColorStop(0.5, 'rgba(0,0,0,0)'); // Base Color
-        grad.addColorStop(0.85, 'rgba(0,0,0,0.3)'); // Shadow
-        grad.addColorStop(1, 'rgba(255,255,255,0.3)'); // Rim Light (Backlit)
+        grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+        grad.addColorStop(0.6, 'rgba(0,0,0,0)'); // Base Color
+        grad.addColorStop(0.9, 'rgba(0,0,0,0.5)'); // Deeper Shadow
+        grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge (No Rim)
 
         ctx.fillStyle = grad;
         ctx.fill();
@@ -4035,10 +4037,10 @@ var BallRenderer = {
                     const grad = gCtx.createLinearGradient(0, 0, 0, 256);
                     grad.addColorStop(0, 'rgba(0,0,0,0.6)');
                     grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-                    grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-                    grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge
                     gCtx.fillStyle = grad;
                     gCtx.fillRect(0, 0, 1, 256);
                     g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
