@@ -1251,8 +1251,54 @@ var BallRenderer = {
         constructor() {
             this.entities = [];
             this.timer = 0;
-            // Pre-populate with surface objects
-            for(let i=0; i<3; i++) this.spawnEntity(true);
+            // Pre-populate with surface objects (More initial activity)
+            for(let i=0; i<8; i++) this.spawnEntity(true);
+        }
+
+        getRandomLegendSkin() {
+            if (typeof SKINS_DB === 'undefined') return null;
+            const legends = SKINS_DB.filter(s => s.id.startsWith('human_') && s.id !== 'human_custom');
+            if (legends.length === 0) return null;
+            return legends[Math.floor(Math.random() * legends.length)];
+        }
+
+        drawMiniPilot(ctx, size, skin) {
+            if (!skin) return;
+            const s = size / 40; // Approx scale
+
+            // Torso (Jersey)
+            ctx.fillStyle = skin.jerseyColor || '#FFF';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size * 0.25, size * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arms (Simple)
+            ctx.strokeStyle = skin.skinTone || '#8d5524';
+            ctx.lineWidth = 4 * s;
+            ctx.beginPath(); ctx.moveTo(-size*0.2, -size*0.1); ctx.lineTo(-size*0.3, size*0.2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(size*0.2, -size*0.1); ctx.lineTo(size*0.3, size*0.2); ctx.stroke();
+
+            // Head
+            ctx.fillStyle = skin.skinTone || '#8d5524';
+            const headR = size * 0.18;
+            const headY = -size * 0.35;
+            ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill();
+
+            // Hair
+            ctx.fillStyle = skin.hairColor || '#000';
+            if (skin.hairStyle === 'afro' || skin.hairStyle === 'afro_70s') {
+                ctx.beginPath(); ctx.arc(0, headY - headR*0.2, headR * 1.3, 0, Math.PI * 2); ctx.fill();
+            } else if (skin.hairStyle !== 'bald_clean') {
+                ctx.beginPath(); ctx.arc(0, headY - headR*0.2, headR * 1.05, Math.PI, 0); ctx.fill();
+            }
+
+            // Number
+            if (skin.number && skin.numberColor) {
+                ctx.fillStyle = skin.numberColor;
+                ctx.font = `bold ${Math.max(10, size*0.2)}px Arial`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(skin.number, 0, size*0.05);
+            }
         }
 
         spawnEntity(randomX = false) {
@@ -1291,7 +1337,7 @@ var BallRenderer = {
 
             const speed = (speedBase + Math.random() * 0.02) * dir;
 
-            this.entities.push({
+            const entity = {
                 u: u,
                 v: v,
                 speed: speed,
@@ -1302,15 +1348,21 @@ var BallRenderer = {
                 jumpPhase: 0, // 0 to PI
                 jumpHeightMult: (type === 'whale' ? 1.5 : (type === 'fish' ? 0.5 : 1.0)),
                 hasSplashed: false
-            });
+            };
+
+            if (category === 'boat' && (type === 'canoe' || type === 'jetski')) {
+                entity.pilotSkin = this.getRandomLegendSkin();
+            }
+
+            this.entities.push(entity);
         }
 
         update(dt) {
-            // Spawn Rate: "Occasional"
-            // ~1 every 3-5 seconds
+            // Spawn Rate: "Frequent"
+            // ~1 every 1-2 seconds
             this.timer += dt;
-            if (this.timer > 200) {
-                if (Math.random() < 0.5) this.spawnEntity();
+            if (this.timer > 60) {
+                if (Math.random() < 0.7) this.spawnEntity();
                 this.timer = 0;
             }
 
@@ -1360,6 +1412,7 @@ var BallRenderer = {
 
             // Sort by depth (v)
             const sorted = this.entities.slice().sort(function(a,b){ return a.v - b.v; });
+            const self = this;
 
             sorted.forEach(function(b) {
                 const yBase = horizonY + b.v * riverH;
@@ -1450,10 +1503,15 @@ var BallRenderer = {
                     ctx.fillStyle = '#8B4513';
                     ctx.beginPath(); ctx.ellipse(0, 0, size*0.6, size*0.15, 0, 0, Math.PI*2); ctx.fill();
                     // Person
-                    ctx.fillStyle = '#333';
-                    ctx.beginPath(); ctx.arc(0, -size*0.2, size*0.15, 0, Math.PI*2); ctx.fill(); // Head
-                    ctx.fillStyle = '#CD5C5C'; // Shirt
-                    ctx.fillRect(-size*0.15, -size*0.2, size*0.3, size*0.2);
+                    if (b.pilotSkin) {
+                        ctx.save();
+                        ctx.translate(0, -size*0.1);
+                        self.drawMiniPilot(ctx, size, b.pilotSkin);
+                        ctx.restore();
+                    } else {
+                        ctx.fillStyle = '#333';
+                        ctx.beginPath(); ctx.arc(0, -size*0.2, size*0.15, 0, Math.PI*2); ctx.fill(); // Head
+                    }
                     // Paddle
                     ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2*scale;
                     ctx.beginPath(); ctx.moveTo(0, -size*0.1); ctx.lineTo(size*0.2, size*0.2); ctx.stroke();
@@ -1463,10 +1521,15 @@ var BallRenderer = {
                     ctx.fillStyle = '#FF4500'; // Red Body
                     ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.lineTo(size/2, 0); ctx.lineTo(size/2, -size*0.2); ctx.lineTo(-size/2, -size*0.1); ctx.fill();
                     // Rider
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath(); ctx.arc(0, -size*0.4, size*0.12, 0, Math.PI*2); ctx.fill();
-                    ctx.fillStyle = '#FFF'; // Life jacket
-                    ctx.beginPath(); ctx.ellipse(0, -size*0.25, size*0.15, size*0.2, -0.5, 0, Math.PI*2); ctx.fill();
+                    if (b.pilotSkin) {
+                        ctx.save();
+                        ctx.translate(0, -size*0.15);
+                        self.drawMiniPilot(ctx, size, b.pilotSkin);
+                        ctx.restore();
+                    } else {
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath(); ctx.arc(0, -size*0.4, size*0.12, 0, Math.PI*2); ctx.fill();
+                    }
                     // Spray
                     ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.beginPath(); ctx.arc(-size*0.6, 0, size*0.2, 0, Math.PI*2); ctx.fill();
