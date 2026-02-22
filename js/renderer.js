@@ -2989,13 +2989,16 @@ var BallRenderer = {
                     ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 8*scale);
                 } else {
                     // Subtle Hem Stroke for Animals (No "bar")
+                    // Use a slightly narrower width to prevent bleeding
+                    const hemStrokeW = clothingW * 0.9;
                     ctx.beginPath();
                     const hemY = topY + h;
-                    // Follow bottom contour roughly
-                    ctx.moveTo(cx - clothingW, hemY - 5*scale);
-                    ctx.quadraticCurveTo(cx, hemY, cx + clothingW, hemY - 5*scale);
-                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                    ctx.lineWidth = 3*scale;
+                    // Follow bottom contour roughly, strictly inside the body silhouette
+                    ctx.moveTo(cx - hemStrokeW, hemY - 4*scale);
+                    ctx.quadraticCurveTo(cx, hemY, cx + hemStrokeW, hemY - 4*scale);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Softer stroke
+                    ctx.lineWidth = 2*scale; // Thinner stroke
+                    ctx.lineCap = 'round'; // Round caps to blend better
                     ctx.stroke();
                 }
             }
