@@ -7160,24 +7160,21 @@ var BallRenderer = {
                 // Actually back view shouldn't see pocket.
                 // But we can see the gathered hem.
                 ctx.fillStyle = adjustColor(color, -10);
-                // Draw Hem Band (Curved for round animals)
-                ctx.beginPath();
-                const hemH = 8 * scale;
-                const hemY = topY + h - hemH;
 
-                // Top edge of hem
-                ctx.moveTo(cx - clothingW, hemY);
-                // Gentle curve down to center
-                ctx.quadraticCurveTo(cx, hemY + 5*scale, cx + clothingW, hemY);
-
-                // Side down
-                ctx.lineTo(cx + clothingW, hemY + hemH);
-
-                // Bottom edge of hem
-                ctx.quadraticCurveTo(cx, hemY + hemH + 5*scale, cx - clothingW, hemY + hemH);
-
-                ctx.closePath();
-                ctx.fill();
+                if (options.animal === 'human') {
+                    // Standard Rectangular Hem for Humans
+                    ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 8*scale);
+                } else {
+                    // Subtle Hem Stroke for Animals (No "bar")
+                    ctx.beginPath();
+                    const hemY = topY + h;
+                    // Follow bottom contour roughly
+                    ctx.moveTo(cx - clothingW, hemY - 5*scale);
+                    ctx.quadraticCurveTo(cx, hemY, cx + clothingW, hemY - 5*scale);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 3*scale;
+                    ctx.stroke();
+                }
             }
 
             // 3. ROBE (Long Skirt)
