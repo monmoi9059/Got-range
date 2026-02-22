@@ -7162,8 +7162,10 @@ var BallRenderer = {
                 // Armpit folds
                 ctx.beginPath(); ctx.moveTo(cx - clothingW*0.9, topY + h*0.3); ctx.lineTo(cx - clothingW*0.7, topY + h*0.4); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(cx + clothingW*0.9, topY + h*0.3); ctx.lineTo(cx + clothingW*0.7, topY + h*0.4); ctx.stroke();
-                // Lower Back bunching
-                ctx.beginPath(); ctx.moveTo(cx - clothingW*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + clothingW*0.4, topY + h*0.8); ctx.stroke();
+                // Lower Back bunching (Humans only)
+                if (options.animal === 'human') {
+                    ctx.beginPath(); ctx.moveTo(cx - clothingW*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + clothingW*0.4, topY + h*0.8); ctx.stroke();
+                }
                 ctx.restore();
 
                 // Hoodie Pocket Pouch Outline (Back view - just side bulges or stitching?)
@@ -7174,19 +7176,6 @@ var BallRenderer = {
                 if (options.animal === 'human') {
                     // Standard Rectangular Hem for Humans
                     ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 8*scale);
-                } else {
-                    // Subtle Hem Stroke for Animals (No "bar")
-                    // Use a slightly narrower width to prevent bleeding
-                    const hemStrokeW = clothingW * 0.9;
-                    ctx.beginPath();
-                    const hemY = topY + h;
-                    // Follow bottom contour roughly, strictly inside the body silhouette
-                    ctx.moveTo(cx - hemStrokeW, hemY - 4*scale);
-                    ctx.quadraticCurveTo(cx, hemY, cx + hemStrokeW, hemY - 4*scale);
-                    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Softer stroke
-                    ctx.lineWidth = 2*scale; // Thinner stroke
-                    ctx.lineCap = 'round'; // Round caps to blend better
-                    ctx.stroke();
                 }
             }
 
