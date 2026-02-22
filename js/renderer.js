@@ -1365,7 +1365,11 @@ var BallRenderer = {
                 const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
                 const scale = 0.3 + b.v * 0.7;
-                const size = 30 * scale; // Base size unit
+                let size = 30 * scale; // Base size unit
+
+                if (b.category === 'boat') {
+                    size *= 6.0; // Make boats significantly bigger
+                }
 
                 // Vertical Offset calculation
                 let offsetY = 0;
