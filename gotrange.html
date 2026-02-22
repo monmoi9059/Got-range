@@ -5454,54 +5454,8 @@ var BallRenderer = {
         constructor() {
             this.entities = [];
             this.timer = 0;
-            // Pre-populate with surface objects (More initial activity)
-            for(let i=0; i<8; i++) this.spawnEntity(true);
-        }
-
-        getRandomLegendSkin() {
-            if (typeof SKINS_DB === 'undefined') return null;
-            const legends = SKINS_DB.filter(s => s.id.startsWith('human_') && s.id !== 'human_custom');
-            if (legends.length === 0) return null;
-            return legends[Math.floor(Math.random() * legends.length)];
-        }
-
-        drawMiniPilot(ctx, size, skin) {
-            if (!skin) return;
-            const s = size / 40; // Approx scale
-
-            // Torso (Jersey)
-            ctx.fillStyle = skin.jerseyColor || '#FFF';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, size * 0.25, size * 0.3, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Arms (Simple)
-            ctx.strokeStyle = skin.skinTone || '#8d5524';
-            ctx.lineWidth = 4 * s;
-            ctx.beginPath(); ctx.moveTo(-size*0.2, -size*0.1); ctx.lineTo(-size*0.3, size*0.2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(size*0.2, -size*0.1); ctx.lineTo(size*0.3, size*0.2); ctx.stroke();
-
-            // Head
-            ctx.fillStyle = skin.skinTone || '#8d5524';
-            const headR = size * 0.18;
-            const headY = -size * 0.35;
-            ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill();
-
-            // Hair
-            ctx.fillStyle = skin.hairColor || '#000';
-            if (skin.hairStyle === 'afro' || skin.hairStyle === 'afro_70s') {
-                ctx.beginPath(); ctx.arc(0, headY - headR*0.2, headR * 1.3, 0, Math.PI * 2); ctx.fill();
-            } else if (skin.hairStyle !== 'bald_clean') {
-                ctx.beginPath(); ctx.arc(0, headY - headR*0.2, headR * 1.05, Math.PI, 0); ctx.fill();
-            }
-
-            // Number
-            if (skin.number && skin.numberColor) {
-                ctx.fillStyle = skin.numberColor;
-                ctx.font = `bold ${Math.max(10, size*0.2)}px Arial`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(skin.number, 0, size*0.05);
-            }
+            // Pre-populate with surface objects (Occasional activity)
+            for(let i=0; i<2; i++) this.spawnEntity(true);
         }
 
         spawnEntity(randomX = false) {
@@ -5512,21 +5466,16 @@ var BallRenderer = {
 
             // Selection Logic
             const r = Math.random();
-            let type = 'sailboat';
-            let category = 'boat'; // boat, bird, jumper
+            let type = 'duck';
+            let category = 'bird'; // bird, jumper
 
-            if (r < 0.4) {
-                // BOATS (40%)
-                const opts = ['sailboat', 'canoe', 'cruise', 'pirate', 'jetski'];
-                type = opts[Math.floor(Math.random() * opts.length)];
-                category = 'boat';
-            } else if (r < 0.7) {
-                // BIRDS (30%)
+            if (r < 0.5) {
+                // BIRDS (50%)
                 const opts = ['duck', 'swan', 'seagull'];
                 type = opts[Math.floor(Math.random() * opts.length)];
                 category = 'bird';
             } else {
-                // JUMPERS (30%)
+                // JUMPERS (50%)
                 const opts = ['whale', 'dolphin', 'fish'];
                 type = opts[Math.floor(Math.random() * opts.length)];
                 category = 'jumper';
@@ -5534,8 +5483,6 @@ var BallRenderer = {
 
             // Speed tuning
             let speedBase = 0.05;
-            if (type === 'jetski') speedBase = 0.15;
-            if (type === 'cruise') speedBase = 0.02;
             if (category === 'jumper') speedBase = 0.08;
 
             const speed = (speedBase + Math.random() * 0.02) * dir;
@@ -5553,19 +5500,15 @@ var BallRenderer = {
                 hasSplashed: false
             };
 
-            if (category === 'boat' && (type === 'canoe' || type === 'jetski')) {
-                entity.pilotSkin = this.getRandomLegendSkin();
-            }
-
             this.entities.push(entity);
         }
 
         update(dt) {
-            // Spawn Rate: "Frequent"
-            // ~1 every 1-2 seconds
+            // Spawn Rate: "Occasional"
+            // ~1 every 10 seconds
             this.timer += dt;
-            if (this.timer > 60) {
-                if (Math.random() < 0.7) this.spawnEntity();
+            if (this.timer > 300) {
+                if (Math.random() < 0.5) this.spawnEntity();
                 this.timer = 0;
             }
 
@@ -5623,10 +5566,6 @@ var BallRenderer = {
                 const scale = 0.3 + b.v * 0.7;
                 let size = 30 * scale; // Base size unit
 
-                if (b.category === 'boat') {
-                    size *= 6.0; // Make boats significantly bigger
-                }
-
                 // Vertical Offset calculation
                 let offsetY = 0;
                 let rotation = 0;
@@ -5644,7 +5583,7 @@ var BallRenderer = {
                         // Rotate to follow arc
                         // derivative of sin is cos
                         const slope = Math.cos(phase);
-                        rotation = -slope * 0.8 * (b.speed > 0 ? 1 : -1);
+                        rotation = -slope * 0.8;
 
                         // Splash on entry/exit (approx)
                         if (phase < 0.2 || phase > 2.9) {
@@ -5689,88 +5628,8 @@ var BallRenderer = {
 
                 // --- DRAWING LOGIC ---
 
-                // BOATS
-                if (b.type === 'sailboat') {
-                    ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.quadraticCurveTo(0, size/2, size/2, 0); ctx.fill(); // Hull
-                    // Sails
-                    ctx.fillStyle = '#EEE';
-                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size); ctx.lineTo(size/1.5, -size*0.4); ctx.fill();
-                    ctx.fillStyle = '#DDD';
-                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size*0.9); ctx.lineTo(-size/2, -size*0.3); ctx.fill();
-                    // Mast
-                    ctx.strokeStyle = '#555'; ctx.lineWidth = 1*scale;
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -size); ctx.stroke();
-                }
-                else if (b.type === 'canoe') {
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.6, size*0.15, 0, 0, Math.PI*2); ctx.fill();
-                    // Person
-                    if (b.pilotSkin) {
-                        ctx.save();
-                        ctx.translate(0, -size*0.1);
-                        self.drawMiniPilot(ctx, size, b.pilotSkin);
-                        ctx.restore();
-                    } else {
-                        ctx.fillStyle = '#333';
-                        ctx.beginPath(); ctx.arc(0, -size*0.2, size*0.15, 0, Math.PI*2); ctx.fill(); // Head
-                    }
-                    // Paddle
-                    ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2*scale;
-                    ctx.beginPath(); ctx.moveTo(0, -size*0.1); ctx.lineTo(size*0.2, size*0.2); ctx.stroke();
-                }
-                else if (b.type === 'jetski') {
-                    // Fast movement visual
-                    ctx.fillStyle = '#FF4500'; // Red Body
-                    ctx.beginPath(); ctx.moveTo(-size/2, 0); ctx.lineTo(size/2, 0); ctx.lineTo(size/2, -size*0.2); ctx.lineTo(-size/2, -size*0.1); ctx.fill();
-                    // Rider
-                    if (b.pilotSkin) {
-                        ctx.save();
-                        ctx.translate(0, -size*0.15);
-                        self.drawMiniPilot(ctx, size, b.pilotSkin);
-                        ctx.restore();
-                    } else {
-                        ctx.fillStyle = '#000';
-                        ctx.beginPath(); ctx.arc(0, -size*0.4, size*0.12, 0, Math.PI*2); ctx.fill();
-                    }
-                    // Spray
-                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                    ctx.beginPath(); ctx.arc(-size*0.6, 0, size*0.2, 0, Math.PI*2); ctx.fill();
-                }
-                else if (b.type === 'pirate') {
-                    // Hull
-                    ctx.fillStyle = '#2F4F4F';
-                    ctx.beginPath(); ctx.moveTo(-size*0.8, 0); ctx.quadraticCurveTo(0, size*0.4, size*0.8, 0); ctx.lineTo(size*0.6, -size*0.3); ctx.lineTo(-size*0.6, -size*0.3); ctx.fill();
-                    // Mast
-                    ctx.strokeStyle = '#000'; ctx.lineWidth = 2*scale;
-                    ctx.beginPath(); ctx.moveTo(0, -size*0.2); ctx.lineTo(0, -size*1.2); ctx.stroke();
-                    // Sail (Black)
-                    ctx.fillStyle = '#111';
-                    ctx.beginPath(); ctx.moveTo(0, -size*0.4); ctx.quadraticCurveTo(size*0.5, -size*0.8, 0, -size*1.2); ctx.fill();
-                    // Skull (White dot)
-                    ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.arc(size*0.15, -size*0.8, size*0.08, 0, Math.PI*2); ctx.fill();
-                    // Flag
-                    ctx.fillStyle = '#FF0000'; ctx.beginPath(); ctx.moveTo(0, -size*1.2); ctx.lineTo(size*0.2, -size*1.15); ctx.lineTo(0, -size*1.1); ctx.fill();
-                }
-                else if (b.type === 'cruise') {
-                    // Large White Hull
-                    ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.moveTo(-size, 0); ctx.lineTo(size, 0); ctx.lineTo(size*0.9, -size*0.4); ctx.lineTo(-size*0.9, -size*0.4); ctx.fill();
-                    // Decks
-                    ctx.fillStyle = '#EEE';
-                    ctx.fillRect(-size*0.6, -size*0.6, size*1.2, size*0.2);
-                    ctx.fillRect(-size*0.4, -size*0.8, size*0.8, size*0.2);
-                    // Windows
-                    ctx.fillStyle = '#87CEEB';
-                    for(let w=0; w<5; w++) ctx.fillRect(-size*0.5 + w*size*0.2, -size*0.55, size*0.1, size*0.1);
-                    // Funnels
-                    ctx.fillStyle = '#CE1126';
-                    ctx.fillRect(-size*0.2, -size*1.0, size*0.15, size*0.3);
-                    ctx.fillRect(size*0.1, -size*1.0, size*0.15, size*0.3);
-                }
-
                 // BIRDS
-                else if (b.type === 'duck') {
+                if (b.type === 'duck') {
                     // Improved Duck
                     // Body
                     ctx.fillStyle = '#FFD700'; // Gold
