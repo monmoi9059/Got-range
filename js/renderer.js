@@ -2971,6 +2971,16 @@ var BallRenderer = {
             if (cStyle === 'baggy' || cType === 'hoodie' || cType === 'sweatshirt') {
                 ctx.save();
                 // Clip to body path again if needed, or assume containment
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true);
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*scale;
                 // Armpit folds
                 ctx.beginPath(); ctx.moveTo(cx - clothingW*0.9, topY + h*0.3); ctx.lineTo(cx - clothingW*0.7, topY + h*0.4); ctx.stroke();
