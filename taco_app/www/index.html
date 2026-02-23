@@ -13922,6 +13922,9 @@ var BallRenderer = {
         const h = window.LOGICAL_HEIGHT;
 
         ctx.save();
+        if (window.RESOLUTION_SCALE) {
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+        }
         ctx.shadowColor = "black";
         ctx.shadowBlur = 4;
 
