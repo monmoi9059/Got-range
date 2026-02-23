@@ -6681,24 +6681,16 @@ var BallRenderer = {
 
                  // Trapezoid Shape
                  ctx.beginPath();
-                 ctx.moveTo(0, -pantWidthTop/2);
+                 // Extend top upwards (-15*s) to tuck under shorts/thigh
+                 const topExt = -15 * s;
+                 ctx.moveTo(topExt, -pantWidthTop/2);
                  ctx.lineTo(extLen, -pantWidthBot/2);
                  // Bottom curve (Hem)
                  ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, pantWidthBot/2);
-                 ctx.lineTo(0, pantWidthTop/2);
+                 ctx.lineTo(topExt, pantWidthTop/2);
                  ctx.closePath();
 
                  ctx.fillStyle = shortsColor;
-                 ctx.fill();
-
-                 // Shading (Cylinder volume)
-                 const grad = ctx.createLinearGradient(0, -pantWidthBot/2, 0, pantWidthBot/2);
-                 grad.addColorStop(0, 'rgba(0,0,0,0.5)');
-                 grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                 grad.addColorStop(0.4, 'rgba(255,255,255,0.2)');
-                 grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-                 grad.addColorStop(1, 'rgba(0,0,0,0.6)');
-                 ctx.fillStyle = grad;
                  ctx.fill();
 
                  // Fabric Texture
@@ -7839,7 +7831,7 @@ var BallRenderer = {
                      drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
                 } else if (legFurry) {
                      // Paw
-                     const pawColor = (legMode === 'pants') ? thighColor : furColor;
+                     const pawColor = furColor;
                      drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
                      // Toes
                      for(let k=-1; k<=1; k++) {
@@ -7904,8 +7896,9 @@ var BallRenderer = {
                     ctx.rotate(angle);
 
                     // Draw Trapazoid (Thigh-width at top, Flared at bottom)
+                    const topExt = -15 * s; // Extend backwards to tuck under knee
                     ctx.beginPath();
-                    ctx.moveTo(0, -topW/2); // Top Left
+                    ctx.moveTo(topExt, -topW/2); // Top Left
                     ctx.lineTo(extLen, -botW/2); // Bottom Left
 
                     // Bottom Edge (Curved "Smile" to match cuff perspective)
@@ -7916,21 +7909,10 @@ var BallRenderer = {
                     // Let's do a slight curve matching the cuff ellipse we will draw later.
                     ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, botW/2);
 
-                    ctx.lineTo(0, topW/2); // Top Right
+                    ctx.lineTo(topExt, topW/2); // Top Right
                     ctx.closePath();
 
                     ctx.fillStyle = thighColor;
-                    ctx.fill();
-
-                    // Apply Shading (Replicating drawLimb shading)
-                    const grad = ctx.createLinearGradient(0, -botW/2, 0, botW/2);
-                    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
-                    grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)');
-                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.7)');
-                    ctx.fillStyle = grad;
                     ctx.fill();
 
                     // Apply Pattern (Replicating drawLimb)
