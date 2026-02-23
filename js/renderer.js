@@ -6532,8 +6532,18 @@ var BallRenderer = {
         drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
         drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
-        drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
-        drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        if (skinObj.legType === 'pants') {
+            // Pants Mode: Draw uniform baggy thigh instead of skin muscle
+            // Match width (9*s) to lower leg for seamless flow
+            const thighW = 9 * s * sizeMod.legWidth;
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            drawLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, thighW, pantsColor);
+            drawLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, thighW, pantsColor);
+        } else {
+            // Skin Mode
+            drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        }
 
         // HEAD BASE
         if (skinObj.headType && skinObj.headType !== 'human') {
@@ -6594,7 +6604,9 @@ var BallRenderer = {
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
         // Calculate HIP WIDTH standard (Matches pants)
-        const hipWidth = reducedBodyW * 1.05;
+        let hipWidth = reducedBodyW * 1.05;
+        // Narrow hips for pants to align shorts leg holes with skeleton
+        if (skinObj.legType === 'pants') hipWidth = reducedBodyW * 0.85;
 
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
@@ -6667,7 +6679,7 @@ var BallRenderer = {
                  const len = Math.sqrt(dx*dx + dy*dy);
 
                  // Widen top to match shorts leg hole seamlessly
-                 const pantWidthTop = 12 * s * sizeMod.legWidth;
+                 const pantWidthTop = 9 * s * sizeMod.legWidth;
                  const pantWidthBot = pantWidthTop * 1.3; // Flare
                  const extLen = len + 1.0*s; // End at ankle/shoe top
 
