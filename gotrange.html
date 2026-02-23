@@ -10842,7 +10842,53 @@ var BallRenderer = {
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        if (skinObj.legType === 'pants') {
+            // Draw seamless "Pants Pelvis" block instead of shorts
+            // This connects the waistY to the hip joint level (p.y - legLen)
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            const hipY = p.y - legLen;
+
+            // Draw Pelvis Block
+            ctx.fillStyle = pantsColor;
+
+            // Texture
+            if (playerData.graphics === 'HIGH') {
+                const pat = getFabricPattern(ctx);
+                if (pat) {
+                    const grad = ctx.createLinearGradient(0, waistY, 0, hipY);
+                    grad.addColorStop(0, 'rgba(0,0,0,0)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.1)'); // Slight shadow at crotch
+                    // We need to apply this to the shape.
+                    // Let's just draw the shape.
+                }
+            }
+
+            // Simple trapezoid from waist width to hip width
+            const wTop = reducedBodyW * 1.0;
+            const wBot = reducedBodyW * 1.1; // Slightly wider at hips
+
+            ctx.beginPath();
+            ctx.moveTo(p.x - wTop/2, waistY);
+            ctx.lineTo(p.x + wTop/2, waistY);
+            ctx.lineTo(p.x + wBot/2, hipY);
+            ctx.lineTo(p.x - wBot/2, hipY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add texture overlay if high graphics
+            if (playerData.graphics === 'HIGH') {
+                 const pat = getFabricPattern(ctx);
+                 if(pat) {
+                     ctx.globalCompositeOperation = 'overlay';
+                     ctx.fillStyle = pat;
+                     ctx.fill();
+                     ctx.globalCompositeOperation = 'source-over';
+                 }
+            }
+
+        } else {
+            drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        }
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
