@@ -7808,39 +7808,84 @@ var BallRenderer = {
                     ctx.fillStyle = thighColor;
                     ctx.beginPath(); ctx.arc(kneeP.x, kneeP.y, pantWidth/2, 0, Math.PI*2); ctx.fill();
 
-                    // Shin Segment ("Sleeve")
-                    // Extend shin slightly past knee for overlap? Or just standard joint.
-                    // The key is the straight, separate drawing.
-                    drawLimb(kneeP.x, kneeP.y, ankleP.x, ankleP.y, pantWidth, thighColor);
+                    // CUSTOM SHIN SEGMENT ("Sleeve")
+                    // Replace drawLimb with custom geometry to avoid rounded bottom cap.
+                    // We want a flat or slightly curved opening at the bottom.
 
-                    // Draw Cuff / Hem Opening at ankle (The "Sleeve" effect)
                     const dx = ankleP.x - kneeP.x;
                     const dy = ankleP.y - kneeP.y;
                     const angle = Math.atan2(dy, dx);
-                    const hemW = pantWidth; // Match full width
+                    const len = Math.sqrt(dx*dx + dy*dy);
+
+                    // Extend length slightly to cover shoe top
+                    const extLen = len + 2*s;
+
+                    // Flare the bottom slightly for baggy look
+                    const topW = pantWidth;
+                    const botW = pantWidth * 1.15; // Bell bottom / Boot cut effect
 
                     ctx.save();
-                    ctx.translate(ankleP.x, ankleP.y);
-                    ctx.rotate(angle + Math.PI/2); // Rotate to be perpendicular to leg axis
+                    ctx.translate(kneeP.x, kneeP.y);
+                    ctx.rotate(angle);
 
-                    // Dark hollow opening (simulating volume)
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    // Draw Trapazoid (Thigh-width at top, Flared at bottom)
                     ctx.beginPath();
-                    ctx.ellipse(0, 0, hemW/2, 3.5*s, 0, 0, Math.PI*2);
+                    ctx.moveTo(0, -topW/2); // Top Left
+                    ctx.lineTo(extLen, -botW/2); // Bottom Left
+
+                    // Bottom Edge (Curved "Smile" to match cuff perspective)
+                    // Use bezier to curve it slightly inward (concave) or outward (convex)?
+                    // A visual sleeve opening usually looks like an ellipse.
+                    // We draw the back half of the ellipse here or just a flat line?
+                    // Flat line is better than rounded cap.
+                    // Let's do a slight curve matching the cuff ellipse we will draw later.
+                    ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, botW/2);
+
+                    ctx.lineTo(0, topW/2); // Top Right
+                    ctx.closePath();
+
+                    ctx.fillStyle = thighColor;
                     ctx.fill();
 
-                    // Hem edge line/highlight - Thicker for visibility
-                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    // Apply Shading (Replicating drawLimb shading)
+                    const grad = ctx.createLinearGradient(0, -botW/2, 0, botW/2);
+                    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+                    grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.7)');
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+
+                    // Apply Pattern (Replicating drawLimb)
+                    if (playerData.graphics === 'HIGH') {
+                        const pat = getFabricPattern(ctx);
+                        if (pat) {
+                            ctx.globalCompositeOperation = 'overlay';
+                            ctx.fillStyle = pat;
+                            ctx.fill();
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
+                    }
+
+                    // Draw Cuff / Hem (Relative to rotated context)
+                    // Draw at extLen
+                    ctx.translate(extLen, 0);
+                    ctx.rotate(Math.PI/2); // Make ellipse perpendicular to leg
+
+                    // Dark hollow opening
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Hem Ring (Thickness)
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    if(playerData.graphics === 'LOW') ctx.strokeStyle = 'rgba(0,0,0,0.2)';
                     ctx.lineWidth = 1.5*s;
                     ctx.beginPath();
-                    ctx.ellipse(0, 0, hemW/2, 3.5*s, 0, 0, Math.PI*2);
-                    ctx.stroke();
-
-                    // Additional "Sleeve" Definition Line (Top of cuff inside)
-                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                    ctx.lineWidth = 1*s;
-                    ctx.beginPath();
-                    ctx.ellipse(0, -1*s, hemW/2 * 0.9, 3*s * 0.9, 0, Math.PI, 0); // Inner top curve
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
                     ctx.stroke();
 
                     ctx.restore();
