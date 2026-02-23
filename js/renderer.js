@@ -6528,12 +6528,51 @@ var BallRenderer = {
         drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
-        const hipOffsetX = 7 * s * sizeMod.w;
+        // Move legs inward for pants to align with shorts leg holes
+        const hipBaseOff = 7 * s * sizeMod.w;
+        const hipOffsetX = (skinObj.legType === 'pants') ? (5.0 * s * sizeMod.w) : hipBaseOff;
+
         drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
         drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
-        drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
-        drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        if (skinObj.legType === 'pants') {
+            // Pants Mode: Draw SINGLE continuous shape from Hip to Shoe
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            const pantW = 10 * s * sizeMod.legWidth; // Uniform baggy width
+
+            // Left Leg
+            drawContinuousLimb(
+                {x: p.x - hipOffsetX, y: p.y - legLen}, // Hip
+                {x: lKneeX, y: lKneeY},                 // Knee
+                {x: lFootX, y: lFootY + 1.0*s},         // Ankle (Extend slightly)
+                pantW, pantW, pantW * 1.3,              // Widths (Flare at bottom)
+                pantsColor, s, false, 50,
+                { pattern: (playerData.graphics==='HIGH') ? 'fabric' : null }
+            );
+            // Left Shoe (On top)
+            if(skinObj.shoesColor) {
+                drawRealisticShoe(lFootX, lFootY, 5.5*s, 5.5*s, skinObj.shoesColor, false, skinObj.shoeType, skinObj.shoeDetailColor, s);
+            }
+
+            // Right Leg
+            drawContinuousLimb(
+                {x: p.x + hipOffsetX, y: p.y - legLen}, // Hip
+                {x: rKneeX, y: rKneeY},                 // Knee
+                {x: rFootX, y: rFootY + 1.0*s},         // Ankle
+                pantW, pantW, pantW * 1.3,              // Widths
+                pantsColor, s, false, 51,
+                { pattern: (playerData.graphics==='HIGH') ? 'fabric' : null }
+            );
+            // Right Shoe (On top)
+            if(skinObj.shoesColor) {
+                drawRealisticShoe(rFootX, rFootY, 5.5*s, 5.5*s, skinObj.shoesColor, true, skinObj.shoeType, skinObj.shoeDetailColor, s);
+            }
+
+        } else {
+            // Skin Mode
+            drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        }
 
         // HEAD BASE
         if (skinObj.headType && skinObj.headType !== 'human') {
@@ -6600,7 +6639,53 @@ var BallRenderer = {
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        if (skinObj.legType === 'pants') {
+            // Draw seamless "Pants Pelvis" block instead of shorts
+            // This connects the waistY to the hip joint level (p.y - legLen)
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            const hipY = p.y - legLen;
+
+            // Draw Pelvis Block
+            ctx.fillStyle = pantsColor;
+
+            // Texture
+            if (playerData.graphics === 'HIGH') {
+                const pat = getFabricPattern(ctx);
+                if (pat) {
+                    const grad = ctx.createLinearGradient(0, waistY, 0, hipY);
+                    grad.addColorStop(0, 'rgba(0,0,0,0)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.1)'); // Slight shadow at crotch
+                    // We need to apply this to the shape.
+                    // Let's just draw the shape.
+                }
+            }
+
+            // Simple trapezoid from waist width to hip width
+            const wTop = reducedBodyW * 1.0;
+            const wBot = reducedBodyW * 1.1; // Slightly wider at hips
+
+            ctx.beginPath();
+            ctx.moveTo(p.x - wTop/2, waistY);
+            ctx.lineTo(p.x + wTop/2, waistY);
+            ctx.lineTo(p.x + wBot/2, hipY);
+            ctx.lineTo(p.x - wBot/2, hipY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add texture overlay if high graphics
+            if (playerData.graphics === 'HIGH') {
+                 const pat = getFabricPattern(ctx);
+                 if(pat) {
+                     ctx.globalCompositeOperation = 'overlay';
+                     ctx.fillStyle = pat;
+                     ctx.fill();
+                     ctx.globalCompositeOperation = 'source-over';
+                 }
+            }
+
+        } else {
+            drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        }
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
@@ -6658,26 +6743,34 @@ var BallRenderer = {
         }
 
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             let calfCol = skinTone;
-             if (skinObj.legType === 'pants') calfCol = shortsColor;
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
-             if(socksColor) {
-                 const sockH = 7 * s;
-                 const sockY = yBot - 5*s - sockH;
-                 const t = (sockY - yTop) / (yBot - yTop);
-                 const sockTopX = xTop + (xBot - xTop) * t;
-                 const ankleY = yBot - 5*s;
-                 const t2 = (ankleY - yTop) / (yBot - yTop);
-                 const ankleX = xTop + (xBot - xTop) * t2;
-                 drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
-                 for(let i=0; i<3; i++) {
-                     const ly = sockY + (i*2*s);
-                     ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+             if (skinObj.legType === 'pants') {
+                 // Do nothing - Pants are drawn as a single continuous limb in the main body loop
+             } else {
+                 // 1. Skin / Tights
+                 let calfCol = skinTone;
+                 if (skinObj.legType === 'tights') calfCol = shortsColor;
+                 drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
+
+                 // 2. Socks
+                 if(socksColor) {
+                     const sockH = 7 * s;
+                     const sockY = yBot - 5*s - sockH;
+                     const t = (sockY - yTop) / (yBot - yTop);
+                     const sockTopX = xTop + (xBot - xTop) * t;
+                     const ankleY = yBot - 5*s;
+                     const t2 = (ankleY - yTop) / (yBot - yTop);
+                     const ankleX = xTop + (xBot - xTop) * t2;
+                     drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+                     for(let i=0; i<3; i++) {
+                         const ly = sockY + (i*2*s);
+                         ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+                     }
                  }
-             }
-             if(shoesColor) {
-                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                 // 3. Shoes
+                 if(shoesColor) {
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                 }
              }
         };
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
@@ -7744,22 +7837,159 @@ var BallRenderer = {
             let legMode = 'skin';
             if (skinObj.legType === 'pants' || skinObj.legType === 'tights') legMode = 'pants';
 
+            // Helper to draw feet (Socks + Shoes/Paws)
+            const drawFeet = () => {
+                // Socks
+                if (skinObj.socksColor) {
+                     const sockH = 0.4; // % of calf
+                     const sockTop = {
+                         x: kneeP.x + (ankleP.x - kneeP.x) * (1-sockH),
+                         y: kneeP.y + (ankleP.y - kneeP.y) * (1-sockH)
+                     };
+                     const sockW = calfEndW * 1.1;
+                     // Use simple limb for sock
+                     drawLimb(sockTop.x, sockTop.y, ankleP.x, ankleP.y, sockW, skinObj.socksColor);
+                }
+
+                // Feet / Shoes
+                if (skinObj.shoesColor) {
+                     // Shoe covers ankle
+                     drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                } else if (legFurry) {
+                     // Paw
+                     const pawColor = furColor;
+                     drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
+                     // Toes
+                     for(let k=-1; k<=1; k++) {
+                         drawFuzzyCircle(ankleP.x + k*3*s, ankleP.y + 4*s, 3*s, pawColor, seedBase+6+k, s, true);
+                     }
+                } else {
+                     // Human Foot
+                     const footColor = (legMode === 'pants') ? thighColor : furColor;
+                     ctx.fillStyle = footColor;
+                     // Simple foot shape
+                     const toeX = isRight ? ankleP.x + 3*s : ankleP.x - 3*s;
+                     ctx.beginPath();
+                     ctx.moveTo(ankleP.x, ankleP.y - 2*s);
+                     ctx.quadraticCurveTo(toeX, ankleP.y, toeX, ankleP.y + 3*s);
+                     ctx.lineTo(ankleP.x, ankleP.y + 4*s);
+                     ctx.fill();
+                }
+            };
+
             // 1. Draw Main Structure (Continuous)
             if (legMode === 'pants') {
-                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, isFurry && thighColor === furColor, seedBase);
+                if (skinObj.legType === 'tights') {
+                    // Tights (Form fitting, no flare)
+                    drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
+                    drawFeet(); // Draw feet OVER tights
+                } else {
+                    // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
+
+                    // LAYER FIX: Draw Shoes FIRST so pants drape over them
+                    drawFeet();
+
+                    // Override widths to be wider and straighter (hiding animal shape/taper)
+                    // Ensure it is at least wide enough to look like pants (13*s base)
+                    const pantWidth = Math.max(thighStartW * 1.1, 13 * s);
+
+                    // SPLIT SEGMENT RENDERING: Draw Thigh and Shin separately to simulate fabric stiffness/crease
+                    // Thigh Segment
+                    drawLimb(hipP.x, hipP.y, kneeP.x, kneeP.y, pantWidth, thighColor);
+
+                    // Knee Joint (Circle to cover gap)
+                    ctx.fillStyle = thighColor;
+                    ctx.beginPath(); ctx.arc(kneeP.x, kneeP.y, pantWidth/2, 0, Math.PI*2); ctx.fill();
+
+                    // CUSTOM SHIN SEGMENT ("Sleeve")
+                    // Replace drawLimb with custom geometry to avoid rounded bottom cap.
+                    // We want a flat or slightly curved opening at the bottom.
+
+                    const dx = ankleP.x - kneeP.x;
+                    const dy = ankleP.y - kneeP.y;
+                    const angle = Math.atan2(dy, dx);
+                    const len = Math.sqrt(dx*dx + dy*dy);
+
+                    // Extend length slightly to cover shoe top
+                    const extLen = len + 2*s;
+
+                    // Flare the bottom slightly for baggy look
+                    const topW = pantWidth;
+                    const botW = pantWidth * 1.15; // Bell bottom / Boot cut effect
+
+                    ctx.save();
+                    ctx.translate(kneeP.x, kneeP.y);
+                    ctx.rotate(angle);
+
+                    // Draw Trapazoid (Thigh-width at top, Flared at bottom)
+                    const topExt = -15 * s; // Extend backwards to tuck under knee
+                    ctx.beginPath();
+                    ctx.moveTo(topExt, -topW/2); // Top Left
+                    ctx.lineTo(extLen, -botW/2); // Bottom Left
+
+                    // Bottom Edge (Curved "Smile" to match cuff perspective)
+                    // Use bezier to curve it slightly inward (concave) or outward (convex)?
+                    // A visual sleeve opening usually looks like an ellipse.
+                    // We draw the back half of the ellipse here or just a flat line?
+                    // Flat line is better than rounded cap.
+                    // Let's do a slight curve matching the cuff ellipse we will draw later.
+                    ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, botW/2);
+
+                    ctx.lineTo(topExt, topW/2); // Top Right
+                    ctx.closePath();
+
+                    ctx.fillStyle = thighColor;
+                    ctx.fill();
+
+                    // Apply Pattern (Replicating drawLimb)
+                    if (playerData.graphics === 'HIGH') {
+                        const pat = getFabricPattern(ctx);
+                        if (pat) {
+                            ctx.globalCompositeOperation = 'overlay';
+                            ctx.fillStyle = pat;
+                            ctx.fill();
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
+                    }
+
+                    // Draw Cuff / Hem (Relative to rotated context)
+                    // Draw at extLen
+                    ctx.translate(extLen, 0);
+                    ctx.rotate(Math.PI/2); // Make ellipse perpendicular to leg
+
+                    // Dark hollow opening
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Hem Ring (Thickness)
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    if(playerData.graphics === 'LOW') ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 1.5*s;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
             } else {
-                // Skin Leg
+                // Skin Leg (Furry or Human Skin)
                 drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
 
                 // Shorts Overlay
                 if (!legFurry) {
-                    const shortsLen = (skinObj.shortsLength === 'short') ? 0.35 : 0.5;
+                    // Shorts Length Choice (Short vs Normal)
+                    const isShortShorts = (skinObj.shortsLength === 'short');
+                    const shortsLen = isShortShorts ? 0.35 : 0.5;
+                    const shortsFlare = isShortShorts ? 1.1 : 1.25; // Normal shorts are baggier
+
                     // Interpolate shorts end
                     const shortsEnd = {
                         x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
                         y: hipP.y + (kneeP.y - hipP.y) * shortsLen
                     };
-                    const shortsW = thighStartW * 1.2; // Flare
+                    const shortsW = thighStartW * shortsFlare;
                     // Draw shorts as a short limb
                     drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
 
@@ -7772,43 +8002,9 @@ var BallRenderer = {
                         ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
                     }
                 }
-            }
 
-            // 2. Socks
-            if (skinObj.socksColor) {
-                 const sockH = 0.4; // % of calf
-                 const sockTop = {
-                     x: kneeP.x + (ankleP.x - kneeP.x) * (1-sockH),
-                     y: kneeP.y + (ankleP.y - kneeP.y) * (1-sockH)
-                 };
-                 const sockW = calfEndW * 1.1;
-                 // Use simple limb for sock
-                 drawLimb(sockTop.x, sockTop.y, ankleP.x, ankleP.y, sockW, skinObj.socksColor);
-            }
-
-            // 3. Feet / Shoes
-            if (skinObj.shoesColor) {
-                 // Shoe covers ankle
-                 drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
-            } else if (legFurry) {
-                 // Paw
-                 const pawColor = (legMode === 'pants') ? thighColor : furColor;
-                 drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
-                 // Toes
-                 for(let k=-1; k<=1; k++) {
-                     drawFuzzyCircle(ankleP.x + k*3*s, ankleP.y + 4*s, 3*s, pawColor, seedBase+6+k, s, true);
-                 }
-            } else {
-                 // Human Foot
-                 const footColor = (legMode === 'pants') ? thighColor : furColor;
-                 ctx.fillStyle = footColor;
-                 // Simple foot shape
-                 const toeX = isRight ? ankleP.x + 3*s : ankleP.x - 3*s;
-                 ctx.beginPath();
-                 ctx.moveTo(ankleP.x, ankleP.y - 2*s);
-                 ctx.quadraticCurveTo(toeX, ankleP.y, toeX, ankleP.y + 3*s);
-                 ctx.lineTo(ankleP.x, ankleP.y + 4*s);
-                 ctx.fill();
+                // Draw Feet Second (Over skin)
+                drawFeet();
             }
         };
 
