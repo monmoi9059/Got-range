@@ -10847,9 +10847,10 @@ var BallRenderer = {
                  const angle = Math.atan2(dy, dx);
                  const len = Math.sqrt(dx*dx + dy*dy);
 
-                 const pantWidthTop = 7.5 * s * sizeMod.legWidth;
-                 const pantWidthBot = pantWidthTop * 1.25; // Flare at bottom
-                 const extLen = len + 4*s; // Extend slightly past ankle
+                 // Fix: Widen pants to cover bulky shoes (up to 11s width)
+                 const pantWidthTop = 10 * s * sizeMod.legWidth;
+                 const pantWidthBot = pantWidthTop * 1.3; // Significant flare to cover shoes
+                 const extLen = len + 2.5*s; // End slightly above sole
 
                  ctx.save();
                  ctx.translate(xTop, yTop);
