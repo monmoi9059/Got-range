@@ -6658,26 +6658,100 @@ var BallRenderer = {
         }
 
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             let calfCol = skinTone;
-             if (skinObj.legType === 'pants') calfCol = shortsColor;
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
-             if(socksColor) {
-                 const sockH = 7 * s;
-                 const sockY = yBot - 5*s - sockH;
-                 const t = (sockY - yTop) / (yBot - yTop);
-                 const sockTopX = xTop + (xBot - xTop) * t;
-                 const ankleY = yBot - 5*s;
-                 const t2 = (ankleY - yTop) / (yBot - yTop);
-                 const ankleX = xTop + (xBot - xTop) * t2;
-                 drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
-                 for(let i=0; i<3; i++) {
-                     const ly = sockY + (i*2*s);
-                     ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+             if (skinObj.legType === 'pants') {
+                 // 1. Draw Shoes FIRST (Covered by pants)
+                 if(shoesColor) {
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
                  }
-             }
-             if(shoesColor) {
-                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+
+                 // 2. Draw Pant Leg (Loose Sleeve)
+                 const dx = xBot - xTop;
+                 const dy = yBot - yTop;
+                 const angle = Math.atan2(dy, dx);
+                 const len = Math.sqrt(dx*dx + dy*dy);
+
+                 const pantWidthTop = 7.5 * s * sizeMod.legWidth;
+                 const pantWidthBot = pantWidthTop * 1.25; // Flare at bottom
+                 const extLen = len + 4*s; // Extend slightly past ankle
+
+                 ctx.save();
+                 ctx.translate(xTop, yTop);
+                 ctx.rotate(angle);
+
+                 // Trapezoid Shape
+                 ctx.beginPath();
+                 ctx.moveTo(0, -pantWidthTop/2);
+                 ctx.lineTo(extLen, -pantWidthBot/2);
+                 // Bottom curve (Hem)
+                 ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, pantWidthBot/2);
+                 ctx.lineTo(0, pantWidthTop/2);
+                 ctx.closePath();
+
+                 ctx.fillStyle = shortsColor;
+                 ctx.fill();
+
+                 // Shading (Cylinder volume)
+                 const grad = ctx.createLinearGradient(0, -pantWidthBot/2, 0, pantWidthBot/2);
+                 grad.addColorStop(0, 'rgba(0,0,0,0.5)');
+                 grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+                 grad.addColorStop(0.4, 'rgba(255,255,255,0.2)');
+                 grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+                 grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                 ctx.fillStyle = grad;
+                 ctx.fill();
+
+                 // Fabric Texture
+                 if (playerData.graphics === 'HIGH') {
+                     const pat = getFabricPattern(ctx);
+                     if (pat) {
+                         ctx.globalCompositeOperation = 'overlay';
+                         ctx.fillStyle = pat;
+                         ctx.fill();
+                         ctx.globalCompositeOperation = 'source-over';
+                     }
+                 }
+
+                 // Cuff / Opening (Hollow)
+                 ctx.translate(extLen, 0);
+                 ctx.rotate(Math.PI/2);
+
+                 ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                 ctx.beginPath();
+                 ctx.ellipse(0, 0, pantWidthBot/2, 4*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+
+                 ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                 ctx.lineWidth = 1.5*s;
+                 ctx.stroke();
+
+                 ctx.restore();
+
+             } else {
+                 // 1. Skin / Tights
+                 let calfCol = skinTone;
+                 if (skinObj.legType === 'tights') calfCol = shortsColor;
+                 drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
+
+                 // 2. Socks
+                 if(socksColor) {
+                     const sockH = 7 * s;
+                     const sockY = yBot - 5*s - sockH;
+                     const t = (sockY - yTop) / (yBot - yTop);
+                     const sockTopX = xTop + (xBot - xTop) * t;
+                     const ankleY = yBot - 5*s;
+                     const t2 = (ankleY - yTop) / (yBot - yTop);
+                     const ankleX = xTop + (xBot - xTop) * t2;
+                     drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+                     for(let i=0; i<3; i++) {
+                         const ly = sockY + (i*2*s);
+                         ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+                     }
+                 }
+                 // 3. Shoes
+                 if(shoesColor) {
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                 }
              }
         };
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
