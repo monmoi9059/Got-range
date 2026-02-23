@@ -12003,9 +12003,18 @@ var BallRenderer = {
                     // Ensure it is at least wide enough to look like pants (13*s base)
                     const pantWidth = Math.max(thighStartW * 1.1, 13 * s);
 
-                    // Straight leg cut (no taper at ankle) for "sleeve" look
-                    // Passing pantWidth for all segments creates a straight cylinder
-                    drawContinuousLimb(hipP, kneeP, ankleP, pantWidth, pantWidth, pantWidth, thighColor, s, false, seedBase);
+                    // SPLIT SEGMENT RENDERING: Draw Thigh and Shin separately to simulate fabric stiffness/crease
+                    // Thigh Segment
+                    drawLimb(hipP.x, hipP.y, kneeP.x, kneeP.y, pantWidth, thighColor);
+
+                    // Knee Joint (Circle to cover gap)
+                    ctx.fillStyle = thighColor;
+                    ctx.beginPath(); ctx.arc(kneeP.x, kneeP.y, pantWidth/2, 0, Math.PI*2); ctx.fill();
+
+                    // Shin Segment ("Sleeve")
+                    // Extend shin slightly past knee for overlap? Or just standard joint.
+                    // The key is the straight, separate drawing.
+                    drawLimb(kneeP.x, kneeP.y, ankleP.x, ankleP.y, pantWidth, thighColor);
 
                     // Draw Cuff / Hem Opening at ankle (The "Sleeve" effect)
                     const dx = ankleP.x - kneeP.x;
@@ -12028,6 +12037,13 @@ var BallRenderer = {
                     ctx.lineWidth = 1.5*s;
                     ctx.beginPath();
                     ctx.ellipse(0, 0, hemW/2, 3.5*s, 0, 0, Math.PI*2);
+                    ctx.stroke();
+
+                    // Additional "Sleeve" Definition Line (Top of cuff inside)
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 1*s;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -1*s, hemW/2 * 0.9, 3*s * 0.9, 0, Math.PI, 0); // Inner top curve
                     ctx.stroke();
 
                     ctx.restore();
