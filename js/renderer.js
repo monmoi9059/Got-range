@@ -6528,7 +6528,10 @@ var BallRenderer = {
         drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
-        const hipOffsetX = 7 * s * sizeMod.w;
+        // Move legs inward for pants to align with shorts leg holes
+        const hipBaseOff = 7 * s * sizeMod.w;
+        const hipOffsetX = (skinObj.legType === 'pants') ? (5.0 * s * sizeMod.w) : hipBaseOff;
+
         drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
         drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
@@ -6604,9 +6607,7 @@ var BallRenderer = {
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
         // Calculate HIP WIDTH standard (Matches pants)
-        let hipWidth = reducedBodyW * 1.05;
-        // Narrow hips for pants to align shorts leg holes with skeleton
-        if (skinObj.legType === 'pants') hipWidth = reducedBodyW * 0.85;
+        const hipWidth = reducedBodyW * 1.05;
 
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
