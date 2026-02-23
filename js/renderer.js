@@ -6660,34 +6660,36 @@ var BallRenderer = {
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
              if (skinObj.legType === 'pants') {
                  // 1. Draw Shoes FIRST (Covered by pants)
-                 if(shoesColor) {
-                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
-                 }
-
-                 // 2. Draw Pant Leg (Loose Sleeve)
+                 // 1. Draw Pant Leg (Loose Sleeve)
                  const dx = xBot - xTop;
                  const dy = yBot - yTop;
                  const angle = Math.atan2(dy, dx);
                  const len = Math.sqrt(dx*dx + dy*dy);
 
-                 // Fix: Widen pants to cover bulky shoes (up to 11s width)
-                 const pantWidthTop = 10 * s * sizeMod.legWidth;
-                 const pantWidthBot = pantWidthTop * 1.3; // Significant flare to cover shoes
-                 const extLen = len + 2.5*s; // End slightly above sole
+                 // Widen top to match shorts leg hole seamlessly
+                 const pantWidthTop = 12 * s * sizeMod.legWidth;
+                 const pantWidthBot = pantWidthTop * 1.3; // Flare
+                 const extLen = len + 1.0*s; // End at ankle/shoe top
 
                  ctx.save();
                  ctx.translate(xTop, yTop);
                  ctx.rotate(angle);
 
-                 // Trapezoid Shape
+                 // Knee Joint Cap (Circle to cover seam)
+                 ctx.fillStyle = shortsColor;
                  ctx.beginPath();
-                 // Extend top upwards (-15*s) to tuck under shorts/thigh
-                 const topExt = -15 * s;
-                 ctx.moveTo(topExt, -pantWidthTop/2);
-                 ctx.lineTo(extLen, -pantWidthBot/2);
-                 // Bottom curve (Hem)
+                 ctx.arc(0, 0, pantWidthTop/2, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Trapezoid Shape (Sleeve)
+                 ctx.beginPath();
+                 ctx.moveTo(0, -pantWidthTop/2); // Top Left (At joint center)
+                 ctx.lineTo(extLen, -pantWidthBot/2); // Bottom Left
+
+                 // Bottom Edge (Curved)
                  ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, pantWidthBot/2);
-                 ctx.lineTo(topExt, pantWidthTop/2);
+
+                 ctx.lineTo(0, pantWidthTop/2); // Top Right
                  ctx.closePath();
 
                  ctx.fillStyle = shortsColor;
@@ -6699,6 +6701,13 @@ var BallRenderer = {
                      if (pat) {
                          ctx.globalCompositeOperation = 'overlay';
                          ctx.fillStyle = pat;
+                         // Fill both cap and leg
+                         ctx.beginPath();
+                         ctx.arc(0, 0, pantWidthTop/2, 0, Math.PI*2);
+                         ctx.moveTo(0, -pantWidthTop/2);
+                         ctx.lineTo(extLen, -pantWidthBot/2);
+                         ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, pantWidthBot/2);
+                         ctx.lineTo(0, pantWidthTop/2);
                          ctx.fill();
                          ctx.globalCompositeOperation = 'source-over';
                      }
@@ -6718,6 +6727,11 @@ var BallRenderer = {
                  ctx.stroke();
 
                  ctx.restore();
+
+                 // 2. Draw Shoes AFTER (On top of pants)
+                 if(shoesColor) {
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                 }
 
              } else {
                  // 1. Skin / Tights
