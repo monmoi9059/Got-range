@@ -16895,6 +16895,38 @@ var BallRenderer = {
         }
         saveContext(getShopContext());
     }
+
+    window.unequipAll = function() {
+        loadContext(getShopContext());
+
+        playerData.currentHat = 'hat_none';
+        playerData.currentClothing = 'clothes_none';
+        playerData.currentPants = 'pants_none';
+        playerData.currentShoes = 'shoe_none';
+        playerData.customHairstyle = 'default';
+
+        // Reset indices for UI to point to defaults
+        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
+        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
+        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
+        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
+        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+
+        // Safety fallback if index not found
+        if (viewingHatIndex < 0) viewingHatIndex = 0;
+        if (viewingClothingIndex < 0) viewingClothingIndex = 0;
+        if (viewingPantsIndex < 0) viewingPantsIndex = 0;
+        if (viewingShoeIndex < 0) viewingShoeIndex = 0;
+        if (viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+
+        saveData();
+        updateShopUI();
+        updateUI();
+        saveContext(getShopContext());
+
+        showNotification("TOUT ENLEVER !", 0);
+    }
+
     window.buyOrEquipSkin = function() {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];

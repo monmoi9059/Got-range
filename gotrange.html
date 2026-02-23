@@ -878,6 +878,7 @@
                 <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
                 <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
                 <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
+                <button class="btn" style="width:100%; margin-top:5px; background:#555; border:1px solid #777;" onclick="unequipAll()">TOUT ENLEVER</button>
 
                 <div id="customizationControls" style="display:none; margin-top:15px; border:1px solid #444; padding:10px; background:#111;">
                     <h4 style="margin:0 0 10px 0; color:#FFD700;">PERSONNALISATION</h4>
@@ -16921,6 +16922,38 @@ var BallRenderer = {
         }
         saveContext(getShopContext());
     }
+
+    window.unequipAll = function() {
+        loadContext(getShopContext());
+
+        playerData.currentHat = 'hat_none';
+        playerData.currentClothing = 'clothes_none';
+        playerData.currentPants = 'pants_none';
+        playerData.currentShoes = 'shoe_none';
+        playerData.customHairstyle = 'default';
+
+        // Reset indices for UI to point to defaults
+        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
+        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
+        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
+        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
+        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+
+        // Safety fallback if index not found
+        if (viewingHatIndex < 0) viewingHatIndex = 0;
+        if (viewingClothingIndex < 0) viewingClothingIndex = 0;
+        if (viewingPantsIndex < 0) viewingPantsIndex = 0;
+        if (viewingShoeIndex < 0) viewingShoeIndex = 0;
+        if (viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+
+        saveData();
+        updateShopUI();
+        updateUI();
+        saveContext(getShopContext());
+
+        showNotification("TOUT ENLEVER !", 0);
+    }
+
     window.buyOrEquipSkin = function() {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
