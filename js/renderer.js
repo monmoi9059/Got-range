@@ -6024,6 +6024,47 @@ var BallRenderer = {
              return;
         }
 
+        if (style === 'classic_part') {
+             // John Stockton Style: Conservative, short, neat side part
+             drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), true, 'natural');
+
+             // Top Hair
+             ctx.fillStyle = hairColor;
+             const w = modRadius;
+             const partX = p.x - w * 0.4; // Part on left
+
+             // Main Swath (Right)
+             ctx.beginPath();
+             ctx.moveTo(partX, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - w*0.9, p.x + w*0.95, headY - 5*s); // Smooth dome
+             ctx.lineTo(p.x + w*0.9, headY + 2*s);
+             ctx.lineTo(partX, headY);
+             ctx.fill();
+
+             // Small Side (Left)
+             ctx.beginPath();
+             ctx.moveTo(p.x - w*0.9, headY + 2*s);
+             ctx.lineTo(p.x - w*0.95, headY - 5*s);
+             ctx.lineTo(partX - 1*s, headY - 6*s);
+             ctx.lineTo(partX - 2*s, headY);
+             ctx.fill();
+
+             // Part Line (Scalp color visible?)
+             // Just a gap is usually enough, or draw a dark line if hair is light.
+             // Let's add comb lines for texture
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             for(let i=0; i<6; i++) {
+                 // Parallel sweep lines
+                 const ox = i * 4*s;
+                 ctx.moveTo(partX + 2*s, headY - 5*s + ox);
+                 ctx.quadraticCurveTo(p.x + 10*s, headY - w*0.8 + ox, p.x + w*0.8, headY - 5*s + ox);
+             }
+             ctx.stroke();
+             return;
+        }
+
         if (style === 'slicked_back' || style === 'slick_side_part' || style === 'ivy_league' || style === 'undercut_slick') {
              // The Anchor / Riley / Gentleman / Ivy / Undercut
              const isUndercut = (style === 'undercut_slick');
