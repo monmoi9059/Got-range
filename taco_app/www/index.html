@@ -12241,14 +12241,8 @@ var BallRenderer = {
              rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
              lFootX = p.x - 12*s; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
-        } else if (isCrouching) {
-             // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
         } else {
-             // Standing
+             // Standing (Includes Crouch via legLen shortening)
              const baseKneeY = p.y - (legLen * 0.5);
              lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
              rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
