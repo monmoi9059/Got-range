@@ -11930,17 +11930,21 @@ var BallRenderer = {
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
 
         let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
+
+        // Match Human Shortening Logic for Crouch
+        if (state === 'PRE_JUMP') {
+            legLen *= 0.7;
+        }
+
         let neckLen = 0;
 
         // Pose Logic
         const isSitting = (state === 'GAMEOVER' && currentAnimal !== 'human');
-        const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
+        // const isCrouching = (state === 'PRE_JUMP'); // Handled via legLen scaling
 
         let torsoY;
         if (isSitting) {
              torsoY = p.y - bodyH * 0.85; // Low to ground
-        } else if (isCrouching) {
-             torsoY = p.y - legLen * 0.6 - bodyH; // Crouched
         } else {
              torsoY = p.y - legLen - bodyH;
         }
