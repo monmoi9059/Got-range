@@ -7792,7 +7792,7 @@ var BallRenderer = {
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
-        // Updated to handle Z-foreshortening in IK (Approximation)
+        // Updated to use Human Logic (Animation + Fixed Offset)
         if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
             const isRightHand = !isLefty;
 
@@ -7802,7 +7802,6 @@ var BallRenderer = {
             const shootUZ = isRightHand ? rightArmZ : leftArmZ;
             const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
 
-            // Calculate effective lengths for 2D projection
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
 
@@ -7810,34 +7809,30 @@ var BallRenderer = {
             const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
             const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
 
-            // 2. Calculate Guide Arm Target
-            const guideTargetX = ballPos.x + (isRightHand ? -15*s : 15*s);
+            const guideTargetX = ballPos.x + (isRightHand ? -8*s : 8*s);
             const guideTargetY = ballPos.y;
-
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
 
-            // 3. Solve IK
-            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
-            const maxLen = upperArmLen + foreArmLen;
-            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
-            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
-            const guideZ = Math.min(shootUZ, maxZ);
+            const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
+            const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
+            const finalGuideU = isRightHand ? animGuideU : (-Math.PI - animGuideU);
 
-            const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
-            const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
+            const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
+            const guideElbow = getJoint(guideSX, armY, guideEffUpper, finalGuideU);
 
-            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isLefty);
+            const dx = guideTargetX - guideElbow.x;
+            const dy = guideTargetY - guideElbow.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const fixedGuideFAngle = Math.atan2(dy, dx);
+            const ratio = Math.min(0.99, dist / foreArmLen);
+            const fixedGuideFZ = Math.acos(ratio);
 
-            // 4. Override Guide Arm Angles
             if (isRightHand) {
-                leftArmAngle = ik.uAngle;
-                leftForeArmAngle = ik.fAngle;
-                // Sync Z
-                leftArmZ = guideZ; leftForeArmZ = guideZ;
+                leftArmAngle = finalGuideU; leftForeArmAngle = fixedGuideFAngle;
+                leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
             } else {
-                rightArmAngle = ik.uAngle;
-                rightForeArmAngle = ik.fAngle;
-                rightArmZ = guideZ; rightForeArmZ = guideZ;
+                rightArmAngle = finalGuideU; rightForeArmAngle = fixedGuideFAngle;
+                rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
             }
         }
 
