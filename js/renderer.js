@@ -7089,54 +7089,53 @@ var BallRenderer = {
              }
         }
 
-        // Helper for hat shading
-        const adjustColor = (color, percent) => {
-            if(!color || color.charAt(0) !== '#') return color; // Skip non-hex
-            var num = parseInt(color.replace("#",""),16),
-            amt = Math.round(2.55 * percent),
-            R = (num >> 16) + amt,
-            B = (num >> 8 & 0x00FF) + amt,
-            G = (num & 0x0000FF) + amt;
-            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255)).toString(16).slice(1);
-        };
-
         if (accessoryType === 'plumber_cap') {
              const capColor = accessoryColor || '#FF0000';
-             // Puffy Top (Muffin top shape)
-             const puffW = headRadius * 1.4;
-             const puffH = headRadius * 1.2;
 
-             // Gradient for puff
-             const grad = ctx.createRadialGradient(p.x - 10*s, headY - 15*s, 5*s, p.x, headY - 10*s, puffW);
-             grad.addColorStop(0, adjustColor(capColor, 30)); // Light
-             grad.addColorStop(1, capColor);
-             ctx.fillStyle = grad;
-
-             ctx.beginPath();
-             ctx.ellipse(p.x, headY - 12*s, puffW, puffH * 0.8, 0, Math.PI, 0);
-             ctx.fill();
-
-             // Back Rim/Brim
+             // 1. Puffy Top (Newsboy style - Wider than head)
              ctx.fillStyle = capColor;
              ctx.beginPath();
-             ctx.ellipse(p.x, headY - 5*s, headRadius * 1.1, 5*s, 0, 0, Math.PI*2);
+             // Draw a large ellipse for the "puff"
+             ctx.ellipse(p.x, headY - 15*s, headRadius * 1.3, headRadius * 0.9, 0, 0, Math.PI*2);
              ctx.fill();
 
-             // Button
-             ctx.fillStyle = '#DDD';
-             ctx.beginPath(); ctx.arc(p.x, headY - 12*s - (puffH*0.8) + 2*s, 3*s, 0, Math.PI*2); ctx.fill();
+             // Highlight (Top left)
+             ctx.globalAlpha = 0.2;
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x - 8*s, headY - 20*s, headRadius * 0.6, headRadius * 0.4, -0.5, 0, Math.PI*2); ctx.fill();
+             ctx.globalAlpha = 1.0;
+
+             // 2. Brim (Small, front-facing visor seen from back? No, back view means we see the back of the cap)
+             // The "rim" that fits the head
+             ctx.fillStyle = capColor;
+             ctx.beginPath();
+             ctx.ellipse(p.x, headY - 5*s, headRadius * 1.05, 5*s, 0, 0, Math.PI*2);
+             ctx.fill();
+
+             // Shadow under the puff (Rim shadow)
+             ctx.globalAlpha = 0.3;
+             ctx.fillStyle = '#000';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.05, 5*s, 0, 0, Math.PI); ctx.fill();
+             ctx.globalAlpha = 1.0;
+
+             // 3. Button (Top center)
+             ctx.fillStyle = '#EEE'; // White/Grey button
+             ctx.beginPath(); ctx.arc(p.x, headY - 24*s, 2.5*s, 0, Math.PI*2); ctx.fill();
         }
         else if (accessoryType === 'bowl_hat') {
              const col = accessoryColor || '#333';
-             // Brim (Circle)
-             ctx.fillStyle = adjustColor(col, 10);
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.3, 5*s, 0, 0, Math.PI*2); ctx.fill();
-             // Bowl Dome
-             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 15*s, 5*s, p.x, headY - 5*s, headRadius);
-             grad.addColorStop(0, adjustColor(col, 30));
-             grad.addColorStop(1, col);
-             ctx.fillStyle = grad;
-             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = col;
+
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 8*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             // Brim (Up-turned small brim)
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 8*s, headRadius * 1.2, 3*s, 0, 0, Math.PI*2); ctx.fill();
+
+             // Shading
+             ctx.globalAlpha = 0.3;
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 15*s, headRadius*0.5, 0, Math.PI*2); ctx.fill();
+             ctx.globalAlpha = 1.0;
         }
         else if (accessoryType === 'cap_reverse') {
              const col = accessoryColor || '#000';
@@ -7144,38 +7143,49 @@ var BallRenderer = {
              ctx.fillStyle = col;
              ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
 
-             // Brim (Facing Camera - Trapezoid)
-             ctx.fillStyle = adjustColor(col, -20);
+             // Brim (Facing Camera - Trapezoid / Flat Bill)
+             ctx.fillStyle = col;
+             // Darken brim slightly to differentiate
+             ctx.globalAlpha = 0.8;
              ctx.beginPath();
              ctx.moveTo(p.x - headRadius, headY - 5*s);
-             ctx.quadraticCurveTo(p.x, headY + 12*s, p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius * 0.8, headY + 5*s);
+             ctx.lineTo(p.x - headRadius * 0.8, headY + 5*s);
              ctx.fill();
+             ctx.globalAlpha = 1.0;
 
-             // Button
-             ctx.fillStyle = 'rgba(0,0,0,0.3)';
-             ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+             // Snapback Hole (Plastic strap)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 8*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Dots for holes
+             ctx.fillStyle = '#999';
+             ctx.beginPath(); ctx.arc(p.x - 2*s, headY - 8*s, 0.5*s, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.arc(p.x + 2*s, headY - 8*s, 0.5*s, 0, Math.PI*2); ctx.fill();
         }
         else if (accessoryType === 'cap') {
              ctx.fillStyle = accessoryColor || '#FFF';
-             // Gradient Dome
-             let baseCol = ctx.fillStyle;
-             if(baseCol.charAt(0) !== '#') baseCol = '#FFFFFF'; // Fallback
-             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 10*s, 2*s, p.x, headY - 5*s, headRadius);
-             grad.addColorStop(0, adjustColor(baseCol, 30));
-             grad.addColorStop(1, baseCol);
-             ctx.fillStyle = grad;
 
+             // Dome
              ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
 
-             // Button
-             ctx.fillStyle = 'rgba(0,0,0,0.3)';
-             ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+             // Shading (Simple gradient)
+             const grad = ctx.createLinearGradient(p.x - 10*s, headY - 20*s, p.x + 10*s, headY);
+             grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+             grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+             ctx.fillStyle = grad;
+             ctx.fill();
 
-             // Snapback hole (Strap look)
-             ctx.fillStyle = '#111';
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 16*s, 2*s, 0, Math.PI*2); ctx.fill();
+
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#1a1a1a';
              ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 4*s, Math.PI, 0); ctx.fill();
+             // Strap
              ctx.fillStyle = '#333';
-             ctx.fillRect(p.x - 4*s, headY - 4*s, 8*s, 2*s);
+             ctx.fillRect(p.x - 4*s, headY - 3*s, 8*s, 2*s);
         }
         else if (accessoryType === 'party_hat') {
              ctx.fillStyle = accessoryColor || '#FF00FF';
@@ -9131,16 +9141,20 @@ var BallRenderer = {
 
              // Top (Indented Fedora/Cowboy style)
              const grad = ctx.createLinearGradient(p.x - 5*s, headY - 20*s, p.x + 5*s, headY - 5*s);
-             grad.addColorStop(0, adjustColor(col, 20));
-             grad.addColorStop(1, adjustColor(col, -10));
-             ctx.fillStyle = grad;
+             grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+             grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+             ctx.fillStyle = grad; // Apply over base color
 
              ctx.beginPath();
              ctx.moveTo(p.x - headRadius*0.8, headY - 6*s);
              ctx.lineTo(p.x - headRadius*0.7, headY - 18*s); // Taper up
              ctx.quadraticCurveTo(p.x, headY - 22*s, p.x + headRadius*0.7, headY - 18*s); // Top curve
              ctx.lineTo(p.x + headRadius*0.8, headY - 6*s);
-             ctx.fill();
+
+             // Fill base color then gradient
+             const tempFill = ctx.fillStyle;
+             ctx.fillStyle = col; ctx.fill();
+             ctx.fillStyle = tempFill; ctx.fill();
 
              // Band
              ctx.fillStyle = '#111';
@@ -9149,29 +9163,36 @@ var BallRenderer = {
         else if (accessoryType === 'floppy_cap') {
              const capColor = accessoryColor || '#00A000';
 
-             // Tail (Behind head)
+             // 1. Draw Tail (Behind Head)
+             // Large sweeping curve for visibility
              ctx.fillStyle = capColor;
              ctx.beginPath();
-             // Start from top-back of head
              ctx.moveTo(p.x, headY - 12*s);
-             // Drape down right side
-             ctx.bezierCurveTo(p.x + 15*s, headY, p.x + 20*s, headY + 20*s, p.x + 10*s, headY + 40*s); // Tip
-             // Curve back up
-             ctx.bezierCurveTo(p.x + 5*s, headY + 25*s, p.x - 5*s, headY + 5*s, p.x, headY - 12*s);
+             // Down right
+             ctx.bezierCurveTo(p.x + 25*s, headY, p.x + 30*s, headY + 30*s, p.x + 15*s, headY + 50*s);
+             // Up Left
+             ctx.bezierCurveTo(p.x + 10*s, headY + 35*s, p.x - 5*s, headY + 10*s, p.x, headY - 12*s);
              ctx.fill();
 
-             // Main Cap Base (Gradient)
-             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 10*s, 2*s, p.x, headY - 5*s, headRadius);
-             grad.addColorStop(0, adjustColor(capColor, 20));
-             grad.addColorStop(1, capColor);
-             ctx.fillStyle = grad;
+             // Shading on tail
+             ctx.fillStyle = 'rgba(0,0,0,0.15)';
+             ctx.fill();
 
+             // 2. Main Cap Base (On Head)
+             ctx.fillStyle = capColor;
              ctx.beginPath();
              ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0);
              ctx.fill();
 
-             // Band/Rim
-             ctx.strokeStyle = adjustColor(capColor, 20); ctx.lineWidth = 3*s;
+             // Gradient Highlight
+             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 15*s, 2*s, p.x, headY - 5*s, headRadius);
+             grad.addColorStop(0, 'rgba(255,255,255,0.2)');
+             grad.addColorStop(1, 'rgba(0,0,0,0)');
+             ctx.fillStyle = grad;
+             ctx.fill();
+
+             // 3. Band/Rim
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 3*s;
              ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.stroke();
         }
         else if (accessoryType === 'top_hat') {
