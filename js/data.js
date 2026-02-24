@@ -1357,9 +1357,9 @@
     };
 
     var HAIRSTYLE_SHEETS = [
-        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_10x8pf10x8pf10x8.png?raw=true',
-        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_3ko8rr3ko8rr3ko8.png?raw=true',
-        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_bok9y1bok9y1bok9.png?raw=true'
+        'images/hair_sheet_0.png',
+        'images/hair_sheet_1.png',
+        'images/hair_sheet_2.png'
     ];
 
     var HAIRSTYLES = [

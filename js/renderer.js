@@ -5403,7 +5403,8 @@ var BallRenderer = {
         // Load sheet if needed
         if (!g_hairSheets[sheetIdx]) {
             const img = new Image();
-            img.crossOrigin = "Anonymous";
+            // Local file access: Do not set crossOrigin for same-origin to avoid tainting if headers missing
+            // img.crossOrigin = "Anonymous";
             img.src = HAIRSTYLE_SHEETS[sheetIdx];
             g_hairSheets[sheetIdx] = img;
         }
@@ -5447,10 +5448,10 @@ var BallRenderer = {
             if (b > r + 20 && b > g + 20 && b > 100) isTransparent = true;
             // Grass Detection (Green is dominant channel)
             else if (g > r + 10 && g > b + 10 && g < 180) isTransparent = true;
-            // Shirt (White/Light Grey) - Check high luminosity and low saturation
-            else if (r > 200 && g > 200 && b > 200) isTransparent = true;
-            // Skin (Peach) - R > G > B usually
-            else if (r > 200 && g > 160 && b < 180 && r > b + 40) isTransparent = true;
+            // Background (White/Light Grey/Off-White) - Relaxed threshold
+            else if (r > 190 && g > 190 && b > 190) isTransparent = true;
+            // Skin (Peach/Mannequin) - R > G > B usually. Catch the beige mannequin.
+            else if (r > 90 && g > 70 && b > 50 && r > b + 15 && r > g && g > b && r < 230) isTransparent = true;
 
             if (isTransparent) {
                 data[i+3] = 0;
@@ -5519,6 +5520,14 @@ var BallRenderer = {
 
                 // Center align
                 ctx.drawImage(sprite, p.x - finalW/2, headY - finalH * 0.45, finalW, finalH);
+            } else {
+                // Placeholder while loading
+                // Draw a simple circle matching the hair color so it doesn't look bald
+                // This prevents "no hair" issue during slow loads or CORS failures
+                ctx.fillStyle = hairColor;
+                ctx.beginPath();
+                ctx.arc(p.x, headY, headRadius, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
     }
