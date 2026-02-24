@@ -7089,16 +7089,93 @@ var BallRenderer = {
              }
         }
 
-        if (accessoryType === 'cap') {
-             ctx.fillStyle = accessoryColor || '#FFF';
-             // Dome
-             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+        // Helper for hat shading
+        const adjustColor = (color, percent) => {
+            if(!color || color.charAt(0) !== '#') return color; // Skip non-hex
+            var num = parseInt(color.replace("#",""),16),
+            amt = Math.round(2.55 * percent),
+            R = (num >> 16) + amt,
+            B = (num >> 8 & 0x00FF) + amt,
+            G = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255)).toString(16).slice(1);
+        };
+
+        if (accessoryType === 'plumber_cap') {
+             const capColor = accessoryColor || '#FF0000';
+             // Puffy Top (Muffin top shape)
+             const puffW = headRadius * 1.4;
+             const puffH = headRadius * 1.2;
+
+             // Gradient for puff
+             const grad = ctx.createRadialGradient(p.x - 10*s, headY - 15*s, 5*s, p.x, headY - 10*s, puffW);
+             grad.addColorStop(0, adjustColor(capColor, 30)); // Light
+             grad.addColorStop(1, capColor);
+             ctx.fillStyle = grad;
+
+             ctx.beginPath();
+             ctx.ellipse(p.x, headY - 12*s, puffW, puffH * 0.8, 0, Math.PI, 0);
+             ctx.fill();
+
+             // Back Rim/Brim
+             ctx.fillStyle = capColor;
+             ctx.beginPath();
+             ctx.ellipse(p.x, headY - 5*s, headRadius * 1.1, 5*s, 0, 0, Math.PI*2);
+             ctx.fill();
+
              // Button
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
-             // Snapback hole (since back view)
+             ctx.fillStyle = '#DDD';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s - (puffH*0.8) + 2*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'bowl_hat') {
+             const col = accessoryColor || '#333';
+             // Brim (Circle)
+             ctx.fillStyle = adjustColor(col, 10);
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.3, 5*s, 0, 0, Math.PI*2); ctx.fill();
+             // Bowl Dome
+             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 15*s, 5*s, p.x, headY - 5*s, headRadius);
+             grad.addColorStop(0, adjustColor(col, 30));
+             grad.addColorStop(1, col);
+             ctx.fillStyle = grad;
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'cap_reverse') {
+             const col = accessoryColor || '#000';
+             // Dome
+             ctx.fillStyle = col;
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+
+             // Brim (Facing Camera - Trapezoid)
+             ctx.fillStyle = adjustColor(col, -20);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY + 12*s, p.x + headRadius, headY - 5*s);
+             ctx.fill();
+
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.3)';
+             ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Gradient Dome
+             let baseCol = ctx.fillStyle;
+             if(baseCol.charAt(0) !== '#') baseCol = '#FFFFFF'; // Fallback
+             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 10*s, 2*s, p.x, headY - 5*s, headRadius);
+             grad.addColorStop(0, adjustColor(baseCol, 30));
+             grad.addColorStop(1, baseCol);
+             ctx.fillStyle = grad;
+
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.3)';
+             ctx.beginPath(); ctx.arc(p.x, headY - headRadius - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+
+             // Snapback hole (Strap look)
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 4*s, Math.PI, 0); ctx.fill();
              ctx.fillStyle = '#333';
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+             ctx.fillRect(p.x - 4*s, headY - 4*s, 8*s, 2*s);
         }
         else if (accessoryType === 'party_hat') {
              ctx.fillStyle = accessoryColor || '#FF00FF';
@@ -8948,9 +9025,32 @@ var BallRenderer = {
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
         else if (accessoryType === 'crown') {
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s);
-            ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill();
+            // Gold Gradient
+            const grad = ctx.createLinearGradient(p.x - 10*s, headY - 15*s, p.x + 10*s, headY - 5*s);
+            grad.addColorStop(0, '#FFD700');
+            grad.addColorStop(0.5, '#FFFACD');
+            grad.addColorStop(1, '#DAA520');
+            ctx.fillStyle = grad;
+
+            ctx.beginPath();
+            ctx.moveTo(p.x-10*s, headY-8*s);
+            ctx.lineTo(p.x-10*s, headY-20*s); // Left Point
+            ctx.lineTo(p.x-5*s, headY-12*s);
+            ctx.lineTo(p.x, headY-25*s);      // Center Point (Tall)
+            ctx.lineTo(p.x+5*s, headY-12*s);
+            ctx.lineTo(p.x+10*s, headY-20*s); // Right Point
+            ctx.lineTo(p.x+10*s, headY-8*s);
+
+            // Bottom curve to fit head
+            ctx.quadraticCurveTo(p.x, headY-2*s, p.x-10*s, headY-8*s);
+            ctx.fill();
+
+            // Gems
+            ctx.fillStyle = '#FF0000'; // Ruby
+            ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#0000FF'; // Sapphire
+            ctx.beginPath(); ctx.arc(p.x - 7*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 7*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
         }
         else if (accessoryType === 'wizard_hat') {
             ctx.fillStyle = accessoryColor || '#000080';
@@ -9024,31 +9124,55 @@ var BallRenderer = {
              drawFuzzyPath([{x:p.x-5*s,y:headY-10*s},{x:p.x+5*s,y:headY-12*s},{x:p.x+8*s,y:headY-5*s},{x:p.x-8*s,y:headY-4*s}], '#2E8B57', s, true, 200);
         }
         else if (accessoryType === 'hat') {
-             ctx.fillStyle = accessoryColor || '#5D4037';
-             // Brim
-             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
-             // Top
-             ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+             const col = accessoryColor || '#5D4037';
+             ctx.fillStyle = col;
+             // Brim (Wide)
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 6*s, headRadius * 1.8, 5*s, 0, 0, Math.PI*2); ctx.fill();
+
+             // Top (Indented Fedora/Cowboy style)
+             const grad = ctx.createLinearGradient(p.x - 5*s, headY - 20*s, p.x + 5*s, headY - 5*s);
+             grad.addColorStop(0, adjustColor(col, 20));
+             grad.addColorStop(1, adjustColor(col, -10));
+             ctx.fillStyle = grad;
+
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius*0.8, headY - 6*s);
+             ctx.lineTo(p.x - headRadius*0.7, headY - 18*s); // Taper up
+             ctx.quadraticCurveTo(p.x, headY - 22*s, p.x + headRadius*0.7, headY - 18*s); // Top curve
+             ctx.lineTo(p.x + headRadius*0.8, headY - 6*s);
+             ctx.fill();
+
+             // Band
+             ctx.fillStyle = '#111';
+             ctx.fillRect(p.x - headRadius*0.82, headY - 10*s, headRadius*1.64, 4*s);
         }
         else if (accessoryType === 'floppy_cap') {
              const capColor = accessoryColor || '#00A000';
+
+             // Tail (Behind head)
              ctx.fillStyle = capColor;
-             // Base (Headband part)
              ctx.beginPath();
-             ctx.moveTo(p.x - headRadius, headY - 2*s);
-             ctx.lineTo(p.x + headRadius, headY - 2*s);
-             ctx.lineTo(p.x + headRadius, headY - 8*s);
-             ctx.lineTo(p.x - headRadius, headY - 8*s);
+             // Start from top-back of head
+             ctx.moveTo(p.x, headY - 12*s);
+             // Drape down right side
+             ctx.bezierCurveTo(p.x + 15*s, headY, p.x + 20*s, headY + 20*s, p.x + 10*s, headY + 40*s); // Tip
+             // Curve back up
+             ctx.bezierCurveTo(p.x + 5*s, headY + 25*s, p.x - 5*s, headY + 5*s, p.x, headY - 12*s);
              ctx.fill();
 
-             // Floppy Tail
+             // Main Cap Base (Gradient)
+             const grad = ctx.createRadialGradient(p.x - 5*s, headY - 10*s, 2*s, p.x, headY - 5*s, headRadius);
+             grad.addColorStop(0, adjustColor(capColor, 20));
+             grad.addColorStop(1, capColor);
+             ctx.fillStyle = grad;
+
              ctx.beginPath();
-             ctx.moveTo(p.x - headRadius + 2*s, headY - 8*s);
-             ctx.lineTo(p.x + headRadius - 2*s, headY - 8*s);
-             // Curve down and to the right/left
-             ctx.quadraticCurveTo(p.x + 20*s, headY + 10*s, p.x + 15*s, headY + 25*s); // Tail tip
-             ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
+             ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0);
              ctx.fill();
+
+             // Band/Rim
+             ctx.strokeStyle = adjustColor(capColor, 20); ctx.lineWidth = 3*s;
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.stroke();
         }
         else if (accessoryType === 'top_hat') {
              ctx.fillStyle = accessoryColor || '#111';

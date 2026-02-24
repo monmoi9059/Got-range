@@ -511,13 +511,13 @@
         { id: 'human_wade_alt_legend', animal: 'human', name: 'Vice City', jerseyName: 'FLASH', cost: 30000, heightScale: 1.100, widthScale: 0.92, jerseyColor: '#000', shortsColor: '#000', sideStripesColor: '#FF69B4', number: '3', numberColor: '#00FFFF', skinTone: '#4a3020', hairStyle: 'fade_low', hairColor: '#000', socksColor: '#00FFFF', shoesColor: '#FF69B4', beard: true },
         { id: 'human_process_alt', animal: 'human', name: 'Kansas', jerseyName: 'PROCESS', cost: 30000, heightScale: 1.25, widthScale: 1.1, jerseyColor: '#0051BA', shortsColor: '#0051BA', trimColor: '#E8000D', number: '21', numberColor: '#FFF', skinTone: '#3e271a', hairStyle: 'buzz_cut', hairColor: '#000', beard: true, socksColor: '#FFF', shoesColor: '#0051BA' },
         { id: 'human_anchor', animal: 'human', name: 'The Anchor', cost: 500, heightScale: 1.06, widthScale: 1.05, jerseyColor: '#800020', shortsColor: '#800020', legType: 'pants', sleeveColor: '#800020', hairStyle: 'anchor_man_80s', hairColor: '#5D4037', skinTone: '#f0d5be', shoesColor: '#333', pattern: 'suit_jacket', jerseyType: 'tshirt' },
-        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#FFA500' },
+        { id: 'human_waluigi', animal: 'human', name: 'Mauvais Perdant', cost: 15000, heightScale: 1.2, widthScale: 0.8, jerseyColor: '#800080', shortsColor: '#000', clothingDetail: 'overalls', headAccessory: 'plumber_cap', hatColor: '#800080', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#FFA500' },
         { id: 'human_potter', animal: 'human', name: 'Sorcier Lunettes', cost: 15000, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', skinTone: '#ffe0bd', backAccessory: 'cape', backColor: '#111', headAccessory: 'scarf', hatColor: '#8B0000', shoesColor: '#000', hairStyle: 'shaggy_top', hairColor: '#000' },
-        { id: 'human_mario', animal: 'human', name: 'Plombier Rouge', cost: 15000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#FF0000', shortsColor: '#0000FF', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#FF0000', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#8B4513' },
-        { id: 'human_luigi', animal: 'human', name: 'Plombier Vert', cost: 15000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#008000', shortsColor: '#0000FF', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#008000', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#8B4513' },
-        { id: 'human_wario', animal: 'human', name: 'Mauvais Gagnant', cost: 15000, heightScale: 1.0, widthScale: 1.3, jerseyColor: '#FFFF00', shortsColor: '#800080', clothingDetail: 'overalls', headAccessory: 'hat', hatColor: '#FFFF00', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#008000' },
+        { id: 'human_mario', animal: 'human', name: 'Plombier Rouge', cost: 15000, heightScale: 0.9, widthScale: 1.1, jerseyColor: '#FF0000', shortsColor: '#0000FF', clothingDetail: 'overalls', headAccessory: 'plumber_cap', hatColor: '#FF0000', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#8B4513' },
+        { id: 'human_luigi', animal: 'human', name: 'Plombier Vert', cost: 15000, heightScale: 1.1, widthScale: 0.9, jerseyColor: '#008000', shortsColor: '#0000FF', clothingDetail: 'overalls', headAccessory: 'plumber_cap', hatColor: '#008000', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#8B4513' },
+        { id: 'human_wario', animal: 'human', name: 'Mauvais Gagnant', cost: 15000, heightScale: 1.0, widthScale: 1.3, jerseyColor: '#FFFF00', shortsColor: '#800080', clothingDetail: 'overalls', headAccessory: 'plumber_cap', hatColor: '#FFFF00', skinTone: '#ffe0bd', hairStyle: 'default', hairColor: '#333', shoesColor: '#008000' },
         { id: 'human_peach', animal: 'human', name: 'Princesse Rose', cost: 15000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#FFC0CB', shortsColor: '#FF69B4', legType: 'tights', headAccessory: 'crown', hatColor: '#FFD700', skinTone: '#ffe0bd', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#FF1493' },
-        { id: 'human_link', animal: 'human', name: 'Héros du Temps', cost: 15000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#008000', shortsColor: '#F5F5DC', legType: 'tights', headAccessory: 'hat', hatColor: '#008000', skinTone: '#ffe0bd', backProp: 'sword', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#8B4513' },
+        { id: 'human_link', animal: 'human', name: 'Héros du Temps', cost: 15000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#008000', shortsColor: '#F5F5DC', legType: 'tights', headAccessory: 'floppy_cap', hatColor: '#008000', skinTone: '#ffe0bd', backProp: 'sword', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#8B4513' },
 
     ];
 
@@ -714,9 +714,13 @@
         { id: 'hat_cap_black', name: 'Casquette Noire', cost: 500, type: 'cap', color: '#111' },
         { id: 'hat_cap_white', name: 'Casquette Blanche', cost: 500, type: 'cap', color: '#FFF' },
         { id: 'hat_cap_green', name: 'Casquette Verte', cost: 500, type: 'cap', color: '#008000' },
+        { id: 'hat_cap_orange', name: 'Casquette Orange', cost: 500, type: 'cap', color: '#FFA500' },
+        { id: 'hat_cap_reverse', name: 'Casquette Envers', cost: 1500, type: 'cap_reverse', color: '#000' },
         { id: 'hat_beanie_red', name: 'Tuque Rouge', cost: 750, type: 'beanie', color: '#FF0000' },
         { id: 'hat_beanie_black', name: 'Tuque Noire', cost: 750, type: 'beanie', color: '#111' },
         { id: 'hat_beanie_orange', name: 'Tuque Orange', cost: 750, type: 'beanie', color: '#FFA500' },
+        { id: 'hat_beanie_pink', name: 'Tuque Rose', cost: 750, type: 'beanie', color: '#FF69B4' },
+        { id: 'hat_beanie_green', name: 'Tuque Verte', cost: 750, type: 'beanie', color: '#008000' },
         { id: 'hat_headband_red', name: 'Bandeau Rouge', cost: 1000, type: 'headband', color: '#FF0000' },
         { id: 'hat_headband_blue', name: 'Bandeau Bleu', cost: 1000, type: 'headband', color: '#0000FF' },
         { id: 'hat_headband_white', name: 'Bandeau Blanc', cost: 1000, type: 'headband', color: '#FFF' },
@@ -752,7 +756,13 @@
         { id: 'hat_headphones', name: 'Écouteurs', cost: 2000, type: 'headphones', color: '#333' },
         { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
         { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
-        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' },
+        { id: 'hat_plumber_red', name: 'Casquette Plombier R', cost: 3000, type: 'plumber_cap', color: '#FF0000' },
+        { id: 'hat_plumber_green', name: 'Casquette Plombier V', cost: 3000, type: 'plumber_cap', color: '#008000' },
+        { id: 'hat_plumber_yellow', name: 'Casquette Plombier J', cost: 3000, type: 'plumber_cap', color: '#FFFF00' },
+        { id: 'hat_plumber_purple', name: 'Casquette Plombier Vl', cost: 3000, type: 'plumber_cap', color: '#800080' },
+        { id: 'hat_bowl', name: 'Coupe Bol', cost: 2000, type: 'bowl_hat', color: '#333' },
+        { id: 'hat_floppy_green', name: 'Chapeau Héros', cost: 3000, type: 'floppy_cap', color: '#008000' }
     ];
 
     var PANTS_DB = [
