@@ -2326,6 +2326,9 @@ var BallRenderer = {
         ctx.restore();
     }
 
+    // Cache for hat lookup (Memoization) to avoid Array.find every frame
+    const g_hatCache = new Map();
+
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
         const roundness = options.roundness || 0;
@@ -7075,7 +7078,11 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             let hat = g_hatCache.get(playerData.currentHat);
+             if (!hat) {
+                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
+                 if (hat) g_hatCache.set(playerData.currentHat, hat);
+             }
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
