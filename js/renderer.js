@@ -5395,321 +5395,134 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
-        const style = skinObj.hairStyle || 'bald_clean';
-        if (style === 'bald_clean') return;
+    // --- Hairstyle Sprite System ---
+    const g_hairSpriteCache = new Map(); // Key: "sheet_index_color" -> Canvas
+    const g_hairSheets = [null, null, null]; // Image objects
 
-        const color = skinObj.hairColor || '#000';
-        const color2 = skinObj.hairColor2 || color;
-        const cx = p.x;
-        const cy = headY;
-        const r = headRadius;
+    function getHairSprite(sheetIdx, spriteIdx, color) {
+        // Load sheet if needed
+        if (!g_hairSheets[sheetIdx]) {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = HAIRSTYLE_SHEETS[sheetIdx];
+            g_hairSheets[sheetIdx] = img;
+        }
 
-        // Seed
-        let seed = 0;
-        const seedStr = (skinObj.id || 'default') + style;
-        for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+        const img = g_hairSheets[sheetIdx];
+        if (!img.complete || img.naturalWidth === 0) return null; // Not ready
 
-        const seededRandom = (offset) => {
-            const x = Math.sin(seed + offset) * 10000;
-            return x - Math.floor(x);
-        };
+        const key = `${sheetIdx}_${spriteIdx}_${color}`;
+        if (g_hairSpriteCache.has(key)) return g_hairSpriteCache.get(key);
 
-        // --- HELPERS ---
-        const drawLock = (x, y, w, h, curveX) => {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.quadraticCurveTo(x + curveX, y + h/2, x + w/2, y + h);
-            ctx.quadraticCurveTo(x + curveX - w/2, y + h/2, x - w/2, y);
-            ctx.fill();
-        };
+        // Generate Sprite
+        // Grid: 8 cols, 6 rows.
+        const cols = 8;
+        const rows = 6;
+        const cellW = img.naturalWidth / cols;
+        const cellH = img.naturalHeight / rows;
 
-        const drawBraidLine = (x1, y1, x2, y2, width) => {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1*s;
-            const dist = Math.hypot(x2-x1, y2-y1);
-            const steps = dist / (3*s);
-            for(let i=0; i<steps; i++) {
-                const t = i/steps;
-                const px = x1 + (x2-x1)*t;
-                const py = y1 + (y2-y1)*t;
-                ctx.beginPath(); ctx.arc(px, py, width/2, 0, Math.PI*2); ctx.stroke();
-            }
-        };
+        const col = spriteIdx % cols;
+        const row = Math.floor(spriteIdx / cols);
 
-        const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
-            const modRadius = r * radiusMod;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(cx, cy - 2*s, modRadius, Math.PI, 0);
-            ctx.lineTo(cx + modRadius, cy + lengthMod);
+        // 1. Extract and Mask
+        const cvs = document.createElement('canvas');
+        cvs.width = cellW;
+        cvs.height = cellH;
+        const ctx = cvs.getContext('2d', {willReadFrequently: true});
 
-            if (neckType === 'square') {
-                ctx.lineTo(cx - modRadius, cy + lengthMod);
-            } else if (neckType === 'tapered') {
-                ctx.quadraticCurveTo(cx + modRadius*0.5, cy + lengthMod + 4*s, cx, cy + lengthMod + 6*s);
-                ctx.quadraticCurveTo(cx - modRadius*0.5, cy + lengthMod + 4*s, cx - modRadius, cy + lengthMod);
-            } else if (neckType === 'shaved') {
-                ctx.quadraticCurveTo(cx, cy + lengthMod - 5*s, cx - modRadius, cy + lengthMod);
-            } else { // Natural
-                ctx.quadraticCurveTo(cx, cy + lengthMod + (isBack ? 5*s : 2*s), cx - modRadius, cy + lengthMod);
-            }
-            ctx.lineTo(cx - modRadius, cy - 2*s);
-            ctx.fill();
-        };
+        ctx.drawImage(img, col * cellW, row * cellH, cellW, cellH, 0, 0, cellW, cellH);
 
-        const adjustColor = (col, amt) => {
-            // Simple dummy for now, assuming hex
-            return col;
-        };
+        const idata = ctx.getImageData(0, 0, cellW, cellH);
+        const data = idata.data;
 
-        // --- 1. SHORT / FADES ---
-        if (['buzz_cut', 'fade_high', 'fade_low', 'fade_box', 'caesar_cut', 'waves_360', 'buzz_line', 'buzz_colored', 'anchor_man_80s'].includes(style)) {
+        for(let i=0; i<data.length; i+=4) {
+            const r = data[i];
+            const g = data[i+1];
+            const b = data[i+2];
 
-            // Base Cap
-            if (style === 'buzz_colored') {
-                const pat = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                pat.addColorStop(0, color);
-                pat.addColorStop(0.5, color2);
-                pat.addColorStop(1, color);
-                ctx.fillStyle = pat;
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+            // Heuristic Masking for Gen AI Sprite Sheet
+            let isTransparent = false;
+
+            // Sky Detection (Blue is dominant channel)
+            if (b > r + 20 && b > g + 20 && b > 100) isTransparent = true;
+            // Grass Detection (Green is dominant channel)
+            else if (g > r + 10 && g > b + 10 && g < 180) isTransparent = true;
+            // Shirt (White/Light Grey) - Check high luminosity and low saturation
+            else if (r > 200 && g > 200 && b > 200) isTransparent = true;
+            // Skin (Peach) - R > G > B usually
+            else if (r > 200 && g > 160 && b < 180 && r > b + 40) isTransparent = true;
+
+            if (isTransparent) {
+                data[i+3] = 0;
             } else {
-                drawSolidLayeredBase(1.02, 1*s, color, true, 'natural');
-            }
-
-            if (style.includes('fade')) {
-                const fadeH = (style === 'fade_high' || style === 'fade_box') ? 0.6 : 0.3;
-                const grad = ctx.createLinearGradient(0, cy - r*0.5, 0, cy + r);
-                grad.addColorStop(0, 'rgba(0,0,0,0)');
-                grad.addColorStop(1-fadeH, 'rgba(0,0,0,0)');
-                grad.addColorStop(1, 'rgba(255,255,255,0.8)');
-
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.fillStyle = grad;
-                ctx.beginPath(); ctx.arc(cx, cy, r + 1*s, 0, Math.PI*2); ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-            }
-
-            if (style === 'waves_360') {
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                ctx.lineWidth = 2*s;
-                for(let i=1; i<5; i++) {
-                    ctx.beginPath(); ctx.arc(cx, cy - r*0.2, r*0.2*i, 0, Math.PI*2); ctx.stroke();
-                }
-            }
-
-            if (style === 'fade_box' || style === 'anchor_man_80s') {
-                ctx.fillStyle = color;
-                const topH = (style === 'fade_box') ? 15*s : 8*s;
-                ctx.fillRect(cx - r*0.8, cy - r - topH, r*1.6, topH + 5*s);
-            }
-
-            if (style === 'buzz_line') {
-                ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
-                ctx.beginPath(); ctx.moveTo(cx + r*0.5, cy - r*0.2); ctx.lineTo(cx + r*0.9, cy); ctx.stroke();
-            }
-            return;
-        }
-
-        // --- 2. AFROS / PUFFS ---
-        if (['afro_mini', 'afro_70s', 'afro_puffs', 'bantu_knots', 'curls_textured', 'twist_sponge', 'afro_taper'].includes(style)) {
-            const isLarge = style === 'afro_70s';
-            const afroR = isLarge ? r * 1.6 : r * 1.25;
-
-            if (style === 'afro_puffs') {
-                drawFuzzyCircle(cx - r*0.9, cy - r*0.9, r*0.7, color, 200, s, true);
-                drawFuzzyCircle(cx + r*0.9, cy - r*0.9, r*0.7, color, 201, s, true);
-                drawFuzzyCircle(cx, cy, r, color, 202, s, true);
-            }
-            else if (style === 'bantu_knots') {
-                const knotR = 6*s;
-                ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-                const knots = [{x:0, y:-r*0.6}, {x:-r*0.5, y:-r*0.3}, {x:r*0.5, y:-r*0.3}, {x:-r*0.6, y:r*0.2}, {x:r*0.6, y:r*0.2}, {x:0, y:r*0.5}];
-                knots.forEach((k, i) => {
-                    drawFuzzyCircle(cx + k.x, cy + k.y, knotR, color, 210+i, s, true);
-                });
-            }
-            else {
-                const seed = (style === 'curls_textured') ? 300 : 250;
-                if (style === 'afro_taper') {
-                    ctx.save();
-                    ctx.beginPath(); ctx.rect(cx - afroR, cy - afroR*1.5, afroR*2, afroR*1.5); ctx.clip();
-                    drawFuzzyCircle(cx, cy - 5*s, afroR, color, seed, s, true);
-                    ctx.restore();
-                    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI, false); ctx.fill();
-                } else {
-                    drawFuzzyCircle(cx, cy, afroR, color, seed, s, true);
-                }
-
-                if (style === 'twist_sponge') {
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    for(let i=0; i<15; i++) {
-                        const ax = cx + (seededRandom(seed+i)-0.5)*r*1.5;
-                        const ay = cy + (seededRandom(seed+i+50)-0.5)*r*1.5;
-                        ctx.beginPath(); ctx.arc(ax, ay, 2*s, 0, Math.PI*2); ctx.fill();
-                    }
-                }
-            }
-            return;
-        }
-
-        // --- 3. BRAIDS / LOCS ---
-        if (['cornrows_straight', 'cornrows_braids', 'braids_box', 'locs_long', 'locs_medium', 'braids_micro', 'dreads_short', 'dreads_long', 'dreads_tied', 'braids_zigzag'].includes(style)) {
-            ctx.fillStyle = '#1a1a1a'; // Scalp
-            if(skinObj.skinTone) ctx.fillStyle = skinObj.skinTone;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-            const isLong = style.includes('long') || style.includes('box') || style.includes('micro') || style.includes('tied');
-            const thick = (style.includes('dreads') || style.includes('locs')) ? 5*s : 3*s;
-
-            const rows = 7;
-            for(let i=0; i<rows; i++) {
-                const xOff = (i - (rows-1)/2) * (r*0.5);
-
-                if (style === 'braids_zigzag') {
-                    ctx.strokeStyle = color; ctx.lineWidth = thick;
-                    ctx.beginPath();
-                    ctx.moveTo(cx + xOff, cy - r*0.8);
-                    ctx.lineTo(cx + xOff + 5*s, cy);
-                    ctx.lineTo(cx + xOff, cy + r*0.8);
-                    ctx.stroke();
-                }
-                else {
-                    drawBraidLine(cx + xOff + (seededRandom(seed+i)-0.5)*5*s, cy - r*0.8, cx + xOff, cy + r*0.5, thick);
-                }
-
-                if (isLong) {
-                    const len = (style.includes('medium')) ? 30*s : 60*s;
-                    const endX = cx + xOff*1.5 + (seededRandom(seed+i+100)-0.5)*10*s;
-                    if (style === 'dreads_tied') {
-                        drawBraidLine(cx + xOff*1.2, cy + r*0.5, cx + xOff*0.3, cy + r + 10*s, thick);
-                    } else {
-                        drawBraidLine(cx + xOff*1.2, cy + r*0.7, endX, cy + r + len, thick);
-                    }
-                }
-            }
-
-            if (style === 'dreads_tied') {
-                ctx.fillStyle = color2;
-                ctx.fillRect(cx - 10*s, cy + r + 5*s, 20*s, 6*s);
-                for(let k=0; k<5; k++) {
-                    drawBraidLine(cx, cy+r+10*s, cx + (k-2)*8*s, cy+r+50*s, thick);
-                }
-            }
-            return;
-        }
-
-        // --- 4. BUNS / UPDOS ---
-        if (['top_knot', 'med_bun', 'bun_messy', 'bun_low', 'bun_double', 'ponytail_high', 'ponytail_low', 'pigtails_braided'].includes(style)) {
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1*s;
-            ctx.beginPath();
-            for(let i=-2; i<=2; i++) {
-                ctx.moveTo(cx + i*10*s, cy - r*0.5);
-                ctx.quadraticCurveTo(cx + i*5*s, cy, cx, cy - r*0.8);
-            }
-            ctx.stroke();
-
-            if (style === 'top_knot' || style === 'bun_messy') {
-                const by = cy - r*0.8;
-                const bSize = (style === 'bun_messy') ? 14*s : 10*s;
-                if (style === 'bun_messy') drawFuzzyCircle(cx, by, bSize, color, 400, s, true);
-                else {
-                    ctx.beginPath(); ctx.arc(cx, by, bSize, 0, Math.PI*2); ctx.fill();
-                }
-                ctx.fillStyle = color2; ctx.fillRect(cx - 6*s, by + bSize*0.8, 12*s, 4*s);
-            }
-            else if (style === 'bun_low' || style === 'med_bun') {
-                drawFuzzyCircle(cx, cy + r*0.5, 12*s, color, 401, s, true);
-            }
-            else if (style === 'bun_double' || style === 'afro_puffs') {
-                const offX = r * 0.8;
-                const offY = r * 0.8;
-                const size = 12*s;
-                ctx.fillStyle = color;
-                ctx.beginPath(); ctx.arc(cx - offX, cy - offY, size, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(cx + offX, cy - offY, size, 0, Math.PI*2); ctx.fill();
-            }
-            else if (style.includes('ponytail')) {
-                const py = (style === 'ponytail_high') ? cy - r*0.5 : cy + r*0.5;
-                ctx.fillStyle = color2; ctx.fillRect(cx - 5*s, py - 3*s, 10*s, 6*s);
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.moveTo(cx, py);
-                const len = 50*s;
-                ctx.quadraticCurveTo(cx - 20*s, py + len/2, cx - 5*s, py + len);
-                ctx.quadraticCurveTo(cx + 20*s, py + len/2, cx, py);
-                ctx.fill();
-            }
-            else if (style === 'pigtails_braided') {
-                [-1, 1].forEach(dir => {
-                    const sx = cx + dir * r * 0.6;
-                    const sy = cy + r * 0.5;
-                    ctx.fillStyle = color2; ctx.fillRect(sx - 3*s, sy - 3*s, 6*s, 6*s);
-                    drawBraidLine(sx, sy, sx + dir*20*s, sy + 40*s, 6*s);
-                });
-            }
-            return;
-        }
-
-        // --- 5. LONG / FLOWING ---
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-        if (style === 'pixie_cut') {
-            for(let i=0; i<8; i++) {
-                drawLock(cx + (i-4)*6*s, cy - r*0.5, 4*s, r, (i%2===0?5:-5)*s);
+                // Convert hair to grayscale luminance for tinting
+                const lum = 0.299*r + 0.587*g + 0.114*b;
+                data[i] = lum;
+                data[i+1] = lum;
+                data[i+2] = lum;
             }
         }
-        else if (style === 'side_shave') {
-            const grad = ctx.createLinearGradient(cx, cy, cx + r, cy);
-            grad.addColorStop(0, color);
-            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(cx, cy, r+1, 0, Math.PI*2); ctx.fill();
-            drawLock(cx - r*0.5, cy - r*0.8, 20*s, 50*s, -10*s);
-        }
-        else if (style === 'med_bob') {
-            ctx.beginPath();
-            ctx.moveTo(cx - r, cy);
-            ctx.lineTo(cx - r*1.1, cy + r*1.2);
-            ctx.quadraticCurveTo(cx, cy + r*1.3, cx + r*1.1, cy + r*1.2);
-            ctx.lineTo(cx + r, cy);
-            ctx.fill();
-        }
-        else if (style === 'mullet_80s') {
-            drawFuzzyCircle(cx, cy - r*0.5, r*0.8, color, 500, s, true);
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.moveTo(cx - r*0.8, cy); ctx.lineTo(cx - r*0.6, cy + r*2.0); ctx.lineTo(cx + r*0.6, cy + r*2.0); ctx.lineTo(cx + r*0.8, cy); ctx.fill();
-        }
-        else if (style === 'fade_pompadour' || style === 'slicked_back') {
-            ctx.beginPath(); ctx.moveTo(cx - r*0.8, cy); ctx.quadraticCurveTo(cx, cy - r*1.8, cx + r*0.8, cy); ctx.fill();
-        }
-        else {
-            const numLayers = (style === 'med_wavy') ? 3 : 5;
-            const len = (style === 'med_wavy') ? r*1.5 : r*3.0;
-            const waviness = (style.includes('curly')) ? 15*s : 5*s;
 
-            for(let i=0; i<numLayers; i++) {
-                const w = r * (1.2 - i*0.1);
-                const l = len * (0.8 + seededRandom(seed+i)*0.4);
+        ctx.putImageData(idata, 0, 0);
 
-                ctx.beginPath();
-                ctx.moveTo(cx, cy - r*0.5);
-                ctx.bezierCurveTo(cx - w - waviness, cy + l*0.3, cx - w + waviness, cy + l*0.6, cx - w*0.5, cy + l);
-                ctx.lineTo(cx + w*0.5, cy + l);
-                ctx.bezierCurveTo(cx + w - waviness, cy + l*0.6, cx + w + waviness, cy + l*0.3, cx, cy - r*0.5);
-                ctx.fill();
+        // 2. Tint with User Color
+        const tintCvs = document.createElement('canvas');
+        tintCvs.width = cellW;
+        tintCvs.height = cellH;
+        const tCtx = tintCvs.getContext('2d');
+
+        // Draw User Color base
+        tCtx.fillStyle = color;
+        tCtx.fillRect(0, 0, cellW, cellH);
+
+        // Multiply grayscale texture on top
+        tCtx.globalCompositeOperation = 'multiply';
+        tCtx.drawImage(cvs, 0, 0);
+
+        // Mask out the transparent areas (restore alpha from source)
+        tCtx.globalCompositeOperation = 'destination-in';
+        tCtx.drawImage(cvs, 0, 0);
+
+        g_hairSpriteCache.set(key, tintCvs);
+        return tintCvs;
+    }
+
+    function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
+        if (!playerData.currentHair && !skinObj.hairStyle) return;
+        if (skinObj.headDetail === 'mohawk' || skinObj.headDetail === 'afro') return;
+
+        // Use skin hair style or player default
+        const hairId = skinObj.hairStyle || playerData.currentHair;
+
+        // Find hair data
+        let hairData = HAIRSTYLES.find(h => h.id === hairId);
+        // Fallback
+        if (!hairData) hairData = HAIRSTYLES[0];
+
+        // Handle Bald
+        if (hairId === 'bald_clean') return;
+        if (hairId === 'bald_stubble') {
+             ctx.fillStyle = 'rgba(0,0,0,0.1)';
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+             return;
+        }
+
+        if (hairData.sheet !== undefined) {
+            const hairColor = skinObj.hairColor || '#000000';
+            const sprite = getHairSprite(hairData.sheet, hairData.index, hairColor);
+
+            if (sprite) {
+                // Position Adjustment
+                // We assume sprite is centered on head.
+                const finalW = 120 * s;
+                const finalH = 120 * s;
+
+                // Center align
+                ctx.drawImage(sprite, p.x - finalW/2, headY - finalH * 0.45, finalW, finalH);
             }
         }
     }
+
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {

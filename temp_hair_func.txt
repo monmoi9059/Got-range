@@ -1,0 +1,23 @@
+    function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
+        const style = skinObj.hairStyle || 'bald_clean';
+        if (style === 'bald_clean') return;
+
+        const color = skinObj.hairColor || '#000';
+        const color2 = skinObj.hairColor2 || color;
+        const cx = p.x;
+        const cy = headY;
+        const r = headRadius;
+
+        // Seed
+        let seed = 0;
+        const seedStr = (skinObj.id || 'default') + style;
+        for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+
+        const seededRandom = (offset) => {
+            const x = Math.sin(seed + offset) * 10000;
+            return x - Math.floor(x);
+        };
+
+        // --- HELPERS ---
+        const drawLock = (x, y, w, h, curveX) => {
+            ctx.fillStyle = color;

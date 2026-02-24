@@ -2549,77 +2549,157 @@ for(var k=0; k<12; k++) {
         }
     };
 
+    var HAIRSTYLE_SHEETS = [
+        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_10x8pf10x8pf10x8.png?raw=true',
+        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_3ko8rr3ko8rr3ko8.png?raw=true',
+        'https://github.com/monmoi9059/Got-range/blob/main/Gemini_Generated_Image_bok9y1bok9y1bok9.png?raw=true'
+    ];
+
     var HAIRSTYLES = [
-        { id: 'default', name: 'Par Défaut', cost: 0 },
-        { id: 'bald_clean', name: 'Clean Shave', cost: 0 },
-        { id: 'bald_stubble', name: 'Stubble', cost: 0 },
-        { id: 'buzz_cut', name: 'Buzz Cut', cost: 0 },
-        { id: 'buzz_colored', name: 'The Worm', cost: 0 },
-        { id: 'fade_retro', name: '80s Fade', cost: 0 },
-        { id: 'fade_box', name: 'Flat Top', cost: 0 },
-        { id: 'fade_high', name: 'High Fade', cost: 0 },
-        { id: 'fade_king', name: 'King\'s Crown', cost: 0 },
-        { id: 'fade_chef', name: 'Chef Fade', cost: 0 },
-        { id: 'curls_textured', name: 'Textured Curls', cost: 0 },
-        { id: 'afro_mini', name: 'Mini Fro', cost: 0 },
-        { id: 'afro_70s', name: 'Classic Afro', cost: 0 },
-        { id: 'cornrows_straight', name: 'The Answer', cost: 0 },
-        { id: 'cornrows_braids', name: 'Braided Rows', cost: 0 },
-        { id: 'braids_box', name: 'Box Braids', cost: 0 },
-        { id: 'dreads_long', name: 'Dreads', cost: 0 },
-        { id: 'dreads_tied', name: 'Tied Dreads', cost: 0 },
-        { id: 'mullet_80s', name: 'Legend Mullet', cost: 0 },
-        { id: 'long_flow', name: 'Euro Flow', cost: 0 },
-        { id: 'slicked_back', name: 'The Anchor', cost: 0 },
-        { id: 'mohawk_fade', name: 'Beard & Hawk', cost: 0 },
-        { id: 'top_knot', name: 'Top Knot', cost: 0 },
-        { id: 'crew_messy', name: 'Messy Crew', cost: 0 },
-        { id: 'fade_pompadour', name: 'Luka Pomp', cost: 0 },
-        { id: 'anchor_man_80s', name: 'The Newsman', cost: 0 },
-        { id: 'fade_low', name: 'Low Fade', cost: 0 },
-        { id: 'waves_360', name: '360 Waves', cost: 0 },
-        { id: 'dreads_short', name: 'Short Dreads', cost: 0 },
-        { id: 'afro_taper', name: 'Tapered Fro', cost: 0 },
-        { id: 'braids_zigzag', name: 'Zig-Zag Braids', cost: 0 },
-        { id: 'slick_side_part', name: 'Gentleman', cost: 0 },
-        { id: 'mohawk_short', name: 'Mini Hawk', cost: 0 },
-        { id: 'caesar_cut', name: 'Caesar', cost: 0 },
-        { id: 'buzz_line', name: 'Buzz + Line', cost: 0 },
-        { id: 'curly_top_fade', name: 'Curly Top', cost: 0 },
-        { id: 'shaggy_top', name: 'Messy Shag', cost: 0 },
-        { id: 'side_swept_fringe', name: 'Emo Bangs', cost: 0 },
-        { id: 'surfer_flow', name: 'Surfer', cost: 0 },
-        { id: 'ivy_league', name: 'Ivy League', cost: 0 },
-        { id: 'undercut_slick', name: 'Undercut', cost: 0 },
-        // Medium Hairstyles
-        { id: 'med_bob', name: 'Classic Bob', cost: 0 },
-        { id: 'med_shag', name: 'The Shag', cost: 0 },
-        { id: 'med_curtain', name: 'Curtain Bangs', cost: 0 },
-        { id: 'med_wolf', name: 'Wolf Cut', cost: 0 },
-        { id: 'med_wavy', name: 'Wavy Shoulder', cost: 0 },
-        { id: 'med_curly', name: 'Curly Shoulder', cost: 0 },
-        { id: 'med_twist', name: 'Twist Out', cost: 0 },
-        { id: 'med_braids', name: 'Medium Braids', cost: 0 },
-        { id: 'med_slick', name: 'Medium Slick', cost: 0 },
-        { id: 'med_bedhead', name: 'Bedhead', cost: 0 },
-        { id: 'med_bun', name: 'Half-Up Bun', cost: 0 },
-        { id: 'med_undercut', name: 'Long Undercut', cost: 0 },
-        // New Revamped Styles
-        { id: 'bun_messy', name: 'Messy Bun', cost: 0 },
-        { id: 'bun_low', name: 'Low Bun', cost: 0 },
-        { id: 'bun_double', name: 'Space Buns', cost: 0 },
-        { id: 'ponytail_high', name: 'High Pony', cost: 0 },
-        { id: 'ponytail_low', name: 'Low Pony', cost: 0 },
-        { id: 'pigtails_braided', name: 'Braided Pigtails', cost: 0 },
-        { id: 'afro_puffs', name: 'Afro Puffs', cost: 0 },
-        { id: 'bantu_knots', name: 'Bantu Knots', cost: 0 },
-        { id: 'braids_micro', name: 'Micro Braids', cost: 0 },
-        { id: 'locs_long', name: 'Long Locs', cost: 0 },
-        { id: 'locs_medium', name: 'Medium Locs', cost: 0 },
-        { id: 'pixie_cut', name: 'Pixie Cut', cost: 0 },
-        { id: 'side_shave', name: 'Side Shave', cost: 0 },
-        { id: 'twist_sponge', name: 'Sponge Twists', cost: 0 },
-        { id: 'mohawk_spiky', name: 'Spiky Mohawk', cost: 0 }
+        { id: 'default', name: 'Default', cost: 0, sheet: 0, index: 0 },
+        { id: 'bald_clean', name: 'Bald Clean', cost: 0, sheet: 0, index: 1 },
+        { id: 'bald_stubble', name: 'Bald Stubble', cost: 0, sheet: 0, index: 2 },
+        { id: 'buzz_cut', name: 'Buzz Cut', cost: 0, sheet: 0, index: 3 },
+        { id: 'buzz_colored', name: 'Buzz Colored', cost: 0, sheet: 0, index: 4 },
+        { id: 'fade_retro', name: 'Fade Retro', cost: 0, sheet: 0, index: 5 },
+        { id: 'fade_box', name: 'Fade Box', cost: 0, sheet: 0, index: 6 },
+        { id: 'fade_high', name: 'Fade High', cost: 0, sheet: 0, index: 7 },
+        { id: 'fade_king', name: 'Fade King', cost: 0, sheet: 0, index: 8 },
+        { id: 'fade_chef', name: 'Fade Chef', cost: 0, sheet: 0, index: 9 },
+        { id: 'curls_textured', name: 'Curls Textured', cost: 0, sheet: 0, index: 10 },
+        { id: 'afro_mini', name: 'Afro Mini', cost: 0, sheet: 0, index: 11 },
+        { id: 'afro_70s', name: 'Afro 70S', cost: 0, sheet: 0, index: 12 },
+        { id: 'cornrows_straight', name: 'Cornrows Straight', cost: 0, sheet: 0, index: 13 },
+        { id: 'cornrows_braids', name: 'Cornrows Braids', cost: 0, sheet: 0, index: 14 },
+        { id: 'braids_box', name: 'Braids Box', cost: 0, sheet: 0, index: 15 },
+        { id: 'dreads_long', name: 'Dreads Long', cost: 0, sheet: 0, index: 16 },
+        { id: 'dreads_tied', name: 'Dreads Tied', cost: 0, sheet: 0, index: 17 },
+        { id: 'mullet_80s', name: 'Mullet 80S', cost: 0, sheet: 0, index: 18 },
+        { id: 'long_flow', name: 'Long Flow', cost: 0, sheet: 0, index: 19 },
+        { id: 'slicked_back', name: 'Slicked Back', cost: 0, sheet: 0, index: 20 },
+        { id: 'mohawk_fade', name: 'Mohawk Fade', cost: 0, sheet: 0, index: 21 },
+        { id: 'top_knot', name: 'Top Knot', cost: 0, sheet: 0, index: 22 },
+        { id: 'crew_messy', name: 'Crew Messy', cost: 0, sheet: 0, index: 23 },
+        { id: 'fade_pompadour', name: 'Fade Pompadour', cost: 0, sheet: 0, index: 24 },
+        { id: 'anchor_man_80s', name: 'Anchor Man 80S', cost: 0, sheet: 0, index: 25 },
+        { id: 'fade_low', name: 'Fade Low', cost: 0, sheet: 0, index: 26 },
+        { id: 'waves_360', name: 'Waves 360', cost: 0, sheet: 0, index: 27 },
+        { id: 'dreads_short', name: 'Dreads Short', cost: 0, sheet: 0, index: 28 },
+        { id: 'afro_taper', name: 'Afro Taper', cost: 0, sheet: 0, index: 29 },
+        { id: 'braids_zigzag', name: 'Braids Zigzag', cost: 0, sheet: 0, index: 30 },
+        { id: 'slick_side_part', name: 'Slick Side Part', cost: 0, sheet: 0, index: 31 },
+        { id: 'mohawk_short', name: 'Mohawk Short', cost: 0, sheet: 0, index: 32 },
+        { id: 'caesar_cut', name: 'Caesar Cut', cost: 0, sheet: 0, index: 33 },
+        { id: 'buzz_line', name: 'Buzz Line', cost: 0, sheet: 0, index: 34 },
+        { id: 'curly_top_fade', name: 'Curly Top Fade', cost: 0, sheet: 0, index: 35 },
+        { id: 'shaggy_top', name: 'Shaggy Top', cost: 0, sheet: 0, index: 36 },
+        { id: 'side_swept_fringe', name: 'Side Swept Fringe', cost: 0, sheet: 0, index: 37 },
+        { id: 'surfer_flow', name: 'Surfer Flow', cost: 0, sheet: 0, index: 38 },
+        { id: 'ivy_league', name: 'Ivy League', cost: 0, sheet: 0, index: 39 },
+        { id: 'undercut_slick', name: 'Undercut Slick', cost: 0, sheet: 0, index: 40 },
+        { id: 'med_bob', name: 'Med Bob', cost: 0, sheet: 0, index: 41 },
+        { id: 'med_shag', name: 'Med Shag', cost: 0, sheet: 0, index: 42 },
+        { id: 'med_curtain', name: 'Med Curtain', cost: 0, sheet: 0, index: 43 },
+        { id: 'med_wolf', name: 'Med Wolf', cost: 0, sheet: 0, index: 44 },
+        { id: 'med_wavy', name: 'Med Wavy', cost: 0, sheet: 0, index: 45 },
+        { id: 'med_curly', name: 'Med Curly', cost: 0, sheet: 0, index: 46 },
+        { id: 'med_twist', name: 'Med Twist', cost: 0, sheet: 0, index: 47 },
+        { id: 'med_braids', name: 'Med Braids', cost: 0, sheet: 1, index: 0 },
+        { id: 'med_slick', name: 'Med Slick', cost: 0, sheet: 1, index: 1 },
+        { id: 'med_bedhead', name: 'Med Bedhead', cost: 0, sheet: 1, index: 2 },
+        { id: 'med_bun', name: 'Med Bun', cost: 0, sheet: 1, index: 3 },
+        { id: 'med_undercut', name: 'Med Undercut', cost: 0, sheet: 1, index: 4 },
+        { id: 'bun_messy', name: 'Bun Messy', cost: 0, sheet: 1, index: 5 },
+        { id: 'bun_low', name: 'Bun Low', cost: 0, sheet: 1, index: 6 },
+        { id: 'bun_double', name: 'Bun Double', cost: 0, sheet: 1, index: 7 },
+        { id: 'ponytail_high', name: 'Ponytail High', cost: 0, sheet: 1, index: 8 },
+        { id: 'ponytail_low', name: 'Ponytail Low', cost: 0, sheet: 1, index: 9 },
+        { id: 'pigtails_braided', name: 'Pigtails Braided', cost: 0, sheet: 1, index: 10 },
+        { id: 'afro_puffs', name: 'Afro Puffs', cost: 0, sheet: 1, index: 11 },
+        { id: 'bantu_knots', name: 'Bantu Knots', cost: 0, sheet: 1, index: 12 },
+        { id: 'braids_micro', name: 'Braids Micro', cost: 0, sheet: 1, index: 13 },
+        { id: 'locs_long', name: 'Locs Long', cost: 0, sheet: 1, index: 14 },
+        { id: 'locs_medium', name: 'Locs Medium', cost: 0, sheet: 1, index: 15 },
+        { id: 'pixie_cut', name: 'Pixie Cut', cost: 0, sheet: 1, index: 16 },
+        { id: 'side_shave', name: 'Side Shave', cost: 0, sheet: 1, index: 17 },
+        { id: 'twist_sponge', name: 'Twist Sponge', cost: 0, sheet: 1, index: 18 },
+        { id: 'mohawk_spiky', name: 'Mohawk Spiky', cost: 0, sheet: 1, index: 19 },
+        { id: 'new_style_68', name: 'Style 68', cost: 0, sheet: 1, index: 20 },
+        { id: 'new_style_69', name: 'Style 69', cost: 0, sheet: 1, index: 21 },
+        { id: 'new_style_70', name: 'Style 70', cost: 0, sheet: 1, index: 22 },
+        { id: 'new_style_71', name: 'Style 71', cost: 0, sheet: 1, index: 23 },
+        { id: 'new_style_72', name: 'Style 72', cost: 0, sheet: 1, index: 24 },
+        { id: 'new_style_73', name: 'Style 73', cost: 0, sheet: 1, index: 25 },
+        { id: 'new_style_74', name: 'Style 74', cost: 0, sheet: 1, index: 26 },
+        { id: 'new_style_75', name: 'Style 75', cost: 0, sheet: 1, index: 27 },
+        { id: 'new_style_76', name: 'Style 76', cost: 0, sheet: 1, index: 28 },
+        { id: 'new_style_77', name: 'Style 77', cost: 0, sheet: 1, index: 29 },
+        { id: 'new_style_78', name: 'Style 78', cost: 0, sheet: 1, index: 30 },
+        { id: 'new_style_79', name: 'Style 79', cost: 0, sheet: 1, index: 31 },
+        { id: 'new_style_80', name: 'Style 80', cost: 0, sheet: 1, index: 32 },
+        { id: 'new_style_81', name: 'Style 81', cost: 0, sheet: 1, index: 33 },
+        { id: 'new_style_82', name: 'Style 82', cost: 0, sheet: 1, index: 34 },
+        { id: 'new_style_83', name: 'Style 83', cost: 0, sheet: 1, index: 35 },
+        { id: 'new_style_84', name: 'Style 84', cost: 0, sheet: 1, index: 36 },
+        { id: 'new_style_85', name: 'Style 85', cost: 0, sheet: 1, index: 37 },
+        { id: 'new_style_86', name: 'Style 86', cost: 0, sheet: 1, index: 38 },
+        { id: 'new_style_87', name: 'Style 87', cost: 0, sheet: 1, index: 39 },
+        { id: 'new_style_88', name: 'Style 88', cost: 0, sheet: 1, index: 40 },
+        { id: 'new_style_89', name: 'Style 89', cost: 0, sheet: 1, index: 41 },
+        { id: 'new_style_90', name: 'Style 90', cost: 0, sheet: 1, index: 42 },
+        { id: 'new_style_91', name: 'Style 91', cost: 0, sheet: 1, index: 43 },
+        { id: 'new_style_92', name: 'Style 92', cost: 0, sheet: 1, index: 44 },
+        { id: 'new_style_93', name: 'Style 93', cost: 0, sheet: 1, index: 45 },
+        { id: 'new_style_94', name: 'Style 94', cost: 0, sheet: 1, index: 46 },
+        { id: 'new_style_95', name: 'Style 95', cost: 0, sheet: 1, index: 47 },
+        { id: 'new_style_96', name: 'Style 96', cost: 0, sheet: 2, index: 0 },
+        { id: 'new_style_97', name: 'Style 97', cost: 0, sheet: 2, index: 1 },
+        { id: 'new_style_98', name: 'Style 98', cost: 0, sheet: 2, index: 2 },
+        { id: 'new_style_99', name: 'Style 99', cost: 0, sheet: 2, index: 3 },
+        { id: 'new_style_100', name: 'Style 100', cost: 0, sheet: 2, index: 4 },
+        { id: 'new_style_101', name: 'Style 101', cost: 0, sheet: 2, index: 5 },
+        { id: 'new_style_102', name: 'Style 102', cost: 0, sheet: 2, index: 6 },
+        { id: 'new_style_103', name: 'Style 103', cost: 0, sheet: 2, index: 7 },
+        { id: 'new_style_104', name: 'Style 104', cost: 0, sheet: 2, index: 8 },
+        { id: 'new_style_105', name: 'Style 105', cost: 0, sheet: 2, index: 9 },
+        { id: 'new_style_106', name: 'Style 106', cost: 0, sheet: 2, index: 10 },
+        { id: 'new_style_107', name: 'Style 107', cost: 0, sheet: 2, index: 11 },
+        { id: 'new_style_108', name: 'Style 108', cost: 0, sheet: 2, index: 12 },
+        { id: 'new_style_109', name: 'Style 109', cost: 0, sheet: 2, index: 13 },
+        { id: 'new_style_110', name: 'Style 110', cost: 0, sheet: 2, index: 14 },
+        { id: 'new_style_111', name: 'Style 111', cost: 0, sheet: 2, index: 15 },
+        { id: 'new_style_112', name: 'Style 112', cost: 0, sheet: 2, index: 16 },
+        { id: 'new_style_113', name: 'Style 113', cost: 0, sheet: 2, index: 17 },
+        { id: 'new_style_114', name: 'Style 114', cost: 0, sheet: 2, index: 18 },
+        { id: 'new_style_115', name: 'Style 115', cost: 0, sheet: 2, index: 19 },
+        { id: 'new_style_116', name: 'Style 116', cost: 0, sheet: 2, index: 20 },
+        { id: 'new_style_117', name: 'Style 117', cost: 0, sheet: 2, index: 21 },
+        { id: 'new_style_118', name: 'Style 118', cost: 0, sheet: 2, index: 22 },
+        { id: 'new_style_119', name: 'Style 119', cost: 0, sheet: 2, index: 23 },
+        { id: 'new_style_120', name: 'Style 120', cost: 0, sheet: 2, index: 24 },
+        { id: 'new_style_121', name: 'Style 121', cost: 0, sheet: 2, index: 25 },
+        { id: 'new_style_122', name: 'Style 122', cost: 0, sheet: 2, index: 26 },
+        { id: 'new_style_123', name: 'Style 123', cost: 0, sheet: 2, index: 27 },
+        { id: 'new_style_124', name: 'Style 124', cost: 0, sheet: 2, index: 28 },
+        { id: 'new_style_125', name: 'Style 125', cost: 0, sheet: 2, index: 29 },
+        { id: 'new_style_126', name: 'Style 126', cost: 0, sheet: 2, index: 30 },
+        { id: 'new_style_127', name: 'Style 127', cost: 0, sheet: 2, index: 31 },
+        { id: 'new_style_128', name: 'Style 128', cost: 0, sheet: 2, index: 32 },
+        { id: 'new_style_129', name: 'Style 129', cost: 0, sheet: 2, index: 33 },
+        { id: 'new_style_130', name: 'Style 130', cost: 0, sheet: 2, index: 34 },
+        { id: 'new_style_131', name: 'Style 131', cost: 0, sheet: 2, index: 35 },
+        { id: 'new_style_132', name: 'Style 132', cost: 0, sheet: 2, index: 36 },
+        { id: 'new_style_133', name: 'Style 133', cost: 0, sheet: 2, index: 37 },
+        { id: 'new_style_134', name: 'Style 134', cost: 0, sheet: 2, index: 38 },
+        { id: 'new_style_135', name: 'Style 135', cost: 0, sheet: 2, index: 39 },
+        { id: 'new_style_136', name: 'Style 136', cost: 0, sheet: 2, index: 40 },
+        { id: 'new_style_137', name: 'Style 137', cost: 0, sheet: 2, index: 41 },
+        { id: 'new_style_138', name: 'Style 138', cost: 0, sheet: 2, index: 42 },
+        { id: 'new_style_139', name: 'Style 139', cost: 0, sheet: 2, index: 43 },
+        { id: 'new_style_140', name: 'Style 140', cost: 0, sheet: 2, index: 44 },
+        { id: 'new_style_141', name: 'Style 141', cost: 0, sheet: 2, index: 45 },
+        { id: 'new_style_142', name: 'Style 142', cost: 0, sheet: 2, index: 46 },
+        { id: 'new_style_143', name: 'Style 143', cost: 0, sheet: 2, index: 47 }
     ];
 
 // --- END data.js ---
@@ -9628,321 +9708,134 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
-        const style = skinObj.hairStyle || 'bald_clean';
-        if (style === 'bald_clean') return;
+    // --- Hairstyle Sprite System ---
+    const g_hairSpriteCache = new Map(); // Key: "sheet_index_color" -> Canvas
+    const g_hairSheets = [null, null, null]; // Image objects
 
-        const color = skinObj.hairColor || '#000';
-        const color2 = skinObj.hairColor2 || color;
-        const cx = p.x;
-        const cy = headY;
-        const r = headRadius;
+    function getHairSprite(sheetIdx, spriteIdx, color) {
+        // Load sheet if needed
+        if (!g_hairSheets[sheetIdx]) {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = HAIRSTYLE_SHEETS[sheetIdx];
+            g_hairSheets[sheetIdx] = img;
+        }
 
-        // Seed
-        let seed = 0;
-        const seedStr = (skinObj.id || 'default') + style;
-        for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+        const img = g_hairSheets[sheetIdx];
+        if (!img.complete || img.naturalWidth === 0) return null; // Not ready
 
-        const seededRandom = (offset) => {
-            const x = Math.sin(seed + offset) * 10000;
-            return x - Math.floor(x);
-        };
+        const key = `${sheetIdx}_${spriteIdx}_${color}`;
+        if (g_hairSpriteCache.has(key)) return g_hairSpriteCache.get(key);
 
-        // --- HELPERS ---
-        const drawLock = (x, y, w, h, curveX) => {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.quadraticCurveTo(x + curveX, y + h/2, x + w/2, y + h);
-            ctx.quadraticCurveTo(x + curveX - w/2, y + h/2, x - w/2, y);
-            ctx.fill();
-        };
+        // Generate Sprite
+        // Grid: 8 cols, 6 rows.
+        const cols = 8;
+        const rows = 6;
+        const cellW = img.naturalWidth / cols;
+        const cellH = img.naturalHeight / rows;
 
-        const drawBraidLine = (x1, y1, x2, y2, width) => {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1*s;
-            const dist = Math.hypot(x2-x1, y2-y1);
-            const steps = dist / (3*s);
-            for(let i=0; i<steps; i++) {
-                const t = i/steps;
-                const px = x1 + (x2-x1)*t;
-                const py = y1 + (y2-y1)*t;
-                ctx.beginPath(); ctx.arc(px, py, width/2, 0, Math.PI*2); ctx.stroke();
-            }
-        };
+        const col = spriteIdx % cols;
+        const row = Math.floor(spriteIdx / cols);
 
-        const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
-            const modRadius = r * radiusMod;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(cx, cy - 2*s, modRadius, Math.PI, 0);
-            ctx.lineTo(cx + modRadius, cy + lengthMod);
+        // 1. Extract and Mask
+        const cvs = document.createElement('canvas');
+        cvs.width = cellW;
+        cvs.height = cellH;
+        const ctx = cvs.getContext('2d', {willReadFrequently: true});
 
-            if (neckType === 'square') {
-                ctx.lineTo(cx - modRadius, cy + lengthMod);
-            } else if (neckType === 'tapered') {
-                ctx.quadraticCurveTo(cx + modRadius*0.5, cy + lengthMod + 4*s, cx, cy + lengthMod + 6*s);
-                ctx.quadraticCurveTo(cx - modRadius*0.5, cy + lengthMod + 4*s, cx - modRadius, cy + lengthMod);
-            } else if (neckType === 'shaved') {
-                ctx.quadraticCurveTo(cx, cy + lengthMod - 5*s, cx - modRadius, cy + lengthMod);
-            } else { // Natural
-                ctx.quadraticCurveTo(cx, cy + lengthMod + (isBack ? 5*s : 2*s), cx - modRadius, cy + lengthMod);
-            }
-            ctx.lineTo(cx - modRadius, cy - 2*s);
-            ctx.fill();
-        };
+        ctx.drawImage(img, col * cellW, row * cellH, cellW, cellH, 0, 0, cellW, cellH);
 
-        const adjustColor = (col, amt) => {
-            // Simple dummy for now, assuming hex
-            return col;
-        };
+        const idata = ctx.getImageData(0, 0, cellW, cellH);
+        const data = idata.data;
 
-        // --- 1. SHORT / FADES ---
-        if (['buzz_cut', 'fade_high', 'fade_low', 'fade_box', 'caesar_cut', 'waves_360', 'buzz_line', 'buzz_colored', 'anchor_man_80s'].includes(style)) {
+        for(let i=0; i<data.length; i+=4) {
+            const r = data[i];
+            const g = data[i+1];
+            const b = data[i+2];
 
-            // Base Cap
-            if (style === 'buzz_colored') {
-                const pat = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                pat.addColorStop(0, color);
-                pat.addColorStop(0.5, color2);
-                pat.addColorStop(1, color);
-                ctx.fillStyle = pat;
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+            // Heuristic Masking for Gen AI Sprite Sheet
+            let isTransparent = false;
+
+            // Sky Detection (Blue is dominant channel)
+            if (b > r + 20 && b > g + 20 && b > 100) isTransparent = true;
+            // Grass Detection (Green is dominant channel)
+            else if (g > r + 10 && g > b + 10 && g < 180) isTransparent = true;
+            // Shirt (White/Light Grey) - Check high luminosity and low saturation
+            else if (r > 200 && g > 200 && b > 200) isTransparent = true;
+            // Skin (Peach) - R > G > B usually
+            else if (r > 200 && g > 160 && b < 180 && r > b + 40) isTransparent = true;
+
+            if (isTransparent) {
+                data[i+3] = 0;
             } else {
-                drawSolidLayeredBase(1.02, 1*s, color, true, 'natural');
-            }
-
-            if (style.includes('fade')) {
-                const fadeH = (style === 'fade_high' || style === 'fade_box') ? 0.6 : 0.3;
-                const grad = ctx.createLinearGradient(0, cy - r*0.5, 0, cy + r);
-                grad.addColorStop(0, 'rgba(0,0,0,0)');
-                grad.addColorStop(1-fadeH, 'rgba(0,0,0,0)');
-                grad.addColorStop(1, 'rgba(255,255,255,0.8)');
-
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.fillStyle = grad;
-                ctx.beginPath(); ctx.arc(cx, cy, r + 1*s, 0, Math.PI*2); ctx.fill();
-                ctx.globalCompositeOperation = 'source-over';
-            }
-
-            if (style === 'waves_360') {
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                ctx.lineWidth = 2*s;
-                for(let i=1; i<5; i++) {
-                    ctx.beginPath(); ctx.arc(cx, cy - r*0.2, r*0.2*i, 0, Math.PI*2); ctx.stroke();
-                }
-            }
-
-            if (style === 'fade_box' || style === 'anchor_man_80s') {
-                ctx.fillStyle = color;
-                const topH = (style === 'fade_box') ? 15*s : 8*s;
-                ctx.fillRect(cx - r*0.8, cy - r - topH, r*1.6, topH + 5*s);
-            }
-
-            if (style === 'buzz_line') {
-                ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
-                ctx.beginPath(); ctx.moveTo(cx + r*0.5, cy - r*0.2); ctx.lineTo(cx + r*0.9, cy); ctx.stroke();
-            }
-            return;
-        }
-
-        // --- 2. AFROS / PUFFS ---
-        if (['afro_mini', 'afro_70s', 'afro_puffs', 'bantu_knots', 'curls_textured', 'twist_sponge', 'afro_taper'].includes(style)) {
-            const isLarge = style === 'afro_70s';
-            const afroR = isLarge ? r * 1.6 : r * 1.25;
-
-            if (style === 'afro_puffs') {
-                drawFuzzyCircle(cx - r*0.9, cy - r*0.9, r*0.7, color, 200, s, true);
-                drawFuzzyCircle(cx + r*0.9, cy - r*0.9, r*0.7, color, 201, s, true);
-                drawFuzzyCircle(cx, cy, r, color, 202, s, true);
-            }
-            else if (style === 'bantu_knots') {
-                const knotR = 6*s;
-                ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-                const knots = [{x:0, y:-r*0.6}, {x:-r*0.5, y:-r*0.3}, {x:r*0.5, y:-r*0.3}, {x:-r*0.6, y:r*0.2}, {x:r*0.6, y:r*0.2}, {x:0, y:r*0.5}];
-                knots.forEach((k, i) => {
-                    drawFuzzyCircle(cx + k.x, cy + k.y, knotR, color, 210+i, s, true);
-                });
-            }
-            else {
-                const seed = (style === 'curls_textured') ? 300 : 250;
-                if (style === 'afro_taper') {
-                    ctx.save();
-                    ctx.beginPath(); ctx.rect(cx - afroR, cy - afroR*1.5, afroR*2, afroR*1.5); ctx.clip();
-                    drawFuzzyCircle(cx, cy - 5*s, afroR, color, seed, s, true);
-                    ctx.restore();
-                    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI, false); ctx.fill();
-                } else {
-                    drawFuzzyCircle(cx, cy, afroR, color, seed, s, true);
-                }
-
-                if (style === 'twist_sponge') {
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    for(let i=0; i<15; i++) {
-                        const ax = cx + (seededRandom(seed+i)-0.5)*r*1.5;
-                        const ay = cy + (seededRandom(seed+i+50)-0.5)*r*1.5;
-                        ctx.beginPath(); ctx.arc(ax, ay, 2*s, 0, Math.PI*2); ctx.fill();
-                    }
-                }
-            }
-            return;
-        }
-
-        // --- 3. BRAIDS / LOCS ---
-        if (['cornrows_straight', 'cornrows_braids', 'braids_box', 'locs_long', 'locs_medium', 'braids_micro', 'dreads_short', 'dreads_long', 'dreads_tied', 'braids_zigzag'].includes(style)) {
-            ctx.fillStyle = '#1a1a1a'; // Scalp
-            if(skinObj.skinTone) ctx.fillStyle = skinObj.skinTone;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-            const isLong = style.includes('long') || style.includes('box') || style.includes('micro') || style.includes('tied');
-            const thick = (style.includes('dreads') || style.includes('locs')) ? 5*s : 3*s;
-
-            const rows = 7;
-            for(let i=0; i<rows; i++) {
-                const xOff = (i - (rows-1)/2) * (r*0.5);
-
-                if (style === 'braids_zigzag') {
-                    ctx.strokeStyle = color; ctx.lineWidth = thick;
-                    ctx.beginPath();
-                    ctx.moveTo(cx + xOff, cy - r*0.8);
-                    ctx.lineTo(cx + xOff + 5*s, cy);
-                    ctx.lineTo(cx + xOff, cy + r*0.8);
-                    ctx.stroke();
-                }
-                else {
-                    drawBraidLine(cx + xOff + (seededRandom(seed+i)-0.5)*5*s, cy - r*0.8, cx + xOff, cy + r*0.5, thick);
-                }
-
-                if (isLong) {
-                    const len = (style.includes('medium')) ? 30*s : 60*s;
-                    const endX = cx + xOff*1.5 + (seededRandom(seed+i+100)-0.5)*10*s;
-                    if (style === 'dreads_tied') {
-                        drawBraidLine(cx + xOff*1.2, cy + r*0.5, cx + xOff*0.3, cy + r + 10*s, thick);
-                    } else {
-                        drawBraidLine(cx + xOff*1.2, cy + r*0.7, endX, cy + r + len, thick);
-                    }
-                }
-            }
-
-            if (style === 'dreads_tied') {
-                ctx.fillStyle = color2;
-                ctx.fillRect(cx - 10*s, cy + r + 5*s, 20*s, 6*s);
-                for(let k=0; k<5; k++) {
-                    drawBraidLine(cx, cy+r+10*s, cx + (k-2)*8*s, cy+r+50*s, thick);
-                }
-            }
-            return;
-        }
-
-        // --- 4. BUNS / UPDOS ---
-        if (['top_knot', 'med_bun', 'bun_messy', 'bun_low', 'bun_double', 'ponytail_high', 'ponytail_low', 'pigtails_braided'].includes(style)) {
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1*s;
-            ctx.beginPath();
-            for(let i=-2; i<=2; i++) {
-                ctx.moveTo(cx + i*10*s, cy - r*0.5);
-                ctx.quadraticCurveTo(cx + i*5*s, cy, cx, cy - r*0.8);
-            }
-            ctx.stroke();
-
-            if (style === 'top_knot' || style === 'bun_messy') {
-                const by = cy - r*0.8;
-                const bSize = (style === 'bun_messy') ? 14*s : 10*s;
-                if (style === 'bun_messy') drawFuzzyCircle(cx, by, bSize, color, 400, s, true);
-                else {
-                    ctx.beginPath(); ctx.arc(cx, by, bSize, 0, Math.PI*2); ctx.fill();
-                }
-                ctx.fillStyle = color2; ctx.fillRect(cx - 6*s, by + bSize*0.8, 12*s, 4*s);
-            }
-            else if (style === 'bun_low' || style === 'med_bun') {
-                drawFuzzyCircle(cx, cy + r*0.5, 12*s, color, 401, s, true);
-            }
-            else if (style === 'bun_double' || style === 'afro_puffs') {
-                const offX = r * 0.8;
-                const offY = r * 0.8;
-                const size = 12*s;
-                ctx.fillStyle = color;
-                ctx.beginPath(); ctx.arc(cx - offX, cy - offY, size, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(cx + offX, cy - offY, size, 0, Math.PI*2); ctx.fill();
-            }
-            else if (style.includes('ponytail')) {
-                const py = (style === 'ponytail_high') ? cy - r*0.5 : cy + r*0.5;
-                ctx.fillStyle = color2; ctx.fillRect(cx - 5*s, py - 3*s, 10*s, 6*s);
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.moveTo(cx, py);
-                const len = 50*s;
-                ctx.quadraticCurveTo(cx - 20*s, py + len/2, cx - 5*s, py + len);
-                ctx.quadraticCurveTo(cx + 20*s, py + len/2, cx, py);
-                ctx.fill();
-            }
-            else if (style === 'pigtails_braided') {
-                [-1, 1].forEach(dir => {
-                    const sx = cx + dir * r * 0.6;
-                    const sy = cy + r * 0.5;
-                    ctx.fillStyle = color2; ctx.fillRect(sx - 3*s, sy - 3*s, 6*s, 6*s);
-                    drawBraidLine(sx, sy, sx + dir*20*s, sy + 40*s, 6*s);
-                });
-            }
-            return;
-        }
-
-        // --- 5. LONG / FLOWING ---
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-
-        if (style === 'pixie_cut') {
-            for(let i=0; i<8; i++) {
-                drawLock(cx + (i-4)*6*s, cy - r*0.5, 4*s, r, (i%2===0?5:-5)*s);
+                // Convert hair to grayscale luminance for tinting
+                const lum = 0.299*r + 0.587*g + 0.114*b;
+                data[i] = lum;
+                data[i+1] = lum;
+                data[i+2] = lum;
             }
         }
-        else if (style === 'side_shave') {
-            const grad = ctx.createLinearGradient(cx, cy, cx + r, cy);
-            grad.addColorStop(0, color);
-            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(cx, cy, r+1, 0, Math.PI*2); ctx.fill();
-            drawLock(cx - r*0.5, cy - r*0.8, 20*s, 50*s, -10*s);
-        }
-        else if (style === 'med_bob') {
-            ctx.beginPath();
-            ctx.moveTo(cx - r, cy);
-            ctx.lineTo(cx - r*1.1, cy + r*1.2);
-            ctx.quadraticCurveTo(cx, cy + r*1.3, cx + r*1.1, cy + r*1.2);
-            ctx.lineTo(cx + r, cy);
-            ctx.fill();
-        }
-        else if (style === 'mullet_80s') {
-            drawFuzzyCircle(cx, cy - r*0.5, r*0.8, color, 500, s, true);
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.moveTo(cx - r*0.8, cy); ctx.lineTo(cx - r*0.6, cy + r*2.0); ctx.lineTo(cx + r*0.6, cy + r*2.0); ctx.lineTo(cx + r*0.8, cy); ctx.fill();
-        }
-        else if (style === 'fade_pompadour' || style === 'slicked_back') {
-            ctx.beginPath(); ctx.moveTo(cx - r*0.8, cy); ctx.quadraticCurveTo(cx, cy - r*1.8, cx + r*0.8, cy); ctx.fill();
-        }
-        else {
-            const numLayers = (style === 'med_wavy') ? 3 : 5;
-            const len = (style === 'med_wavy') ? r*1.5 : r*3.0;
-            const waviness = (style.includes('curly')) ? 15*s : 5*s;
 
-            for(let i=0; i<numLayers; i++) {
-                const w = r * (1.2 - i*0.1);
-                const l = len * (0.8 + seededRandom(seed+i)*0.4);
+        ctx.putImageData(idata, 0, 0);
 
-                ctx.beginPath();
-                ctx.moveTo(cx, cy - r*0.5);
-                ctx.bezierCurveTo(cx - w - waviness, cy + l*0.3, cx - w + waviness, cy + l*0.6, cx - w*0.5, cy + l);
-                ctx.lineTo(cx + w*0.5, cy + l);
-                ctx.bezierCurveTo(cx + w - waviness, cy + l*0.6, cx + w + waviness, cy + l*0.3, cx, cy - r*0.5);
-                ctx.fill();
+        // 2. Tint with User Color
+        const tintCvs = document.createElement('canvas');
+        tintCvs.width = cellW;
+        tintCvs.height = cellH;
+        const tCtx = tintCvs.getContext('2d');
+
+        // Draw User Color base
+        tCtx.fillStyle = color;
+        tCtx.fillRect(0, 0, cellW, cellH);
+
+        // Multiply grayscale texture on top
+        tCtx.globalCompositeOperation = 'multiply';
+        tCtx.drawImage(cvs, 0, 0);
+
+        // Mask out the transparent areas (restore alpha from source)
+        tCtx.globalCompositeOperation = 'destination-in';
+        tCtx.drawImage(cvs, 0, 0);
+
+        g_hairSpriteCache.set(key, tintCvs);
+        return tintCvs;
+    }
+
+    function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
+        if (!playerData.currentHair && !skinObj.hairStyle) return;
+        if (skinObj.headDetail === 'mohawk' || skinObj.headDetail === 'afro') return;
+
+        // Use skin hair style or player default
+        const hairId = skinObj.hairStyle || playerData.currentHair;
+
+        // Find hair data
+        let hairData = HAIRSTYLES.find(h => h.id === hairId);
+        // Fallback
+        if (!hairData) hairData = HAIRSTYLES[0];
+
+        // Handle Bald
+        if (hairId === 'bald_clean') return;
+        if (hairId === 'bald_stubble') {
+             ctx.fillStyle = 'rgba(0,0,0,0.1)';
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
+             return;
+        }
+
+        if (hairData.sheet !== undefined) {
+            const hairColor = skinObj.hairColor || '#000000';
+            const sprite = getHairSprite(hairData.sheet, hairData.index, hairColor);
+
+            if (sprite) {
+                // Position Adjustment
+                // We assume sprite is centered on head.
+                const finalW = 120 * s;
+                const finalH = 120 * s;
+
+                // Center align
+                ctx.drawImage(sprite, p.x - finalW/2, headY - finalH * 0.45, finalW, finalH);
             }
         }
     }
+
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
