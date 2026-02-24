@@ -2822,6 +2822,15 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
                  }
              }
+             else if (pat === 'spots') {
+                 ctx.fillStyle = options.spotColor || '#000';
+                 for(let i=0; i<12; i++) {
+                     const sx = cx - w/2 + (Math.abs(Math.sin(seed * 11 + i * 37)) * w);
+                     const sy = topY + (Math.abs(Math.cos(seed * 5 + i * 23)) * h);
+                     const r = (3 + (Math.abs(Math.sin(i)) * 6)) * s;
+                     ctx.beginPath(); ctx.ellipse(sx, sy, r, r*0.8, 0, 0, Math.PI*2); ctx.fill();
+                 }
+             }
              else if (pat === 'stripes_side') {
                  const sc = options.sideStripesColor || options.chestStripeColor || '#FFF';
                  const lw = 1.5*s;
@@ -8279,17 +8288,19 @@ var BallRenderer = {
 
         // Define Body Shapes for Animals
         if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
-        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
+        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey', 'chicken'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'oval'; // Small animals
         }
-        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
+        else if (['dog', 'wolf', 'lion', 'tiger', 'zebra', 'dino'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
         }
-        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
+        else if (['pig', 'cow', 'moose', 'elephant'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'round'; // Chunky
             bodyOptions.waistScale = 1.1;
             bodyOptions.roundness = 0.2;
+            if (currentAnimal === 'elephant') bodyOptions.bodyShape = 'heavy';
         }
+        else if (currentAnimal === 'giraffe') { bodyOptions.bodyShape = 'giraffe'; }
 
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
 
@@ -8591,6 +8602,17 @@ var BallRenderer = {
                  ctx.fill();
              });
         }
+        else if (currentAnimal === 'zebra') {
+             drawEarPair(() => {
+                 // Horse Ears (Upright, pointed)
+                 ctx.beginPath();
+                 ctx.moveTo(-6*s, -10*s);
+                 ctx.lineTo(-8*s, -22*s);
+                 ctx.quadraticCurveTo(-5*s, -25*s, -2*s, -22*s);
+                 ctx.lineTo(-4*s, -10*s);
+                 ctx.fill();
+             });
+        }
         else if (currentAnimal === 'rabbit') {
              drawEarPair(() => {
                  // Elongated, correct width-to-height
@@ -8825,6 +8847,26 @@ var BallRenderer = {
         }
 
         // Head Details
+        if(skinObj.headDetail === 'comb') {
+             ctx.fillStyle = '#FF0000';
+             // Rooster Comb
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY - headRadius);
+             ctx.quadraticCurveTo(p.x - 8*s, headY - headRadius - 10*s, p.x - 2*s, headY - headRadius - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - headRadius - 12*s, p.x + 2*s, headY - headRadius - 5*s);
+             ctx.quadraticCurveTo(p.x + 8*s, headY - headRadius - 10*s, p.x + 5*s, headY - headRadius);
+             ctx.fill();
+        }
+        if(skinObj.headDetail === 'trunk') {
+             // Elephant Trunk (Curled)
+             ctx.fillStyle = furColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 4*s, headY + 5*s);
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 25*s, p.x + 10*s, headY + 20*s); // Curl right
+             ctx.lineTo(p.x + 10*s, headY + 25*s);
+             ctx.quadraticCurveTo(p.x, headY + 30*s, p.x + 4*s, headY + 5*s);
+             ctx.fill();
+        }
         if(skinObj.headDetail === 'antenna') {
              ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
