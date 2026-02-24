@@ -6231,6 +6231,128 @@ var BallRenderer = {
             return;
         }
 
+        if (style === 'spiky_messy') {
+             // Spiky Messy (LaMelo style)
+             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -10), true);
+             ctx.fillStyle = hairColor;
+
+             // Random Spikes sticking out everywhere
+             const seed = skinObj.id ? skinObj.id.length : 5;
+             const count = 25;
+             for(let i=0; i<count; i++) {
+                 const angle = (i/count) * Math.PI + Math.PI; // Top arc
+                 const rBase = headRadius * 0.9;
+                 const rTip = headRadius * (1.2 + (seededRandom(seed+i)*0.4)); // Random lengths
+
+                 const bx = p.x + Math.cos(angle) * rBase;
+                 const by = headY - 5*s + Math.sin(angle) * rBase;
+
+                 // Jitter angle
+                 const aTip = angle + (seededRandom(seed+i+100)-0.5)*0.3;
+                 const tx = p.x + Math.cos(aTip) * rTip;
+                 const ty = headY - 5*s + Math.sin(aTip) * rTip;
+
+                 ctx.beginPath();
+                 ctx.moveTo(bx - 3*s, by);
+                 ctx.lineTo(tx, ty);
+                 ctx.lineTo(bx + 3*s, by);
+                 ctx.fill();
+             }
+             return;
+        }
+
+        if (style === 'man_bun') {
+             // Shaved Sides / Undercut Base
+             const skinTone = skinObj.skinTone || '#8d5524';
+             const fadeColor = adjustColor(hairColor, 30); // Lighter for fade
+
+             // Draw Head shape with fade
+             drawSolidLayeredBase(1.0, 0, fadeColor, true, 'natural');
+
+             // Top Knot Bun
+             ctx.fillStyle = hairColor;
+             const bunY = headY - headRadius;
+             const bunR = 8 * s;
+
+             // The Bun itself
+             ctx.beginPath();
+             ctx.arc(p.x, bunY, bunR, 0, Math.PI*2);
+             ctx.fill();
+
+             // Texture/Detail on bun (Swirl)
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 1.5*s;
+             ctx.beginPath();
+             ctx.arc(p.x, bunY, bunR*0.6, 0, Math.PI*2);
+             ctx.stroke();
+
+             return;
+        }
+
+        if (style === 'twist_sponge') {
+             // Afro Base with Texture
+             const r = headRadius * 1.2;
+             ctx.fillStyle = hairColor;
+
+             // Draw Base Mass
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 5*s, r, Math.PI, 0); // Top half
+             ctx.lineTo(p.x + r, headY + 5*s);
+             ctx.lineTo(p.x - r, headY + 5*s);
+             ctx.fill();
+
+             // Draw "Twist" Texture (Circles)
+             ctx.fillStyle = adjustColor(hairColor, -15); // Darker pockets
+             const seed = 44;
+             for(let i=0; i<30; i++) {
+                 const rx = (seededRandom(seed+i) - 0.5) * r * 1.8;
+                 const ry = (seededRandom(seed+i+50) - 0.5) * r * 1.2 - 5*s;
+                 // Cull if outside radius
+                 if (rx*rx + ry*ry < r*r) {
+                     ctx.beginPath();
+                     ctx.arc(p.x + rx, headY + ry, 2.5*s, 0, Math.PI*2);
+                     ctx.fill();
+                 }
+             }
+             return;
+        }
+
+        if (style === 'braids_long_loose') {
+             // Jimmy Butler / Ja Morant loose braids
+             drawSolidLayeredBase(1.02, 0, hairColor, true);
+
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 3.5 * s;
+             ctx.lineCap = 'round';
+
+             const seed = 77;
+             const count = 12;
+
+             for(let i=0; i<count; i++) {
+                 // Start from scalp
+                 const angle = Math.PI + (i/count)*Math.PI;
+                 const sx = p.x + Math.cos(angle) * headRadius * 0.8;
+                 const sy = headY - 5*s + Math.sin(angle) * headRadius * 0.8;
+
+                 // Hang down loose
+                 const len = (25 + seededRandom(seed+i)*15) * s;
+                 const sway = (Math.sin(i)*10) * s;
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 ctx.bezierCurveTo(sx + sway, sy + len*0.3, sx - sway, sy + len*0.6, sx + sway*0.5, sy + len);
+                 ctx.stroke();
+
+                 // Highlight
+                 ctx.save();
+                 ctx.lineWidth = 1*s;
+                 ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                 ctx.stroke();
+                 ctx.restore();
+             }
+             return;
+        }
+
         // --- 7. MEDIUM STYLES ---
         if (style === 'med_bob') {
              // Classic Bob: Shoulder length, rounded bottom, straight

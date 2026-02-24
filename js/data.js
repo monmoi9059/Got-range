@@ -1429,6 +1429,10 @@
         { id: 'ivy_league', name: 'Ivy League', cost: 0 },
         { id: 'undercut_slick', name: 'Undercut', cost: 0 },
         { id: 'classic_part', name: 'Classic Part', cost: 0 },
+        { id: 'spiky_messy', name: 'Spiky Messy', cost: 0 },
+        { id: 'man_bun', name: 'Man Bun', cost: 0 },
+        { id: 'twist_sponge', name: 'Sponge Twists', cost: 0 },
+        { id: 'braids_long_loose', name: 'Loose Braids', cost: 0 },
         // Medium Hairstyles
         { id: 'med_bob', name: 'Classic Bob', cost: 0 },
         { id: 'med_shag', name: 'The Shag', cost: 0 },
