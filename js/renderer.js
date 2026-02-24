@@ -2330,6 +2330,7 @@ var BallRenderer = {
     const g_hatCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
+        const p = { x: cx, y: topY };
         const waistScale = options.waistScale || 0.85;
         const roundness = options.roundness || 0;
 
