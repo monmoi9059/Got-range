@@ -1410,5 +1410,21 @@
         { id: 'med_slick', name: 'Medium Slick', cost: 0 },
         { id: 'med_bedhead', name: 'Bedhead', cost: 0 },
         { id: 'med_bun', name: 'Half-Up Bun', cost: 0 },
-        { id: 'med_undercut', name: 'Long Undercut', cost: 0 }
+        { id: 'med_undercut', name: 'Long Undercut', cost: 0 },
+        // New Revamped Styles
+        { id: 'bun_messy', name: 'Messy Bun', cost: 0 },
+        { id: 'bun_low', name: 'Low Bun', cost: 0 },
+        { id: 'bun_double', name: 'Space Buns', cost: 0 },
+        { id: 'ponytail_high', name: 'High Pony', cost: 0 },
+        { id: 'ponytail_low', name: 'Low Pony', cost: 0 },
+        { id: 'pigtails_braided', name: 'Braided Pigtails', cost: 0 },
+        { id: 'afro_puffs', name: 'Afro Puffs', cost: 0 },
+        { id: 'bantu_knots', name: 'Bantu Knots', cost: 0 },
+        { id: 'braids_micro', name: 'Micro Braids', cost: 0 },
+        { id: 'locs_long', name: 'Long Locs', cost: 0 },
+        { id: 'locs_medium', name: 'Medium Locs', cost: 0 },
+        { id: 'pixie_cut', name: 'Pixie Cut', cost: 0 },
+        { id: 'side_shave', name: 'Side Shave', cost: 0 },
+        { id: 'twist_sponge', name: 'Sponge Twists', cost: 0 },
+        { id: 'mohawk_spiky', name: 'Spiky Mohawk', cost: 0 }
     ];
