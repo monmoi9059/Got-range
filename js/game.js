@@ -983,12 +983,23 @@
             const dyToHoop = HOOP_POS.y - player3D.y;
             const angle = Math.atan2(dyToHoop, dxToHoop);
 
-            // Velocity
-            let vel = { x: player3D.vx, y: player3D.vy, z: player3D.vz };
-            if (player3D.lastX !== undefined) {
-                vel.x = (player3D.x - player3D.lastX); // Per frame
-                vel.y = (player3D.y - player3D.lastY);
+            // Velocity (Robust calculation)
+            if (typeof player3D.hairLastX === 'undefined') {
+                player3D.hairLastX = player3D.x;
+                player3D.hairLastY = player3D.y;
             }
+
+            let vel = { x: 0, y: 0, z: player3D.vz || 0 };
+
+            // Calculate velocity from position delta (pixels per frame)
+            if (dt > 0) {
+                vel.x = (player3D.x - player3D.hairLastX) / dt;
+                vel.y = (player3D.y - player3D.hairLastY) / dt;
+            }
+
+            // Update history for next frame
+            player3D.hairLastX = player3D.x;
+            player3D.hairLastY = player3D.y;
 
             player3D.hairSystem.update(dt, headPos.x, headPos.y, headPos.z, angle, vel);
         }

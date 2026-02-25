@@ -5733,7 +5733,7 @@ var BallRenderer = {
         }
 
         // --- 2. SHORT / BUZZ / FADES ---
-        if (style === 'buzz_cut' || style === 'buzz_colored') {
+        if (style === 'default' || style === 'buzz_cut' || style === 'buzz_colored') {
              // Tight to head
              drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -20), true, 'natural'); // Shadow
 
@@ -5773,6 +5773,20 @@ var BallRenderer = {
                  grad.addColorStop(0, adjustColor(hairColor, 20));
                  grad.addColorStop(1, adjustColor(hairColor, -10));
                  drawSolidLayeredBase(1.01, 0, grad, false, 'natural');
+
+                 // Texture Overlay
+                 if (playerData.graphics === 'HIGH') {
+                     const pat = getFabricPattern(ctx);
+                     if (pat) {
+                         ctx.save();
+                         // Clip to head area (approx)
+                         ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.clip();
+                         ctx.globalCompositeOperation = 'overlay';
+                         ctx.fillStyle = pat;
+                         ctx.fillRect(p.x - modRadius, headY - 2*s - modRadius, modRadius*2, modRadius*2);
+                         ctx.restore();
+                     }
+                 }
              }
              return;
         }

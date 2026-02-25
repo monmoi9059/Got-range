@@ -2608,1611 +2608,378 @@ for(var k=0; k<12; k++) {
 
 // --- END data.js ---
 
-// --- START audio.js ---
-    const AudioSystem = {
-        ctx: null,
-        isMuted: false,
-        isPlayingMusic: false,
-        nextNoteTime: 0,
-        beatCount: 0,
-        lookahead: 25.0,
-        scheduleAheadTime: 0.1,
-        timerID: null,
-
-        // --- PROCEDURAL GENERATION STATE ---
-        currentStyleIndex: 0,
-        styles: [], // Populated in init
-        genState: {
-            rootFreq: 0,
-            scale: [],
-            chordProgression: [], // Array of scale degrees (0-6)
-            currentChordIndex: 0, // Index in progression
-            melodyNote: 0,
-            intensity: 0, // 0.0 to 1.0
-            section: 'intro', // intro, verse, chorus, bridge
-            barCount: 0,
-            lastSectionChange: 0
-        },
+// --- START input.js ---
+    // Virtual Cursor System
+    const VirtualCursor = {
+        element: null,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        visible: false,
+        speed: 7.5,
+        scrollSpeed: 7.5,
 
         init: function() {
-            if (this.ctx) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioContext();
-            if(this.ctx.state === 'suspended') this.ctx.resume();
+            if (!document.getElementById('gamepad-cursor')) {
+                this.element = document.createElement('div');
+                this.element.id = 'gamepad-cursor';
+                this.element.style.position = 'fixed';
+                this.element.style.width = '20px';
+                this.element.style.height = '20px';
+                this.element.style.borderRadius = '50%';
+                this.element.style.backgroundColor = 'rgba(255, 215, 0, 0.8)'; // Gold
+                this.element.style.border = '2px solid white';
+                this.element.style.boxShadow = '0 0 10px black';
+                this.element.style.pointerEvents = 'none'; // Click-through for elementFromPoint
+                this.element.style.zIndex = '999999';
+                this.element.style.display = 'none';
+                this.element.style.transform = 'translate(-50%, -50%)'; // Center pivot
 
-            // --- STYLE DEFINITIONS ---
-            this.styles = [
-                {
-                    name: 'Procedural Rock',
-                    tempo: 0.125, // 120 BPM (0.5s per beat, 0.125 per 16th)
-                    keyRange: [80, 150], // Low E to D
-                    scaleType: 'minor_pentatonic', // [0, 3, 5, 7, 10]
-                    instruments: {
-                        kick: { freq: 100, decay: 0.15, type: 'square', vol: 0.6 },
-                        snare: { tone: 200, noise: 1500, decay: 0.15, vol: 0.4 },
-                        hat: { freq: 4000, decay: 0.05, vol: 0.15 },
-                        bass: { type: 'sawtooth', vol: 0.2, decay: 0.1 },
-                        lead: { type: 'square', vol: 0.1, decay: 0.1 }
-                    },
-                    generate: (beat, time, sys) => this.generateRock(beat, time, sys)
-                },
-                {
-                    name: 'Procedural Lo-Fi',
-                    tempo: 0.22, // ~70 BPM
-                    keyRange: [130, 200], // C3 to G3
-                    scaleType: 'major_7th', // [0, 2, 4, 5, 7, 9, 11] approx
-                    instruments: {
-                        kick: { freq: 60, decay: 0.4, type: 'sine', vol: 0.5 },
-                        snare: { tone: 200, noise: 800, decay: 0.1, vol: 0.15 }, // Soft snare
-                        hat: { freq: 7000, decay: 0.03, vol: 0.05 },
-                        bass: { type: 'sine', vol: 0.4, decay: 0.5 },
-                        lead: { type: 'triangle', vol: 0.1, decay: 0.4 }
-                    },
-                    generate: (beat, time, sys) => this.generateLoFi(beat, time, sys)
-                },
-                {
-                    name: 'Procedural Hip Hop',
-                    tempo: 0.16, // ~94 BPM
-                    keyRange: [40, 70], // Deep Bass
-                    scaleType: 'minor', // [0, 2, 3, 5, 7, 8, 10]
-                    instruments: {
-                        kick: { freq: 50, decay: 0.8, type: 'sine', vol: 0.8 }, // 808-ish
-                        snare: { tone: 180, noise: 2500, decay: 0.15, vol: 0.5 }, // Sharp
-                        hat: { freq: 8000, decay: 0.02, vol: 0.2 }, // Trap hats
-                        bass: { type: 'sine', vol: 0.6, decay: 0.2 },
-                        lead: { type: 'sawtooth', vol: 0.1, decay: 0.1 } // G-Funk whine
-                    },
-                    generate: (beat, time, sys) => this.generateHipHop(beat, time, sys)
+                // Add a crosshair or simple styling
+                this.element.innerHTML = '<div style="position:absolute; top:50%; left:50%; width:4px; height:4px; background:red; transform:translate(-50%,-50%); border-radius:50%;"></div>';
+
+                document.body.appendChild(this.element);
+            } else {
+                this.element = document.getElementById('gamepad-cursor');
+            }
+        },
+
+        updatePosition: function(dx, dy) {
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+
+            this.visible = true;
+            this.element.style.display = 'block';
+
+            this.x += dx * this.speed;
+            this.y += dy * this.speed;
+
+            // Clamp to screen
+            this.x = Math.max(0, Math.min(window.innerWidth, this.x));
+            this.y = Math.max(0, Math.min(window.innerHeight, this.y));
+
+            this.element.style.left = this.x + 'px';
+            this.element.style.top = this.y + 'px';
+        },
+
+        handleScroll: function(dx, dy) {
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+
+            // Find scrollable target under cursor or active modal
+            // Priority: Hovered element -> Open Modal -> Window
+
+            // 1. Try element under cursor
+            // temporarily hide cursor to get element below
+            this.element.style.display = 'none';
+            let target = document.elementFromPoint(this.x, this.y);
+            this.element.style.display = 'block';
+
+            // Walk up to find scrollable
+            let scrolled = false;
+            while(target) {
+                if (target.scrollHeight > target.clientHeight || target.scrollWidth > target.clientWidth) {
+                    const style = window.getComputedStyle(target);
+                    if (['auto', 'scroll'].includes(style.overflowY) || ['auto', 'scroll'].includes(style.overflowX)) {
+                        target.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
+                        scrolled = true;
+                        break;
+                    }
                 }
-            ];
-
-            // Restore saved style if valid
-            if (typeof playerData !== 'undefined' && playerData.currentTrackIndex !== undefined) {
-                this.currentStyleIndex = playerData.currentTrackIndex;
-                if(this.currentStyleIndex >= this.styles.length) this.currentStyleIndex = 0;
+                target = target.parentElement;
             }
 
-            this.resetGenState();
-            this.startMusic();
-        },
-
-        resetGenState: function() {
-            const style = this.styles[this.currentStyleIndex];
-            // Pick a root note
-            const min = style.keyRange[0];
-            const max = style.keyRange[1];
-            this.genState.rootFreq = min + Math.random() * (max - min);
-
-            // Set scale intervals (semitones)
-            if(style.scaleType === 'minor_pentatonic') this.genState.scale = [0, 3, 5, 7, 10];
-            else if(style.scaleType === 'major_7th') this.genState.scale = [0, 4, 7, 11, 14]; // Major 7 chord tones mainly
-            else this.genState.scale = [0, 2, 3, 5, 7, 8, 10]; // Natural Minor
-
-            this.genState.chordProgression = [0, 3, 4, 0]; // Basic I-IV-V-I
-            this.genState.currentChordIndex = 0;
-            this.genState.barCount = 0;
-            this.genState.section = 'intro';
-            this.genState.intensity = 0.2;
-        },
-
-        // --- CORE AUDIO UTILS ---
-        toggleMute: function() {
-            this.isMuted = !this.isMuted;
-            if(this.ctx) {
-                if(this.isMuted) this.ctx.suspend();
-                else this.ctx.resume();
-            }
-            return this.isMuted;
-        },
-
-        changeTrack: function(direction) {
-            this.currentStyleIndex += direction;
-            if (this.currentStyleIndex >= this.styles.length) this.currentStyleIndex = 0;
-            if (this.currentStyleIndex < 0) this.currentStyleIndex = this.styles.length - 1;
-
-            // Save preference
-            if(typeof playerData !== 'undefined') {
-                playerData.currentTrackIndex = this.currentStyleIndex;
-                if(typeof saveData === 'function') saveData();
-            }
-
-            this.resetGenState(); // New song for new style
-            if(typeof showNotification === 'function') {
-                showNotification("🎵 " + this.styles[this.currentStyleIndex].name, 0);
-            }
-        },
-
-        // --- OSCILLATORS & EFFECTS ---
-        createOscillator: function(type, freq, start, dur, vol) {
-            if (!this.ctx || this.isMuted) return;
-            const t = this.ctx.currentTime + (start || 0);
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, t);
-            gain.gain.setValueAtTime(vol, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(t);
-            osc.stop(t + dur);
-            return { osc, gain };
-        },
-
-        playTone: function(time, freq, type, dur, vol=0.1) {
-            if (!this.ctx || this.isMuted) return;
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(time);
-            osc.stop(time + dur);
-        },
-
-        // SFX (Keep existing game SFX)
-        playSwish: function() {
-            if (!this.ctx || this.isMuted) return;
-            const t = this.ctx.currentTime;
-            const dur = 0.4;
-            const bufferSize = this.ctx.sampleRate * dur;
-            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buffer;
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.Q.value = 1;
-            filter.frequency.setValueAtTime(800, t);
-            filter.frequency.linearRampToValueAtTime(300, t + dur);
-            const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.2, t);
-            gain.gain.linearRampToValueAtTime(0, t + dur);
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.ctx.destination);
-            noise.start(t);
-        },
-
-        playBrick: function() {
-            if (!this.ctx || this.isMuted) return;
-            const t = this.ctx.currentTime;
-            this.createOscillator('square', 200, 0, 0.1, 0.1);
-        },
-
-        playFloorHit: function() {
-            if (!this.ctx || this.isMuted) return;
-            this.createOscillator('triangle', 80, 0, 0.1, 0.2);
-        },
-
-        playWindowBreak: function() {
-            if (!this.ctx || this.isMuted) return;
-            const t = this.ctx.currentTime;
-            // Noise burst
-            const dur = 0.6;
-            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
-            const src = this.ctx.createBufferSource();
-            src.buffer = buffer;
-            const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.3, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t+dur);
-            src.connect(gain);
-            gain.connect(this.ctx.destination);
-            src.start(t);
-            // Glass tinkles
-            for(let i=0; i<5; i++) {
-                setTimeout(() => {
-                    if(this.ctx && !this.isMuted) this.createOscillator('sine', 2000 + Math.random()*3000, 0, 0.1, 0.05);
-                }, Math.random() * 200);
-            }
-        },
-
-        // --- INSTRUMENT HELPERS ---
-        playKick: function(time, opts={}) {
-            if(!this.ctx || this.isMuted) return;
-            const freq = opts.freq || 150;
-            const decay = opts.decay || 0.5;
-            const type = opts.type || 'sine';
-            const vol = opts.vol || 0.4;
-
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, time);
-            osc.frequency.exponentialRampToValueAtTime(0.01, time + decay);
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(time);
-            osc.stop(time + decay);
-        },
-
-        playSnare: function(time, opts={}) {
-            if(!this.ctx || this.isMuted) return;
-            const toneFreq = opts.tone || 250;
-            const noiseFilter = opts.noise || 1000;
-            const decay = opts.decay || 0.1;
-            const vol = opts.vol || 0.15;
-            const type = opts.type || 'triangle';
-
-            // Tonal Body
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(toneFreq, time);
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(time);
-            osc.stop(time + decay);
-
-            // Noise Snap
-            const dur = decay * 1.5;
-            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buffer;
-            const nGain = this.ctx.createGain();
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'highpass';
-            filter.frequency.value = noiseFilter;
-            nGain.gain.setValueAtTime(vol, time);
-            nGain.gain.exponentialRampToValueAtTime(0.01, time + dur);
-            noise.connect(filter);
-            filter.connect(nGain);
-            nGain.connect(this.ctx.destination);
-            noise.start(time);
-        },
-
-        playHiHat: function(time, opts={}) {
-            if(!this.ctx || this.isMuted) return;
-            const freq = opts.freq || 7000;
-            const decay = opts.decay || 0.05;
-            const vol = opts.vol || 0.1;
-
-            const dur = decay;
-            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
-            const noise = this.ctx.createBufferSource();
-            noise.buffer = buffer;
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'highpass';
-            filter.frequency.value = freq;
-            const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(vol, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.ctx.destination);
-            noise.start(time);
-        },
-
-        playChord: function(time, notes, type='triangle', vol=0.1) {
-            if(!this.ctx || this.isMuted) return;
-            notes.forEach(freq => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(vol, time);
-                gain.gain.linearRampToValueAtTime(vol*0.8, time + 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 1.0); // Sustain a bit
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(time);
-                osc.stop(time + 1.0);
-            });
-        },
-
-        // --- SCHEDULER & LOGIC ---
-        scheduler: function() {
-            if (!this.styles || this.styles.length === 0) return;
-            const style = this.styles[this.currentStyleIndex];
-            const beatInterval = style.tempo;
-
-            while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
-                // Procedural Update Logic (Bar Transition)
-                if (this.beatCount % 16 === 0 && this.beatCount > 0) {
-                    this.updateProceduralState();
-                }
-
-                style.generate(this.beatCount % 16, this.nextNoteTime, this);
-
-                this.nextNoteTime += beatInterval;
-                this.beatCount++;
-            }
-            this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
-        },
-
-        startMusic: function() {
-            if(this.isPlayingMusic) return;
-            if(!this.ctx) return;
-            this.isPlayingMusic = true;
-            this.nextNoteTime = this.ctx.currentTime + 0.1;
-            this.scheduler();
-        },
-
-        stopMusic: function() {
-            this.isPlayingMusic = false;
-            window.clearTimeout(this.timerID);
-        },
-
-        // --- GENERATORS ---
-        getFreq: function(semitoneOffset) {
-            // formula: f = f0 * (2^(n/12))
-            return this.genState.rootFreq * Math.pow(2, semitoneOffset / 12);
-        },
-
-        updateProceduralState: function() {
-            this.genState.barCount++;
-            const barsInPhase = this.genState.barCount - this.genState.lastSectionChange;
-
-            // Change Section?
-            if (barsInPhase >= 8 && Math.random() > 0.4) {
-                this.genState.lastSectionChange = this.genState.barCount;
-                if(this.genState.section === 'intro') {
-                    this.genState.section = 'verse';
-                    this.genState.intensity = 0.5;
-                } else if(this.genState.section === 'verse') {
-                    this.genState.section = 'chorus';
-                    this.genState.intensity = 0.8;
-                } else if(this.genState.section === 'chorus') {
-                    this.genState.section = Math.random() > 0.5 ? 'verse' : 'bridge';
-                    this.genState.intensity = 0.6;
+            if (!scrolled) {
+                // Fallback: Check for open visible modal
+                const visibleModal = document.querySelector('.modal[style*="display: block"]');
+                if (visibleModal) {
+                    visibleModal.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
                 } else {
-                    this.genState.section = 'verse'; // Back to normal
-                    this.genState.intensity = 0.5;
-                }
-
-                // Change Chord Progression
-                if(Math.random() > 0.3) {
-                    const sl = this.genState.scale.length;
-                    // Random progression
-                    this.genState.chordProgression = [0,
-                        Math.floor(Math.random() * sl),
-                        Math.floor(Math.random() * sl),
-                        Math.floor(Math.random() * sl)
-                    ];
-                }
-            }
-
-            // Next chord in progression
-            this.genState.currentChordIndex = (this.genState.currentChordIndex + 1) % this.genState.chordProgression.length;
-        },
-
-        // 1. ROCK GENERATOR
-        generateRock: function(beat, time, sys) {
-            const inst = sys.styles[sys.currentStyleIndex].instruments;
-            const root = sys.genState.rootFreq;
-            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
-            const intensity = sys.genState.intensity;
-
-            // Drums: Standard Rock Beat
-            if (beat === 0 || beat === 8) sys.playKick(time, inst.kick);
-            if (beat === 4 || beat === 12) sys.playSnare(time, inst.snare);
-            if (beat % 2 === 0) sys.playHiHat(time, inst.hat);
-
-            // Fills
-            if (beat > 12 && Math.random() < intensity * 0.5) sys.playSnare(time, inst.snare);
-
-            // Bass: Driving 8ths
-            if (beat % 2 === 0) {
-                sys.playTone(time, chordRoot / 2, inst.bass.type, inst.bass.decay, inst.bass.vol); // Low Octave
-            }
-
-            // Rhythm Guitar (Power Chords)
-            if (beat === 0 || (intensity > 0.6 && beat === 6)) {
-                // Root + 5th
-                sys.playChord(time, [chordRoot, chordRoot * 1.5], 'sawtooth', 0.1);
-            }
-
-            // Lead Guitar (Pentatonic Licks in Chorus/Solo)
-            if (sys.genState.section === 'chorus' || sys.genState.section === 'bridge') {
-                if (Math.random() < intensity * 0.4 && beat % 2 === 0) {
-                    // Pick a note from pentatonic scale
-                    const noteIdx = Math.floor(Math.random() * sys.genState.scale.length);
-                    const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 12); // Higher octave
-                    sys.playTone(time, noteFreq, 'square', 0.1, inst.lead.vol);
+                    window.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
                 }
             }
         },
 
-        // 2. LO-FI GENERATOR
-        generateLoFi: function(beat, time, sys) {
-            const inst = sys.styles[sys.currentStyleIndex].instruments;
-            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
+        click: function() {
+            this.visible = true;
+            this.element.style.display = 'block';
 
-            // Swing Logic: Delay off-beats (odd 16th notes)
-            let swing = (beat % 2 === 1) ? 0.05 : 0;
-            const t = time + swing;
+            // Click animation
+            this.element.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            setTimeout(() => this.element.style.transform = 'translate(-50%, -50%) scale(1.0)', 100);
 
-            // Drums: Relaxed, sparse
-            if (beat === 0 || (beat === 10 && Math.random()>0.3)) sys.playKick(t, inst.kick);
-            if (beat === 4 || beat === 12) sys.playSnare(t, inst.snare);
-            if (beat % 2 === 0 || Math.random() > 0.7) sys.playHiHat(t, inst.hat);
+            // Trigger click
+            this.element.style.display = 'none'; // Hide to click through
+            const target = document.elementFromPoint(this.x, this.y);
+            this.element.style.display = 'block';
 
-            // Chords: Lush, long sustain (Play on 1, maybe sustain through)
-            if (beat === 0) {
-                // Major 7th feel: Root, 3rd (Major), 5th, 7th
-                // Scale is approximated, let's just use freq multipliers for 'jazzy' ratio
-                // 1, 1.25 (Maj3), 1.5 (Per5), 1.875 (Maj7)
-                const notes = [chordRoot, chordRoot * 1.25, chordRoot * 1.5, chordRoot * 1.875];
-                sys.playChord(t, notes, 'triangle', 0.1);
-            }
-
-            // Melody: Simple, random wander
-            if (beat % 4 === 0 && Math.random() > 0.4) {
-                const noteIdx = Math.floor(Math.random() * sys.genState.scale.length);
-                const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 12);
-                sys.playTone(t, noteFreq, 'sine', 0.2, inst.lead.vol);
-            }
-        },
-
-        // 3. HIP HOP GENERATOR
-        generateHipHop: function(beat, time, sys) {
-            const inst = sys.styles[sys.currentStyleIndex].instruments;
-            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
-
-            // Drums: Boom Bap or Trap
-            // Kick pattern varies
-            if (beat === 0) sys.playKick(time, inst.kick);
-            if (beat === 10 || (beat===14 && Math.random()>0.5)) sys.playKick(time, inst.kick);
-
-            // Snare on 4 and 12 (Standard)
-            if (beat === 4 || beat === 12) sys.playSnare(time, inst.snare);
-
-            // Hi-Hats: Trap rolls?
-            if (beat % 2 === 0) {
-                if (Math.random() > 0.8) {
-                    // Roll
-                    sys.playHiHat(time, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
-                    sys.playHiHat(time+0.06, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
-                    sys.playHiHat(time+0.12, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
-                } else {
-                    sys.playHiHat(time, inst.hat);
+            if (target) {
+                // Focus input if text
+                if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+                    target.focus();
                 }
-            }
 
-            // Bass: Heavy sub sine
-            if (beat === 0 || beat === 10) {
-                sys.playTone(time, chordRoot / 2, 'sine', 0.4, inst.bass.vol); // Deep sub
-            }
-
-            // Simple Hook (High pitch whine or bell)
-            if (beat === 0 || beat === 6) {
-                const noteIdx = Math.floor(Math.random() * 3); // Just root, 3rd, 5th
-                const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 24); // High Up
-                sys.playTone(time, noteFreq, 'triangle', 0.1, inst.lead.vol);
+                // Dispatch full mouse sequence for compatibility
+                const opts = { bubbles: true, cancelable: true, view: window, clientX: this.x, clientY: this.y };
+                target.dispatchEvent(new MouseEvent('mousedown', opts));
+                target.dispatchEvent(new MouseEvent('mouseup', opts));
+                target.click();
             }
         }
     };
 
-// --- END audio.js ---
-
-// --- START main.js ---
-
-    // Global Animation State
-    var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
-    var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
-    var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
-    var g_breathingPhase = 0;
-
-    // Cat Logic State
-    var g_catState = {
-        state: 'IDLE', // IDLE, MOVING, EATING, RETURNING
-        x: 733, y: 160, // Base position (Hoop + 10)
-        targetX: 0, targetY: 0,
-        targetTacoIndex: -1,
-        eatTimer: 0,
-        animFrame: 0
-    };
-
-    // Center of screen is 1066/2 = 533.
-    // Shift hoop to x=600 is fine (slightly right),
-    // but we might want to center the "court path" a bit more.
-    const HOOP_POS = { x: 733, y: 150, z: 130 }; // Moved +133 to account for +266 width
-    const PIXELS_PER_FOOT = 4.2426;
-
-    var decors = [];
-    // Cat under the hoop (Moved dynamic cat logic to renderer, placeholder removed or kept for initial scan)
-    // We will render the cat manually in renderer.js using g_catState, so we don't push it to decors here anymore
-    // or we push it but update its position in the render loop.
-    // Let's keep it in decors for consistent depth sorting, but we'll update its x/y in update loop.
-    var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
-    decors.push(catDecor);
-
-    // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
-    // Increased count to 4000 to maintain density
-    for(let i=0; i<4000; i++) {
-        const dist = Math.random() * 120000;
-        const pathX = 733 - (dist * 0.7);
-        const pathY = 150 + (dist * 0.7);
-        const scatter = (Math.random() - 0.5) * 1200;
-
-        const dX = pathX + scatter;
-        const dY = pathY + scatter;
-
-        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
-        // Player Width ~30 units. Safety = 1.5x (~45).
-        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
-        const sum = dX + dY;
-        if (sum > 540 && sum < 810) continue;
-
-        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
-
-        // Convert Pixel Distance to Game Feet for Zone Lookup
-        const feetDist = dDist / PIXELS_PER_FOOT;
-
-        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
-        let variant = 'default';
-        if(decorZone.type === 'tree') {
-             variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
-        }
-        decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
-    }
-
-    // Crowd Generation (Stands along the side)
-    for(let d = 500; d < 120000; d += 800) {
-        const pathX = 733 - (d * 0.7);
-        const pathY = 150 + (d * 0.7);
-        const offset = 400;
-        const density = Math.min(1.0, d/50000);
-
-        // Left Stand
-        if (Math.random() > 0.3) {
-             decors.push({ x: pathX - offset, y: pathY - offset, dist: d, zoneType: 'crowd', variant: {side:'left', density:density}, seed: Math.random() });
-        }
-        // Right Stand
-        if (Math.random() > 0.3) {
-             decors.push({ x: pathX + offset, y: pathY + offset, dist: d, zoneType: 'crowd', variant: {side:'right', density:density}, seed: Math.random() });
-        }
-    }
-
-    // LANDMARK GENERATION
-    SCALE_OBJECTS.forEach(obj => {
-        if (obj.type) {
-            const dist = obj.limit * PIXELS_PER_FOOT;
-            const pathX = 733 - (dist * 0.7);
-            const pathY = 150 + (dist * 0.7);
-            // Place landmarks mostly centered but pushed back or offset
-            const offset = (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
-            decors.push({ x: pathX + offset, y: pathY + offset, dist: dist, zoneType: obj.type, variant: obj, seed: Math.random() });
-        }
-    });
-
-    // TACO CAT: One per zone guaranteed
-    for(let i=0; i<COURT_ZONES.length; i++) {
-        const z = COURT_ZONES[i];
-        const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-        const range = Math.min(z.limit, prevLimit + 3000) - prevLimit; // Cap range slightly for large zones
-
-        const dist = prevLimit + Math.random() * range; // This is FEET
-
-        // Convert Feet to Pixels for Coordinate Calculation
-        const pixelDist = dist * PIXELS_PER_FOOT;
-
-        const pathX = 733 - (pixelDist * 0.7);
-        const pathY = 150 + (pixelDist * 0.7);
-
-        let dX, dY;
-        let attempts = 0;
-        do {
-            const scatter = (Math.random() - 0.5) * 1000;
-            dX = pathX + scatter;
-            dY = pathY + scatter;
-            attempts++;
-        } while (attempts < 10 && (dX + dY > 540 && dX + dY < 810));
-
-        decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
-    }
-
-    // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
-    decors.sort((a, b) => a.dist - b.dist);
-
-    var clouds = [];
-    var mountainLayers = [];
-
-    function initBackgroundElements() {
-        // Clouds
-        clouds = [];
-        for(let i=0; i<8; i++) {
-            let c = {
-                x: Math.random() * 2000,
-                y: Math.random() * 200,
-                speed: 0.1 + Math.random() * 0.2,
-                scale: 0.8 + Math.random() * 0.8,
-                puffs: []
-            };
-            let numPuffs = 4 + Math.floor(Math.random() * 5);
-            for(let j=0; j<numPuffs; j++) {
-                c.puffs.push({
-                    dx: (Math.random() - 0.5) * 60,
-                    dy: (Math.random() - 0.5) * 30,
-                    r: 25 + Math.random() * 25
-                });
-            }
-            clouds.push(c);
-        }
-
-        // Mountain Layers
-        mountainLayers = [];
-        const colors = ['#2F4F4F', '#243b3b', '#162424'];
-        const baseHeights = [250, 180, 120];
-        const speeds = [0.02, 0.05, 0.1];
-
-        for(let L=0; L<3; L++) {
-            let points = [];
-            let x = 0;
-            let y = Math.random() * baseHeights[L];
-            // Generate a looped path
-            while(x <= 2200) { // Enough for screen width + shift
-                 points.push({x: x, y: y});
-                 x += 40 + Math.random() * 60;
-                 y += (Math.random() - 0.5) * 100;
-                 if(y < 50) y = 50; if(y > baseHeights[L] + 100) y = baseHeights[L] + 100;
-            }
-            // Smooth loop?
-            points[points.length-1].y = points[0].y;
-            mountainLayers.push({ points: points, color: colors[L], speed: speeds[L] });
-        }
-    }
-    initBackgroundElements();
-
-    var bgCache = null;
-
-    // --- OPTIMIZATION: Render Object Pooling ---
-    // Monomorphic class for V8 optimization
-    class RenderItem {
-        constructor() {
-            this.type = null;
-            this.depth = 0;
-            this.x = 0;
-            this.y = 0;
-            this.scale = 0;
-            this.zoneType = null;
-            this.variant = null;
-            this.seed = 0;
-            this.alpha = 0;
-            this.color = null;
-            this.ballRef = null;
-        }
-    }
-
-    var g_renderItemPool = [];
-    var g_renderList = [];
-    let g_poolIndex = 0;
-
-    function getRenderItem() {
-        let obj;
-        if (g_poolIndex < g_renderItemPool.length) {
-            obj = g_renderItemPool[g_poolIndex];
-        } else {
-            obj = new RenderItem();
-            g_renderItemPool.push(obj);
-        }
-        g_poolIndex++;
-        return obj;
-    }
-
-    // Pre-allocate some objects
-    for(let i=0; i<1000; i++) {
-        g_renderItemPool.push(new RenderItem());
-    }
-
-    // --- OPTIMIZATION: Cached Shooting Style ---
-    let g_cachedStyleId = null;
-    let g_cachedStyleObj = null;
-
-    function getCurrentStyle() {
-        const currentId = playerData.currentStyle || 'classic';
-        if (currentId !== g_cachedStyleId || !g_cachedStyleObj) {
-            g_cachedStyleObj = SHOOTING_STYLES.find(s => s.id === currentId) || SHOOTING_STYLES[0];
-            g_cachedStyleId = currentId;
-        }
-        return g_cachedStyleObj;
-    }
-
-    function isMechanicalSkin(skinId) {
-        if (!skinId) return false;
-        const s = skinId.toLowerCase();
-        return s.includes('robot') || s.includes('cyborg') || s.includes('mech') || s.includes('cyber') || s.includes('android');
-    }
-
-    // --- OPTIMIZATION: Fuzzy Noise Lookup Table ---
-    const NOISE_LUT_SIZE = 4096;
-    const g_noiseLUT = new Float32Array(NOISE_LUT_SIZE);
-    for (let i = 0; i < NOISE_LUT_SIZE; i++) {
-        g_noiseLUT[i] = Math.random();
-    }
-
-
-    function binarySearchLowerBound(arr, val) {
-        let l = 0, r = arr.length - 1;
-        let idx = arr.length; // Default if not found (all smaller)
-        while (l <= r) {
-            let m = (l + r) >>> 1; // Unsigned right shift for floor
-            if (arr[m].dist >= val) {
-                idx = m;
-                r = m - 1;
-            } else {
-                l = m + 1;
-            }
-        }
-        return idx;
-    }
-
-    // --- 1.5 AUDIO SYSTEM (RETRO SYNTH) ---
-    // --- 2. GLOBAL VARIABLES ---
-    // Resolution Constants
-    window.LOGICAL_HEIGHT = 600;
-    window.LOGICAL_WIDTH = 1066;
-    window.RESOLUTION_SCALE = 1;
-
-    const canvas = document.getElementById('gameCanvas');
-    var ctx = canvas.getContext('2d');
-
-    // Optimization: Pre-calculated Sun Gradient
-    const sunGradient = ctx.createRadialGradient(700, 80, 0, 700, 80, 80);
-    sunGradient.addColorStop(0, '#FFD700');
-    sunGradient.addColorStop(0.5, '#FFD700'); // Solid core (r=40)
-    sunGradient.addColorStop(0.6, 'rgba(255, 165, 0, 0.5)'); // Glow start
-    sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
-
-    const scoreEl = document.getElementById('scoreVal');
-    const shopUI = document.getElementById('shopUI');
-    const achUI = document.getElementById('achUI');
-    const statsUI = document.getElementById('statsUI');
-    const notif = document.getElementById('notification');
-    const courtNameEl = document.getElementById('courtNameDisplay');
-    const missValEl = document.getElementById('missVal');
-    const container = document.getElementById('game-container');
-
-    canvas.width = 1066;
-    canvas.height = 600;
-
-    let viewingAnimalIndex = 0;
-    let viewingSkinIndex = 0;
-    let viewingVariantIndex = 0;
-    let viewingHairstyleIndex = 0;
-    let viewingClothingIndex = 0;
-    let viewingHatIndex = 0;
-    let viewingPantsIndex = 0;
-    let viewingShoeIndex = 0;
-    let viewingStyleIndex = 0;
-    let viewingBallIndex = 0;
-    let viewingCatSkinIndex = 0;
-    let viewingCatAccessoryIndex = 0;
-    let currentGameMode = 'CLASSIC';
-    let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
-let lastDisplayedContestTime = -1;
-    let distanceLevel = 1;
-    var state = 'IDLE';
-    let feedback = "";
-    let feedbackTimer = 0;
-    let crowdCheerTimer = 0;
-    let consecutiveMisses = 0;
-    var currentStreak = 0;
-    let spacePressed = false;
-    let cameraZoom = 800;
-    let cameraHeight = 300;
-    let g_camCache = null; // Optimization: Per-frame camera cache
-    let resetStage = 0;
-    let isGroundedShot = false;
-    let groundShotTimer = 0;
-    let lastGroundShotTimer = 0; // History
-    let airbudJumpTime = 0;
-    // preJumpTimer is defined in data.js
-    let lastPreJumpTimer = 0; // History
-
-    // Physique
-    const GRAVITY = 0.5;
-    const DEBUG = false;
-    // Shift player start position to match new center (300 -> 433)
-    var player3D = { x: 433, y: 300, z: 0, vz: 0 };
-    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
-    var activeBalls = [];
-    var tacosOnGround = []; // New array for tacos
-    var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
-    var particles = [];
-
-    // Expose for debugging
-    if (DEBUG) {
-        window.player3D = player3D;
-        window.state = state;
-        window.tacosOnGround = tacosOnGround;
-    }
-
-    function createDefaultData() {
-        return {
-            tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
-            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
-            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-            dailyChallenges: [], weeklyChallenges: [],
-            unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
-            customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
-            skinVariants: {}, // Stores active variant index/bool for each skin
-            customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
-            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
-            currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
-            catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
-            basketCatSkinIndex: 0, basketCatExp: 0,
-            unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
-            unlockedHats: ['hat_none'], currentHat: 'hat_none',
-            unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
-            unlockedPants: ['pants_none'], currentPants: 'pants_none',
-            unlockedShoes: ['shoe_none'], currentShoes: 'shoe_none',
-            customHairColorIndex: 0, customHairLength: 1.0,
-            mobileControls: false, platformChosen: false,
-            meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
-            cameraZoomScale: 1.0,
-            releaseTiming: 3,
-            graphics: 'HIGH',
-            currentTrackIndex: 0,
-            leaderboards: { classic: [], contest: [], time_attack: [] },
-            inputMap: { p1: -1, p2: -1 }
-        };
-    }
-
-    let savedData = localStorage.getItem('tacoSaveData');
-    let playerData = savedData ? JSON.parse(savedData) : createDefaultData();
-
-    // Migration logic to fix old saves
-    if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
-    if(!playerData.stats.income) playerData.stats.income = 1;
-    if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
-    if(!playerData.inputMap) playerData.inputMap = { p1: -1, p2: -1 };
-    if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
-    if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
-    if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
-    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
-    if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
-    if(!playerData.currentStyle) playerData.currentStyle = 'classic';
-    if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
-    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
-    if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
-    if(!playerData.dailyChallenges) playerData.dailyChallenges = [];
-    if(!playerData.weeklyChallenges) playerData.weeklyChallenges = [];
-    if(playerData.dailyChallenge) { // Migration
-         if(playerData.dailyChallenge.id) playerData.dailyChallenges.push(playerData.dailyChallenge);
-         delete playerData.dailyChallenge;
-    }
-    if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
-    if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
-    if(typeof playerData.cameraZoomScale === 'undefined') playerData.cameraZoomScale = 1.0;
-    if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
-    if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
-    if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
-    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
-    if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
-    if(!playerData.currentHat) playerData.currentHat = 'hat_none';
-    if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
-    if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
-    if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
-    if(!playerData.currentPants) playerData.currentPants = 'pants_none';
-    if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
-    if(!playerData.currentShoes) playerData.currentShoes = 'shoe_none';
-    if(typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
-    if(typeof playerData.customHairLength === 'undefined') playerData.customHairLength = 1.0;
-    if(!playerData.skinVariants) playerData.skinVariants = {};
-    if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
-    if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
-    if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
-    if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
-    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
-    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
-    if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
-    if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
-    if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
-    if(typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
-    if(typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
-
-    // Migrate old hair settings if present
-    if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
-        playerData.customHairColorIndex = playerData.customSkinSettings.hairColorIndex;
-        delete playerData.customSkinSettings.hairColorIndex;
-    }
-    if (playerData.customSkinSettings && playerData.customSkinSettings.hairSize !== undefined) {
-        playerData.customHairLength = playerData.customSkinSettings.hairSize;
-        delete playerData.customSkinSettings.hairSize;
-    }
-
-    // Migration: purchasedStats
-    if (!playerData.purchasedStats) {
-        playerData.purchasedStats = {
-            income: playerData.stats.income || 1,
-            aim: playerData.stats.aim || 1,
-            luck: playerData.stats.luck || 1,
-            moonwalk: playerData.stats.moonwalk || 1,
-            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0,
-            catNip: 0
-        };
-    }
-    if (typeof playerData.stats.catNip === 'undefined') { playerData.stats.catNip = 0; playerData.purchasedStats.catNip = 0; }
-
-    // Don't auto-set mobileControls here anymore, wait for choice if not chosen
-    window.playerData = playerData;
-
-    // Initialize Challenges
-    initDailyChallenge();
-    initWeeklyChallenge();
-
-    // --- 3. HELPER FUNCTIONS ---
-    var saveTimer = null;
-    function forceSave() {
-        if (window.isResetting) return;
-        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-        localStorage.setItem('tacoSaveData', JSON.stringify(playerData));
-    }
-
-    function saveData() {
-        if (saveTimer) return; // Coalesce: A save is already pending
-        saveTimer = setTimeout(forceSave, 1000);
-    }
-
-    // Ensure data is saved when closing or hiding
-    window.addEventListener('beforeunload', forceSave);
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) forceSave();
-    });
-
-    function initDailyChallenge() {
-        const today = new Date().toDateString();
-
-        // MIGRATION check (Safety)
-        if (playerData.dailyChallenge) {
-             if(playerData.dailyChallenge.date === today && playerData.dailyChallenge.id) {
-                 playerData.dailyChallenges = [playerData.dailyChallenge];
-             } else {
-                 playerData.dailyChallenges = [];
-             }
-             delete playerData.dailyChallenge;
-        }
-
-        // Reset if new day
-        if (!playerData.dailyChallenges || playerData.dailyChallenges.length > 0 && playerData.dailyChallenges[0].date !== today) {
-            playerData.dailyChallenges = [];
-        }
-
-        // Fill up to 5
-        if (playerData.dailyChallenges.length < 5) {
-            const pool = [...DAILY_CHALLENGES];
-            // Remove existing
-            playerData.dailyChallenges.forEach(existing => {
-                const idx = pool.findIndex(p => p.id === existing.id);
-                if(idx !== -1) pool.splice(idx, 1);
-            });
-
-            while(playerData.dailyChallenges.length < 5 && pool.length > 0) {
-                const r = Math.floor(Math.random() * pool.length);
-                const c = pool[r];
-                pool.splice(r, 1);
-                playerData.dailyChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
-            }
-            saveData();
-        }
-    }
-
-    function initWeeklyChallenge() {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 1);
-        const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
-        const weekId = `W${week}-${now.getFullYear()}`;
-
-        // Reset if new week
-        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length > 0 && playerData.weeklyChallenges[0].weekId !== weekId) {
-             playerData.weeklyChallenges = [];
-        }
-
-        // Fill up to 5
-        if (playerData.weeklyChallenges.length < 5) {
-             const pool = [...WEEKLY_CHALLENGES];
-             playerData.weeklyChallenges.forEach(existing => {
-                const idx = pool.findIndex(p => p.id === existing.id);
-                if(idx !== -1) pool.splice(idx, 1);
-             });
-
-             while(playerData.weeklyChallenges.length < 5 && pool.length > 0) {
-                 const r = Math.floor(Math.random() * pool.length);
-                 const c = pool[r];
-                 pool.splice(r, 1);
-                 playerData.weeklyChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
-             }
-             saveData();
-        }
-    }
-
-    // --- LEADERBOARD LOGIC ---
-    let pendingHighScore = { mode: null, score: 0 };
-
-    function getLeaderboard(mode) {
-        if (!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
-        if (!playerData.leaderboards[mode]) playerData.leaderboards[mode] = [];
-        return playerData.leaderboards[mode];
-    }
-
-    function isHighScore(mode, score) {
-        // Lower threshold for non-classic modes (Contest max is ~30)
-        const minScore = (mode === 'classic') ? 10 : 0;
-        if (score <= minScore) return false;
-        const list = getLeaderboard(mode);
-        if (list.length < 50) return true;
-        const lowest = list[list.length - 1].score;
-        return score > lowest;
-    }
-
-    function addHighScore(mode, score, name) {
-        const list = getLeaderboard(mode);
-        const entry = {
-            name: name.toUpperCase().substring(0, 3),
-            score: score,
-            date: new Date().toDateString()
-        };
-        list.push(entry);
-        list.sort((a, b) => b.score - a.score);
-        if (list.length > 50) list.length = 50;
-        saveData();
-    }
-
-    function openLeaderboard() {
-        if (window.closeControlsMenu) window.closeControlsMenu();
-        loadContext(game1);
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-
-        state = 'LEADERBOARD';
-        if(isSplitscreen) { loadContext(game2); state = 'LEADERBOARD'; saveContext(game2); loadContext(game1); }
-
-        document.getElementById('leaderboardUI').style.display = 'block';
-        document.getElementById('shopUI').style.display = 'none';
-        document.getElementById('statsUI').style.display = 'none';
-        document.getElementById('achUI').style.display = 'none';
-        document.getElementById('challengesUI').style.display = 'none';
-        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
-        updateMobileControlsUI();
-        saveContext(game1);
-    }
-
-    function closeLeaderboard() {
-        // If coming from Game Over flow?
-        // Note: feedback is context-specific. closeAllMenus resets it.
-        // We capture it before closing.
-        const shouldOpenShop = (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || (feedback && feedback.includes("RECORD")));
-
-        window.closeAllMenus(() => {
-            if (shouldOpenShop) window.openShop();
-        });
-    }
-
-    function switchLeaderboardTab(mode) {
-        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
-        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
-        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
-
-        const list = getLeaderboard(mode);
-        const container = document.getElementById('lbList');
-        container.innerHTML = '';
-
-        if (list.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
-            return;
-        }
-
-        list.forEach((entry, index) => {
-            const div = document.createElement('div');
-            div.className = 'lb-row';
-            // Highlight pending score? Not easy to track unique ID without adding one.
-            // Just basic render.
-            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
-            container.appendChild(div);
-        });
-    }
-
-    function handleHighScoreInput() {
-        // Called when game detects high score
-        state = 'HIGHSCORE_INPUT';
-        document.getElementById('highScoreUI').style.display = 'block';
-        setTimeout(() => {
-             const inp = document.getElementById('hsNameInput');
-             inp.value = '';
-             inp.focus();
-        }, 100);
-    }
-
-    function submitHighScoreInput() {
-        const name = highScoreName.join('');
-        if (!name) return;
-
-        addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
-        document.getElementById('highScoreUI').style.display = 'none';
-
-        // Ensure changes persist in game1 context (Single Player)
-        loadContext(game1);
-
-        state = 'IDLE';
-        // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
-        // and that the Shop opens after the leaderboard closes.
-        feedback = "TERMINÉ !";
-
-        saveContext(game1);
-
-        // Show Leaderboard to confirm
-        openLeaderboard();
-        // Force the tab to the relevant mode
-        switchLeaderboardTab(pendingHighScore.mode);
-    }
-
-    // Expose for game.js to call
-    window.processAllChallenges = processAllChallenges;
-
-    function processAllChallenges(type, amount) {
-        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
-        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
-    }
-
-    function updateChallenge(userC, type, amount, db) {
-        if(userC.claimed) return;
-        const def = db.find(d => d.id === userC.id);
-        if(!def) return;
-
-        if(def.type === type) {
-            let completed = false;
-
-            // Handle specific logic based on type
-            if (type === 'distance_classic') {
-                // High Water Mark logic (Max distance in single game)
-                if (amount > userC.progress) {
-                    userC.progress = amount;
-                    if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
-                    else saveData();
-                }
-            } else if (type === 'streak') {
-                // Streak is passed as current streak amount. Check if it beats target or best.
-                if (amount >= def.target) { userC.progress = def.target; completed = true; }
-                else if (amount > userC.progress) {
-                    userC.progress = amount;
-                    saveData();
-                }
-            } else {
-                // Cumulative logic (makes, score, distance, play_*, etc.)
-                userC.progress += amount;
-                if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
-                else saveData();
-            }
-
-            if(completed && !userC.completedNotified) {
-                 userC.completedNotified = true;
-                 saveData();
-                 showNotification("DÉFI TERMINÉ !", 0);
-            }
-        }
-    }
-
-    window.claimChallenge = function(index, isWeekly) {
-        loadContext(game1);
-        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
-        const c = list[index];
-        const def = db.find(d => d.id === c.id);
-
-        if(c && !c.claimed && c.progress >= def.target) {
-            c.claimed = true;
-            playerData.tacos += def.reward;
-            saveData();
-            updateUI();
-            AudioSystem.playSwish();
-            showNotification("RÉCOMPENSE !", def.reward);
-            renderChallenges(isWeekly ? 'weekly' : 'daily');
-        }
-        saveContext(game1);
-    }
-
-    var isSplitscreen = false;
-
-    // Define the default/initial state factory
-    function createGameContext() {
-        return {
-            state: 'IDLE',
-            preJumpTimer: 0,
-            feedback: "",
-            feedbackTimer: 0,
-            player3D: { x: 433, y: 300, z: 0, vz: 0 },
-            activeBalls: [],
-            tacosOnGround: [],
-            particles: [],
-            currentStreak: 0,
-            consecutiveMisses: 0,
-            distanceLevel: 1,
-            contestData: { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false },
-            timeAttackData: { timer: 60, score: 0, active: false },
-            animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
-            animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
-            breathingPhase: 0,
-            camSmooth: { x: 433, y: 300 },
-            camCache: {},
-            airbudJumpTime: 0,
-            isGroundedShot: false,
-            groundShotTimer: 0,
-            crowdCheerTimer: 0,
-            ball: {}, // Legacy
-            playerData: null, // Will hold reference to profile
-            bgCache: null, // Per-player background cache
-            resetTimer: 0,
-            nextAction: null,
-            inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0, catAcc: 0 } // UI state
-        };
-    }
-
-    var game1 = createGameContext();
-    var game2 = createGameContext();
-
-    // Initialize P1 with the loaded global data
-    // We will do this via loadContext/saveContext flow in the loop,
-    // but we need to ensure the objects exist.
-
-    function saveContext(ctxObj) {
-        ctxObj.state = state;
-        ctxObj.preJumpTimer = preJumpTimer;
-        ctxObj.feedback = feedback;
-        ctxObj.feedbackTimer = feedbackTimer;
-        // Deep copy player3D to avoid reference issues if replaced?
-        // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
-        // But the global 'player3D' variable holds the reference.
-        ctxObj.player3D = player3D;
-        ctxObj.activeBalls = activeBalls;
-        ctxObj.tacosOnGround = tacosOnGround;
-        ctxObj.catState = g_catState; // Save Cat State
-        ctxObj.particles = particles;
-        ctxObj.currentStreak = currentStreak;
-        ctxObj.consecutiveMisses = consecutiveMisses;
-        ctxObj.distanceLevel = distanceLevel;
-        ctxObj.contestData = contestData;
-        ctxObj.timeAttackData = timeAttackData;
-        ctxObj.animState = g_animState;
-        ctxObj.animTarget = g_animTarget;
-        ctxObj.breathingPhase = g_breathingPhase;
-        ctxObj.camSmooth = window.g_camSmooth;
-        ctxObj.camCache = window.g_camCache;
-        ctxObj.airbudJumpTime = airbudJumpTime;
-        ctxObj.isGroundedShot = isGroundedShot;
-        ctxObj.groundShotTimer = groundShotTimer;
-        ctxObj.crowdCheerTimer = crowdCheerTimer;
-        ctxObj.ball = ball;
-        ctxObj.playerData = playerData;
-        ctxObj.bgCache = bgCache;
-        ctxObj.resetTimer = resetTimer;
-        ctxObj.nextAction = nextAction;
-        // UI State
-        ctxObj.viewingIndices = {
-            animal: viewingAnimalIndex,
-            skin: viewingSkinIndex,
-            hair: viewingHairstyleIndex,
-            clothing: viewingClothingIndex,
-            pants: viewingPantsIndex,
-            hat: viewingHatIndex,
-            shoe: viewingShoeIndex,
-            ball: viewingBallIndex,
-            style: viewingStyleIndex,
-            catAcc: viewingCatAccessoryIndex
-        };
-    }
-
-    function loadContext(ctxObj) {
-        state = ctxObj.state;
-        preJumpTimer = ctxObj.preJumpTimer;
-        feedback = ctxObj.feedback;
-        feedbackTimer = ctxObj.feedbackTimer;
-        player3D = ctxObj.player3D;
-        activeBalls = ctxObj.activeBalls;
-        tacosOnGround = ctxObj.tacosOnGround || [];
-        if(ctxObj.catState) g_catState = ctxObj.catState; // Load Cat State
-        particles = ctxObj.particles;
-        currentStreak = ctxObj.currentStreak;
-        consecutiveMisses = ctxObj.consecutiveMisses;
-        distanceLevel = ctxObj.distanceLevel;
-        contestData = ctxObj.contestData;
-        timeAttackData = ctxObj.timeAttackData;
-        g_animState = ctxObj.animState;
-        g_animTarget = ctxObj.animTarget;
-        g_breathingPhase = ctxObj.breathingPhase;
-        window.g_camSmooth = ctxObj.camSmooth;
-        window.g_camCache = ctxObj.camCache;
-        airbudJumpTime = ctxObj.airbudJumpTime;
-        isGroundedShot = ctxObj.isGroundedShot;
-        groundShotTimer = ctxObj.groundShotTimer;
-        crowdCheerTimer = ctxObj.crowdCheerTimer;
-        ball = ctxObj.ball;
-        // CRITICAL: Only switch playerData if the context has one.
-        // This prevents overwriting the global reference with null/undefined
-        // which could cause accidental sharing if a fallback is triggered later.
-        if (ctxObj.playerData) {
-            playerData = ctxObj.playerData;
-        }
-        bgCache = ctxObj.bgCache;
-        resetTimer = ctxObj.resetTimer;
-        nextAction = ctxObj.nextAction;
-
-        // UI State
-        if (ctxObj.viewingIndices) {
-            viewingAnimalIndex = ctxObj.viewingIndices.animal;
-            viewingSkinIndex = ctxObj.viewingIndices.skin;
-            viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
-            viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
-            viewingPantsIndex = ctxObj.viewingIndices.pants || 0;
-            viewingHatIndex = ctxObj.viewingIndices.hat || 0;
-            viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
-            viewingBallIndex = ctxObj.viewingIndices.ball;
-            viewingStyleIndex = ctxObj.viewingIndices.style;
-            viewingCatAccessoryIndex = ctxObj.viewingIndices.catAcc || 0;
-        }
-
-        // Ensure globals that might be undefined are safe
-        if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
-    }
-
-    // Initialize Game 1 with current globals immediately
-    saveContext(game1);
-
-    window.closeChallenges = function() { window.closeAllMenus(); }
-
-    window.openChallenges = function() {
-        if(window.closeControlsMenu) window.closeControlsMenu();
-        loadContext(game1);
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        state = 'CHALLENGES';
-        if(isSplitscreen) { loadContext(game2); state = 'CHALLENGES'; saveContext(game2); loadContext(game1); }
-
-        document.getElementById('challengesUI').style.display = 'block';
-        document.getElementById('shopUI').style.display = 'none';
-        document.getElementById('statsUI').style.display = 'none';
-        document.getElementById('achUI').style.display = 'none';
-        document.getElementById('leaderboardUI').style.display = 'none';
-
-        switchChallengeTab('daily');
-        updateMobileControlsUI();
-        saveContext(game1);
-    }
-
-    window.switchChallengeTab = function(tab) {
-        document.getElementById('btnChalDaily').className = tab === 'daily' ? 'lb-tab active' : 'lb-tab';
-        document.getElementById('btnChalWeekly').className = tab === 'weekly' ? 'lb-tab active' : 'lb-tab';
-        renderChallenges(tab);
-    }
-
-    window.renderChallenges = function(tab) {
-        const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
-        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
-        const container = document.getElementById('challengeList');
-        container.innerHTML = '';
-
-        if(!list || list.length === 0) {
-            container.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Aucun défi.</div>';
-            return;
-        }
-
-        list.forEach((c, idx) => {
-            const def = db.find(d => d.id === c.id);
-            if(!def) return;
-            const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
-            const isDone = c.progress >= def.target;
-
-            const div = document.createElement('div');
-            div.className = 'challenge-row';
-            div.innerHTML = `
-                <div style="flex-grow:1; text-align:left;">
-                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
-                    <div class="challenge-progress-bg">
-                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
-                    </div>
-                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
-                </div>
-                <div style="text-align:right; margin-left:10px; min-width:80px;">
-                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
-                    ${c.claimed ?
-                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
-                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
-                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    window.openStats = function() {
-        window.closeControlsMenu();
-        loadContext(game1);
-        if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
-
-        state = 'STATS';
-        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
-
-        shopUI.style.display = 'none';
-        achUI.style.display = 'none';
-        statsUI.style.display = 'block';
-        document.getElementById('challengesUI').style.display = 'none';
-        document.getElementById('leaderboardUI').style.display = 'none';
-        populateInputSelects();
-        const ls = playerData.lifetimeStats;
-        document.getElementById('statShots').innerText = ls.shots;
-        document.getElementById('statMakes').innerText = ls.makes;
-        document.getElementById('statMisses').innerText = ls.misses;
-        document.getElementById('statContests').innerText = ls.contests;
-        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
-        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
-        let acc = 0;
-        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
-        document.getElementById('statAccuracy').innerText = acc + "%";
-
-        const btnMob = document.getElementById('btnToggleMobile');
-        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
-        const btnGraph = document.getElementById('btnToggleGraphics');
-        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
-        const btnMeter = document.getElementById('btnToggleMeter');
-        if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
-        const btnShape = document.getElementById('btnCycleMeterShape');
-        if(btnShape) {
-            let shapeName = playerData.meterShape || 'arc';
-            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
-        }
-        const sld = document.getElementById('meterSizeSlider');
-        if(sld) {
-            const sc = playerData.meterScale || 1.0;
-            sld.value = sc;
-            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
-        }
-        const sldZoom = document.getElementById('cameraZoomSlider');
-        if(sldZoom) {
-            const zs = playerData.cameraZoomScale || 1.0;
-            sldZoom.value = zs;
-            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
-        }
-    }
-    window.toggleMeter = function() {
-        playerData.meterEnabled = !playerData.meterEnabled;
-        saveData(); openStats(); // Refresh UI
-        saveContext(game1);
-    }
-    window.cycleMeterShape = function() {
-        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
-        let idx = shapes.indexOf(playerData.meterShape);
-        if (idx < 0) idx = 0;
-        idx = (idx + 1) % shapes.length;
-        playerData.meterShape = shapes[idx];
-        saveData(); openStats(); // Refresh UI
-        saveContext(game1);
-    }
-    window.updateMeterScale = function() {
-        const val = parseFloat(document.getElementById('meterSizeSlider').value);
-        playerData.meterScale = val;
-        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
-        saveData();
-        saveContext(game1);
-    }
-
-    window.updateCameraZoom = function() {
-        const val = parseFloat(document.getElementById('cameraZoomSlider').value);
-        playerData.cameraZoomScale = val;
-        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
-        saveData();
-        saveContext(game1);
-    }
-
-    window.populateInputSelects = function() {
-        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-        const p1Sel = document.getElementById('p1InputSelect');
-        const p2Sel = document.getElementById('p2InputSelect');
-
-        if(!p1Sel || !p2Sel) return;
-
-        const fillSelect = (sel, isP2) => {
-            sel.innerHTML = '';
-
-            const defOpt = document.createElement('option');
-            defOpt.value = "-1";
-            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
-            sel.appendChild(defOpt);
+    const GamepadController = {
+        active: false,
+        lastButtonStates: {},
+        lastState: null,
+
+        // Mapping (Standard)
+        BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
+
+        update: function() {
+            // Initialize cursor if needed
+            if (!VirtualCursor.element) VirtualCursor.init();
+
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+            // We focus mainly on Player 1 for UI navigation to avoid conflict,
+            // but we could allow any controller to move the cursor.
+            // Let's allow any active controller to drive the cursor (last wins).
 
             for(let i=0; i<4; i++) {
                 const gp = gamepads[i];
-                const opt = document.createElement('option');
-                opt.value = i;
+                if(!gp) continue;
 
-                let label = `MANETTE ${i+1}`;
-                if (gp && gp.connected) {
-                    let id = gp.id;
-                    if(id.length > 15) id = id.substring(0,15) + "...";
-                    label += ` (${id})`;
-                } else {
-                    label += " (Déconnectée)";
+                if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
+
+                // Check Left Stick (Axes 0, 1) -> Cursor
+                const lsX = gp.axes[0] || 0;
+                const lsY = gp.axes[1] || 0;
+                VirtualCursor.updatePosition(lsX, lsY);
+
+                // Check Right Stick (Axes 2, 3) -> Scroll
+                const rsX = gp.axes[2] || 0;
+                const rsY = gp.axes[3] || 0;
+                VirtualCursor.handleScroll(rsX, rsY);
+
+                // Check Actions
+
+                // A Button (0) -> Click
+                if (this.isPressed(gp, this.BTN_A, i)) {
+                    VirtualCursor.click();
                 }
-                opt.textContent = label;
-                sel.appendChild(opt);
+
+                // X Button (2) -> Shoot (Game Action)
+                // We keep this specific logic for gameplay
+                const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
+                const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
+
+                if (i === p1Map) {
+                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game1, 'press');
+                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game1, 'release');
+                }
+
+                if (isSplitscreen && i === p2Map) {
+                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game2, 'press');
+                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game2, 'release');
+                }
+
+                // B Button (1) -> Back / Close Menu
+                if (this.isPressed(gp, this.BTN_B, i)) {
+                    if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
+                    else if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD'].includes(state)) {
+                        window.closeAllMenus();
+                    }
+                }
+
+                // Save state
+                for(let b=0; b<gp.buttons.length; b++) {
+                    this.lastButtonStates[i][b] = gp.buttons[b].pressed;
+                }
             }
-        };
+        },
 
-        fillSelect(p1Sel, false);
-        fillSelect(p2Sel, true);
+        isPressed: function(gp, btnIndex, gpIndex) {
+            const lastState = this.lastButtonStates[gpIndex] || [];
+            return gp.buttons[btnIndex] && gp.buttons[btnIndex].pressed && !lastState[btnIndex];
+        },
 
-        p1Sel.value = playerData.inputMap.p1;
-        p2Sel.value = playerData.inputMap.p2;
+        isReleased: function(gp, btnIndex, gpIndex) {
+            const lastState = this.lastButtonStates[gpIndex] || [];
+            return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && lastState[btnIndex];
+        }
+    };
+
+    function handleActionPress() {
+        if (state === 'GAMEOVER') {
+            if (isSplitscreen) resetGame();
+            else openShop();
+        } else if (state === 'IDLE') {
+            startJump();
+        }
     }
 
-    // P2 Setup (Separate Profile)
-    game2.playerData = createDefaultData();
-    // Give P2 some generic skins or copy P1? Let's copy P1's unlocked stuff but reset progress
-    // Actually, deep cloning P1's initial state is safer for now.
-    game2.playerData = JSON.parse(JSON.stringify(playerData));
-    // Reset session stats for P2
-    game2.playerData.tacos = 0; // Session score for competition? Or keep tacos?
-    // Let's keep it separate.
+    // Start buttons
+    const mobBtn = document.getElementById('mobileShootBtn');
+    if (mobBtn) {
+        mobBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'press');
+            } else {
+                doGameAction(game1, 'press');
+            }
+        }, {passive: false});
+        mobBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isSplitscreen) {
+                doGameAction(game2, 'release');
+            } else {
+                doGameAction(game1, 'release');
+            }
+        }, {passive: false});
+    }
 
-    function toggleSplitscreen() {
-        if (window.closeControlsMenu) window.closeControlsMenu();
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        isSplitscreen = !isSplitscreen;
+    const mobBtn2 = document.getElementById('mobileShootBtn2');
+    if (mobBtn2) {
+        mobBtn2.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            doGameAction(game1, 'press');
+        }, {passive: false});
+        mobBtn2.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            doGameAction(game1, 'release');
+        }, {passive: false});
+    }
 
-        const sb = document.getElementById('scorebug-container');
-        const btnText = document.getElementById('btnSplitText');
+    function doGameAction(game, type) {
+        loadContext(game);
+        if (type === 'press') {
+            handleActionPress();
+        } else if (type === 'release') {
+            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
+        }
+        saveContext(game);
+    }
 
-        if(isSplitscreen) {
-            // Reset P2 with a deep copy of P1's data (which is currently loaded in global playerData)
-            // Important: We must use game1.playerData if playerData reference is ambiguous,
-            // but relying on 'playerData' global which should be game1's at this point (via loop/events).
-            game2 = createGameContext();
-            // Fallback to game1.playerData if global is somehow unlinked, but usually they match.
-            // Using JSON parse/stringify ensures DEEP COPY and NEW REFERENCE.
-            const sourceData = (game1 && game1.playerData) ? game1.playerData : playerData;
-            game2.playerData = JSON.parse(JSON.stringify(sourceData));
-            game2.playerData.tacos = 0; // Fresh score
+    var enterPressed = false;
 
-            if(sb) sb.style.display = 'none';
-            if(btnText) btnText.innerText = "1 PLAYER";
-        } else {
-            if(sb) sb.style.display = 'flex';
-            if(btnText) btnText.innerText = "2 PLAYERS";
+    window.addEventListener('keydown', (e) => {
+        // General Keyboard Accessibility for Custom Buttons
+        if (e.code === 'Enter' || e.code === 'Space') {
+            const active = document.activeElement;
+            if (active && (active.classList.contains('broadcast-btn') || active.classList.contains('broadcast-icon-btn'))) {
+                if (e.code === 'Space') e.preventDefault(); // Prevent scroll
+                active.click();
+                active.classList.add('active-key');
+                setTimeout(() => active.classList.remove('active-key'), 100);
+                return;
+            }
         }
 
-        // Ensure both players are initialized for current mode
-        runForAllPlayers(resetGame);
+        // High Score / UI Handling
+        if (state === 'HIGHSCORE_INPUT') {
+            loadContext(game1);
+            if (e.code === 'ArrowUp') handleHighScoreInput('UP');
+            if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
+            if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
+            if (e.code === 'ArrowRight') handleHighScoreInput('RIGHT');
+            if (e.code === 'Enter') handleHighScoreInput('SELECT');
+            if (e.code === 'Backspace') handleHighScoreInput('BACK');
+            saveContext(game1);
+            return;
+        }
 
-        updateMobileControlsUI();
-        invalidateBackgroundCache();
-        resizeGame();
-    }
+        // Global UI Toggles (P1 only for simplicity)
+        if(state === 'SHOP') { if(e.code === 'Escape') { loadContext(game1); closeShop(); return; } }
+        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
+        if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
+        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
+        if(state === 'CHALLENGES') { if(e.code === 'Escape') { loadContext(game1); window.closeAllMenus(); return; } }
 
-// --- END main.js ---
+        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
+        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
+        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
+        if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
+
+        // P1 Action
+        if (e.code === 'Space' && !spacePressed) {
+            spacePressed = true;
+            doGameAction(game1, 'press');
+        }
+
+        // P2 Action
+        if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
+            enterPressed = true;
+            doGameAction(game2, 'press');
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+            spacePressed = false;
+            doGameAction(game1, 'release');
+        }
+        if (isSplitscreen && e.code === 'Enter') {
+            enterPressed = false;
+            doGameAction(game2, 'release');
+        }
+    });
+
+    window.addEventListener('mousedown', (e) => {
+        // Hide virtual cursor on real mouse interaction
+        if (typeof VirtualCursor !== 'undefined' && VirtualCursor.element) {
+            VirtualCursor.visible = false;
+            VirtualCursor.element.style.display = 'none';
+        }
+
+        if(e.target.closest('.modal') || e.target.closest('#startup-ui') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scaleX;
+
+        // P1 Mouse Control (Default) or P2 if on right side in splitscreen
+        if (isSplitscreen && x > canvas.width / 2) {
+             doGameAction(game2, 'press');
+        } else {
+             // Check mobile flag inside context?
+             loadContext(game1);
+             if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
+             saveContext(game1);
+
+             doGameAction(game1, 'press');
+        }
+    });
+    window.addEventListener('mouseup', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scaleX;
+
+        if (isSplitscreen && x > canvas.width / 2) {
+             doGameAction(game2, 'release');
+        } else {
+            loadContext(game1);
+            if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
+            saveContext(game1);
+
+            doGameAction(game1, 'release');
+        }
+    });
+
+    // Handle Page Visibility (Mute audio on background)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (AudioSystem.ctx && AudioSystem.ctx.state === 'running') {
+                AudioSystem.ctx.suspend();
+            }
+        } else {
+            // Only resume if user hasn't explicitly muted it
+            if (AudioSystem.ctx && !AudioSystem.isMuted && AudioSystem.ctx.state === 'suspended') {
+                AudioSystem.ctx.resume();
+            }
+        }
+    });
+
+// --- END input.js ---
 
 // --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
@@ -9612,6 +8379,217 @@ var BallRenderer = {
         ctx.restore();
     }
 
+    // --- HAIR PHYSICS ENGINE ---
+    var HairEngine = {
+        Node: class {
+            constructor(x, y, z, fixed) {
+                this.x = x; this.y = y; this.z = z;
+                this.oldX = x; this.oldY = y; this.oldZ = z;
+                this.fixed = fixed;
+                this.relX = 0; this.relY = 0; this.relZ = 0; // Relative to head center (unrotated)
+            }
+        },
+
+        Strand: class {
+            constructor() {
+                this.nodes = [];
+                this.color = '#000';
+            }
+        },
+
+        System: class {
+            constructor() {
+                this.strands = [];
+                this.styleId = null;
+                this.gravity = 0.5;
+                this.friction = 0.8; // High friction = no crazy wind
+            }
+
+            init(style, headX, headY, headZ, color) {
+                this.strands = [];
+                this.styleId = style;
+                const headRadius = 18; // World units approx
+
+                // Seeded random
+                let seed = 0;
+                for(let i=0; i<style.length; i++) seed += style.charCodeAt(i);
+                const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+                // Generator Helpers
+                const addStrand = (azimuth, elevation, length, segments) => {
+                    const theta = azimuth;
+                    const phi = elevation; // 0 = top, PI/2 = equator
+
+                    const nx = Math.sin(phi) * Math.cos(theta);
+                    const ny = Math.sin(phi) * Math.sin(theta);
+                    const nz = Math.cos(phi);
+
+                    const s = new HairEngine.Strand();
+                    s.color = color;
+
+                    const segLen = length / segments;
+                    let cx = headX + nx * headRadius;
+                    let cy = headY + ny * headRadius;
+                    let cz = headZ + nz * headRadius;
+
+                    for(let i=0; i<=segments; i++) {
+                        const fixed = (i === 0);
+                        const n = new HairEngine.Node(cx, cy, cz, fixed);
+                        if (fixed) {
+                            n.relX = nx * headRadius;
+                            n.relY = ny * headRadius;
+                            n.relZ = nz * headRadius;
+                        }
+                        s.nodes.push(n);
+                        // Grow out/down
+                        cz -= segLen * 0.9;
+                        cx += nx * segLen * 0.2;
+                        cy += ny * segLen * 0.2;
+                    }
+                    this.strands.push(s);
+                };
+
+                // Configuration per Style
+                if (style === 'dreads' || style === 'braids_box' || style === 'cornrows_braids') {
+                    // All over top and back
+                    const count = (style === 'braids_box') ? 30 : 50;
+                    const len = (style === 'braids_box') ? 40 : 30;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2; // Around
+                        const phi = rnd() * Math.PI * 0.6; // Top hemisphere to equator+
+                        // Exclude face area (Front: +Y is back, -Y is front?
+                        // In this game, player faces hoop (Target).
+                        // If Player is at (0,0), Hoop is at (X, Y).
+                        // Usually Back View -> Camera is behind player.
+                        // So Hair should be visible on the side facing camera?
+                        // Let's just cover the back half mostly.
+                        // Assuming Z is up. Player rotation will handle orientation.
+                        // We generate relative to a sphere, then rotation aligns it.
+                        // Let's generate uniformly on top/back.
+                        // Exclude "Front" mask: assume +Y is Forward (Face). So only -Y or high Z.
+                        // Let's filter later or just gen all over for now.
+                        addStrand(theta, phi, len, 4);
+                    }
+                } else if (style === 'long_flow' || style === 'mullet_80s') {
+                    // Mullet: Back only
+                    // Long: All over
+                    const count = 60;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.5;
+                        const isBack = (Math.sin(theta) < 0); // Approx
+                        if (style === 'mullet_80s' && !isBack && phi > 0.3) continue; // Skip front/side for mullet low
+
+                        let l = 50;
+                        if (style === 'mullet_80s') l = 35;
+                        addStrand(theta, phi, l, 5);
+                    }
+                } else if (style.startsWith('afro')) {
+                    // Springs
+                    const count = 100;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.55;
+                        addStrand(theta, phi, 15, 2); // Short stiff strands
+                    }
+                    this.gravity = 0.1; // Less gravity for afro
+                    this.friction = 0.7;
+                }
+            }
+
+            update(dt, headX, headY, headZ, headAngle, vel) {
+                const headRadius = 18;
+                const cosR = Math.cos(headAngle);
+                const sinR = Math.sin(headAngle);
+
+                for(let s of this.strands) {
+                    for(let i=0; i<s.nodes.length; i++) {
+                        const n = s.nodes[i];
+
+                        if (n.fixed) {
+                            // Rotate Relative Offset
+                            // Z rotation (Face direction)
+                            // x' = x*cos - y*sin
+                            // y' = x*sin + y*cos
+                            const rx = n.relX * cosR - n.relY * sinR;
+                            const ry = n.relX * sinR + n.relY * cosR;
+
+                            n.x = headX + rx;
+                            n.y = headY + ry;
+                            n.z = headZ + n.relZ;
+                            n.oldX = n.x; n.oldY = n.y; n.oldZ = n.z;
+                            continue;
+                        }
+
+                        // Verlet Integration
+                        const vx = (n.x - n.oldX) * this.friction;
+                        const vy = (n.y - n.oldY) * this.friction;
+                        const vz = (n.z - n.oldZ) * this.friction;
+
+                        n.oldX = n.x; n.oldY = n.y; n.oldZ = n.z;
+
+                        n.x += vx;
+                        n.y += vy;
+                        n.z += vz - this.gravity * dt;
+
+                        // Inertia (Opposite to player velocity)
+                        // Scale down to prevent "going crazy"
+                        if (vel) {
+                            n.x -= vel.x * 0.3 * dt;
+                            n.y -= vel.y * 0.3 * dt;
+                            n.z -= vel.z * 0.3 * dt;
+                        }
+
+                        // Head Collision (Simple Sphere)
+                        const dx = n.x - headX;
+                        const dy = n.y - headY;
+                        const dz = n.z - headZ;
+                        const distSq = dx*dx + dy*dy + dz*dz;
+                        const minR = headRadius + 2;
+
+                        if (distSq < minR*minR && distSq > 0.001) {
+                            const dist = Math.sqrt(distSq);
+                            const push = (minR - dist) / dist;
+                            n.x += dx * push;
+                            n.y += dy * push;
+                            n.z += dz * push;
+                        }
+
+                        // Ground Collision
+                        if (n.z < 0) n.z = 0;
+                    }
+
+                    // Length Constraints (Relaxation)
+                    const passes = 2;
+                    // Afro needs stiffness, Long hair needs flow
+                    const segmentLen = (this.activeStyle && this.activeStyle.startsWith('afro')) ? 8 : 10;
+
+                    for(let k=0; k<passes; k++) {
+                        for(let i=0; i<s.nodes.length-1; i++) {
+                            const n1 = s.nodes[i];
+                            const n2 = s.nodes[i+1];
+                            const dx = n2.x - n1.x;
+                            const dy = n2.y - n1.y;
+                            const dz = n2.z - n1.z;
+                            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                            if (dist < 0.001) continue;
+
+                            const diff = dist - segmentLen;
+                            const percent = (diff / dist) * 0.5;
+                            const ox = dx * percent;
+                            const oy = dy * percent;
+                            const oz = dz * percent;
+
+                            if (!n1.fixed) { n1.x += ox; n1.y += oy; n1.z += oz; }
+                            if (!n2.fixed) { n2.x -= ox; n2.y -= oy; n2.z -= oz; }
+                            else { n2.x -= ox*2; n2.y -= oy*2; n2.z -= oz*2; }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle || 'bald_clean';
@@ -9627,6 +8605,60 @@ var BallRenderer = {
         let seed = 0;
         const seedStr = (skinObj.id || 'default') + (style || '');
         for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+
+        // --- DYNAMIC HAIR RENDER ---
+        const sys = (typeof player3D !== 'undefined' && player3D.hairSystem && player3D.hairSystem.styleId === style)
+                    ? player3D.hairSystem : null;
+
+        if (sys && sys.strands.length > 0) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Render from back to front? Or just standard.
+            // Strands are 3D segments.
+            for (let strand of sys.strands) {
+                if (strand.nodes.length < 2) continue;
+
+                // Project all nodes
+                const points = [];
+                for(let n of strand.nodes) {
+                    const proj = project(n.x, n.y, n.z);
+                    if (proj) points.push(proj);
+                }
+
+                if (points.length < 2) continue;
+
+                // Dynamic Width
+                let baseWidth = 3 * s;
+                if (style.startsWith('dread')) baseWidth = 5 * s;
+                if (style.startsWith('braid')) baseWidth = 4 * s;
+                if (style.startsWith('afro')) baseWidth = 12 * s; // Puffs
+
+                if (style.startsWith('afro')) {
+                    // Puffs (Circles)
+                    ctx.fillStyle = strand.color;
+                    for (let pt of points) {
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, baseWidth * pt.scale * 0.5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                } else {
+                    // Strands (Curves)
+                    ctx.strokeStyle = strand.color;
+                    ctx.lineWidth = baseWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    for(let i=1; i<points.length-1; i++) {
+                        const xc = (points[i].x + points[i+1].x) / 2;
+                        const yc = (points[i].y + points[i+1].y) / 2;
+                        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                    }
+                    ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+                    ctx.stroke();
+                }
+            }
+            return;
+        }
 
         // --- HELPER: SOLID BASE ---
         const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
@@ -9685,7 +8717,7 @@ var BallRenderer = {
         }
 
         // --- 2. SHORT / BUZZ / FADES ---
-        if (style === 'buzz_cut' || style === 'buzz_colored') {
+        if (style === 'default' || style === 'buzz_cut' || style === 'buzz_colored') {
              // Tight to head
              drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -20), true, 'natural'); // Shadow
 
@@ -9725,6 +8757,20 @@ var BallRenderer = {
                  grad.addColorStop(0, adjustColor(hairColor, 20));
                  grad.addColorStop(1, adjustColor(hairColor, -10));
                  drawSolidLayeredBase(1.01, 0, grad, false, 'natural');
+
+                 // Texture Overlay
+                 if (playerData.graphics === 'HIGH') {
+                     const pat = getFabricPattern(ctx);
+                     if (pat) {
+                         ctx.save();
+                         // Clip to head area (approx)
+                         ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.clip();
+                         ctx.globalCompositeOperation = 'overlay';
+                         ctx.fillStyle = pat;
+                         ctx.fillRect(p.x - modRadius, headY - 2*s - modRadius, modRadius*2, modRadius*2);
+                         ctx.restore();
+                     }
+                 }
              }
              return;
         }
@@ -14972,378 +14018,1611 @@ var BallRenderer = {
 
 // --- END renderer.js ---
 
-// --- START input.js ---
-    // Virtual Cursor System
-    const VirtualCursor = {
-        element: null,
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-        visible: false,
-        speed: 7.5,
-        scrollSpeed: 7.5,
+// --- START main.js ---
 
-        init: function() {
-            if (!document.getElementById('gamepad-cursor')) {
-                this.element = document.createElement('div');
-                this.element.id = 'gamepad-cursor';
-                this.element.style.position = 'fixed';
-                this.element.style.width = '20px';
-                this.element.style.height = '20px';
-                this.element.style.borderRadius = '50%';
-                this.element.style.backgroundColor = 'rgba(255, 215, 0, 0.8)'; // Gold
-                this.element.style.border = '2px solid white';
-                this.element.style.boxShadow = '0 0 10px black';
-                this.element.style.pointerEvents = 'none'; // Click-through for elementFromPoint
-                this.element.style.zIndex = '999999';
-                this.element.style.display = 'none';
-                this.element.style.transform = 'translate(-50%, -50%)'; // Center pivot
+    // Global Animation State
+    var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_breathingPhase = 0;
 
-                // Add a crosshair or simple styling
-                this.element.innerHTML = '<div style="position:absolute; top:50%; left:50%; width:4px; height:4px; background:red; transform:translate(-50%,-50%); border-radius:50%;"></div>';
-
-                document.body.appendChild(this.element);
-            } else {
-                this.element = document.getElementById('gamepad-cursor');
-            }
-        },
-
-        updatePosition: function(dx, dy) {
-            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
-
-            this.visible = true;
-            this.element.style.display = 'block';
-
-            this.x += dx * this.speed;
-            this.y += dy * this.speed;
-
-            // Clamp to screen
-            this.x = Math.max(0, Math.min(window.innerWidth, this.x));
-            this.y = Math.max(0, Math.min(window.innerHeight, this.y));
-
-            this.element.style.left = this.x + 'px';
-            this.element.style.top = this.y + 'px';
-        },
-
-        handleScroll: function(dx, dy) {
-            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
-
-            // Find scrollable target under cursor or active modal
-            // Priority: Hovered element -> Open Modal -> Window
-
-            // 1. Try element under cursor
-            // temporarily hide cursor to get element below
-            this.element.style.display = 'none';
-            let target = document.elementFromPoint(this.x, this.y);
-            this.element.style.display = 'block';
-
-            // Walk up to find scrollable
-            let scrolled = false;
-            while(target) {
-                if (target.scrollHeight > target.clientHeight || target.scrollWidth > target.clientWidth) {
-                    const style = window.getComputedStyle(target);
-                    if (['auto', 'scroll'].includes(style.overflowY) || ['auto', 'scroll'].includes(style.overflowX)) {
-                        target.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
-                        scrolled = true;
-                        break;
-                    }
-                }
-                target = target.parentElement;
-            }
-
-            if (!scrolled) {
-                // Fallback: Check for open visible modal
-                const visibleModal = document.querySelector('.modal[style*="display: block"]');
-                if (visibleModal) {
-                    visibleModal.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
-                } else {
-                    window.scrollBy(dx * this.scrollSpeed, dy * this.scrollSpeed);
-                }
-            }
-        },
-
-        click: function() {
-            this.visible = true;
-            this.element.style.display = 'block';
-
-            // Click animation
-            this.element.style.transform = 'translate(-50%, -50%) scale(0.8)';
-            setTimeout(() => this.element.style.transform = 'translate(-50%, -50%) scale(1.0)', 100);
-
-            // Trigger click
-            this.element.style.display = 'none'; // Hide to click through
-            const target = document.elementFromPoint(this.x, this.y);
-            this.element.style.display = 'block';
-
-            if (target) {
-                // Focus input if text
-                if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
-                    target.focus();
-                }
-
-                // Dispatch full mouse sequence for compatibility
-                const opts = { bubbles: true, cancelable: true, view: window, clientX: this.x, clientY: this.y };
-                target.dispatchEvent(new MouseEvent('mousedown', opts));
-                target.dispatchEvent(new MouseEvent('mouseup', opts));
-                target.click();
-            }
-        }
+    // Cat Logic State
+    var g_catState = {
+        state: 'IDLE', // IDLE, MOVING, EATING, RETURNING
+        x: 733, y: 160, // Base position (Hoop + 10)
+        targetX: 0, targetY: 0,
+        targetTacoIndex: -1,
+        eatTimer: 0,
+        animFrame: 0
     };
 
-    const GamepadController = {
-        active: false,
-        lastButtonStates: {},
-        lastState: null,
+    // Center of screen is 1066/2 = 533.
+    // Shift hoop to x=600 is fine (slightly right),
+    // but we might want to center the "court path" a bit more.
+    const HOOP_POS = { x: 733, y: 150, z: 130 }; // Moved +133 to account for +266 width
+    const PIXELS_PER_FOOT = 4.2426;
 
-        // Mapping (Standard)
-        BTN_A: 0, BTN_B: 1, BTN_X: 2, BTN_Y: 3,
+    var decors = [];
+    // Cat under the hoop (Moved dynamic cat logic to renderer, placeholder removed or kept for initial scan)
+    // We will render the cat manually in renderer.js using g_catState, so we don't push it to decors here anymore
+    // or we push it but update its position in the render loop.
+    // Let's keep it in decors for consistent depth sorting, but we'll update its x/y in update loop.
+    var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
+    decors.push(catDecor);
 
-        update: function() {
-            // Initialize cursor if needed
-            if (!VirtualCursor.element) VirtualCursor.init();
+    // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
+    // Increased count to 4000 to maintain density
+    for(let i=0; i<4000; i++) {
+        const dist = Math.random() * 120000;
+        const pathX = 733 - (dist * 0.7);
+        const pathY = 150 + (dist * 0.7);
+        const scatter = (Math.random() - 0.5) * 1200;
 
-            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const dX = pathX + scatter;
+        const dY = pathY + scatter;
 
-            // We focus mainly on Player 1 for UI navigation to avoid conflict,
-            // but we could allow any controller to move the cursor.
-            // Let's allow any active controller to drive the cursor (last wins).
+        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
+        // Player Width ~30 units. Safety = 1.5x (~45).
+        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
+        const sum = dX + dY;
+        if (sum > 540 && sum < 810) continue;
 
-            for(let i=0; i<4; i++) {
-                const gp = gamepads[i];
-                if(!gp) continue;
+        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
 
-                if(!this.lastButtonStates[i]) this.lastButtonStates[i] = [];
+        // Convert Pixel Distance to Game Feet for Zone Lookup
+        const feetDist = dDist / PIXELS_PER_FOOT;
 
-                // Check Left Stick (Axes 0, 1) -> Cursor
-                const lsX = gp.axes[0] || 0;
-                const lsY = gp.axes[1] || 0;
-                VirtualCursor.updatePosition(lsX, lsY);
-
-                // Check Right Stick (Axes 2, 3) -> Scroll
-                const rsX = gp.axes[2] || 0;
-                const rsY = gp.axes[3] || 0;
-                VirtualCursor.handleScroll(rsX, rsY);
-
-                // Check Actions
-
-                // A Button (0) -> Click
-                if (this.isPressed(gp, this.BTN_A, i)) {
-                    VirtualCursor.click();
-                }
-
-                // X Button (2) -> Shoot (Game Action)
-                // We keep this specific logic for gameplay
-                const p1Map = (game1.playerData.inputMap && game1.playerData.inputMap.p1 !== undefined) ? game1.playerData.inputMap.p1 : -1;
-                const p2Map = (game1.playerData.inputMap && game1.playerData.inputMap.p2 !== undefined) ? game1.playerData.inputMap.p2 : -1;
-
-                if (i === p1Map) {
-                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game1, 'press');
-                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game1, 'release');
-                }
-
-                if (isSplitscreen && i === p2Map) {
-                    if (this.isPressed(gp, this.BTN_X, i)) doGameAction(game2, 'press');
-                    if (this.isReleased(gp, this.BTN_X, i)) doGameAction(game2, 'release');
-                }
-
-                // B Button (1) -> Back / Close Menu
-                if (this.isPressed(gp, this.BTN_B, i)) {
-                    if (state === 'HIGHSCORE_INPUT') handleHighScoreInput('BACK');
-                    else if (['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD'].includes(state)) {
-                        window.closeAllMenus();
-                    }
-                }
-
-                // Save state
-                for(let b=0; b<gp.buttons.length; b++) {
-                    this.lastButtonStates[i][b] = gp.buttons[b].pressed;
-                }
-            }
-        },
-
-        isPressed: function(gp, btnIndex, gpIndex) {
-            const lastState = this.lastButtonStates[gpIndex] || [];
-            return gp.buttons[btnIndex] && gp.buttons[btnIndex].pressed && !lastState[btnIndex];
-        },
-
-        isReleased: function(gp, btnIndex, gpIndex) {
-            const lastState = this.lastButtonStates[gpIndex] || [];
-            return gp.buttons[btnIndex] && !gp.buttons[btnIndex].pressed && lastState[btnIndex];
+        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        let variant = 'default';
+        if(decorZone.type === 'tree') {
+             variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
         }
-    };
+        decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
+    }
 
-    function handleActionPress() {
-        if (state === 'GAMEOVER') {
-            if (isSplitscreen) resetGame();
-            else openShop();
-        } else if (state === 'IDLE') {
-            startJump();
+    // Crowd Generation (Stands along the side)
+    for(let d = 500; d < 120000; d += 800) {
+        const pathX = 733 - (d * 0.7);
+        const pathY = 150 + (d * 0.7);
+        const offset = 400;
+        const density = Math.min(1.0, d/50000);
+
+        // Left Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX - offset, y: pathY - offset, dist: d, zoneType: 'crowd', variant: {side:'left', density:density}, seed: Math.random() });
+        }
+        // Right Stand
+        if (Math.random() > 0.3) {
+             decors.push({ x: pathX + offset, y: pathY + offset, dist: d, zoneType: 'crowd', variant: {side:'right', density:density}, seed: Math.random() });
         }
     }
 
-    // Start buttons
-    const mobBtn = document.getElementById('mobileShootBtn');
-    if (mobBtn) {
-        mobBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (isSplitscreen) {
-                doGameAction(game2, 'press');
+    // LANDMARK GENERATION
+    SCALE_OBJECTS.forEach(obj => {
+        if (obj.type) {
+            const dist = obj.limit * PIXELS_PER_FOOT;
+            const pathX = 733 - (dist * 0.7);
+            const pathY = 150 + (dist * 0.7);
+            // Place landmarks mostly centered but pushed back or offset
+            const offset = (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random()*200);
+            decors.push({ x: pathX + offset, y: pathY + offset, dist: dist, zoneType: obj.type, variant: obj, seed: Math.random() });
+        }
+    });
+
+    // TACO CAT: One per zone guaranteed
+    for(let i=0; i<COURT_ZONES.length; i++) {
+        const z = COURT_ZONES[i];
+        const prevLimit = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
+        const range = Math.min(z.limit, prevLimit + 3000) - prevLimit; // Cap range slightly for large zones
+
+        const dist = prevLimit + Math.random() * range; // This is FEET
+
+        // Convert Feet to Pixels for Coordinate Calculation
+        const pixelDist = dist * PIXELS_PER_FOOT;
+
+        const pathX = 733 - (pixelDist * 0.7);
+        const pathY = 150 + (pixelDist * 0.7);
+
+        let dX, dY;
+        let attempts = 0;
+        do {
+            const scatter = (Math.random() - 0.5) * 1000;
+            dX = pathX + scatter;
+            dY = pathY + scatter;
+            attempts++;
+        } while (attempts < 10 && (dX + dY > 540 && dX + dY < 810));
+
+        decors.push({ x: dX, y: dY, dist: pixelDist, zoneType: 'tacocat', variant: 'default', seed: Math.random() });
+    }
+
+    // OPTIMIZATION: Sort decors by distance from hoop to allow early exit in render loop
+    decors.sort((a, b) => a.dist - b.dist);
+
+    var clouds = [];
+    var mountainLayers = [];
+
+    function initBackgroundElements() {
+        // Clouds
+        clouds = [];
+        for(let i=0; i<8; i++) {
+            let c = {
+                x: Math.random() * 2000,
+                y: Math.random() * 200,
+                speed: 0.1 + Math.random() * 0.2,
+                scale: 0.8 + Math.random() * 0.8,
+                puffs: []
+            };
+            let numPuffs = 4 + Math.floor(Math.random() * 5);
+            for(let j=0; j<numPuffs; j++) {
+                c.puffs.push({
+                    dx: (Math.random() - 0.5) * 60,
+                    dy: (Math.random() - 0.5) * 30,
+                    r: 25 + Math.random() * 25
+                });
+            }
+            clouds.push(c);
+        }
+
+        // Mountain Layers
+        mountainLayers = [];
+        const colors = ['#2F4F4F', '#243b3b', '#162424'];
+        const baseHeights = [250, 180, 120];
+        const speeds = [0.02, 0.05, 0.1];
+
+        for(let L=0; L<3; L++) {
+            let points = [];
+            let x = 0;
+            let y = Math.random() * baseHeights[L];
+            // Generate a looped path
+            while(x <= 2200) { // Enough for screen width + shift
+                 points.push({x: x, y: y});
+                 x += 40 + Math.random() * 60;
+                 y += (Math.random() - 0.5) * 100;
+                 if(y < 50) y = 50; if(y > baseHeights[L] + 100) y = baseHeights[L] + 100;
+            }
+            // Smooth loop?
+            points[points.length-1].y = points[0].y;
+            mountainLayers.push({ points: points, color: colors[L], speed: speeds[L] });
+        }
+    }
+    initBackgroundElements();
+
+    var bgCache = null;
+
+    // --- OPTIMIZATION: Render Object Pooling ---
+    // Monomorphic class for V8 optimization
+    class RenderItem {
+        constructor() {
+            this.type = null;
+            this.depth = 0;
+            this.x = 0;
+            this.y = 0;
+            this.scale = 0;
+            this.zoneType = null;
+            this.variant = null;
+            this.seed = 0;
+            this.alpha = 0;
+            this.color = null;
+            this.ballRef = null;
+        }
+    }
+
+    var g_renderItemPool = [];
+    var g_renderList = [];
+    let g_poolIndex = 0;
+
+    function getRenderItem() {
+        let obj;
+        if (g_poolIndex < g_renderItemPool.length) {
+            obj = g_renderItemPool[g_poolIndex];
+        } else {
+            obj = new RenderItem();
+            g_renderItemPool.push(obj);
+        }
+        g_poolIndex++;
+        return obj;
+    }
+
+    // Pre-allocate some objects
+    for(let i=0; i<1000; i++) {
+        g_renderItemPool.push(new RenderItem());
+    }
+
+    // --- OPTIMIZATION: Cached Shooting Style ---
+    let g_cachedStyleId = null;
+    let g_cachedStyleObj = null;
+
+    function getCurrentStyle() {
+        const currentId = playerData.currentStyle || 'classic';
+        if (currentId !== g_cachedStyleId || !g_cachedStyleObj) {
+            g_cachedStyleObj = SHOOTING_STYLES.find(s => s.id === currentId) || SHOOTING_STYLES[0];
+            g_cachedStyleId = currentId;
+        }
+        return g_cachedStyleObj;
+    }
+
+    function isMechanicalSkin(skinId) {
+        if (!skinId) return false;
+        const s = skinId.toLowerCase();
+        return s.includes('robot') || s.includes('cyborg') || s.includes('mech') || s.includes('cyber') || s.includes('android');
+    }
+
+    // --- OPTIMIZATION: Fuzzy Noise Lookup Table ---
+    const NOISE_LUT_SIZE = 4096;
+    const g_noiseLUT = new Float32Array(NOISE_LUT_SIZE);
+    for (let i = 0; i < NOISE_LUT_SIZE; i++) {
+        g_noiseLUT[i] = Math.random();
+    }
+
+
+    function binarySearchLowerBound(arr, val) {
+        let l = 0, r = arr.length - 1;
+        let idx = arr.length; // Default if not found (all smaller)
+        while (l <= r) {
+            let m = (l + r) >>> 1; // Unsigned right shift for floor
+            if (arr[m].dist >= val) {
+                idx = m;
+                r = m - 1;
             } else {
-                doGameAction(game1, 'press');
-            }
-        }, {passive: false});
-        mobBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (isSplitscreen) {
-                doGameAction(game2, 'release');
-            } else {
-                doGameAction(game1, 'release');
-            }
-        }, {passive: false});
-    }
-
-    const mobBtn2 = document.getElementById('mobileShootBtn2');
-    if (mobBtn2) {
-        mobBtn2.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            doGameAction(game1, 'press');
-        }, {passive: false});
-        mobBtn2.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            doGameAction(game1, 'release');
-        }, {passive: false});
-    }
-
-    function doGameAction(game, type) {
-        loadContext(game);
-        if (type === 'press') {
-            handleActionPress();
-        } else if (type === 'release') {
-            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
-        }
-        saveContext(game);
-    }
-
-    var enterPressed = false;
-
-    window.addEventListener('keydown', (e) => {
-        // General Keyboard Accessibility for Custom Buttons
-        if (e.code === 'Enter' || e.code === 'Space') {
-            const active = document.activeElement;
-            if (active && (active.classList.contains('broadcast-btn') || active.classList.contains('broadcast-icon-btn'))) {
-                if (e.code === 'Space') e.preventDefault(); // Prevent scroll
-                active.click();
-                active.classList.add('active-key');
-                setTimeout(() => active.classList.remove('active-key'), 100);
-                return;
+                l = m + 1;
             }
         }
+        return idx;
+    }
 
-        // High Score / UI Handling
-        if (state === 'HIGHSCORE_INPUT') {
-            loadContext(game1);
-            if (e.code === 'ArrowUp') handleHighScoreInput('UP');
-            if (e.code === 'ArrowDown') handleHighScoreInput('DOWN');
-            if (e.code === 'ArrowLeft') handleHighScoreInput('LEFT');
-            if (e.code === 'ArrowRight') handleHighScoreInput('RIGHT');
-            if (e.code === 'Enter') handleHighScoreInput('SELECT');
-            if (e.code === 'Backspace') handleHighScoreInput('BACK');
-            saveContext(game1);
+    // --- 1.5 AUDIO SYSTEM (RETRO SYNTH) ---
+    // --- 2. GLOBAL VARIABLES ---
+    // Resolution Constants
+    window.LOGICAL_HEIGHT = 600;
+    window.LOGICAL_WIDTH = 1066;
+    window.RESOLUTION_SCALE = 1;
+
+    const canvas = document.getElementById('gameCanvas');
+    var ctx = canvas.getContext('2d');
+
+    // Optimization: Pre-calculated Sun Gradient
+    const sunGradient = ctx.createRadialGradient(700, 80, 0, 700, 80, 80);
+    sunGradient.addColorStop(0, '#FFD700');
+    sunGradient.addColorStop(0.5, '#FFD700'); // Solid core (r=40)
+    sunGradient.addColorStop(0.6, 'rgba(255, 165, 0, 0.5)'); // Glow start
+    sunGradient.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
+
+    const scoreEl = document.getElementById('scoreVal');
+    const shopUI = document.getElementById('shopUI');
+    const achUI = document.getElementById('achUI');
+    const statsUI = document.getElementById('statsUI');
+    const notif = document.getElementById('notification');
+    const courtNameEl = document.getElementById('courtNameDisplay');
+    const missValEl = document.getElementById('missVal');
+    const container = document.getElementById('game-container');
+
+    canvas.width = 1066;
+    canvas.height = 600;
+
+    let viewingAnimalIndex = 0;
+    let viewingSkinIndex = 0;
+    let viewingVariantIndex = 0;
+    let viewingHairstyleIndex = 0;
+    let viewingClothingIndex = 0;
+    let viewingHatIndex = 0;
+    let viewingPantsIndex = 0;
+    let viewingShoeIndex = 0;
+    let viewingStyleIndex = 0;
+    let viewingBallIndex = 0;
+    let viewingCatSkinIndex = 0;
+    let viewingCatAccessoryIndex = 0;
+    let currentGameMode = 'CLASSIC';
+    let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
+let lastDisplayedContestTime = -1;
+    let distanceLevel = 1;
+    var state = 'IDLE';
+    let feedback = "";
+    let feedbackTimer = 0;
+    let crowdCheerTimer = 0;
+    let consecutiveMisses = 0;
+    var currentStreak = 0;
+    let spacePressed = false;
+    let cameraZoom = 800;
+    let cameraHeight = 300;
+    let g_camCache = null; // Optimization: Per-frame camera cache
+    let resetStage = 0;
+    let isGroundedShot = false;
+    let groundShotTimer = 0;
+    let lastGroundShotTimer = 0; // History
+    let airbudJumpTime = 0;
+    // preJumpTimer is defined in data.js
+    let lastPreJumpTimer = 0; // History
+
+    // Physique
+    const GRAVITY = 0.5;
+    const DEBUG = false;
+    // Shift player start position to match new center (300 -> 433)
+    var player3D = { x: 433, y: 300, z: 0, vz: 0 };
+    var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
+    var activeBalls = [];
+    var tacosOnGround = []; // New array for tacos
+    var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
+    var particles = [];
+
+    // Expose for debugging
+    if (DEBUG) {
+        window.player3D = player3D;
+        window.state = state;
+        window.tacosOnGround = tacosOnGround;
+    }
+
+    function createDefaultData() {
+        return {
+            tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
+            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
+            lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
+            dailyChallenges: [], weeklyChallenges: [],
+            unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
+            customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
+            skinVariants: {}, // Stores active variant index/bool for each skin
+            customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
+            currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
+            basketCatSkinIndex: 0, basketCatExp: 0,
+            unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
+            unlockedHats: ['hat_none'], currentHat: 'hat_none',
+            unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
+            unlockedPants: ['pants_none'], currentPants: 'pants_none',
+            unlockedShoes: ['shoe_none'], currentShoes: 'shoe_none',
+            customHairColorIndex: 0, customHairLength: 1.0,
+            mobileControls: false, platformChosen: false,
+            meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            cameraZoomScale: 1.0,
+            releaseTiming: 3,
+            graphics: 'HIGH',
+            currentTrackIndex: 0,
+            leaderboards: { classic: [], contest: [], time_attack: [] },
+            inputMap: { p1: -1, p2: -1 }
+        };
+    }
+
+    let savedData = localStorage.getItem('tacoSaveData');
+    let playerData = savedData ? JSON.parse(savedData) : createDefaultData();
+
+    // Migration logic to fix old saves
+    if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
+    if(!playerData.stats.income) playerData.stats.income = 1;
+    if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
+    if(!playerData.inputMap) playerData.inputMap = { p1: -1, p2: -1 };
+    if(typeof playerData.stats.extraLives === 'undefined') playerData.stats.extraLives = 0;
+    if(!playerData.lifetimeStats) playerData.lifetimeStats = { shots: 0, makes: 0, misses: 0, contests: 0 };
+    if(!playerData.unlockedSkins) playerData.unlockedSkins = ['rat_classic'];
+    if(!playerData.currentSkin) playerData.currentSkin = 'rat_classic';
+    if(!playerData.unlockedStyles) playerData.unlockedStyles = ['classic'];
+    if(!playerData.currentStyle) playerData.currentStyle = 'classic';
+    if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+    if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
+    if(!playerData.dailyChallenges) playerData.dailyChallenges = [];
+    if(!playerData.weeklyChallenges) playerData.weeklyChallenges = [];
+    if(playerData.dailyChallenge) { // Migration
+         if(playerData.dailyChallenge.id) playerData.dailyChallenges.push(playerData.dailyChallenge);
+         delete playerData.dailyChallenge;
+    }
+    if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
+    if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
+    if(typeof playerData.cameraZoomScale === 'undefined') playerData.cameraZoomScale = 1.0;
+    if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
+    if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
+    if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
+    if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+    if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+    if(!playerData.currentHat) playerData.currentHat = 'hat_none';
+    if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+    if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
+    if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+    if(!playerData.currentPants) playerData.currentPants = 'pants_none';
+    if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
+    if(!playerData.currentShoes) playerData.currentShoes = 'shoe_none';
+    if(typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
+    if(typeof playerData.customHairLength === 'undefined') playerData.customHairLength = 1.0;
+    if(!playerData.skinVariants) playerData.skinVariants = {};
+    if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
+    if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+    if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+    if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
+    if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+    if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
+    if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
+    if(typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+    if(typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
+
+    // Migrate old hair settings if present
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
+        playerData.customHairColorIndex = playerData.customSkinSettings.hairColorIndex;
+        delete playerData.customSkinSettings.hairColorIndex;
+    }
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairSize !== undefined) {
+        playerData.customHairLength = playerData.customSkinSettings.hairSize;
+        delete playerData.customSkinSettings.hairSize;
+    }
+
+    // Migration: purchasedStats
+    if (!playerData.purchasedStats) {
+        playerData.purchasedStats = {
+            income: playerData.stats.income || 1,
+            aim: playerData.stats.aim || 1,
+            luck: playerData.stats.luck || 1,
+            moonwalk: playerData.stats.moonwalk || 1,
+            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0,
+            catNip: 0
+        };
+    }
+    if (typeof playerData.stats.catNip === 'undefined') { playerData.stats.catNip = 0; playerData.purchasedStats.catNip = 0; }
+
+    // Don't auto-set mobileControls here anymore, wait for choice if not chosen
+    window.playerData = playerData;
+
+    // Initialize Challenges
+    initDailyChallenge();
+    initWeeklyChallenge();
+
+    // --- 3. HELPER FUNCTIONS ---
+    var saveTimer = null;
+    function forceSave() {
+        if (window.isResetting) return;
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        localStorage.setItem('tacoSaveData', JSON.stringify(playerData));
+    }
+
+    function saveData() {
+        if (saveTimer) return; // Coalesce: A save is already pending
+        saveTimer = setTimeout(forceSave, 1000);
+    }
+
+    // Ensure data is saved when closing or hiding
+    window.addEventListener('beforeunload', forceSave);
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) forceSave();
+    });
+
+    function initDailyChallenge() {
+        const today = new Date().toDateString();
+
+        // MIGRATION check (Safety)
+        if (playerData.dailyChallenge) {
+             if(playerData.dailyChallenge.date === today && playerData.dailyChallenge.id) {
+                 playerData.dailyChallenges = [playerData.dailyChallenge];
+             } else {
+                 playerData.dailyChallenges = [];
+             }
+             delete playerData.dailyChallenge;
+        }
+
+        // Reset if new day
+        if (!playerData.dailyChallenges || playerData.dailyChallenges.length > 0 && playerData.dailyChallenges[0].date !== today) {
+            playerData.dailyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.dailyChallenges.length < 5) {
+            const pool = [...DAILY_CHALLENGES];
+            // Remove existing
+            playerData.dailyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+            });
+
+            while(playerData.dailyChallenges.length < 5 && pool.length > 0) {
+                const r = Math.floor(Math.random() * pool.length);
+                const c = pool[r];
+                pool.splice(r, 1);
+                playerData.dailyChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
+            }
+            saveData();
+        }
+    }
+
+    function initWeeklyChallenge() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+        const weekId = `W${week}-${now.getFullYear()}`;
+
+        // Reset if new week
+        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length > 0 && playerData.weeklyChallenges[0].weekId !== weekId) {
+             playerData.weeklyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.weeklyChallenges.length < 5) {
+             const pool = [...WEEKLY_CHALLENGES];
+             playerData.weeklyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+             });
+
+             while(playerData.weeklyChallenges.length < 5 && pool.length > 0) {
+                 const r = Math.floor(Math.random() * pool.length);
+                 const c = pool[r];
+                 pool.splice(r, 1);
+                 playerData.weeklyChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
+             }
+             saveData();
+        }
+    }
+
+    // --- LEADERBOARD LOGIC ---
+    let pendingHighScore = { mode: null, score: 0 };
+
+    function getLeaderboard(mode) {
+        if (!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+        if (!playerData.leaderboards[mode]) playerData.leaderboards[mode] = [];
+        return playerData.leaderboards[mode];
+    }
+
+    function isHighScore(mode, score) {
+        // Lower threshold for non-classic modes (Contest max is ~30)
+        const minScore = (mode === 'classic') ? 10 : 0;
+        if (score <= minScore) return false;
+        const list = getLeaderboard(mode);
+        if (list.length < 50) return true;
+        const lowest = list[list.length - 1].score;
+        return score > lowest;
+    }
+
+    function addHighScore(mode, score, name) {
+        const list = getLeaderboard(mode);
+        const entry = {
+            name: name.toUpperCase().substring(0, 3),
+            score: score,
+            date: new Date().toDateString()
+        };
+        list.push(entry);
+        list.sort((a, b) => b.score - a.score);
+        if (list.length > 50) list.length = 50;
+        saveData();
+    }
+
+    function openLeaderboard() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+
+        state = 'LEADERBOARD';
+        if(isSplitscreen) { loadContext(game2); state = 'LEADERBOARD'; saveContext(game2); loadContext(game1); }
+
+        document.getElementById('leaderboardUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        updateMobileControlsUI();
+        saveContext(game1);
+    }
+
+    function closeLeaderboard() {
+        // If coming from Game Over flow?
+        // Note: feedback is context-specific. closeAllMenus resets it.
+        // We capture it before closing.
+        const shouldOpenShop = (feedback === "TERMINÉ !" || feedback === "MARCHÉ!" || (feedback && feedback.includes("RECORD")));
+
+        window.closeAllMenus(() => {
+            if (shouldOpenShop) window.openShop();
+        });
+    }
+
+    function switchLeaderboardTab(mode) {
+        document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
+
+        const list = getLeaderboard(mode);
+        const container = document.getElementById('lbList');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color:#666;">AUCUN RECORD</div>';
             return;
         }
 
-        // Global UI Toggles (P1 only for simplicity)
-        if(state === 'SHOP') { if(e.code === 'Escape') { loadContext(game1); closeShop(); return; } }
-        if(state === 'ACHIEVEMENTS') { if(e.code === 'Escape') { loadContext(game1); closeAchievements(); return; } }
-        if(state === 'STATS') { if(e.code === 'Escape') { loadContext(game1); closeStats(); return; } }
-        if(state === 'LEADERBOARD') { if(e.code === 'Escape') { loadContext(game1); closeLeaderboard(); return; } }
-        if(state === 'CHALLENGES') { if(e.code === 'Escape') { loadContext(game1); window.closeAllMenus(); return; } }
+        list.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            // Highlight pending score? Not easy to track unique ID without adding one.
+            // Just basic render.
+            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+            container.appendChild(div);
+        });
+    }
 
-        if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
-        if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
-        if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
-        if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
+    function handleHighScoreInput() {
+        // Called when game detects high score
+        state = 'HIGHSCORE_INPUT';
+        document.getElementById('highScoreUI').style.display = 'block';
+        setTimeout(() => {
+             const inp = document.getElementById('hsNameInput');
+             inp.value = '';
+             inp.focus();
+        }, 100);
+    }
 
-        // P1 Action
-        if (e.code === 'Space' && !spacePressed) {
-            spacePressed = true;
-            doGameAction(game1, 'press');
-        }
+    function submitHighScoreInput() {
+        const name = highScoreName.join('');
+        if (!name) return;
 
-        // P2 Action
-        if (isSplitscreen && e.code === 'Enter' && !enterPressed) {
-            enterPressed = true;
-            doGameAction(game2, 'press');
-        }
-    });
+        addHighScore(pendingHighScore.mode, pendingHighScore.score, name);
+        document.getElementById('highScoreUI').style.display = 'none';
 
-    window.addEventListener('keyup', (e) => {
-        if (e.code === 'Space') {
-            spacePressed = false;
-            doGameAction(game1, 'release');
-        }
-        if (isSplitscreen && e.code === 'Enter') {
-            enterPressed = false;
-            doGameAction(game2, 'release');
-        }
-    });
+        // Ensure changes persist in game1 context (Single Player)
+        loadContext(game1);
 
-    window.addEventListener('mousedown', (e) => {
-        // Hide virtual cursor on real mouse interaction
-        if (typeof VirtualCursor !== 'undefined' && VirtualCursor.element) {
-            VirtualCursor.visible = false;
-            VirtualCursor.element.style.display = 'none';
-        }
+        state = 'IDLE';
+        // Force feedback to "TERMINÉ !" to ensure closeAllMenus resets the game properly
+        // and that the Shop opens after the leaderboard closes.
+        feedback = "TERMINÉ !";
 
-        if(e.target.closest('.modal') || e.target.closest('#startup-ui') || e.target.closest('.ui-btn') || e.target.closest('.broadcast-btn') || e.target.closest('.broadcast-icon-btn')) return;
+        saveContext(game1);
 
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const x = (e.clientX - rect.left) * scaleX;
+        // Show Leaderboard to confirm
+        openLeaderboard();
+        // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
 
-        // P1 Mouse Control (Default) or P2 if on right side in splitscreen
-        if (isSplitscreen && x > canvas.width / 2) {
-             doGameAction(game2, 'press');
-        } else {
-             // Check mobile flag inside context?
-             loadContext(game1);
-             if (state === 'IDLE' && playerData.mobileControls) { saveContext(game1); return; }
-             saveContext(game1);
+    // Expose for game.js to call
+    window.processAllChallenges = processAllChallenges;
 
-             doGameAction(game1, 'press');
-        }
-    });
-    window.addEventListener('mouseup', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const x = (e.clientX - rect.left) * scaleX;
+    function processAllChallenges(type, amount) {
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+    }
 
-        if (isSplitscreen && x > canvas.width / 2) {
-             doGameAction(game2, 'release');
-        } else {
-            loadContext(game1);
-            if (state === 'JUMPING' && playerData.mobileControls) { saveContext(game1); return; }
-            saveContext(game1);
+    function updateChallenge(userC, type, amount, db) {
+        if(userC.claimed) return;
+        const def = db.find(d => d.id === userC.id);
+        if(!def) return;
 
-            doGameAction(game1, 'release');
-        }
-    });
+        if(def.type === type) {
+            let completed = false;
 
-    // Handle Page Visibility (Mute audio on background)
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            if (AudioSystem.ctx && AudioSystem.ctx.state === 'running') {
-                AudioSystem.ctx.suspend();
+            // Handle specific logic based on type
+            if (type === 'distance_classic') {
+                // High Water Mark logic (Max distance in single game)
+                if (amount > userC.progress) {
+                    userC.progress = amount;
+                    if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                    else saveData();
+                }
+            } else if (type === 'streak') {
+                // Streak is passed as current streak amount. Check if it beats target or best.
+                if (amount >= def.target) { userC.progress = def.target; completed = true; }
+                else if (amount > userC.progress) {
+                    userC.progress = amount;
+                    saveData();
+                }
+            } else {
+                // Cumulative logic (makes, score, distance, play_*, etc.)
+                userC.progress += amount;
+                if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                else saveData();
             }
-        } else {
-            // Only resume if user hasn't explicitly muted it
-            if (AudioSystem.ctx && !AudioSystem.isMuted && AudioSystem.ctx.state === 'suspended') {
-                AudioSystem.ctx.resume();
+
+            if(completed && !userC.completedNotified) {
+                 userC.completedNotified = true;
+                 saveData();
+                 showNotification("DÉFI TERMINÉ !", 0);
             }
         }
-    });
+    }
 
-// --- END input.js ---
+    window.claimChallenge = function(index, isWeekly) {
+        loadContext(game1);
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const c = list[index];
+        const def = db.find(d => d.id === c.id);
+
+        if(c && !c.claimed && c.progress >= def.target) {
+            c.claimed = true;
+            playerData.tacos += def.reward;
+            saveData();
+            updateUI();
+            AudioSystem.playSwish();
+            showNotification("RÉCOMPENSE !", def.reward);
+            renderChallenges(isWeekly ? 'weekly' : 'daily');
+        }
+        saveContext(game1);
+    }
+
+    var isSplitscreen = false;
+
+    // Define the default/initial state factory
+    function createGameContext() {
+        return {
+            state: 'IDLE',
+            preJumpTimer: 0,
+            feedback: "",
+            feedbackTimer: 0,
+            player3D: { x: 433, y: 300, z: 0, vz: 0 },
+            activeBalls: [],
+            tacosOnGround: [],
+            particles: [],
+            currentStreak: 0,
+            consecutiveMisses: 0,
+            distanceLevel: 1,
+            contestData: { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false },
+            timeAttackData: { timer: 60, score: 0, active: false },
+            animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
+            animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
+            breathingPhase: 0,
+            camSmooth: { x: 433, y: 300 },
+            camCache: {},
+            airbudJumpTime: 0,
+            isGroundedShot: false,
+            groundShotTimer: 0,
+            crowdCheerTimer: 0,
+            ball: {}, // Legacy
+            playerData: null, // Will hold reference to profile
+            bgCache: null, // Per-player background cache
+            resetTimer: 0,
+            nextAction: null,
+            inputState: { shootPressed: false }, // Abstracted input
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0, catAcc: 0 } // UI state
+        };
+    }
+
+    var game1 = createGameContext();
+    var game2 = createGameContext();
+
+    // Initialize P1 with the loaded global data
+    // We will do this via loadContext/saveContext flow in the loop,
+    // but we need to ensure the objects exist.
+
+    function saveContext(ctxObj) {
+        ctxObj.state = state;
+        ctxObj.preJumpTimer = preJumpTimer;
+        ctxObj.feedback = feedback;
+        ctxObj.feedbackTimer = feedbackTimer;
+        // Deep copy player3D to avoid reference issues if replaced?
+        // Actually player3D is an object. If we replace the reference 'player3D = ...', we need to be careful.
+        // But the global 'player3D' variable holds the reference.
+        ctxObj.player3D = player3D;
+        ctxObj.activeBalls = activeBalls;
+        ctxObj.tacosOnGround = tacosOnGround;
+        ctxObj.catState = g_catState; // Save Cat State
+        ctxObj.particles = particles;
+        ctxObj.currentStreak = currentStreak;
+        ctxObj.consecutiveMisses = consecutiveMisses;
+        ctxObj.distanceLevel = distanceLevel;
+        ctxObj.contestData = contestData;
+        ctxObj.timeAttackData = timeAttackData;
+        ctxObj.animState = g_animState;
+        ctxObj.animTarget = g_animTarget;
+        ctxObj.breathingPhase = g_breathingPhase;
+        ctxObj.camSmooth = window.g_camSmooth;
+        ctxObj.camCache = window.g_camCache;
+        ctxObj.airbudJumpTime = airbudJumpTime;
+        ctxObj.isGroundedShot = isGroundedShot;
+        ctxObj.groundShotTimer = groundShotTimer;
+        ctxObj.crowdCheerTimer = crowdCheerTimer;
+        ctxObj.ball = ball;
+        ctxObj.playerData = playerData;
+        ctxObj.bgCache = bgCache;
+        ctxObj.resetTimer = resetTimer;
+        ctxObj.nextAction = nextAction;
+        // UI State
+        ctxObj.viewingIndices = {
+            animal: viewingAnimalIndex,
+            skin: viewingSkinIndex,
+            hair: viewingHairstyleIndex,
+            clothing: viewingClothingIndex,
+            pants: viewingPantsIndex,
+            hat: viewingHatIndex,
+            shoe: viewingShoeIndex,
+            ball: viewingBallIndex,
+            style: viewingStyleIndex,
+            catAcc: viewingCatAccessoryIndex
+        };
+    }
+
+    function loadContext(ctxObj) {
+        state = ctxObj.state;
+        preJumpTimer = ctxObj.preJumpTimer;
+        feedback = ctxObj.feedback;
+        feedbackTimer = ctxObj.feedbackTimer;
+        player3D = ctxObj.player3D;
+        activeBalls = ctxObj.activeBalls;
+        tacosOnGround = ctxObj.tacosOnGround || [];
+        if(ctxObj.catState) g_catState = ctxObj.catState; // Load Cat State
+        particles = ctxObj.particles;
+        currentStreak = ctxObj.currentStreak;
+        consecutiveMisses = ctxObj.consecutiveMisses;
+        distanceLevel = ctxObj.distanceLevel;
+        contestData = ctxObj.contestData;
+        timeAttackData = ctxObj.timeAttackData;
+        g_animState = ctxObj.animState;
+        g_animTarget = ctxObj.animTarget;
+        g_breathingPhase = ctxObj.breathingPhase;
+        window.g_camSmooth = ctxObj.camSmooth;
+        window.g_camCache = ctxObj.camCache;
+        airbudJumpTime = ctxObj.airbudJumpTime;
+        isGroundedShot = ctxObj.isGroundedShot;
+        groundShotTimer = ctxObj.groundShotTimer;
+        crowdCheerTimer = ctxObj.crowdCheerTimer;
+        ball = ctxObj.ball;
+        // CRITICAL: Only switch playerData if the context has one.
+        // This prevents overwriting the global reference with null/undefined
+        // which could cause accidental sharing if a fallback is triggered later.
+        if (ctxObj.playerData) {
+            playerData = ctxObj.playerData;
+        }
+        bgCache = ctxObj.bgCache;
+        resetTimer = ctxObj.resetTimer;
+        nextAction = ctxObj.nextAction;
+
+        // UI State
+        if (ctxObj.viewingIndices) {
+            viewingAnimalIndex = ctxObj.viewingIndices.animal;
+            viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
+            viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
+            viewingPantsIndex = ctxObj.viewingIndices.pants || 0;
+            viewingHatIndex = ctxObj.viewingIndices.hat || 0;
+            viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
+            viewingBallIndex = ctxObj.viewingIndices.ball;
+            viewingStyleIndex = ctxObj.viewingIndices.style;
+            viewingCatAccessoryIndex = ctxObj.viewingIndices.catAcc || 0;
+        }
+
+        // Ensure globals that might be undefined are safe
+        if(!window.g_camSmooth) window.g_camSmooth = { x: 433, y: 300 };
+    }
+
+    // Initialize Game 1 with current globals immediately
+    saveContext(game1);
+
+    window.closeChallenges = function() { window.closeAllMenus(); }
+
+    window.openChallenges = function() {
+        if(window.closeControlsMenu) window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'CHALLENGES';
+        if(isSplitscreen) { loadContext(game2); state = 'CHALLENGES'; saveContext(game2); loadContext(game1); }
+
+        document.getElementById('challengesUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+
+        switchChallengeTab('daily');
+        updateMobileControlsUI();
+        saveContext(game1);
+    }
+
+    window.switchChallengeTab = function(tab) {
+        document.getElementById('btnChalDaily').className = tab === 'daily' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnChalWeekly').className = tab === 'weekly' ? 'lb-tab active' : 'lb-tab';
+        renderChallenges(tab);
+    }
+
+    window.renderChallenges = function(tab) {
+        const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const container = document.getElementById('challengeList');
+        container.innerHTML = '';
+
+        if(!list || list.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Aucun défi.</div>';
+            return;
+        }
+
+        list.forEach((c, idx) => {
+            const def = db.find(d => d.id === c.id);
+            if(!def) return;
+            const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
+            const isDone = c.progress >= def.target;
+
+            const div = document.createElement('div');
+            div.className = 'challenge-row';
+            div.innerHTML = `
+                <div style="flex-grow:1; text-align:left;">
+                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
+                    <div class="challenge-progress-bg">
+                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
+                    </div>
+                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
+                </div>
+                <div style="text-align:right; margin-left:10px; min-width:80px;">
+                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
+                    ${c.claimed ?
+                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
+                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
+                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.openStats = function() {
+        window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
+
+        state = 'STATS';
+        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
+
+        shopUI.style.display = 'none';
+        achUI.style.display = 'none';
+        statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        populateInputSelects();
+        const ls = playerData.lifetimeStats;
+        document.getElementById('statShots').innerText = ls.shots;
+        document.getElementById('statMakes').innerText = ls.makes;
+        document.getElementById('statMisses').innerText = ls.misses;
+        document.getElementById('statContests').innerText = ls.contests;
+        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
+        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
+        let acc = 0;
+        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
+        document.getElementById('statAccuracy').innerText = acc + "%";
+
+        const btnMob = document.getElementById('btnToggleMobile');
+        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        const btnGraph = document.getElementById('btnToggleGraphics');
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        const btnMeter = document.getElementById('btnToggleMeter');
+        if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
+        const btnShape = document.getElementById('btnCycleMeterShape');
+        if(btnShape) {
+            let shapeName = playerData.meterShape || 'arc';
+            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
+        }
+        const sld = document.getElementById('meterSizeSlider');
+        if(sld) {
+            const sc = playerData.meterScale || 1.0;
+            sld.value = sc;
+            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+        }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+    }
+    window.toggleMeter = function() {
+        playerData.meterEnabled = !playerData.meterEnabled;
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.cycleMeterShape = function() {
+        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
+        let idx = shapes.indexOf(playerData.meterShape);
+        if (idx < 0) idx = 0;
+        idx = (idx + 1) % shapes.length;
+        playerData.meterShape = shapes[idx];
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.updateMeterScale = function() {
+        const val = parseFloat(document.getElementById('meterSizeSlider').value);
+        playerData.meterScale = val;
+        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.updateCameraZoom = function() {
+        const val = parseFloat(document.getElementById('cameraZoomSlider').value);
+        playerData.cameraZoomScale = val;
+        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.populateInputSelects = function() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p1Sel = document.getElementById('p1InputSelect');
+        const p2Sel = document.getElementById('p2InputSelect');
+
+        if(!p1Sel || !p2Sel) return;
+
+        const fillSelect = (sel, isP2) => {
+            sel.innerHTML = '';
+
+            const defOpt = document.createElement('option');
+            defOpt.value = "-1";
+            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
+            sel.appendChild(defOpt);
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                const opt = document.createElement('option');
+                opt.value = i;
+
+                let label = `MANETTE ${i+1}`;
+                if (gp && gp.connected) {
+                    let id = gp.id;
+                    if(id.length > 15) id = id.substring(0,15) + "...";
+                    label += ` (${id})`;
+                } else {
+                    label += " (Déconnectée)";
+                }
+                opt.textContent = label;
+                sel.appendChild(opt);
+            }
+        };
+
+        fillSelect(p1Sel, false);
+        fillSelect(p2Sel, true);
+
+        p1Sel.value = playerData.inputMap.p1;
+        p2Sel.value = playerData.inputMap.p2;
+    }
+
+    // P2 Setup (Separate Profile)
+    game2.playerData = createDefaultData();
+    // Give P2 some generic skins or copy P1? Let's copy P1's unlocked stuff but reset progress
+    // Actually, deep cloning P1's initial state is safer for now.
+    game2.playerData = JSON.parse(JSON.stringify(playerData));
+    // Reset session stats for P2
+    game2.playerData.tacos = 0; // Session score for competition? Or keep tacos?
+    // Let's keep it separate.
+
+    function toggleSplitscreen() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        isSplitscreen = !isSplitscreen;
+
+        const sb = document.getElementById('scorebug-container');
+        const btnText = document.getElementById('btnSplitText');
+
+        if(isSplitscreen) {
+            // Reset P2 with a deep copy of P1's data (which is currently loaded in global playerData)
+            // Important: We must use game1.playerData if playerData reference is ambiguous,
+            // but relying on 'playerData' global which should be game1's at this point (via loop/events).
+            game2 = createGameContext();
+            // Fallback to game1.playerData if global is somehow unlinked, but usually they match.
+            // Using JSON parse/stringify ensures DEEP COPY and NEW REFERENCE.
+            const sourceData = (game1 && game1.playerData) ? game1.playerData : playerData;
+            game2.playerData = JSON.parse(JSON.stringify(sourceData));
+            game2.playerData.tacos = 0; // Fresh score
+
+            if(sb) sb.style.display = 'none';
+            if(btnText) btnText.innerText = "1 PLAYER";
+        } else {
+            if(sb) sb.style.display = 'flex';
+            if(btnText) btnText.innerText = "2 PLAYERS";
+        }
+
+        // Ensure both players are initialized for current mode
+        runForAllPlayers(resetGame);
+
+        updateMobileControlsUI();
+        invalidateBackgroundCache();
+        resizeGame();
+    }
+
+// --- END main.js ---
+
+// --- START audio.js ---
+    const AudioSystem = {
+        ctx: null,
+        isMuted: false,
+        isPlayingMusic: false,
+        nextNoteTime: 0,
+        beatCount: 0,
+        lookahead: 25.0,
+        scheduleAheadTime: 0.1,
+        timerID: null,
+
+        // --- PROCEDURAL GENERATION STATE ---
+        currentStyleIndex: 0,
+        styles: [], // Populated in init
+        genState: {
+            rootFreq: 0,
+            scale: [],
+            chordProgression: [], // Array of scale degrees (0-6)
+            currentChordIndex: 0, // Index in progression
+            melodyNote: 0,
+            intensity: 0, // 0.0 to 1.0
+            section: 'intro', // intro, verse, chorus, bridge
+            barCount: 0,
+            lastSectionChange: 0
+        },
+
+        init: function() {
+            if (this.ctx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+
+            // --- STYLE DEFINITIONS ---
+            this.styles = [
+                {
+                    name: 'Procedural Rock',
+                    tempo: 0.125, // 120 BPM (0.5s per beat, 0.125 per 16th)
+                    keyRange: [80, 150], // Low E to D
+                    scaleType: 'minor_pentatonic', // [0, 3, 5, 7, 10]
+                    instruments: {
+                        kick: { freq: 100, decay: 0.15, type: 'square', vol: 0.6 },
+                        snare: { tone: 200, noise: 1500, decay: 0.15, vol: 0.4 },
+                        hat: { freq: 4000, decay: 0.05, vol: 0.15 },
+                        bass: { type: 'sawtooth', vol: 0.2, decay: 0.1 },
+                        lead: { type: 'square', vol: 0.1, decay: 0.1 }
+                    },
+                    generate: (beat, time, sys) => this.generateRock(beat, time, sys)
+                },
+                {
+                    name: 'Procedural Lo-Fi',
+                    tempo: 0.22, // ~70 BPM
+                    keyRange: [130, 200], // C3 to G3
+                    scaleType: 'major_7th', // [0, 2, 4, 5, 7, 9, 11] approx
+                    instruments: {
+                        kick: { freq: 60, decay: 0.4, type: 'sine', vol: 0.5 },
+                        snare: { tone: 200, noise: 800, decay: 0.1, vol: 0.15 }, // Soft snare
+                        hat: { freq: 7000, decay: 0.03, vol: 0.05 },
+                        bass: { type: 'sine', vol: 0.4, decay: 0.5 },
+                        lead: { type: 'triangle', vol: 0.1, decay: 0.4 }
+                    },
+                    generate: (beat, time, sys) => this.generateLoFi(beat, time, sys)
+                },
+                {
+                    name: 'Procedural Hip Hop',
+                    tempo: 0.16, // ~94 BPM
+                    keyRange: [40, 70], // Deep Bass
+                    scaleType: 'minor', // [0, 2, 3, 5, 7, 8, 10]
+                    instruments: {
+                        kick: { freq: 50, decay: 0.8, type: 'sine', vol: 0.8 }, // 808-ish
+                        snare: { tone: 180, noise: 2500, decay: 0.15, vol: 0.5 }, // Sharp
+                        hat: { freq: 8000, decay: 0.02, vol: 0.2 }, // Trap hats
+                        bass: { type: 'sine', vol: 0.6, decay: 0.2 },
+                        lead: { type: 'sawtooth', vol: 0.1, decay: 0.1 } // G-Funk whine
+                    },
+                    generate: (beat, time, sys) => this.generateHipHop(beat, time, sys)
+                }
+            ];
+
+            // Restore saved style if valid
+            if (typeof playerData !== 'undefined' && playerData.currentTrackIndex !== undefined) {
+                this.currentStyleIndex = playerData.currentTrackIndex;
+                if(this.currentStyleIndex >= this.styles.length) this.currentStyleIndex = 0;
+            }
+
+            this.resetGenState();
+            this.startMusic();
+        },
+
+        resetGenState: function() {
+            const style = this.styles[this.currentStyleIndex];
+            // Pick a root note
+            const min = style.keyRange[0];
+            const max = style.keyRange[1];
+            this.genState.rootFreq = min + Math.random() * (max - min);
+
+            // Set scale intervals (semitones)
+            if(style.scaleType === 'minor_pentatonic') this.genState.scale = [0, 3, 5, 7, 10];
+            else if(style.scaleType === 'major_7th') this.genState.scale = [0, 4, 7, 11, 14]; // Major 7 chord tones mainly
+            else this.genState.scale = [0, 2, 3, 5, 7, 8, 10]; // Natural Minor
+
+            this.genState.chordProgression = [0, 3, 4, 0]; // Basic I-IV-V-I
+            this.genState.currentChordIndex = 0;
+            this.genState.barCount = 0;
+            this.genState.section = 'intro';
+            this.genState.intensity = 0.2;
+        },
+
+        // --- CORE AUDIO UTILS ---
+        toggleMute: function() {
+            this.isMuted = !this.isMuted;
+            if(this.ctx) {
+                if(this.isMuted) this.ctx.suspend();
+                else this.ctx.resume();
+            }
+            return this.isMuted;
+        },
+
+        changeTrack: function(direction) {
+            this.currentStyleIndex += direction;
+            if (this.currentStyleIndex >= this.styles.length) this.currentStyleIndex = 0;
+            if (this.currentStyleIndex < 0) this.currentStyleIndex = this.styles.length - 1;
+
+            // Save preference
+            if(typeof playerData !== 'undefined') {
+                playerData.currentTrackIndex = this.currentStyleIndex;
+                if(typeof saveData === 'function') saveData();
+            }
+
+            this.resetGenState(); // New song for new style
+            if(typeof showNotification === 'function') {
+                showNotification("🎵 " + this.styles[this.currentStyleIndex].name, 0);
+            }
+        },
+
+        // --- OSCILLATORS & EFFECTS ---
+        createOscillator: function(type, freq, start, dur, vol) {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime + (start || 0);
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(vol, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + dur);
+            return { osc, gain };
+        },
+
+        playTone: function(time, freq, type, dur, vol=0.1) {
+            if (!this.ctx || this.isMuted) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + dur);
+        },
+
+        // SFX (Keep existing game SFX)
+        playSwish: function() {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime;
+            const dur = 0.4;
+            const bufferSize = this.ctx.sampleRate * dur;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.Q.value = 1;
+            filter.frequency.setValueAtTime(800, t);
+            filter.frequency.linearRampToValueAtTime(300, t + dur);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.2, t);
+            gain.gain.linearRampToValueAtTime(0, t + dur);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(t);
+        },
+
+        playBrick: function() {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime;
+            this.createOscillator('square', 200, 0, 0.1, 0.1);
+        },
+
+        playFloorHit: function() {
+            if (!this.ctx || this.isMuted) return;
+            this.createOscillator('triangle', 80, 0, 0.1, 0.2);
+        },
+
+        playWindowBreak: function() {
+            if (!this.ctx || this.isMuted) return;
+            const t = this.ctx.currentTime;
+            // Noise burst
+            const dur = 0.6;
+            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
+            const src = this.ctx.createBufferSource();
+            src.buffer = buffer;
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t+dur);
+            src.connect(gain);
+            gain.connect(this.ctx.destination);
+            src.start(t);
+            // Glass tinkles
+            for(let i=0; i<5; i++) {
+                setTimeout(() => {
+                    if(this.ctx && !this.isMuted) this.createOscillator('sine', 2000 + Math.random()*3000, 0, 0.1, 0.05);
+                }, Math.random() * 200);
+            }
+        },
+
+        // --- INSTRUMENT HELPERS ---
+        playKick: function(time, opts={}) {
+            if(!this.ctx || this.isMuted) return;
+            const freq = opts.freq || 150;
+            const decay = opts.decay || 0.5;
+            const type = opts.type || 'sine';
+            const vol = opts.vol || 0.4;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + decay);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + decay);
+        },
+
+        playSnare: function(time, opts={}) {
+            if(!this.ctx || this.isMuted) return;
+            const toneFreq = opts.tone || 250;
+            const noiseFilter = opts.noise || 1000;
+            const decay = opts.decay || 0.1;
+            const vol = opts.vol || 0.15;
+            const type = opts.type || 'triangle';
+
+            // Tonal Body
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(toneFreq, time);
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + decay);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + decay);
+
+            // Noise Snap
+            const dur = decay * 1.5;
+            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const nGain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = noiseFilter;
+            nGain.gain.setValueAtTime(vol, time);
+            nGain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(this.ctx.destination);
+            noise.start(time);
+        },
+
+        playHiHat: function(time, opts={}) {
+            if(!this.ctx || this.isMuted) return;
+            const freq = opts.freq || 7000;
+            const decay = opts.decay || 0.05;
+            const vol = opts.vol || 0.1;
+
+            const dur = decay;
+            const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for(let i=0; i<data.length; i++) data[i] = Math.random()*2-1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = freq;
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(time);
+        },
+
+        playChord: function(time, notes, type='triangle', vol=0.1) {
+            if(!this.ctx || this.isMuted) return;
+            notes.forEach(freq => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.linearRampToValueAtTime(vol*0.8, time + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 1.0); // Sustain a bit
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + 1.0);
+            });
+        },
+
+        // --- SCHEDULER & LOGIC ---
+        scheduler: function() {
+            if (!this.styles || this.styles.length === 0) return;
+            const style = this.styles[this.currentStyleIndex];
+            const beatInterval = style.tempo;
+
+            while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+                // Procedural Update Logic (Bar Transition)
+                if (this.beatCount % 16 === 0 && this.beatCount > 0) {
+                    this.updateProceduralState();
+                }
+
+                style.generate(this.beatCount % 16, this.nextNoteTime, this);
+
+                this.nextNoteTime += beatInterval;
+                this.beatCount++;
+            }
+            this.timerID = window.setTimeout(this.scheduler.bind(this), this.lookahead);
+        },
+
+        startMusic: function() {
+            if(this.isPlayingMusic) return;
+            if(!this.ctx) return;
+            this.isPlayingMusic = true;
+            this.nextNoteTime = this.ctx.currentTime + 0.1;
+            this.scheduler();
+        },
+
+        stopMusic: function() {
+            this.isPlayingMusic = false;
+            window.clearTimeout(this.timerID);
+        },
+
+        // --- GENERATORS ---
+        getFreq: function(semitoneOffset) {
+            // formula: f = f0 * (2^(n/12))
+            return this.genState.rootFreq * Math.pow(2, semitoneOffset / 12);
+        },
+
+        updateProceduralState: function() {
+            this.genState.barCount++;
+            const barsInPhase = this.genState.barCount - this.genState.lastSectionChange;
+
+            // Change Section?
+            if (barsInPhase >= 8 && Math.random() > 0.4) {
+                this.genState.lastSectionChange = this.genState.barCount;
+                if(this.genState.section === 'intro') {
+                    this.genState.section = 'verse';
+                    this.genState.intensity = 0.5;
+                } else if(this.genState.section === 'verse') {
+                    this.genState.section = 'chorus';
+                    this.genState.intensity = 0.8;
+                } else if(this.genState.section === 'chorus') {
+                    this.genState.section = Math.random() > 0.5 ? 'verse' : 'bridge';
+                    this.genState.intensity = 0.6;
+                } else {
+                    this.genState.section = 'verse'; // Back to normal
+                    this.genState.intensity = 0.5;
+                }
+
+                // Change Chord Progression
+                if(Math.random() > 0.3) {
+                    const sl = this.genState.scale.length;
+                    // Random progression
+                    this.genState.chordProgression = [0,
+                        Math.floor(Math.random() * sl),
+                        Math.floor(Math.random() * sl),
+                        Math.floor(Math.random() * sl)
+                    ];
+                }
+            }
+
+            // Next chord in progression
+            this.genState.currentChordIndex = (this.genState.currentChordIndex + 1) % this.genState.chordProgression.length;
+        },
+
+        // 1. ROCK GENERATOR
+        generateRock: function(beat, time, sys) {
+            const inst = sys.styles[sys.currentStyleIndex].instruments;
+            const root = sys.genState.rootFreq;
+            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
+            const intensity = sys.genState.intensity;
+
+            // Drums: Standard Rock Beat
+            if (beat === 0 || beat === 8) sys.playKick(time, inst.kick);
+            if (beat === 4 || beat === 12) sys.playSnare(time, inst.snare);
+            if (beat % 2 === 0) sys.playHiHat(time, inst.hat);
+
+            // Fills
+            if (beat > 12 && Math.random() < intensity * 0.5) sys.playSnare(time, inst.snare);
+
+            // Bass: Driving 8ths
+            if (beat % 2 === 0) {
+                sys.playTone(time, chordRoot / 2, inst.bass.type, inst.bass.decay, inst.bass.vol); // Low Octave
+            }
+
+            // Rhythm Guitar (Power Chords)
+            if (beat === 0 || (intensity > 0.6 && beat === 6)) {
+                // Root + 5th
+                sys.playChord(time, [chordRoot, chordRoot * 1.5], 'sawtooth', 0.1);
+            }
+
+            // Lead Guitar (Pentatonic Licks in Chorus/Solo)
+            if (sys.genState.section === 'chorus' || sys.genState.section === 'bridge') {
+                if (Math.random() < intensity * 0.4 && beat % 2 === 0) {
+                    // Pick a note from pentatonic scale
+                    const noteIdx = Math.floor(Math.random() * sys.genState.scale.length);
+                    const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 12); // Higher octave
+                    sys.playTone(time, noteFreq, 'square', 0.1, inst.lead.vol);
+                }
+            }
+        },
+
+        // 2. LO-FI GENERATOR
+        generateLoFi: function(beat, time, sys) {
+            const inst = sys.styles[sys.currentStyleIndex].instruments;
+            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
+
+            // Swing Logic: Delay off-beats (odd 16th notes)
+            let swing = (beat % 2 === 1) ? 0.05 : 0;
+            const t = time + swing;
+
+            // Drums: Relaxed, sparse
+            if (beat === 0 || (beat === 10 && Math.random()>0.3)) sys.playKick(t, inst.kick);
+            if (beat === 4 || beat === 12) sys.playSnare(t, inst.snare);
+            if (beat % 2 === 0 || Math.random() > 0.7) sys.playHiHat(t, inst.hat);
+
+            // Chords: Lush, long sustain (Play on 1, maybe sustain through)
+            if (beat === 0) {
+                // Major 7th feel: Root, 3rd (Major), 5th, 7th
+                // Scale is approximated, let's just use freq multipliers for 'jazzy' ratio
+                // 1, 1.25 (Maj3), 1.5 (Per5), 1.875 (Maj7)
+                const notes = [chordRoot, chordRoot * 1.25, chordRoot * 1.5, chordRoot * 1.875];
+                sys.playChord(t, notes, 'triangle', 0.1);
+            }
+
+            // Melody: Simple, random wander
+            if (beat % 4 === 0 && Math.random() > 0.4) {
+                const noteIdx = Math.floor(Math.random() * sys.genState.scale.length);
+                const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 12);
+                sys.playTone(t, noteFreq, 'sine', 0.2, inst.lead.vol);
+            }
+        },
+
+        // 3. HIP HOP GENERATOR
+        generateHipHop: function(beat, time, sys) {
+            const inst = sys.styles[sys.currentStyleIndex].instruments;
+            const chordRoot = sys.getFreq(sys.genState.scale[sys.genState.chordProgression[sys.genState.currentChordIndex]]);
+
+            // Drums: Boom Bap or Trap
+            // Kick pattern varies
+            if (beat === 0) sys.playKick(time, inst.kick);
+            if (beat === 10 || (beat===14 && Math.random()>0.5)) sys.playKick(time, inst.kick);
+
+            // Snare on 4 and 12 (Standard)
+            if (beat === 4 || beat === 12) sys.playSnare(time, inst.snare);
+
+            // Hi-Hats: Trap rolls?
+            if (beat % 2 === 0) {
+                if (Math.random() > 0.8) {
+                    // Roll
+                    sys.playHiHat(time, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
+                    sys.playHiHat(time+0.06, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
+                    sys.playHiHat(time+0.12, {freq: inst.hat.freq, decay: 0.02, vol: inst.hat.vol});
+                } else {
+                    sys.playHiHat(time, inst.hat);
+                }
+            }
+
+            // Bass: Heavy sub sine
+            if (beat === 0 || beat === 10) {
+                sys.playTone(time, chordRoot / 2, 'sine', 0.4, inst.bass.vol); // Deep sub
+            }
+
+            // Simple Hook (High pitch whine or bell)
+            if (beat === 0 || beat === 6) {
+                const noteIdx = Math.floor(Math.random() * 3); // Just root, 3rd, 5th
+                const noteFreq = sys.getFreq(sys.genState.scale[noteIdx] + 24); // High Up
+                sys.playTone(time, noteFreq, 'triangle', 0.1, inst.lead.vol);
+            }
+        }
+    };
+
+// --- END audio.js ---
 
 // --- START game.js ---
 
@@ -16294,6 +16573,62 @@ var BallRenderer = {
             updateEvolution(dt);
             updateParticles(dt); // Keep particles active
             return;
+        }
+
+        // HAIR PHYSICS UPDATE
+        if (typeof HairEngine !== 'undefined') {
+            const currentStyle = playerData.customHairstyle || 'default';
+            if (!player3D.hairSystem) {
+                player3D.hairSystem = new HairEngine.System();
+            }
+
+            // Check if style changed or needs init
+            if (player3D.hairSystem.styleId !== currentStyle) {
+                let hColor = '#000';
+                // Determine color
+                if (typeof SKINS_DB !== 'undefined') {
+                    const skin = SKINS_DB.find(s => s.id === playerData.currentSkin);
+                    if (skin) hColor = skin.hairColor || '#000';
+                }
+                if (currentStyle !== 'default' && typeof HAIR_COLORS !== 'undefined') {
+                     hColor = HAIR_COLORS[playerData.customHairColorIndex || 0];
+                }
+
+                // Head Height approx 60 units above origin?
+                // In renderer: projected Y is horizonY + (cameraHeight - worldZ) * scale.
+                // Player Z is 0 at ground. Height is approx 200?
+                // drawPlayer uses `p.y - legLen` etc.
+                // If player3D.z is feet Z, head Z is `player3D.z + 180` approx (6ft)?
+                // Let's use 180.
+                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 180, hColor);
+            }
+
+            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 180 };
+
+            // Angle to Hoop (Facing)
+            const dxToHoop = HOOP_POS.x - player3D.x;
+            const dyToHoop = HOOP_POS.y - player3D.y;
+            const angle = Math.atan2(dyToHoop, dxToHoop);
+
+            // Velocity (Robust calculation)
+            if (typeof player3D.hairLastX === 'undefined') {
+                player3D.hairLastX = player3D.x;
+                player3D.hairLastY = player3D.y;
+            }
+
+            let vel = { x: 0, y: 0, z: player3D.vz || 0 };
+
+            // Calculate velocity from position delta (pixels per frame)
+            if (dt > 0) {
+                vel.x = (player3D.x - player3D.hairLastX) / dt;
+                vel.y = (player3D.y - player3D.hairLastY) / dt;
+            }
+
+            // Update history for next frame
+            player3D.hairLastX = player3D.x;
+            player3D.hairLastY = player3D.y;
+
+            player3D.hairSystem.update(dt, headPos.x, headPos.y, headPos.z, angle, vel);
         }
 
         updatePlayerAnimation(dt);
