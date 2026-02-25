@@ -5436,28 +5436,64 @@ var BallRenderer = {
         const idata = ctx.getImageData(0, 0, cellW, cellH);
         const data = idata.data;
 
-        for(let i=0; i<data.length; i+=4) {
-            const r = data[i];
-            const g = data[i+1];
-            const b = data[i+2];
+        // Flood Fill Masking to preserve internal highlights
+        const queue = [];
+        const w = cellW;
+        const h = cellH;
 
-            // Heuristic Masking for Gen AI Sprite Sheet
-            let isTransparent = false;
+        // Seed with edges
+        for (let x = 0; x < w; x++) { queue.push(x); queue.push(0); queue.push(x); queue.push(h - 1); }
+        for (let y = 1; y < h - 1; y++) { queue.push(0); queue.push(y); queue.push(w - 1); queue.push(y); }
 
-            // Sky Detection (Blue is dominant channel)
-            if (b > r + 20 && b > g + 20 && b > 100) isTransparent = true;
-            // Grass Detection (Green is dominant channel)
-            else if (g > r + 10 && g > b + 10 && g < 180) isTransparent = true;
-            // Background (White/Light Grey/Off-White) - Relaxed threshold
-            else if (r > 190 && g > 190 && b > 190) isTransparent = true;
-            // Skin (Peach/Mannequin) - R > G > B usually. Catch the beige mannequin.
-            else if (r > 90 && g > 70 && b > 50 && r > b + 15 && r > g && g > b && r < 230) isTransparent = true;
+        const visited = new Uint8Array(w * h); // 0=unvisited, 1=visited
 
-            if (isTransparent) {
-                data[i+3] = 0;
-            } else {
-                // Convert hair to grayscale luminance for tinting
-                const lum = 0.299*r + 0.587*g + 0.114*b;
+        const isBackground = (r, g, b) => {
+            // White Background
+            if (r > 220 && g > 220 && b > 220) return true;
+            // Skin / Mannequin (Beige/Peach) - Remove body
+            if (r > 90 && g > 70 && b > 50 && r > b + 15 && r > g && g > b && r < 230) return true;
+            // Sky / Blue Screen artifacts
+            if (b > r + 20 && b > g + 20 && b > 100) return true;
+            // Green Screen
+            if (g > r + 10 && g > b + 10 && g < 180) return true;
+            return false;
+        };
+
+        // Iterative Flood Fill
+        let qIdx = 0;
+        while (qIdx < queue.length) {
+            const x = queue[qIdx++];
+            const y = queue[qIdx++];
+
+            if (x < 0 || x >= w || y < 0 || y >= h) continue;
+
+            const idx = y * w + x;
+            if (visited[idx]) continue;
+            visited[idx] = 1;
+
+            const pIdx = idx * 4;
+            const r = data[pIdx];
+            const g = data[pIdx+1];
+            const b = data[pIdx+2];
+
+            if (isBackground(r, g, b)) {
+                data[pIdx+3] = 0; // Transparent
+                // Add neighbors
+                queue.push(x + 1); queue.push(y);
+                queue.push(x - 1); queue.push(y);
+                queue.push(x); queue.push(y + 1);
+                queue.push(x); queue.push(y - 1);
+            }
+        }
+
+        // Grayscale conversion for non-transparent pixels
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i+3] > 0) {
+                const r = data[i];
+                const g = data[i+1];
+                const b = data[i+2];
+                // Convert to luminance
+                const lum = 0.299 * r + 0.587 * g + 0.114 * b;
                 data[i] = lum;
                 data[i+1] = lum;
                 data[i+2] = lum;
@@ -5509,7 +5545,10 @@ var BallRenderer = {
         }
 
         if (hairData.sheet !== undefined) {
-            const hairColor = skinObj.hairColor || '#000000';
+            let hairColor = skinObj.hairColor || '#1a1a1a';
+            // Clamp absolute black to dark gray to preserve texture details during multiply
+            if (hairColor === '#000' || hairColor === '#000000') hairColor = '#1a1a1a';
+
             const sprite = getHairSprite(hairData.sheet, hairData.index, hairColor);
 
             if (sprite) {
