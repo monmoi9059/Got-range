@@ -8607,81 +8607,104 @@ var BallRenderer = {
         if (!style) return;
         const color = skinObj.hairColor || '#1a1a1a';
 
-        // 1. STATIC BASE & TEXTURES (Fades, Buzz, Textures)
-        // Handled via 2D composition for sharpness and performance
+        // --- 1. SOLID BASE CAP (Prevents Scalp Bleed) ---
+        // Always draw a solid base for the top of the head
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        // Draw slightly larger arc to ensure full coverage
+        ctx.arc(p.x, headY, headRadius * 1.05, Math.PI * 0.9, Math.PI * 0.1, false);
+        ctx.fill();
+
+        // --- 2. STATIC STYLES (Fades, Buzz, Textures) ---
         if (style.includes('fade') || style.includes('buzz') || style.includes('crew') || style === 'default' ||
             style.includes('flat') || style.includes('comb') || style.includes('slick') || style.includes('spiky') ||
             style.includes('waves') || style.includes('crop') || style.includes('caesar') || style.includes('pompadour') ||
             style.includes('quiff') || style.includes('undercut') || style.includes('topknot') || style.includes('faux')) {
 
-            // Draw Base
-            ctx.fillStyle = color;
-
+            // Specialized Shapes on top of base
             if (style.includes('flat')) {
-                ctx.fillRect(p.x - headRadius*0.8, headY - headRadius*1.4, headRadius*1.6, headRadius);
+                ctx.fillRect(p.x - headRadius*0.9, headY - headRadius*1.5, headRadius*1.8, headRadius);
             }
             else if (style.includes('pompadour') || style.includes('quiff') || style.includes('undercut')) {
                 ctx.beginPath();
-                ctx.ellipse(p.x, headY - headRadius * 0.8, headRadius * 0.85, headRadius * 0.6, 0, Math.PI, 0);
+                ctx.ellipse(p.x, headY - headRadius * 0.9, headRadius * 0.9, headRadius * 0.7, 0, Math.PI, 0);
+                ctx.fill();
+
+                // Highlight for Pompadour volume
+                const grad = ctx.createRadialGradient(p.x, headY - headRadius * 1.2, 2*s, p.x, headY - headRadius * 1.2, 15*s);
+                grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = grad;
                 ctx.fill();
             }
             else if (style.includes('topknot')) {
                 ctx.beginPath();
-                ctx.arc(p.x, headY - headRadius, headRadius * 0.4, 0, Math.PI*2);
+                ctx.arc(p.x, headY - headRadius * 1.1, headRadius * 0.45, 0, Math.PI*2);
                 ctx.fill();
             }
             else if (style.includes('spiky') || style.includes('faux')) {
-                // Spikes
-                for(let i=-2; i<=2; i++) {
+                // Spikes (Thicker, more numerous)
+                for(let i=-3; i<=3; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(p.x + i*8*s, headY - headRadius*0.8);
-                    ctx.lineTo(p.x + i*8*s + 2*s, headY - headRadius*1.4);
-                    ctx.lineTo(p.x + i*8*s + 8*s, headY - headRadius*0.8);
+                    ctx.moveTo(p.x + i*7*s, headY - headRadius*0.9);
+                    ctx.lineTo(p.x + i*7*s + (Math.random()-0.5)*4*s, headY - headRadius*1.6);
+                    ctx.lineTo(p.x + i*7*s + 7*s, headY - headRadius*0.9);
                     ctx.fill();
                 }
             }
-            else {
-                // Standard Round Base
-                ctx.beginPath();
-                ctx.arc(p.x, headY, headRadius, Math.PI, 0); // Top half
-                ctx.fill();
-            }
 
-            // Fades: Draw transparent gradient on sides
+            // Fades: Solid Texture Transition (Stippling approximation)
+            // Instead of transparency, we draw the sideburns/sides with a pattern
             if (style.includes('fade') || style.includes('buzz') || style.includes('crew')) {
-                const grad = ctx.createLinearGradient(p.x - headRadius, headY, p.x + headRadius, headY);
-                grad.addColorStop(0, color);
-                grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
-                grad.addColorStop(1, color);
                 ctx.fillStyle = color;
-                // Sideburns area
+                // Draw sides down to ears
                 ctx.beginPath();
                 ctx.moveTo(p.x - headRadius, headY);
-                ctx.lineTo(p.x - headRadius, headY + headRadius * 0.5);
-                ctx.lineTo(p.x + headRadius, headY + headRadius * 0.5);
+                ctx.lineTo(p.x - headRadius, headY + headRadius * 0.6); // Sideburn top
+                ctx.lineTo(p.x - headRadius * 0.8, headY + headRadius * 0.2); // Taper in
+                ctx.lineTo(p.x + headRadius * 0.8, headY + headRadius * 0.2);
+                ctx.lineTo(p.x + headRadius, headY + headRadius * 0.6);
                 ctx.lineTo(p.x + headRadius, headY);
                 ctx.fill();
+
+                // "Fade" Effect: Grainy dots at the bottom
+                ctx.fillStyle = color;
+                for(let i=0; i<30; i++) {
+                    const rx = (Math.random() - 0.5) * 2 * headRadius;
+                    const ry = (Math.random()) * headRadius * 0.6;
+                    if (Math.abs(rx) > headRadius * 0.8) { // Only on sides
+                        ctx.globalAlpha = 0.5;
+                        ctx.beginPath(); ctx.arc(p.x + rx, headY + ry, 1.5*s, 0, Math.PI*2); ctx.fill();
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
             }
 
-            // Texture Overlay
+            // Waves/Texture Overlay
             if (style.includes('waves') || style.includes('crop') || style.includes('caesar')) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                ctx.lineWidth = 1.5*s;
-                for(let i=0; i<3; i++) {
-                     ctx.beginPath(); ctx.arc(p.x, headY - headRadius*0.5 - i*4*s, headRadius*0.6, Math.PI, 0); ctx.stroke();
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)'; // Subtle highlight
+                ctx.lineWidth = 2*s;
+                for(let i=0; i<4; i++) {
+                     ctx.beginPath();
+                     ctx.arc(p.x, headY - headRadius*0.3 - i*5*s, headRadius*(0.8 - i*0.1), Math.PI, 0);
+                     ctx.stroke();
                 }
             }
         }
 
-        // 2. DYNAMIC PHYSICS STRANDS (Using 3D Hair System)
-        // Access global player3D system to ensure stability vs camera movement
+        // --- 3. DYNAMIC PHYSICS STRANDS (Volumetric) ---
         if (typeof player3D !== 'undefined' && player3D.hairSystem && player3D.hairSystem.styleId === style) {
              const sys = player3D.hairSystem;
+
              ctx.lineCap = 'round';
              ctx.lineJoin = 'round';
 
-             for (let strand of sys.strands) {
+             // Sort strands back-to-front based on root Z position
+             const sortedStrands = [...sys.strands].sort((a, b) => {
+                 return (a.nodes[0].z - b.nodes[0].z);
+             });
+
+             for (let strand of sortedStrands) {
                 if (strand.nodes.length < 2) continue;
 
                 const points = [];
@@ -8692,17 +8715,32 @@ var BallRenderer = {
 
                 if (points.length < 2) continue;
 
-                // Style specific visual width
-                let baseWidth = 3 * s;
-                if (style.includes('braid')) baseWidth = 4 * s;
-                if (style.includes('dread')) baseWidth = 5 * s;
-                if (style.includes('afro')) baseWidth = 8 * s;
+                // Base width calculation
+                let baseWidth = 4 * s;
+                if (style.includes('braid')) baseWidth = 5 * s;
+                if (style.includes('dread')) baseWidth = 6 * s;
+                if (style.includes('afro')) baseWidth = 10 * s;
 
-                // Simple perspective scaling
+                // Perspective scaling
                 const scale = points[0].scale || 1.0;
+
+                // 1. Shadow/Outline Pass (Behind)
+                ctx.lineWidth = (baseWidth + 2.5*s) * scale;
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)'; // Darker shadow
+                ctx.beginPath();
+                // Slight offset for shadow
+                ctx.moveTo(points[0].x + 1*s, points[0].y + 1*s);
+                for(let i=1; i<points.length-1; i++) {
+                    const xc = (points[i].x + points[i+1].x) / 2 + 1*s;
+                    const yc = (points[i].y + points[i+1].y) / 2 + 1*s;
+                    ctx.quadraticCurveTo(points[i].x + 1*s, points[i].y + 1*s, xc, yc);
+                }
+                ctx.lineTo(points[points.length-1].x + 1*s, points[points.length-1].y + 1*s);
+                ctx.stroke();
+
+                // 2. Main Color Pass (Base)
                 ctx.lineWidth = baseWidth * scale;
                 ctx.strokeStyle = strand.color;
-
                 ctx.beginPath();
                 ctx.moveTo(points[0].x, points[0].y);
                 for(let i=1; i<points.length-1; i++) {
@@ -8712,6 +8750,23 @@ var BallRenderer = {
                 }
                 ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
                 ctx.stroke();
+
+                // 3. Highlight Pass (Specular)
+                if (!style.includes('afro')) {
+                    ctx.lineWidth = (baseWidth * 0.4) * scale;
+                    // White highlight with slight transparency
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    // Only highlight the top/curved parts (simple logic: all for now)
+                    for(let i=1; i<points.length-1; i++) {
+                        const xc = (points[i].x + points[i+1].x) / 2;
+                        const yc = (points[i].y + points[i+1].y) / 2;
+                        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                    }
+                    ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+                    ctx.stroke();
+                }
              }
         }
     }
