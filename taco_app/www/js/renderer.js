@@ -3750,8 +3750,16 @@
 
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
-        const style = skinObj.hairStyle || 'bald_clean';
+        let style = skinObj.hairStyle || 'bald_clean';
         const skinTone = skinObj.skinTone || '#8d5524';
+
+        // Normalize style names for easier matching
+        if (style.includes('dread') || style.includes('lock')) style = 'dreads';
+        if (style.includes('cornrow') || style.includes('braid')) style = 'cornrows';
+        if (style.includes('afro')) style = 'afro';
+        if (style.includes('spik')) style = 'spiky';
+        if (style.includes('mohawk')) style = 'mohawk';
+        if (style.includes('pompadour') || style.includes('slick')) style = 'pompadour';
 
         // Helper for consistent texture
         const getSeed = (offset) => {
@@ -3760,286 +3768,333 @@
             for(let i=0; i<str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0;
             return Math.abs(h + offset);
         };
-
         const baseSeed = getSeed(0);
 
-        // Setup Base Gradient for "Realistic Shading"
-        const drawBaseCap = (radiusMod, color) => {
-             // Use sketchy circle logic but filled with gradient
-             const points = [];
-             const segs = 32;
-             const r = headRadius * radiusMod;
-             let idx = (baseSeed * 150) & (NOISE_LUT_SIZE - 1);
-             for (let i = 0; i < segs; i++) {
-                const angle = (i / segs) * Math.PI * 2;
-                idx = (idx + 1) & (NOISE_LUT_SIZE - 1);
-                // Less wobble for base cap (scalp adherence)
-                const rMod = r * (1.0 + (g_noiseLUT[idx] - 0.5) * 0.05);
-                points.push({
-                    x: p.x + Math.cos(angle) * rMod,
-                    y: headY + Math.sin(angle) * rMod
-                });
-             }
+        // --- 1. BASE SCALP COVERAGE ---
+        // We draw a solid shape covering the top-back of the skull to prevent gaps.
+        // This sits behind the texture details.
 
-             // Gradient
-             const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.2, p.x, headY, r*1.2);
-             if (color instanceof CanvasGradient) {
-                 ctx.fillStyle = color;
-             } else {
-                 grad.addColorStop(0, '#FFFFFF'); // Specular
-                 grad.addColorStop(0.2, color);
-                 grad.addColorStop(1.0, 'rgba(0,0,0,0.8)'); // Shadow
-                 ctx.fillStyle = color;
-             }
-
-             drawSketchyFill(ctx, points, color, baseSeed); // Fill solid first
-
-             if (!(color instanceof CanvasGradient)) {
-                 // Overlay Shadow
-                 ctx.save();
-                 ctx.beginPath();
-                 ctx.moveTo(points[0].x, points[0].y);
-                 for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-                 ctx.clip();
-                 const shadowGrad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.2, p.x, headY, r*1.2);
-                 shadowGrad.addColorStop(0, 'rgba(255,255,255,0.2)');
-                 shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
-                 shadowGrad.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = shadowGrad;
-                 ctx.fill();
-                 ctx.restore();
-             }
+        const drawSkullCap = (color, radiusMod = 1.05, heightMod = 1.2) => {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            // Draw a dome: semi-circle top, slight extension down
+            const r = headRadius * radiusMod;
+            // Top Arc
+            ctx.arc(p.x, headY, r, Math.PI, 0);
+            // Bottom (Neckline approximation for back view)
+            ctx.bezierCurveTo(p.x + r, headY + r*0.5, p.x - r, headY + r*0.5, p.x - r, headY);
+            ctx.fill();
         };
 
-        // 1. SCALP PROTECTION (The Fix)
-        // Ensure scalp is covered for styles that sit on top
-        if (style.includes('fade') || style.includes('mohawk') || style.includes('short') || style.includes('cornrows') || style.includes('braids') || style.includes('dread')) {
-             drawBaseCap(0.98, skinTone);
-        }
+        // --- 2. STYLE IMPLEMENTATIONS ---
 
-        // 2. STYLES
-        if (style === 'bald_clean') {
-            const shine = ctx.createRadialGradient(p.x + headRadius*0.3, headY - headRadius*0.4, 0, p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.5);
-            shine.addColorStop(0, 'rgba(255,255,255,0.4)');
-            shine.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = shine;
-            ctx.beginPath(); ctx.arc(p.x, headY, headRadius, 0, Math.PI*2); ctx.fill();
-            drawSketchyCircle(ctx, p.x, headY, headRadius, 'rgba(0,0,0,0.1)', baseSeed, false);
-            return;
-        }
-
-        if (style === 'bald_stubble' || style === 'buzz_cut' || style === 'bald') {
-            drawBaseCap(1.0, hairColor);
-            // Stipple Texture
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            for(let i=0; i<40; i++) {
-                const ang = Math.random() * Math.PI * 2;
-                const r = Math.random() * headRadius * 0.9;
-                ctx.fillRect(p.x + Math.cos(ang)*r, headY + Math.sin(ang)*r, 1.5*s, 1.5*s);
-            }
-            return;
-        }
-
-        if (style.includes('afro') || style === 'curly') {
-            const afroSize = (style.includes('afro') ? 1.5 : 1.2);
-            drawBaseCap(afroSize, hairColor);
-
-            // Sketchy Curls
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = 1.5 * s;
-            const r = headRadius * afroSize;
-            for(let i=0; i<12; i++) {
-                const ang = (i/12)*Math.PI*2;
-                const cr = r * 0.8;
-                const cx = p.x + Math.cos(ang)*cr;
-                const cy = headY + Math.sin(ang)*cr - 2*s;
-                drawSketchyCircle(ctx, cx, cy, 6*s, 'rgba(0,0,0,0)', baseSeed+i, false); // Just outline
-            }
-            return;
-        }
-
-        if (style.includes('fade')) {
-            // Gradient Hair
-            const fadeGrad = ctx.createLinearGradient(0, headY - headRadius, 0, headY + headRadius);
-            fadeGrad.addColorStop(0, hairColor);
-            fadeGrad.addColorStop(0.4, hairColor);
-            fadeGrad.addColorStop(0.8, 'rgba(0,0,0,0)'); // Transparent to show skin base
-
-            drawBaseCap(1.02, fadeGrad);
-
-            if (style.includes('box') || style.includes('high')) {
-                // High top / Box fade
-                const topY = headY - headRadius * 1.4;
-                const w = headRadius * 0.9;
-                const boxPts = [
-                    {x: p.x - w, y: headY},
-                    {x: p.x - w, y: topY},
-                    {x: p.x + w, y: topY},
-                    {x: p.x + w, y: headY}
-                ];
-                drawSketchyFill(ctx, boxPts, hairColor, baseSeed+1);
-            }
-            return;
-        }
-
-        if (style.includes('cornrows') || style.includes('braids')) {
-            // Draw rows ON TOP of the skin base cap
-            const rows = 5;
-            for(let i=0; i<rows; i++) {
-                const xOff = (i - (rows-1)/2) * (headRadius*0.45);
-                const pts = [];
-                // Create a curved path over the head
-                for(let j=0; j<=10; j++) {
-                    const t = j/10;
-                    // Curve from front (top) to back (bottom)
-                    // y range: headY - headRadius to headY + headRadius
-                    const y = (headY - headRadius*1.1) + (t * headRadius * 2.2);
-
-                    // Width at Y (sphere projection approx)
-                    const yNorm = (y - headY)/(headRadius*1.1);
-                    const widthAtY = Math.sqrt(Math.max(0, 1 - yNorm*yNorm)) * headRadius;
-
-                    // Converge slightly at back
-                    const taper = 1.0 - (t * 0.3);
-
-                    if (Math.abs(xOff * taper) < widthAtY) {
-                        pts.push({x: p.x + xOff * taper, y: y});
-                    }
-                }
-                if (pts.length > 1) {
-                    drawSketchyPath(ctx, pts, hairColor, 4*s, baseSeed+100+i, false);
-                    // Add shading/highlight to braid
-                    drawSketchyPath(ctx, pts, 'rgba(255,255,255,0.1)', 1.5*s, baseSeed+200+i, false);
-                }
-            }
-            return;
-        }
-
-        if (style.includes('dreads') || style.includes('locks')) {
-            drawBaseCap(1.05, hairColor);
-            // Hanging locks
-            const numLocks = 15;
-            for(let i=0; i<numLocks; i++) {
-                const ang = Math.PI + (i/numLocks)*Math.PI; // Top arc
-                const sx = p.x + Math.cos(ang)*headRadius*0.8;
-                const sy = headY + Math.sin(ang)*headRadius*0.8;
-                const len = 30*s;
-                // Dangling sketchy path
-                const ex = sx + (Math.random()-0.5)*10*s;
-                const ey = sy + len;
-
-                const pts = [{x:sx, y:sy}, {x:sx, y:sy+len*0.5}, {x:ex, y:ey}];
-                drawSketchyPath(ctx, pts, hairColor, 5*s, baseSeed+300+i, false);
-            }
-            return;
-        }
-
-        if (style.includes('mohawk')) {
-            // Strip
-            const stripW = headRadius * 0.4;
-            const pts = [
-                {x: p.x, y: headY + headRadius}, // Nape
-                {x: p.x - stripW, y: headY},
-                {x: p.x - stripW*0.5, y: headY - headRadius*1.3}, // Top Front
-                {x: p.x + stripW*0.5, y: headY - headRadius*1.3},
-                {x: p.x + stripW, y: headY},
-            ];
-            drawSketchyFill(ctx, pts, hairColor, baseSeed+2);
-            return;
-        }
-
-        if (style.includes('spik') || style === 'spikes') {
-             const pts = [];
-             const center = {x: p.x, y: headY};
-             const r = headRadius * 1.4;
-             const spikes = 9;
-             for(let i=0; i<spikes; i++) {
-                 const a1 = Math.PI + (i/spikes)*Math.PI;
-                 const a2 = Math.PI + ((i+0.5)/spikes)*Math.PI;
-                 pts.push({x: center.x + Math.cos(a1)*headRadius, y: center.y + Math.sin(a1)*headRadius});
-                 pts.push({x: center.x + Math.cos(a2)*r, y: center.y + Math.sin(a2)*r});
-             }
-             pts.push({x: center.x + headRadius, y: center.y});
-             pts.push({x: center.x - headRadius, y: center.y});
-             drawSketchyFill(ctx, pts, hairColor, baseSeed+3);
+        if (style === 'bald_clean' || style === 'bald') {
+             // Just shine, no cap (skull already drawn in drawPlayer)
+             const shine = ctx.createRadialGradient(p.x + headRadius*0.3, headY - headRadius*0.4, 0, p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.5);
+             shine.addColorStop(0, 'rgba(255,255,255,0.3)');
+             shine.addColorStop(1, 'rgba(255,255,255,0)');
+             ctx.fillStyle = shine;
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 0.8, 0, Math.PI*2); ctx.fill();
              return;
         }
 
-        if (style.includes('long') || style.includes('straight') || style.includes('mullet') || style.includes('shaggy')) {
-             const isMullet = style.includes('mullet');
-             const len = (style === 'straight' || isMullet) ? 15*s : 25*s;
+        if (style === 'bald_stubble' || style === 'buzz_cut') {
+            drawSkullCap(hairColor, 1.0, 1.0); // Tight fit
+            // Stipple Texture
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            for(let i=0; i<50; i++) {
+                const ang = seededRandom(baseSeed + i) * Math.PI * 2;
+                const r = seededRandom(baseSeed + i + 100) * headRadius * 0.9;
+                ctx.fillRect(p.x + Math.cos(ang)*r, headY + Math.sin(ang)*r - 5*s, 1.5*s, 1.5*s);
+            }
+            return;
+        }
 
-             // Base shape
+        if (style === 'short' || style === 'short_curly' || style.includes('fade')) {
+            // FADE LOGIC
+            // Gradient Base: Hair Color Top -> Skin Tone Bottom
+            const r = headRadius * 1.05;
+            const grad = ctx.createLinearGradient(0, headY - r, 0, headY + r*0.8);
+            grad.addColorStop(0, hairColor);
+            grad.addColorStop(0.5, hairColor);
+            grad.addColorStop(1, skinTone); // Fade to skin at nape
+
+            drawSkullCap(grad, 1.02);
+
+            // Texture
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            const isCurly = style.includes('curly');
+            const numDots = isCurly ? 30 : 60;
+
+            for(let i=0; i<numDots; i++) {
+                const ang = seededRandom(baseSeed + i) * Math.PI; // Top half mostly
+                const dist = seededRandom(baseSeed + i + 50) * r;
+                const tx = p.x + Math.cos(ang)*dist;
+                const ty = (headY - 5*s) - Math.sin(ang)*dist;
+                // Draw detail
+                if (isCurly) {
+                    drawSketchyCircle(ctx, tx, ty, 3*s, hairColor, baseSeed+i, true);
+                } else {
+                    ctx.fillRect(tx, ty, 2*s, 2*s);
+                }
+            }
+            return;
+        }
+
+        if (style === 'afro') {
+            const afroR = headRadius * 1.6;
+            // Draw big bumpy cloud
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+            const bumps = 16;
+            for(let i=0; i<bumps; i++) {
+                const ang = (i/bumps) * Math.PI * 2;
+                const bx = p.x + Math.cos(ang) * afroR * 0.85;
+                const by = headY + Math.sin(ang) * afroR * 0.85 - 5*s;
+                ctx.arc(bx, by, afroR * 0.25, 0, Math.PI*2);
+            }
+            ctx.fill();
+
+            // Texture inside
+            for(let i=0; i<15; i++) {
+                const rx = (seededRandom(baseSeed+i)-0.5) * afroR * 1.5;
+                const ry = (seededRandom(baseSeed+i+50)-0.5) * afroR * 1.5;
+                drawSketchyCircle(ctx, p.x + rx, headY + ry - 5*s, 4*s, 'rgba(0,0,0,0.2)', baseSeed+i, false);
+            }
+            return;
+        }
+
+        if (style === 'curly') {
+             // Smaller than afro, tighter to head
+            const curlyR = headRadius * 1.25;
+            drawSkullCap(hairColor, 1.15); // Base
+
+            // Bumps
+            ctx.fillStyle = hairColor;
+            for(let i=0; i<25; i++) {
+                const ang = (i/25) * Math.PI * 2;
+                const rad = curlyR * (0.8 + seededRandom(baseSeed+i)*0.2);
+                const bx = p.x + Math.cos(ang) * rad * 0.8;
+                const by = headY + Math.sin(ang) * rad * 0.8 - 5*s;
+                drawSketchyCircle(ctx, bx, by, 6*s, hairColor, baseSeed+i, true);
+            }
+            return;
+        }
+
+        if (style === 'cornrows') {
+            // Draw Skin Cap first (showing through gaps)
+            drawSkullCap(skinTone, 1.05);
+
+            // Draw Braided Rows
+            const numRows = 7;
+            const spacing = headRadius * 0.35;
+            ctx.lineCap = 'round';
+
+            for(let i=0; i<numRows; i++) {
+                const xOff = (i - (numRows-1)/2) * spacing;
+                // Draw a vertical-ish line following head curve
+                const pts = [];
+                for(let j=0; j<=8; j++) {
+                    const t = j/8;
+                    // Curve calculation
+                    const y = (headY - headRadius*1.2) + (t * headRadius * 2.2);
+                    // Squeeze X at ends to simulate sphere projection
+                    const widthFactor = Math.sin(t * Math.PI);
+                    const x = p.x + xOff * (0.6 + 0.4*widthFactor);
+                    pts.push({x: x, y: y});
+                }
+
+                // Draw thick braid
+                drawSketchyPath(ctx, pts, hairColor, 4.5*s, baseSeed + i*100, false);
+                // Draw detail highlight
+                drawSketchyPath(ctx, pts, 'rgba(255,255,255,0.15)', 1.5*s, baseSeed + i*100 + 1, false);
+            }
+            return;
+        }
+
+        if (style === 'dreads') {
+            drawSkullCap(hairColor, 1.1); // Dark base
+
+            // Draw hanging locks
+            const numDreads = 14;
+            for(let i=0; i<numDreads; i++) {
+                const ang = Math.PI + (i/numDreads) * Math.PI; // Top arc
+                const sx = p.x + Math.cos(ang) * headRadius * 0.9;
+                const sy = headY + Math.sin(ang) * headRadius * 0.9 - 5*s;
+
+                // Dreads hang down and messy
+                const len = 35 * s;
+                const curve = (seededRandom(baseSeed+i) - 0.5) * 20 * s;
+
+                const ex = sx + curve;
+                const ey = sy + len;
+
+                const pts = [
+                    {x: sx, y: sy},
+                    {x: sx + curve*0.5, y: sy + len*0.5},
+                    {x: ex, y: ey}
+                ];
+
+                drawSketchyPath(ctx, pts, hairColor, 6*s, baseSeed + i*20, false);
+            }
+            return;
+        }
+
+        if (style === 'spiky') {
+            // Draw jagged polygon
+            const pts = [];
+            const spikes = 12;
+            const rBase = headRadius * 0.9;
+            const rTip = headRadius * 1.6;
+
+            for(let i=0; i<spikes; i++) {
+                const ang1 = Math.PI + (i/spikes)*Math.PI; // Base angle
+                const ang2 = Math.PI + ((i+0.5)/spikes)*Math.PI; // Tip angle
+
+                const bX = p.x + Math.cos(ang1) * rBase;
+                const bY = headY + Math.sin(ang1) * rBase;
+                const tX = p.x + Math.cos(ang2) * rTip;
+                const tY = headY + Math.sin(ang2) * rTip; // Higher up
+
+                pts.push({x: bX, y: bY});
+                pts.push({x: tX, y: tY});
+            }
+            // Close bottom
+            pts.push({x: p.x + rBase, y: headY + 5*s});
+            pts.push({x: p.x - rBase, y: headY + 5*s});
+
+            drawSketchyFill(ctx, pts, hairColor, baseSeed);
+            return;
+        }
+
+        if (style === 'mohawk') {
+            // Skin Fade sides
+            drawSkullCap(skinTone, 1.0);
+
+            // Central Strip
+            const w = 12 * s;
+            const topY = headY - headRadius * 1.5;
+            const botY = headY + headRadius * 1.2;
+
+            const pts = [
+                {x: p.x - w/2, y: topY},
+                {x: p.x + w/2, y: topY},
+                {x: p.x + w/2, y: botY},
+                {x: p.x - w/2, y: botY}
+            ];
+            drawSketchyFill(ctx, pts, hairColor, baseSeed);
+
+            // Spikes on strip
+            for(let i=0; i<8; i++) {
+                 const y = topY + (i/8)*(botY-topY);
+                 drawSketchyCircle(ctx, p.x, y, 6*s, hairColor, baseSeed+i, true);
+            }
+            return;
+        }
+
+        if (style === 'pompadour') {
+            // Big swoop forward/up
+            const pts = [
+                {x: p.x - headRadius, y: headY}, // Left ear
+                {x: p.x - headRadius*0.8, y: headY - headRadius*1.5}, // Top Left high
+                {x: p.x + headRadius*0.8, y: headY - headRadius*1.5}, // Top Right high
+                {x: p.x + headRadius, y: headY}, // Right ear
+                {x: p.x, y: headY + headRadius*0.8} // Nape
+            ];
+            drawSketchyFill(ctx, pts, hairColor, baseSeed);
+            // Shine line
+            drawSketchyPath(ctx, [{x:p.x-headRadius*0.5, y:headY-headRadius}, {x:p.x+headRadius*0.5, y:headY-headRadius}], 'rgba(255,255,255,0.2)', 3*s, baseSeed, false);
+            return;
+        }
+
+        if (style === 'long' || style === 'straight' || style.includes('mullet') || style === 'curly_long') {
+             const len = (style.includes('mullet')) ? 15*s : 40*s;
+             const isCurly = style.includes('curly');
+
+             // Back mass
+             const w = headRadius * 1.3;
+             const topY = headY - headRadius * 1.0;
+             const botY = headY + len;
+
              const pts = [
-                 {x: p.x - headRadius, y: headY - headRadius*0.5},
-                 {x: p.x - headRadius*1.2, y: headY + headRadius + len},
-                 {x: p.x + headRadius*1.2, y: headY + headRadius + len},
-                 {x: p.x + headRadius, y: headY - headRadius*0.5},
-                 {x: p.x, y: headY - headRadius*1.2}
+                 {x: p.x - w, y: topY},
+                 {x: p.x + w, y: topY},
+                 {x: p.x + w, y: botY},
+                 {x: p.x - w, y: botY}
              ];
-             drawSketchyFill(ctx, pts, hairColor, baseSeed+4);
+             drawSketchyFill(ctx, pts, hairColor, baseSeed);
 
-             if (isMullet) {
-                 // Short top/sides drawn over
-                 drawBaseCap(1.05, hairColor);
-             }
+             // Top Cap (to cover skull roundness)
+             drawSkullCap(hairColor, 1.15, 1.0);
 
-             // Lines
-             const numLines = 5;
+             // Lines/Texture
+             const numLines = 8;
              for(let i=0; i<numLines; i++) {
-                 const x = p.x - headRadius + (i/numLines)*headRadius*2;
-                 drawSketchyPath(ctx, [{x:x, y:headY}, {x:x, y:headY+len}], 'rgba(0,0,0,0.2)', 1*s, baseSeed+200+i, false);
+                 const lx = p.x - w*0.8 + (i/numLines)*w*1.6;
+                 const ptsL = [{x: lx, y: topY}, {x: lx + (seededRandom(baseSeed+i)-0.5)*10*s, y: botY}];
+                 if (isCurly) {
+                     // Make it zig zag
+                     const midY = (topY+botY)/2;
+                     ptsL.splice(1, 0, {x: lx + (i%2==0?5:-5)*s, y: midY});
+                 }
+                 drawSketchyPath(ctx, ptsL, 'rgba(0,0,0,0.2)', 1.5*s, baseSeed+100+i, false);
              }
              return;
         }
 
         if (style === 'hat') {
-             // Sideburns
+             // Sideburns only
              drawSketchyCircle(ctx, p.x - headRadius, headY, 4*s, hairColor, baseSeed, true);
              drawSketchyCircle(ctx, p.x + headRadius, headY, 4*s, hairColor, baseSeed+1, true);
              return;
         }
 
-        if (style.includes('short')) {
-             drawBaseCap(1.1, hairColor);
-             if (style.includes('curly')) {
-                 for(let i=0; i<8; i++) {
-                     const ang = Math.random() * Math.PI;
-                     const r = Math.random() * headRadius;
-                     drawSketchyPath(ctx, [{x:p.x+Math.cos(ang)*r, y:headY-Math.sin(ang)*r}, {x:p.x+Math.cos(ang)*(r+5*s), y:headY-Math.sin(ang)*(r+5*s)}], 'rgba(0,0,0,0.2)', 1, baseSeed+300+i, false);
-                 }
-             }
-             return;
-        }
-
         if (style === 'snakes') {
-             // Gorgon
-             drawBaseCap(1.0, hairColor);
+             drawSkullCap(hairColor, 1.0);
              for(let i=0; i<6; i++) {
                  const ang = Math.PI + (i/5)*Math.PI;
                  const sx = p.x + Math.cos(ang)*headRadius*0.8;
                  const sy = headY + Math.sin(ang)*headRadius*0.8;
                  const ex = p.x + Math.cos(ang)*headRadius*2.5;
                  const ey = headY + Math.sin(ang)*headRadius*2.5;
-                 drawSketchyPath(ctx, [{x:sx, y:sy}, {x:ex, y:ey}], hairColor, 4*s, baseSeed+400+i, false);
+
+                 // Wavy snake
+                 const mx = (sx+ex)/2 + (i%2==0?10:-10)*s;
+                 const my = (sy+ey)/2;
+
+                 drawSketchyPath(ctx, [{x:sx, y:sy}, {x:mx, y:my}, {x:ex, y:ey}], hairColor, 4*s, baseSeed+400+i, false);
              }
              return;
         }
 
-        // Default / Slicked / Pompadour
-        if (style.includes('slick') || style.includes('pompadour')) {
-             const pts = [
-                 {x: p.x - headRadius, y: headY},
-                 {x: p.x - headRadius, y: headY - headRadius*1.5}, // Higher top
-                 {x: p.x + headRadius, y: headY - headRadius*1.5},
-                 {x: p.x + headRadius, y: headY}
-             ];
-             drawSketchyFill(ctx, pts, hairColor, baseSeed+5);
-             return;
+        if (style === 'crew_cut') {
+            // Flat top
+            const r = headRadius;
+            const topY = headY - r * 1.3;
+            const pts = [
+                {x: p.x - r, y: headY},
+                {x: p.x - r, y: topY},
+                {x: p.x + r, y: topY},
+                {x: p.x + r, y: headY},
+                {x: p.x, y: headY + r}
+            ];
+            drawSketchyFill(ctx, pts, hairColor, baseSeed);
+            return;
         }
 
-        // Final Fallback
-        drawBaseCap(1.05, hairColor);
+        // --- FALLBACK (DEFAULT) ---
+        // Basic messy hair
+        drawSkullCap(hairColor, 1.15);
+        for(let i=0; i<15; i++) {
+            const ang = seededRandom(baseSeed+i) * Math.PI * 2;
+            const dist = headRadius * 1.1;
+            const tx = p.x + Math.cos(ang)*dist;
+            const ty = headY - 5*s + Math.sin(ang)*dist;
+            // Only top half details
+            if (ty < headY) {
+                drawSketchyPath(ctx, [{x: p.x, y: headY-5*s}, {x: tx, y: ty}], hairColor, 2*s, baseSeed+i, false);
+            }
+        }
     }
     function drawRealisticHuman(p, s, skinObj) {
         const isMechanical = isMechanicalSkin(skinObj.id);
