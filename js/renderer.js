@@ -5490,7 +5490,7 @@ var BallRenderer = {
                         addStrand(theta, phi, len, 5);
                     }
                 }
-                else if (['mullet_80s', 'anchor_man_80s', 'shaggy_top'].includes(style)) {
+                else if (['mullet_80s', 'anchor_man_80s', 'shaggy_top', 'mullet_fade'].includes(style)) {
                     // Top heavy / Specific structures
                     const count = 60;
                     for(let i=0; i<count; i++) {
@@ -5499,7 +5499,7 @@ var BallRenderer = {
                         const angleNorm = (theta % (Math.PI*2));
                         const isBack = (angleNorm > Math.PI && angleNorm < Math.PI * 2);
 
-                        if (style === 'mullet_80s') {
+                        if (style === 'mullet_80s' || style === 'mullet_fade') {
                             if (!isBack && phi > 0.3) continue; // Short/No sides
                             const len = isBack ? 45 : 10; // Long back, short top
                             addStrand(theta, phi, len, 4);
@@ -5515,7 +5515,7 @@ var BallRenderer = {
                         }
                     }
                 }
-                else if (['med_bob', 'med_curtain', 'side_swept_fringe'].includes(style)) {
+                else if (['med_bob', 'med_curtain', 'side_swept_fringe', 'fringe_fade'].includes(style)) {
                     // Curtain/Bob - hanging straight
                     const count = 80;
                     for(let i=0; i<count; i++) {
@@ -5529,13 +5529,17 @@ var BallRenderer = {
 
                         let len = 30;
                         if (style === 'side_swept_fringe' && angleNorm > 0 && angleNorm < Math.PI) len = 40; // Sweep
+                        if (style === 'fringe_fade' && angleNorm > 0 && angleNorm < Math.PI) len = 25; // Short fringe
                         addStrand(theta, phi, len, 4);
                     }
                 }
-                else if (style === 'dreads' || style === 'dreads_short' || style === 'braids_box' || style === 'cornrows_braids') {
+                else if (style.includes('dreads') || style.includes('braids') || style.includes('cornrows')) {
                     // Dreads/Braids
-                    const count = (style === 'braids_box') ? 30 : 50;
-                    const len = (style === 'braids_box') ? 40 : (style === 'dreads_short' ? 20 : 35);
+                    const count = (style.includes('braids')) ? 30 : 50;
+                    let len = 35;
+                    if (style.includes('short')) len = 20;
+                    if (style.includes('box')) len = 40;
+
                     for(let i=0; i<count; i++) {
                         const theta = rnd() * Math.PI * 2;
                         const phi = rnd() * Math.PI * 0.6;
@@ -5648,7 +5652,237 @@ var BallRenderer = {
         }
     };
 
+    // --- HIGH QUALITY HAIR ENGINE (Verlet Physics) ---
+    const hairPhysicsState = new WeakMap();
+
+    function updateHairPhysics(p, headX, headY, scale, style, headRadius) {
+        let state = hairPhysicsState.get(p);
+        // Initialize if needed
+        if (!state || state.style !== style) {
+            state = {
+                style: style,
+                points: [],
+                constraints: [],
+                lastX: headX,
+                lastY: headY
+            };
+
+            // Generate Geometry based on Style
+            const hairColor = '#000'; // Placeholder
+            const r = headRadius;
+
+            // Helper: Add Strand
+            const addStrand = (startX, startY, length, segments, stiffness = 0.5) => {
+                const chain = [];
+                for(let i=0; i<=segments; i++) {
+                    const pt = {
+                        x: startX, y: startY + (i * (length/segments)),
+                        oldX: startX, oldY: startY + (i * (length/segments)),
+                        pinned: i === 0
+                    };
+                    state.points.push(pt);
+                    chain.push(pt);
+                }
+                // Constraints
+                for(let i=0; i<chain.length-1; i++) {
+                    state.constraints.push({ p1: chain[i], p2: chain[i+1], len: length/segments, stiffness: stiffness });
+                }
+            };
+
+            // Style Definitions
+            if (style.includes('dreads') || style.includes('braids')) {
+                const count = style.includes('braids') ? 8 : 12;
+                const len = style.includes('short') ? r * 1.5 : r * 2.5;
+                for(let i=0; i<count; i++) {
+                    const angle = (Math.PI + (i/count)*Math.PI); // Back of head arc
+                    const sx = headX + Math.cos(angle) * r * 0.8;
+                    const sy = headY + Math.sin(angle) * r * 0.8;
+                    addStrand(sx, sy, len, 4, 0.8);
+                }
+            } else if (style.includes('mullet')) {
+                // Back strands only
+                for(let i=0; i<5; i++) {
+                    const angle = (Math.PI * 1.2 + (i/5)*Math.PI * 0.6);
+                    const sx = headX + Math.cos(angle) * r * 0.9;
+                    const sy = headY + Math.sin(angle) * r * 0.9;
+                    addStrand(sx, sy, r * 1.5, 3, 0.6);
+                }
+            } else if (style.includes('fringe') || style.includes('messy')) {
+                // Front bangs
+                for(let i=0; i<5; i++) {
+                    const sx = headX + (i-2) * r * 0.4;
+                    const sy = headY - r * 0.6;
+                    addStrand(sx, sy, r * 0.8, 2, 0.4);
+                }
+            }
+
+            hairPhysicsState.set(p, state);
+        }
+
+        // PHYSICS UPDATE
+        const gravity = 0.5 * scale;
+        const friction = 0.85; // High friction = less random movement
+
+        // Head movement delta (Inertia)
+        const dx = headX - state.lastX;
+        const dy = headY - state.lastY;
+        state.lastX = headX;
+        state.lastY = headY;
+
+        // Update Points
+        for(let pt of state.points) {
+            if (pt.pinned) {
+                // Move pinned points with head (approximation, ideally re-calculate from angle)
+                pt.x += dx;
+                pt.y += dy;
+                pt.oldX += dx; // No inertia for pinned
+                pt.oldY += dy;
+                continue;
+            }
+
+            const vx = (pt.x - pt.oldX) * friction;
+            const vy = (pt.y - pt.oldY) * friction;
+
+            pt.oldX = pt.x;
+            pt.oldY = pt.y;
+
+            pt.x += vx;
+            pt.y += vy + gravity;
+        }
+
+        // Solve Constraints
+        for(let i=0; i<3; i++) { // Iterations
+            for(let c of state.constraints) {
+                const dist = Math.hypot(c.p1.x - c.p2.x, c.p1.y - c.p2.y);
+                const diff = (dist - c.len) / dist;
+                const offsetX = (c.p1.x - c.p2.x) * diff * 0.5 * c.stiffness;
+                const offsetY = (c.p1.y - c.p2.y) * diff * 0.5 * c.stiffness;
+
+                if (!c.p1.pinned) {
+                    c.p1.x -= offsetX;
+                    c.p1.y -= offsetY;
+                }
+                if (!c.p2.pinned) {
+                    c.p2.x += offsetX;
+                    c.p2.y += offsetY;
+                }
+            }
+        }
+    }
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
+        const style = skinObj.hairStyle;
+        if (!style) return;
+        const color = skinObj.hairColor || '#1a1a1a';
+
+        // 1. STATIC BASE (Fades / Buzz)
+        if (style.includes('fade') || style.includes('buzz') || style.includes('crew') || style === 'default') {
+            // Draw Fade Gradient
+            const grad = ctx.createLinearGradient(p.x - headRadius, headY, p.x + headRadius, headY);
+            grad.addColorStop(0, color);
+            grad.addColorStop(0.2, 'rgba(0,0,0,0.1)'); // Skin show through
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(1, color);
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, headY, headRadius, Math.PI, 0); // Top half
+            ctx.fill();
+
+            // Sideburns/Fade area
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; // Stubble look
+            ctx.beginPath();
+            ctx.moveTo(p.x - headRadius, headY);
+            ctx.lineTo(p.x - headRadius, headY + headRadius * 0.5);
+            ctx.lineTo(p.x + headRadius, headY + headRadius * 0.5);
+            ctx.lineTo(p.x + headRadius, headY);
+            ctx.fill();
+        }
+
+        // 2. RIGID GEOMETRY (Pompadour, Mohawk, Topknot)
+        if (style.includes('pompadour') || style.includes('quiff') || style.includes('undercut')) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(p.x, headY - headRadius * 0.8, headRadius * 0.85, headRadius * 0.6, 0, Math.PI, 0);
+            ctx.fill();
+        } else if (style.includes('mohawk') || style.includes('hawk')) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(p.x - headRadius*0.2, headY - headRadius);
+            ctx.lineTo(p.x, headY - headRadius * 1.8); // Tall spike
+            ctx.lineTo(p.x + headRadius*0.2, headY - headRadius);
+            ctx.fill();
+        } else if (style.includes('topknot')) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, headY - headRadius, headRadius * 0.4, 0, Math.PI*2);
+            ctx.fill();
+        } else if (style.includes('afro')) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, headY - headRadius * 0.2, headRadius * 1.2, 0, Math.PI*2);
+            ctx.fill();
+        } else if (style.includes('flat')) {
+            ctx.fillStyle = color;
+            ctx.fillRect(p.x - headRadius*0.8, headY - headRadius*1.4, headRadius*1.6, headRadius);
+        } else if (style.includes('comb') || style.includes('slick')) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(p.x, headY - headRadius * 0.7, headRadius * 0.9, headRadius * 0.4, 0.1, 0, Math.PI*2);
+            ctx.fill();
+        } else if (style.includes('spiky') || style.includes('faux')) {
+            ctx.fillStyle = color;
+            // Draw spikes
+            for(let i=-2; i<=2; i++) {
+                ctx.beginPath();
+                ctx.moveTo(p.x + i*8*s, headY - headRadius*0.8);
+                ctx.lineTo(p.x + i*8*s + 2*s, headY - headRadius*1.4);
+                ctx.lineTo(p.x + i*8*s + 8*s, headY - headRadius*0.8);
+                ctx.fill();
+            }
+        } else if (style.includes('waves') || style.includes('crop') || style.includes('caesar')) {
+            // Textured top
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, headY - headRadius*0.2, headRadius*0.9, Math.PI, 0);
+            ctx.fill();
+            // Texture lines
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1.5*s;
+            for(let i=0; i<3; i++) {
+                 ctx.beginPath(); ctx.arc(p.x, headY - headRadius*0.5 - i*4*s, headRadius*0.6, Math.PI, 0); ctx.stroke();
+            }
+        }
+
+        // 3. PHYSICS STRANDS
+        if (style.includes('dreads') || style.includes('braids') || style.includes('mullet') || style.includes('fringe')) {
+            updateHairPhysics(p, p.x, headY, s, style, headRadius);
+            const state = hairPhysicsState.get(p);
+            if (state && state.points.length > 0) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = (style.includes('braids') ? 4 : 3) * s;
+                ctx.lineCap = 'round';
+
+                // Draw Strands
+                // Assuming points are sequential in groups (based on generation logic)
+                // This is a simplification; ideally store strands as arrays of points
+                // Re-parsing points array:
+                let idx = 0;
+                // Re-construct logic or store strands structure better.
+                // For now, draw lines between constrained points that are close
+                ctx.beginPath();
+                for(let c of state.constraints) {
+                    if (c.len > 0) { // Valid constraint
+                         ctx.moveTo(c.p1.x, c.p1.y);
+                         ctx.lineTo(c.p2.x, c.p2.y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+    }
+
+    function drawHairstyle_Legacy(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle || 'bald_clean';
 
@@ -9236,7 +9470,7 @@ var BallRenderer = {
         }
 
         // Hairstyle Support (Universal - Removed for animals as per request)
-        // drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
+        if (skinObj.hairStyle) drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
 
         // Head Accessories
         let accessoryType = skinObj.headAccessory;
