@@ -5624,61 +5624,25 @@ var BallRenderer = {
             return;
         }
 
-        // --- 4. BRAIDS / CORNROWS (COMPLEX PATHS) ---
-        if (style.startsWith('cornrows_') || style.startsWith('braids_')) {
-            // Scalp Base
-            ctx.fillStyle = adjustColor(baseColor, -30);
-            ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+        // --- 4. BRAIDS / CORNROWS (SIMPLE LINES - RESTORED) ---
+        if (style.startsWith('cornrows_') || style.startsWith('braids_') || style === 'braids') {
+             // Reverted to simple line-based rendering as requested ("looked way better before")
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 4 * s;
+             ctx.lineCap = 'round';
+             ctx.beginPath();
 
-            const numRows = (style === 'braids_box') ? 12 : 8;
-            const isHanging = (style === 'braids_box' || style === 'dreads_short');
+             // Draw parallel lines from top to neck (Simplified look)
+             // Original logic was roughly -20 to 20 width, -45 to -10 height relative to head center
+             const spread = modRadius;
+             const step = spread / 2;
 
-            for(let i=0; i<numRows; i++) {
-                const t = i/(numRows-1);
-                const angle = (t - 0.5) * 2.5; // Fan out
-
-                // Path points
-                const startX = p.x + Math.sin(angle) * modRadius * 0.2; // Start near crown
-                const startY = headY - modRadius * 0.8;
-
-                const midX = p.x + Math.sin(angle) * modRadius * 1.1;
-                const midY = headY - 2*s;
-
-                const endX = p.x + Math.sin(angle) * (modRadius * (isHanging ? 1.2 : 0.8));
-                const endY = headY + (isHanging ? 15*s : modRadius * 0.8);
-
-                // Draw Braid Segments
-                const steps = 15;
-                let px = startX, py = startY;
-
-                for(let j=0; j<=steps; j++) {
-                    const st = j/steps;
-                    // Quad interp
-                    const invT = 1-st;
-                    const bx = invT*invT*startX + 2*invT*st*midX + st*st*endX;
-                    const by = invT*invT*startY + 2*invT*st*midY + st*st*endY;
-
-                    if (j > 0) {
-                        // Draw segment
-                        ctx.strokeStyle = baseColor;
-                        ctx.lineWidth = (3 + j*0.2) * s; // Thicken
-                        ctx.beginPath();
-                        ctx.moveTo(px, py);
-                        ctx.lineTo(bx, by);
-                        ctx.stroke();
-
-                        // Cross hatch for braid texture
-                        ctx.strokeStyle = shadowColor;
-                        ctx.lineWidth = 1*s;
-                        ctx.beginPath();
-                        ctx.moveTo(px, py);
-                        ctx.lineTo(bx + 2*s, by);
-                        ctx.stroke();
-                    }
-                    px = bx; py = by;
-                }
-            }
-            return;
+             for(let dx = -spread; dx <= spread; dx += step) {
+                 ctx.moveTo(p.x + dx, headY - modRadius * 1.25);
+                 ctx.lineTo(p.x + dx, headY + modRadius * 0.5);
+             }
+             ctx.stroke();
+             return;
         }
 
         // --- 5. DREADS / TWISTS (STRANDS) ---
