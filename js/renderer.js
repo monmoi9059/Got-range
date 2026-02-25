@@ -5466,41 +5466,83 @@ var BallRenderer = {
                 };
 
                 // Configuration per Style
-                if (style === 'dreads' || style === 'braids_box' || style === 'cornrows_braids') {
-                    // All over top and back
-                    const count = (style === 'braids_box') ? 30 : 50;
-                    const len = (style === 'braids_box') ? 40 : 30;
+                // "Remake all long hair styles" - Dynamic Implementations
+                if (['long_flow', 'long_layered', 'surfer_flow', 'med_shag', 'med_wolf'].includes(style)) {
+                    // Long flowing styles (All over, avoiding face)
+                    const count = 70;
+                    const baseLen = style.includes('med') ? 35 : 55;
+                    const stiffness = style.includes('shag') ? 0.3 : 0.1; // Shag is stiffer
+
                     for(let i=0; i<count; i++) {
-                        const theta = rnd() * Math.PI * 2; // Around
-                        const phi = rnd() * Math.PI * 0.6; // Top hemisphere to equator+
-                        // Exclude face area (Front: +Y is back, -Y is front?
-                        // In this game, player faces hoop (Target).
-                        // If Player is at (0,0), Hoop is at (X, Y).
-                        // Usually Back View -> Camera is behind player.
-                        // So Hair should be visible on the side facing camera?
-                        // Let's just cover the back half mostly.
-                        // Assuming Z is up. Player rotation will handle orientation.
-                        // We generate relative to a sphere, then rotation aligns it.
-                        // Let's generate uniformly on top/back.
-                        // Exclude "Front" mask: assume +Y is Forward (Face). So only -Y or high Z.
-                        // Let's filter later or just gen all over for now.
-                        addStrand(theta, phi, len, 4);
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.6; // Down to equator+
+
+                        // Face mask: Assume +Y is face.
+                        // theta 0 = +X, PI/2 = +Y (Face), PI = -X, 3PI/2 = -Y (Back)
+                        // Mask +/- 45 deg around PI/2
+                        const angleNorm = (theta % (Math.PI*2));
+                        const isFace = (angleNorm > Math.PI * 0.25 && angleNorm < Math.PI * 0.75) && (phi > 0.3);
+                        if (isFace) continue;
+
+                        let len = baseLen + (rnd() - 0.5) * 15;
+                        if (style === 'med_wolf' && angleNorm > Math.PI) len *= 1.4; // Longer in back
+
+                        addStrand(theta, phi, len, 5);
                     }
-                } else if (style === 'long_flow' || style === 'mullet_80s') {
-                    // Mullet: Back only
-                    // Long: All over
+                }
+                else if (['mullet_80s', 'anchor_man_80s', 'shaggy_top'].includes(style)) {
+                    // Top heavy / Specific structures
                     const count = 60;
                     for(let i=0; i<count; i++) {
                         const theta = rnd() * Math.PI * 2;
-                        const phi = rnd() * Math.PI * 0.5;
-                        const isBack = (Math.sin(theta) < 0); // Approx
-                        if (style === 'mullet_80s' && !isBack && phi > 0.3) continue; // Skip front/side for mullet low
+                        const phi = rnd() * Math.PI * 0.55;
+                        const angleNorm = (theta % (Math.PI*2));
+                        const isBack = (angleNorm > Math.PI && angleNorm < Math.PI * 2);
 
-                        let l = 50;
-                        if (style === 'mullet_80s') l = 35;
-                        addStrand(theta, phi, l, 5);
+                        if (style === 'mullet_80s') {
+                            if (!isBack && phi > 0.3) continue; // Short/No sides
+                            const len = isBack ? 45 : 10; // Long back, short top
+                            addStrand(theta, phi, len, 4);
+                        } else if (style === 'anchor_man_80s') {
+                             // Thick everywhere, shorter sides
+                             let len = 25;
+                             if (!isBack && phi > 0.4) len = 15;
+                             addStrand(theta, phi, len, 4);
+                        } else {
+                            // Shaggy top
+                            const len = 20 + (rnd()*10);
+                            addStrand(theta, phi, len, 3);
+                        }
                     }
-                } else if (style.startsWith('afro')) {
+                }
+                else if (['med_bob', 'med_curtain', 'side_swept_fringe'].includes(style)) {
+                    // Curtain/Bob - hanging straight
+                    const count = 80;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.5;
+                        const angleNorm = (theta % (Math.PI*2));
+
+                        // Face mask for bob/curtain (Open center)
+                        const isCenterFace = (angleNorm > Math.PI * 0.4 && angleNorm < Math.PI * 0.6) && (phi > 0.2);
+                        if (isCenterFace) continue;
+
+                        let len = 30;
+                        if (style === 'side_swept_fringe' && angleNorm > 0 && angleNorm < Math.PI) len = 40; // Sweep
+                        addStrand(theta, phi, len, 4);
+                    }
+                }
+                else if (style === 'dreads' || style === 'dreads_short' || style === 'braids_box' || style === 'cornrows_braids') {
+                    // Dreads/Braids
+                    const count = (style === 'braids_box') ? 30 : 50;
+                    const len = (style === 'braids_box') ? 40 : (style === 'dreads_short' ? 20 : 35);
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.6;
+                        addStrand(theta, phi, len, 4);
+                    }
+                }
+                else if (style.startsWith('afro')) {
                     // Springs
                     const count = 100;
                     for(let i=0; i<count; i++) {
@@ -5508,7 +5550,7 @@ var BallRenderer = {
                         const phi = rnd() * Math.PI * 0.55;
                         addStrand(theta, phi, 15, 2); // Short stiff strands
                     }
-                    this.gravity = 0.1; // Less gravity for afro
+                    this.gravity = 0.1;
                     this.friction = 0.7;
                 }
             }
@@ -5792,6 +5834,77 @@ var BallRenderer = {
         }
 
         if (style.startsWith('fade_')) {
+             // HIGH QUALITY FADE (New Implementation for 'fade_box' as the premium one)
+             if (style === 'fade_box') {
+                 // Premium Box Fade with gradient skin blend and stipple texture
+
+                 // 1. Skin/Base Gradient (Side Fade)
+                 // Interpolate from skin tone (transparentish) to hair color
+                 const fadeH = 6 * s;
+                 const sideW = modRadius * 1.05;
+                 const fadeY = headY;
+
+                 const grad = ctx.createLinearGradient(0, fadeY, 0, fadeY - fadeH);
+                 grad.addColorStop(0, 'rgba(0,0,0,0)'); // Skin blend
+                 grad.addColorStop(0.3, adjustColor(hairColor, -50) + '66'); // Stubble
+                 grad.addColorStop(0.7, hairColor); // Solid
+
+                 ctx.fillStyle = grad;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - sideW, fadeY + 2*s);
+                 ctx.lineTo(p.x + sideW, fadeY + 2*s);
+                 ctx.lineTo(p.x + sideW, headY - modRadius);
+                 ctx.lineTo(p.x - sideW, headY - modRadius);
+                 ctx.fill();
+
+                 // 2. Geometric Flat Top
+                 const topW = modRadius * 1.2;
+                 const topH = modRadius * 1.6;
+                 const topY = headY - topH;
+
+                 ctx.fillStyle = hairColor;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - topW*0.8, topY);
+                 ctx.lineTo(p.x + topW*0.8, topY); // Flat top
+                 ctx.quadraticCurveTo(p.x + topW, topY, p.x + sideW, headY - modRadius*0.5); // Sharp corner
+                 ctx.lineTo(p.x - sideW, headY - modRadius*0.5);
+                 ctx.quadraticCurveTo(p.x - topW, topY, p.x - topW*0.8, topY);
+                 ctx.fill();
+
+                 // 3. Stipple Texture (The Premium Touch)
+                 if (playerData.graphics === 'HIGH') {
+                     ctx.fillStyle = adjustColor(hairColor, 30); // Highlight dots
+                     const dens = 40;
+                     for(let i=0; i<dens; i++) {
+                         // Top surface noise
+                         const rx = (seededRandom(seed + i) - 0.5) * topW * 1.5;
+                         const ry = (seededRandom(seed + i + 50) - 0.5) * s * 2;
+                         ctx.fillRect(p.x + rx, topY + ry, s, s);
+
+                         // Side fade noise (stubble)
+                         const sx = (seededRandom(seed + i + 100) - 0.5) * sideW * 2.1;
+                         const sy = (seededRandom(seed + i + 150)) * fadeH;
+                         ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                         ctx.fillRect(p.x + sx, fadeY - sy, s, s);
+                     }
+
+                     // Edge Up Line (Crisp)
+                     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                     ctx.lineWidth = 1;
+                     ctx.beginPath();
+                     ctx.moveTo(p.x - sideW, fadeY - fadeH);
+                     ctx.lineTo(p.x - sideW, fadeY);
+                     ctx.stroke();
+                     ctx.beginPath();
+                     ctx.moveTo(p.x + sideW, fadeY - fadeH);
+                     ctx.lineTo(p.x + sideW, fadeY);
+                     ctx.stroke();
+                 }
+
+                 return;
+             }
+
+             // Standard Fades
              // Skin fade base (Shaved sides)
              drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
 
@@ -5799,7 +5912,6 @@ var BallRenderer = {
              const w = modRadius * 0.9;
              let topH = modRadius * 1.1;
 
-             if (style === 'fade_box') topH = modRadius * 1.5; // Flat top
              if (style === 'fade_retro') topH = modRadius * 1.2; // Round 80s
              if (style === 'fade_king') topH = modRadius * 1.05; // Tight
              if (style === 'fade_chef') topH = modRadius * 1.1; // Textured
@@ -5811,12 +5923,7 @@ var BallRenderer = {
              ctx.fillStyle = hairColor;
              ctx.beginPath();
 
-             if (style === 'fade_box') {
-                 ctx.moveTo(p.x - w*0.8, topY);
-                 ctx.lineTo(p.x + w*0.8, topY); // Flat top
-                 ctx.lineTo(p.x + w*0.9, headY); // Sides taper in
-                 ctx.lineTo(p.x - w*0.9, headY);
-             } else if (style === 'fade_king') {
+             if (style === 'fade_king') {
                  // Crown shape: Wide top, tapered sides, slightly peaked center
                  ctx.moveTo(p.x - w, headY - s);
                  ctx.quadraticCurveTo(p.x - w*0.5, topY, p.x, topY - 2*s); // Peak
