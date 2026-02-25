@@ -5395,6 +5395,217 @@ var BallRenderer = {
         ctx.restore();
     }
 
+    // --- HAIR PHYSICS ENGINE ---
+    var HairEngine = {
+        Node: class {
+            constructor(x, y, z, fixed) {
+                this.x = x; this.y = y; this.z = z;
+                this.oldX = x; this.oldY = y; this.oldZ = z;
+                this.fixed = fixed;
+                this.relX = 0; this.relY = 0; this.relZ = 0; // Relative to head center (unrotated)
+            }
+        },
+
+        Strand: class {
+            constructor() {
+                this.nodes = [];
+                this.color = '#000';
+            }
+        },
+
+        System: class {
+            constructor() {
+                this.strands = [];
+                this.styleId = null;
+                this.gravity = 0.5;
+                this.friction = 0.8; // High friction = no crazy wind
+            }
+
+            init(style, headX, headY, headZ, color) {
+                this.strands = [];
+                this.styleId = style;
+                const headRadius = 18; // World units approx
+
+                // Seeded random
+                let seed = 0;
+                for(let i=0; i<style.length; i++) seed += style.charCodeAt(i);
+                const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+                // Generator Helpers
+                const addStrand = (azimuth, elevation, length, segments) => {
+                    const theta = azimuth;
+                    const phi = elevation; // 0 = top, PI/2 = equator
+
+                    const nx = Math.sin(phi) * Math.cos(theta);
+                    const ny = Math.sin(phi) * Math.sin(theta);
+                    const nz = Math.cos(phi);
+
+                    const s = new HairEngine.Strand();
+                    s.color = color;
+
+                    const segLen = length / segments;
+                    let cx = headX + nx * headRadius;
+                    let cy = headY + ny * headRadius;
+                    let cz = headZ + nz * headRadius;
+
+                    for(let i=0; i<=segments; i++) {
+                        const fixed = (i === 0);
+                        const n = new HairEngine.Node(cx, cy, cz, fixed);
+                        if (fixed) {
+                            n.relX = nx * headRadius;
+                            n.relY = ny * headRadius;
+                            n.relZ = nz * headRadius;
+                        }
+                        s.nodes.push(n);
+                        // Grow out/down
+                        cz -= segLen * 0.9;
+                        cx += nx * segLen * 0.2;
+                        cy += ny * segLen * 0.2;
+                    }
+                    this.strands.push(s);
+                };
+
+                // Configuration per Style
+                if (style === 'dreads' || style === 'braids_box' || style === 'cornrows_braids') {
+                    // All over top and back
+                    const count = (style === 'braids_box') ? 30 : 50;
+                    const len = (style === 'braids_box') ? 40 : 30;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2; // Around
+                        const phi = rnd() * Math.PI * 0.6; // Top hemisphere to equator+
+                        // Exclude face area (Front: +Y is back, -Y is front?
+                        // In this game, player faces hoop (Target).
+                        // If Player is at (0,0), Hoop is at (X, Y).
+                        // Usually Back View -> Camera is behind player.
+                        // So Hair should be visible on the side facing camera?
+                        // Let's just cover the back half mostly.
+                        // Assuming Z is up. Player rotation will handle orientation.
+                        // We generate relative to a sphere, then rotation aligns it.
+                        // Let's generate uniformly on top/back.
+                        // Exclude "Front" mask: assume +Y is Forward (Face). So only -Y or high Z.
+                        // Let's filter later or just gen all over for now.
+                        addStrand(theta, phi, len, 4);
+                    }
+                } else if (style === 'long_flow' || style === 'mullet_80s') {
+                    // Mullet: Back only
+                    // Long: All over
+                    const count = 60;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.5;
+                        const isBack = (Math.sin(theta) < 0); // Approx
+                        if (style === 'mullet_80s' && !isBack && phi > 0.3) continue; // Skip front/side for mullet low
+
+                        let l = 50;
+                        if (style === 'mullet_80s') l = 35;
+                        addStrand(theta, phi, l, 5);
+                    }
+                } else if (style.startsWith('afro')) {
+                    // Springs
+                    const count = 100;
+                    for(let i=0; i<count; i++) {
+                        const theta = rnd() * Math.PI * 2;
+                        const phi = rnd() * Math.PI * 0.55;
+                        addStrand(theta, phi, 15, 2); // Short stiff strands
+                    }
+                    this.gravity = 0.1; // Less gravity for afro
+                    this.friction = 0.7;
+                }
+            }
+
+            update(dt, headX, headY, headZ, headAngle, vel) {
+                const headRadius = 18;
+                const cosR = Math.cos(headAngle);
+                const sinR = Math.sin(headAngle);
+
+                for(let s of this.strands) {
+                    for(let i=0; i<s.nodes.length; i++) {
+                        const n = s.nodes[i];
+
+                        if (n.fixed) {
+                            // Rotate Relative Offset
+                            // Z rotation (Face direction)
+                            // x' = x*cos - y*sin
+                            // y' = x*sin + y*cos
+                            const rx = n.relX * cosR - n.relY * sinR;
+                            const ry = n.relX * sinR + n.relY * cosR;
+
+                            n.x = headX + rx;
+                            n.y = headY + ry;
+                            n.z = headZ + n.relZ;
+                            n.oldX = n.x; n.oldY = n.y; n.oldZ = n.z;
+                            continue;
+                        }
+
+                        // Verlet Integration
+                        const vx = (n.x - n.oldX) * this.friction;
+                        const vy = (n.y - n.oldY) * this.friction;
+                        const vz = (n.z - n.oldZ) * this.friction;
+
+                        n.oldX = n.x; n.oldY = n.y; n.oldZ = n.z;
+
+                        n.x += vx;
+                        n.y += vy;
+                        n.z += vz - this.gravity * dt;
+
+                        // Inertia (Opposite to player velocity)
+                        // Scale down to prevent "going crazy"
+                        if (vel) {
+                            n.x -= vel.x * 0.3 * dt;
+                            n.y -= vel.y * 0.3 * dt;
+                            n.z -= vel.z * 0.3 * dt;
+                        }
+
+                        // Head Collision (Simple Sphere)
+                        const dx = n.x - headX;
+                        const dy = n.y - headY;
+                        const dz = n.z - headZ;
+                        const distSq = dx*dx + dy*dy + dz*dz;
+                        const minR = headRadius + 2;
+
+                        if (distSq < minR*minR && distSq > 0.001) {
+                            const dist = Math.sqrt(distSq);
+                            const push = (minR - dist) / dist;
+                            n.x += dx * push;
+                            n.y += dy * push;
+                            n.z += dz * push;
+                        }
+
+                        // Ground Collision
+                        if (n.z < 0) n.z = 0;
+                    }
+
+                    // Length Constraints (Relaxation)
+                    const passes = 2;
+                    // Afro needs stiffness, Long hair needs flow
+                    const segmentLen = (this.activeStyle && this.activeStyle.startsWith('afro')) ? 8 : 10;
+
+                    for(let k=0; k<passes; k++) {
+                        for(let i=0; i<s.nodes.length-1; i++) {
+                            const n1 = s.nodes[i];
+                            const n2 = s.nodes[i+1];
+                            const dx = n2.x - n1.x;
+                            const dy = n2.y - n1.y;
+                            const dz = n2.z - n1.z;
+                            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                            if (dist < 0.001) continue;
+
+                            const diff = dist - segmentLen;
+                            const percent = (diff / dist) * 0.5;
+                            const ox = dx * percent;
+                            const oy = dy * percent;
+                            const oz = dz * percent;
+
+                            if (!n1.fixed) { n1.x += ox; n1.y += oy; n1.z += oz; }
+                            if (!n2.fixed) { n2.x -= ox; n2.y -= oy; n2.z -= oz; }
+                            else { n2.x -= ox*2; n2.y -= oy*2; n2.z -= oz*2; }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
         let style = skinObj.hairStyle || 'bald_clean';
@@ -5410,6 +5621,60 @@ var BallRenderer = {
         let seed = 0;
         const seedStr = (skinObj.id || 'default') + (style || '');
         for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+
+        // --- DYNAMIC HAIR RENDER ---
+        const sys = (typeof player3D !== 'undefined' && player3D.hairSystem && player3D.hairSystem.styleId === style)
+                    ? player3D.hairSystem : null;
+
+        if (sys && sys.strands.length > 0) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Render from back to front? Or just standard.
+            // Strands are 3D segments.
+            for (let strand of sys.strands) {
+                if (strand.nodes.length < 2) continue;
+
+                // Project all nodes
+                const points = [];
+                for(let n of strand.nodes) {
+                    const proj = project(n.x, n.y, n.z);
+                    if (proj) points.push(proj);
+                }
+
+                if (points.length < 2) continue;
+
+                // Dynamic Width
+                let baseWidth = 3 * s;
+                if (style.startsWith('dread')) baseWidth = 5 * s;
+                if (style.startsWith('braid')) baseWidth = 4 * s;
+                if (style.startsWith('afro')) baseWidth = 12 * s; // Puffs
+
+                if (style.startsWith('afro')) {
+                    // Puffs (Circles)
+                    ctx.fillStyle = strand.color;
+                    for (let pt of points) {
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, baseWidth * pt.scale * 0.5, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                } else {
+                    // Strands (Curves)
+                    ctx.strokeStyle = strand.color;
+                    ctx.lineWidth = baseWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    for(let i=1; i<points.length-1; i++) {
+                        const xc = (points[i].x + points[i+1].x) / 2;
+                        const yc = (points[i].y + points[i+1].y) / 2;
+                        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                    }
+                    ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+                    ctx.stroke();
+                }
+            }
+            return;
+        }
 
         // --- HELPER: SOLID BASE ---
         const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {

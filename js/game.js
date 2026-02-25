@@ -948,6 +948,51 @@
             return;
         }
 
+        // HAIR PHYSICS UPDATE
+        if (typeof HairEngine !== 'undefined') {
+            const currentStyle = playerData.customHairstyle || 'default';
+            if (!player3D.hairSystem) {
+                player3D.hairSystem = new HairEngine.System();
+            }
+
+            // Check if style changed or needs init
+            if (player3D.hairSystem.styleId !== currentStyle) {
+                let hColor = '#000';
+                // Determine color
+                if (typeof SKINS_DB !== 'undefined') {
+                    const skin = SKINS_DB.find(s => s.id === playerData.currentSkin);
+                    if (skin) hColor = skin.hairColor || '#000';
+                }
+                if (currentStyle !== 'default' && typeof HAIR_COLORS !== 'undefined') {
+                     hColor = HAIR_COLORS[playerData.customHairColorIndex || 0];
+                }
+
+                // Head Height approx 60 units above origin?
+                // In renderer: projected Y is horizonY + (cameraHeight - worldZ) * scale.
+                // Player Z is 0 at ground. Height is approx 200?
+                // drawPlayer uses `p.y - legLen` etc.
+                // If player3D.z is feet Z, head Z is `player3D.z + 180` approx (6ft)?
+                // Let's use 180.
+                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 180, hColor);
+            }
+
+            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 180 };
+
+            // Angle to Hoop (Facing)
+            const dxToHoop = HOOP_POS.x - player3D.x;
+            const dyToHoop = HOOP_POS.y - player3D.y;
+            const angle = Math.atan2(dyToHoop, dxToHoop);
+
+            // Velocity
+            let vel = { x: player3D.vx, y: player3D.vy, z: player3D.vz };
+            if (player3D.lastX !== undefined) {
+                vel.x = (player3D.x - player3D.lastX); // Per frame
+                vel.y = (player3D.y - player3D.lastY);
+            }
+
+            player3D.hairSystem.update(dt, headPos.x, headPos.y, headPos.z, angle, vel);
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
