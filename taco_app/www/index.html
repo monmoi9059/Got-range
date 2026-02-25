@@ -8408,7 +8408,7 @@ var BallRenderer = {
             init(style, headX, headY, headZ, color) {
                 this.strands = [];
                 this.styleId = style;
-                const headRadius = 18; // World units approx
+                const headRadius = 12; // Adjusted to match visual head size
 
                 // Seeded random
                 let seed = 0;
@@ -8453,7 +8453,7 @@ var BallRenderer = {
                 // "Remake all long hair styles" - Dynamic Implementations
                 if (['long_flow', 'long_layered', 'surfer_flow', 'med_shag', 'med_wolf'].includes(style)) {
                     // Long flowing styles (All over, avoiding face)
-                    const count = 70;
+                    const count = 120; // Increased count for thinner strands
                     const baseLen = style.includes('med') ? 35 : 55;
                     const stiffness = style.includes('shag') ? 0.3 : 0.1; // Shag is stiffer
 
@@ -8540,7 +8540,7 @@ var BallRenderer = {
             }
 
             update(dt, headX, headY, headZ, headAngle, vel) {
-                const headRadius = 18;
+                const headRadius = 12;
                 const cosR = Math.cos(headAngle);
                 const sinR = Math.sin(headAngle);
 
@@ -8671,7 +8671,7 @@ var BallRenderer = {
                 if (points.length < 2) continue;
 
                 // Dynamic Width
-                let baseWidth = 3 * s;
+                let baseWidth = 1.5 * s; // Thinner for normal hair
                 if (style.startsWith('dread')) baseWidth = 5 * s;
                 if (style.startsWith('braid')) baseWidth = 4 * s;
                 if (style.startsWith('afro')) baseWidth = 12 * s; // Puffs
@@ -12219,8 +12219,8 @@ var BallRenderer = {
              ctx.fill();
         }
 
-        // Hairstyle Support (Universal)
-        drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
+        // Hairstyle Support (Universal - Removed for animals as per request)
+        // drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
 
         // Head Accessories
         let accessoryType = skinObj.headAccessory;
@@ -16701,16 +16701,11 @@ let lastDisplayedContestTime = -1;
                      hColor = HAIR_COLORS[playerData.customHairColorIndex || 0];
                 }
 
-                // Head Height approx 60 units above origin?
-                // In renderer: projected Y is horizonY + (cameraHeight - worldZ) * scale.
-                // Player Z is 0 at ground. Height is approx 200?
-                // drawPlayer uses `p.y - legLen` etc.
-                // If player3D.z is feet Z, head Z is `player3D.z + 180` approx (6ft)?
-                // Let's use 180.
-                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 180, hColor);
+                // Head Height approx 85 units above origin based on drawRealisticHuman (leg ~30 + body ~40 + headOffset ~15)
+                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 90, hColor);
             }
 
-            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 180 };
+            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 90 };
 
             // Angle to Hoop (Facing)
             const dxToHoop = HOOP_POS.x - player3D.x;

@@ -967,16 +967,11 @@
                      hColor = HAIR_COLORS[playerData.customHairColorIndex || 0];
                 }
 
-                // Head Height approx 60 units above origin?
-                // In renderer: projected Y is horizonY + (cameraHeight - worldZ) * scale.
-                // Player Z is 0 at ground. Height is approx 200?
-                // drawPlayer uses `p.y - legLen` etc.
-                // If player3D.z is feet Z, head Z is `player3D.z + 180` approx (6ft)?
-                // Let's use 180.
-                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 180, hColor);
+                // Head Height approx 85 units above origin based on drawRealisticHuman (leg ~30 + body ~40 + headOffset ~15)
+                player3D.hairSystem.init(currentStyle, player3D.x, player3D.y, player3D.z + 90, hColor);
             }
 
-            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 180 };
+            const headPos = { x: player3D.x, y: player3D.y, z: player3D.z + 90 };
 
             // Angle to Hoop (Facing)
             const dxToHoop = HOOP_POS.x - player3D.x;

@@ -5424,7 +5424,7 @@ var BallRenderer = {
             init(style, headX, headY, headZ, color) {
                 this.strands = [];
                 this.styleId = style;
-                const headRadius = 18; // World units approx
+                const headRadius = 12; // Adjusted to match visual head size
 
                 // Seeded random
                 let seed = 0;
@@ -5469,7 +5469,7 @@ var BallRenderer = {
                 // "Remake all long hair styles" - Dynamic Implementations
                 if (['long_flow', 'long_layered', 'surfer_flow', 'med_shag', 'med_wolf'].includes(style)) {
                     // Long flowing styles (All over, avoiding face)
-                    const count = 70;
+                    const count = 120; // Increased count for thinner strands
                     const baseLen = style.includes('med') ? 35 : 55;
                     const stiffness = style.includes('shag') ? 0.3 : 0.1; // Shag is stiffer
 
@@ -5556,7 +5556,7 @@ var BallRenderer = {
             }
 
             update(dt, headX, headY, headZ, headAngle, vel) {
-                const headRadius = 18;
+                const headRadius = 12;
                 const cosR = Math.cos(headAngle);
                 const sinR = Math.sin(headAngle);
 
@@ -5687,7 +5687,7 @@ var BallRenderer = {
                 if (points.length < 2) continue;
 
                 // Dynamic Width
-                let baseWidth = 3 * s;
+                let baseWidth = 1.5 * s; // Thinner for normal hair
                 if (style.startsWith('dread')) baseWidth = 5 * s;
                 if (style.startsWith('braid')) baseWidth = 4 * s;
                 if (style.startsWith('afro')) baseWidth = 12 * s; // Puffs
@@ -9235,8 +9235,8 @@ var BallRenderer = {
              ctx.fill();
         }
 
-        // Hairstyle Support (Universal)
-        drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
+        // Hairstyle Support (Universal - Removed for animals as per request)
+        // drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
 
         // Head Accessories
         let accessoryType = skinObj.headAccessory;
