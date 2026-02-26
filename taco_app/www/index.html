@@ -1047,14 +1047,17 @@
                 </div>
 
                 <div style="margin-bottom:10px;">
-                    <span style="color:#CCC;">COULEUR:</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#CCC;">COULEUR:</span>
+                        <button id="btnEraser" class="btn" style="padding:4px 10px; font-size:0.8em; background:#444;" onclick="toggleEraser()">GOMME: OFF</button>
+                    </div>
                     <div id="hairColorPalette" style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">
                         <!-- Injected via JS -->
                     </div>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; gap:10px; margin-top:15px;">
-                    <button class="btn" style="background:#8B0000;" onclick="clearHairLayer()">EFFACER CALQUE</button>
+                    <button class="btn" style="background:#8B0000;" onclick="clearHairLayer()">TOUT EFFACER</button>
                     <button class="btn" style="background:#444;" onclick="undoHairStroke()">ANNULER</button>
                 </div>
 
@@ -17795,6 +17798,7 @@ var BallRenderer = {
         brushSize: 10,
         colorIndex: 0,
         data: { back: [], front: [] },
+        isEraser: false,
         isDrawing: false,
         headRadius: 100, // Canvas scale
         history: [] // For Undo
@@ -17872,6 +17876,23 @@ var BallRenderer = {
         renderHairEditor();
     };
 
+    window.toggleEraser = function() {
+        hairEditor.isEraser = !hairEditor.isEraser;
+        const btn = document.getElementById('btnEraser');
+        if(hairEditor.isEraser) {
+            btn.innerText = "GOMME: ON";
+            btn.style.background = "#FF0000";
+            // Deselect color palette visual
+            const container = document.getElementById('hairColorPalette');
+            if(container) Array.from(container.children).forEach(c => c.style.borderColor = 'transparent');
+        } else {
+            btn.innerText = "GOMME: OFF";
+            btn.style.background = "#444";
+            // Reselect current color
+            initHairPalette();
+        }
+    };
+
     window.updateBrushSize = function() {
         const val = parseInt(document.getElementById('brushSizeSlider').value);
         hairEditor.brushSize = val;
@@ -17880,6 +17901,7 @@ var BallRenderer = {
 
     function initHairPalette() {
         const container = document.getElementById('hairColorPalette');
+        if(!container) return;
         container.innerHTML = '';
         HAIR_COLORS.forEach((color, idx) => {
             const div = document.createElement('div');
@@ -17892,12 +17914,16 @@ var BallRenderer = {
 
             div.onclick = () => {
                 hairEditor.colorIndex = idx;
+                hairEditor.isEraser = false; // Turn off eraser
+                document.getElementById('btnEraser').innerText = "GOMME: OFF";
+                document.getElementById('btnEraser').style.background = "#444";
+
                 // Update selection visual
                 Array.from(container.children).forEach(c => c.style.borderColor = 'transparent');
                 div.style.borderColor = '#FFF';
             };
 
-            if(idx === hairEditor.colorIndex) div.style.borderColor = '#FFF';
+            if(idx === hairEditor.colorIndex && !hairEditor.isEraser) div.style.borderColor = '#FFF';
             container.appendChild(div);
         });
     }
@@ -17935,22 +17961,40 @@ var BallRenderer = {
         const pos = getCanvasCoords(e);
         const cx = hairEditor.canvas.width / 2;
         const cy = hairEditor.canvas.height / 2;
-
-        // Normalize
-        // Blob: { x: relative_x (-1 to 1), y: relative_y (-1 to 1), r: relative_radius, c: color_index }
         const r = hairEditor.headRadius;
-        const blob = {
-            x: (pos.x - cx) / r,
-            y: (pos.y - cy) / r,
-            r: hairEditor.brushSize / r,
-            c: hairEditor.colorIndex
-        };
 
-        // Add to current view list
-        if(hairEditor.view === 'back') hairEditor.data.back.push(blob);
-        else hairEditor.data.front.push(blob);
+        if (hairEditor.isEraser) {
+            const bx = (pos.x - cx) / r;
+            const by = (pos.y - cy) / r;
+            const br = hairEditor.brushSize / r;
 
-        renderHairEditor();
+            const list = (hairEditor.view === 'back') ? hairEditor.data.back : hairEditor.data.front;
+            const newList = list.filter(b => {
+                const dx = b.x - bx;
+                const dy = b.y - by;
+                // Collision check (blob center vs eraser circle)
+                // A bit generous overlap for better feel
+                return Math.sqrt(dx*dx + dy*dy) > (b.r + br * 0.5);
+            });
+
+            if (list.length !== newList.length) {
+                if(hairEditor.view === 'back') hairEditor.data.back = newList;
+                else hairEditor.data.front = newList;
+                renderHairEditor();
+            }
+        } else {
+            const blob = {
+                x: (pos.x - cx) / r,
+                y: (pos.y - cy) / r,
+                r: hairEditor.brushSize / r,
+                c: hairEditor.colorIndex
+            };
+
+            if(hairEditor.view === 'back') hairEditor.data.back.push(blob);
+            else hairEditor.data.front.push(blob);
+
+            renderHairEditor();
+        }
     }
 
     window.undoHairStroke = function() {
