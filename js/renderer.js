@@ -8727,6 +8727,10 @@ var BallRenderer = {
              });
         }
         else if (currentAnimal === 'human') {
+            // Adjust Head Y for human to obscure face/top of head better in rear view
+            // Move it up slightly
+            headY -= 12 * s;
+
             // Human Ears (Keep existing logic, simplified)
             ctx.fillStyle = furColor;
             if (skinObj.ears === 'elf') {
