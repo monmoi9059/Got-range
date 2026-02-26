@@ -6525,7 +6525,7 @@ var BallRenderer = {
         let torsoY = p.y - legLen - bodyH;
         let neckLen = 0;
         if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
-        let headY = torsoY - (18 * s * sizeMod.head) - neckLen;
+        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         const headRadius = 12 * s * sizeMod.head;
 
         // Super Saiyan Aura
@@ -7772,7 +7772,7 @@ var BallRenderer = {
              torsoY = p.y - legLen - bodyH;
         }
         if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
-        let headY = torsoY - (18 * s * sizeMod.head) - neckLen;
+        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
 
         // NBA Jam "He's On Fire" Smoke & Turbo Effect
