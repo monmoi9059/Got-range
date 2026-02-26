@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Taco Basket Ball - Québec Édition</title>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlRhY28gQmFza2V0IEJhbGwiLCAic2hvcnRfbmFtZSI6ICJUYWNvQmFsbCIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogImZ1bGxzY3JlZW4iLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIiwgInRoZW1lX2NvbG9yIjogIiNGRkQ3MDAiLCAib3JpZW50YXRpb24iOiAibGFuZHNjYXBlIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiYW55IiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9LCB7InNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBeE1EQWdNVEF3SWo0OFkybHlZMnhsSUdONFBTSTFNQ0lnWTNrOUlqUXdJaUJ5UFNJek1DSWdabWxzYkQwaUkwWkdPRU13TUNJdlBqeHdZWFJvSUdROUlrMDFNQ0F4TUNCQklETXdJRE13SURBZ01DQXhJRFV3SURjd0lFMHlNQ0EwTUNCQklETXdJRE13SURBZ01DQXhJRGd3SURRd0lpQnpkSEp2YTJVOUlpTTRRalExTURBaUlITjBjbTlyWlMxM2FXUjBhRDBpTXlJZ1ptbHNiRDBpYm05dVpTSXZQanh3WVhSb0lHUTlJazB4TUNBMU1DQlJJRFV3SURFd01DQTVNQ0ExTUNJZ1ptbHNiRDBpSTBaR1JEY3dNQ0lnYzNSeWIydGxQU0lqUkVGQk5USXdJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlMejQ4Y0dGMGFDQmtQU0pOTVRVZ05UQWdVU0F5TlNBME1DQXpOU0ExTUNCVUlEVTFJRFV3SUZRZ056VWdOVEFnVkNBNE5TQTFNQ0lnYzNSeWIydGxQU0lqTXpKRFJETXlJaUJ6ZEhKdmEyVXRkMmxrZEdnOUlqUWlJR1pwYkd3OUltNXZibVVpTHo0OEwzTjJaejQ9IiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIn0sIHsic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F4TURBZ01UQXdJajQ4WTJseVkyeGxJR040UFNJMU1DSWdZM2s5SWpRd0lpQnlQU0l6TUNJZ1ptbHNiRDBpSTBaR09FTXdNQ0l2UGp4d1lYUm9JR1E5SWswMU1DQXhNQ0JCSURNd0lETXdJREFnTUNBeElEVXdJRGN3SUUweU1DQTBNQ0JCSURNd0lETXdJREFnTUNBeElEZ3dJRFF3SWlCemRISnZhMlU5SWlNNFFqUTFNREFpSUhOMGNtOXJaUzEzYVdSMGFEMGlNeUlnWm1sc2JEMGlibTl1WlNJdlBqeHdZWFJvSUdROUlrMHhNQ0ExTUNCUklEVXdJREV3TUNBNU1DQTFNQ0lnWm1sc2JEMGlJMFpHUkRjd01DSWdjM1J5YjJ0bFBTSWpSRUZCTlRJd0lpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUx6NDhjR0YwYUNCa1BTSk5NVFVnTlRBZ1VTQXlOU0EwTUNBek5TQTFNQ0JVSURVMUlEVXdJRlFnTnpVZ05UQWdWQ0E0TlNBMU1DSWdjM1J5YjJ0bFBTSWpNekpEUkRNeUlpQnpkSEp2YTJVdGQybGtkR2c5SWpRaUlHWnBiR3c5SW01dmJtVWlMejQ4TDNOMlp6ND0iLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifV19">
+    <meta name="theme-color" content="#FFD700">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+<div id="game-container">
+    <div id="scorebug-container">
+        <!-- Left Panel: Logo & Main Score -->
+        <div class="sb-panel">
+            <div class="sb-content">
+                <div class="sb-logo">TACO BASKETBALL</div>
+                <div class="sb-stat-group">
+                    <div class="sb-stat">
+                        <span class="sb-label">TACOS</span>
+                        <span class="sb-value sb-highlight" id="scoreVal">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Stats & Context -->
+        <div class="sb-panel">
+            <div class="sb-content">
+                <div id="classic-stats" style="display:flex; gap:25px;">
+                    <div class="sb-stat">
+                        <span class="sb-label">MISSES</span>
+                        <span class="sb-value sb-danger" id="missVal">0</span>
+                    </div>
+                </div>
+
+                <!-- Court Name (always visible) -->
+                <div class="sb-stat" style="border-left: 1px solid #444; padding-left: 20px;">
+                    <span class="sb-label">LOCATION</span>
+                    <span class="sb-value" id="courtNameDisplay" style="font-size: 18px; white-space: nowrap;">COUR ARRIÈRE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="controls-wrapper">
+            <!-- Toggle Button -->
+            <div class="broadcast-btn controls-menu-toggle" role="button" aria-label="Menu" tabindex="0" onclick="toggleControlsMenu()">
+                <span>MENU ☰</span>
+            </div>
+            <!-- Expanded Items -->
+            <div id="controls-items" class="controls-menu-items">
+                <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
+                <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les défis" tabindex="0" onclick="openChallenges()"><span>DÉFIS [C]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les trophées" tabindex="0" onclick="openAchievements()"><span>TROPHÉES [O]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir le classement" tabindex="0" onclick="openLeaderboard()"><span>CLASSEMENT [L]</span></div>
+                <div class="broadcast-btn" role="button" aria-label="Ouvrir les statistiques" tabindex="0" onclick="openStats()"><span>STATS [S]</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="audio-controls">
+        <div class="broadcast-icon-btn" role="button" aria-label="Piste précédente" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="prevTrack()">◀</div>
+        <div id="btn-mute" class="broadcast-icon-btn" role="button" aria-label="Couper le son" tabindex="0" style="width: 50px; height: 50px; font-size: 24px;" onclick="toggleMuteUI()">🔊</div>
+        <div class="broadcast-icon-btn" role="button" aria-label="Piste suivante" tabindex="0" style="width: 40px; height: 40px; font-size: 20px;" onclick="nextTrack()">▶</div>
+    </div>
+    <div id="notification">
+        <div>🏆 SUCCÈS DÉBLOQUÉ !</div>
+        <div id="notifText" style="color:white; font-size:0.8em; margin-top:5px;">Rookie</div>
+    </div>
+
+    <div id="mobileShootBtn" class="mobile-shoot-btn">
+        <div class="mb-curve"></div>
+        <div class="mb-curve right"></div>
+    </div>
+
+    <div id="mobileShootBtn2" class="mobile-shoot-btn left-btn" style="display:none;">
+        <div class="mb-curve"></div>
+        <div class="mb-curve right"></div>
+    </div>
+
+    <div id="startup-ui">
+        <h1 style="font-size: 4em; margin: 0; position: absolute; top: 10%; width: 100%;">TACO BASKET BALL</h1>
+        <div style="position: absolute; bottom: 10%; width: 100%;">
+            <h2 style="color: #FFD700; text-shadow: 2px 2px 0 #000; font-size: 2em; margin-bottom: 20px;">CHOISIS TA PLATEFORME</h2>
+            <div>
+                <button class="startup-btn" onclick="choosePlatform('desktop')">ORDI 💻</button>
+                <button class="startup-btn" onclick="choosePlatform('mobile')">MOBILE 📱</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="statsUI" class="modal" style="display: none;">
+        <button class="modal-close-btn" onclick="closeStats()">✕</button>
+        <div class="modal-header">STATISTIQUES À VIE</div>
+
+        <div style="text-align:left; padding: 10px; font-size: 1.2em;">
+            <p style="overflow:hidden;">Tirs Totaux: <span id="statShots" style="color:#FFF; float:right">0</span></p>
+            <p style="overflow:hidden;">Paniers: <span id="statMakes" style="color:#00FF00; float:right">0</span></p>
+            <p style="overflow:hidden;">Ratés: <span id="statMisses" style="color:#FF0000; float:right">0</span></p>
+            <p style="overflow:hidden;">Précision: <span id="statAccuracy" style="color:#FFD700; float:right">0%</span></p>
+            <p style="overflow:hidden;">Concours Joués: <span id="statContests" style="color:#00FFFF; float:right">0</span></p>
+            <hr style="border-color:#555; margin:15px 0;">
+            <p style="overflow:hidden;">Meilleure Distance: <span id="statBestDist" style="color:#FFD700; float:right">0 pi</span></p>
+            <p style="overflow:hidden;">Record Time Attack: <span id="statTimeAttack" style="color:#FF4500; float:right">0</span></p>
+        </div>
+
+        <div style="margin-top: 15px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">TAILLE VISÉE</strong>
+                <span id="meterSizeLabel" style="color:#00FF00; font-weight:bold;">100%</span>
+            </div>
+            <input type="range" id="meterSizeSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateMeterScale()">
+        </div>
+
+        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">ZOOM CAMÉRA</strong>
+                <span id="cameraZoomLabel" style="color:#00FF00; font-weight:bold;">100%</span>
+            </div>
+            <input type="range" id="cameraZoomSlider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateCameraZoom()">
+        </div>
+
+        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">MOMENT DU TIR</strong>
+                <span id="releaseTimingLabel" style="color:#00FFFF; font-weight:bold;">LÂCHER (TARD)</span>
+            </div>
+            <input type="range" id="releaseTimingSlider" min="0" max="3" step="1" value="3" oninput="updateReleaseTiming()">
+        </div>
+
+        <div style="margin-top: 5px; border-top: 1px solid #555; padding-top: 10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#FFD700">CONTRÔLES</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span>JOUEUR 1:</span>
+                <select id="p1InputSelect" onchange="updateInputMapping()" style="background:#222; color:white; border:1px solid #555; padding:5px;">
+                    <option value="-1">CLAVIER / SOURIS</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>JOUEUR 2:</span>
+                <select id="p2InputSelect" onchange="updateInputMapping()" style="background:#222; color:white; border:1px solid #555; padding:5px;">
+                    <option value="-1">CLAVIER (ENTER)</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="btnResetCatSize" class="btn" style="background: #444; margin-top: 20px; width: 100%; border: 1px solid #666;" onclick="resetCatSize()">RÉINITIALISER TAILLE CHAT</button>
+        <button id="btnReset" class="btn" style="background: #8B0000; margin-top: 10px; width: 100%; border: 1px solid #ff4444;" onclick="attemptReset()">RÉINITIALISER PROGRESSION</button>
+        <button id="btnUnlock" class="btn" style="background: #4B0082; margin-top: 10px; width: 100%; border: 1px solid #9370DB;" onclick="unlockAllSkins()">TOUT DÉBLOQUER</button>
+        <button id="btnToggleMobile" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleMobileControls()">TOUCH: OFF</button>
+        <button id="btnToggleGraphics" class="btn" style="background: #006400; margin-top: 10px; width: 100%; border: 1px solid #00FF00;" onclick="toggleGraphics()">QUALITÉ: HAUTE</button>
+        <button id="btnToggleMeter" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="toggleMeter()">VISÉE: OUI</button>
+        <button id="btnCycleMeterShape" class="btn" style="background: #2F4F4F; margin-top: 10px; width: 100%; border: 1px solid #00CED1;" onclick="cycleMeterShape()">FORME: ARC</button>
+    </div>
+
+    <div id="shopUI" class="modal" style="display: none;">
+        <button class="modal-close-btn" onclick="closeShop()">✕</button>
+        <div class="modal-header">TACO MERCADO</div>
+
+        <div class="shop-tabs">
+            <button class="shop-tab-btn active" onclick="switchShopTab('upgrades')">UPGRADES</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('character')">PERSO</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('style')">STYLE</button>
+            <button class="shop-tab-btn" onclick="switchShopTab('equipment')">MATOS</button>
+        </div>
+
+        <div id="shopPlayerToggle" style="display:none; margin-bottom:10px;">
+             <button id="btnShopP1" class="btn" style="background:#0047AB; border:2px solid #FFF;" onclick="switchShopPlayer(1)">PLAYER 1</button>
+             <button id="btnShopP2" class="btn" style="background:#333; border:1px solid #555;" onclick="switchShopPlayer(2)">PLAYER 2</button>
+        </div>
+        <p>Tacos Disponibles: <span id="shopTacos" style="color:#FFFF00; font-size: 1.2em; font-weight: bold;">0</span></p>
+
+        <!-- TAB: UPGRADES -->
+        <div id="tab-upgrades" class="shop-section active">
+            <div class="difficulty-row">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>DIFFICULTÉ</strong><span id="diffLabel" style="color:#00FF00; font-weight:bold;">NORMAL (x1.0)</span></div>
+                <input type="range" id="diffSlider" min="1" max="3" step="0.5" value="1" oninput="updateDifficulty()">
+                <div style="font-size:0.8em; color:#aaa;">Plus c'est dur, plus ça paye !</div>
+            </div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SIROP D'ÉRABLE</strong> (Niv <span id="lvlIncome">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Récompense sucrée ! (Multiplicateur x0.5/niv)</span></div><div id="ctrl_income" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">VISÉE ASSISTÉE</strong> (Niv <span id="lvlAim">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Fenêtre de tir plus large.</span></div><div id="ctrl_aim" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">TACO GREASE</strong> (Niv <span id="lvlLuck">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Chance de rebond favorable.</span></div><div id="ctrl_luck" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">MOONWALK</strong> (Niv <span id="lvlMoonwalk">1</span>)<br><span style="font-size:0.85em; color:#ccc;">Recule plus vite après chaque panier !</span></div><div id="ctrl_moonwalk" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">SECONDE CHANCE</strong> (Niv <span id="lvlExtraLives">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Tirs de plus avant Game Over.</span></div><div id="ctrl_extraLives" class="upgrade-controls"></div></div>
+            <div class="upgrade-row"><div style="text-align:left;"><strong style="font-size:1.1em; color:#FFD700;">HERBE À CHAT</strong> (Niv <span id="lvlCatNip">0</span>)<br><span style="font-size:0.85em; color:#ccc;">Le chat mange et grandit plus vite !</span></div><div id="ctrl_catNip" class="upgrade-controls"></div></div>
+        </div>
+
+        <!-- TAB: CHARACTER (Body/Skin) -->
+        <div id="tab-character" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">VESTIAIRE</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeAnimal(-1)">&lt;</button><span id="animalName" class="selector-label">Rat</span><button class="btn" onclick="changeAnimal(1)">&gt;</button></div>
+                <div class="skin-nav"><button class="btn" onclick="changeSkin(-1)">&lt;</button><span id="skinName" class="selector-label">Classic</span><button class="btn" onclick="changeSkin(1)">&gt;</button></div>
+                <div id="skinStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipSkin" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipSkin()">Équiper</button>
+                <button class="btn" style="width:100%; margin-top:5px; background:#555; border:1px solid #777;" onclick="unequipAll()">TOUT ENLEVER</button>
+
+                <div id="customizationControls" style="display:none; margin-top:15px; border:1px solid #444; padding:10px; background:#111;">
+                    <h4 style="margin:0 0 10px 0; color:#FFD700;">PERSONNALISATION</h4>
+
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>TAILLE</span> <span id="lblCustomHeight">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomHeight" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomHeight()">
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>LARGEUR</span> <span id="lblCustomWidth">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomWidth" min="0.5" max="1.5" step="0.05" value="1.0" oninput="updateCustomWidth()">
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>TEINT</span>
+                        </div>
+                        <input type="range" id="sldCustomSkinTone" min="0" max="14" step="1" value="4" oninput="updateCustomSkinTone()">
+                        <div id="previewSkinTone" style="width:100%; height:15px; background:#8d5524; border:1px solid #555; margin-top:5px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: STYLE (Clothing/Hair) -->
+        <div id="tab-style" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">COIFFURE</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeHairstyle(-1)">&lt;</button><span id="hairName" class="selector-label">Par Défaut</span><button class="btn" onclick="changeHairstyle(1)">&gt;</button></div>
+
+                <button id="btnCreateHair" class="btn" style="width:100%; margin-bottom:10px; background:#4B0082; border-color:#9370DB;" onclick="openHairCreator()">CRÉER COIFFURE</button>
+
+                <!-- Global Hair Controls -->
+                <div style="background:#111; padding:10px; margin:10px 0; border:1px solid #333;">
+                    <div style="margin-bottom:5px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>COULEUR</span>
+                        </div>
+                        <input type="range" id="sldCustomHairColor" min="0" max="26" step="1" value="0" oninput="updateCustomHairColor()">
+                        <div id="previewHairColor" style="width:100%; height:15px; background:#000000; border:1px solid #555; margin-top:5px;"></div>
+                    </div>
+                    <div style="margin-bottom:0px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc;">
+                            <span>LONGUEUR</span> <span id="lblCustomHairSize">100%</span>
+                        </div>
+                        <input type="range" id="sldCustomHairSize" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateCustomHairSize()">
+                    </div>
+                </div>
+
+                <div id="hairStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipHair" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHairstyle()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">VÊTEMENTS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeClothing(-1)">&lt;</button><span id="clothingName" class="selector-label">Aucun</span><button class="btn" onclick="changeClothing(1)">&gt;</button></div>
+                <div id="clothingStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipClothing" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipClothing()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">PANTALONS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changePants(-1)">&lt;</button><span id="pantsName" class="selector-label">Aucun</span><button class="btn" onclick="changePants(1)">&gt;</button></div>
+                <div id="pantsStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipPants" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipPants()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAPEAUX</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeHat(-1)">&lt;</button><span id="hatName" class="selector-label">Aucun</span><button class="btn" onclick="changeHat(1)">&gt;</button></div>
+                <div id="hatStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipHat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipHat()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">CHAUSSURES</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeShoes(-1)">&lt;</button><span id="shoeName" class="selector-label">Aucun</span><button class="btn" onclick="changeShoes(1)">&gt;</button></div>
+                <div id="shoeStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipShoe" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShoes()">Équiper</button>
+            </div>
+        </div>
+
+        <!-- TAB: EQUIPMENT (Ball/Shooting) -->
+        <div id="tab-equipment" class="shop-section">
+            <div class="skin-viewer" style="margin-top:0;">
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px;">CHAT DU PANIER</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeCatSkin(-1)">&lt;</button><span id="catName" class="selector-label">Classique</span><button class="btn" onclick="changeCatSkin(1)">&gt;</button></div>
+                <div id="catStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipCat" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatSkin()">Équiper</button>
+
+                <div style="background:#111; padding:10px; margin:15px 0; border:1px solid #333;">
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#ccc; margin-bottom:5px;">
+                            <span>POSTURE</span>
+                        </div>
+                        <select id="selCatStance" onchange="changeCatStance()" style="width:100%; background:#222; color:white; border:1px solid #555; padding:5px; font-family:inherit;">
+                            <option value="default">DÉFAUT (AUTO)</option>
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8em; color:#ccc;">
+                            <span>TAILLE</span>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <input type="checkbox" id="chkCatSizeLock" onchange="toggleCatSizeLock()">
+                                <label for="chkCatSizeLock">VERROUILLER</label>
+                            </div>
+                        </div>
+                        <div id="catSizeControl" style="opacity:0.5; pointer-events:none; transition: opacity 0.2s;">
+                            <input type="range" id="sldCatSize" min="0.5" max="3.0" step="0.1" value="1.0" oninput="updateCatSize()">
+                            <div style="text-align:right; font-size:0.8em; color:#FFD700;"><span id="lblCatSize">1.0x</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">ACCESSOIRES CHAT</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeCatAccessory(-1)">&lt;</button><span id="catAccName" class="selector-label">Aucun</span><button class="btn" onclick="changeCatAccessory(1)">&gt;</button></div>
+                <div id="catAccStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipCatAcc" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipCatAccessory()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">BALLONS</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeBall(-1)">&lt;</button><span id="ballName" class="selector-label">Classique</span><button class="btn" onclick="changeBall(1)">&gt;</button></div>
+                <div id="ballStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipBall" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipBall()">Équiper</button>
+
+                <h3 style="color:#aaa; border-bottom:1px solid #555; padding-bottom:5px; margin-top:20px;">STYLE DE TIR</h3>
+                <div class="skin-nav"><button class="btn" onclick="changeShootingStyle(-1)">&lt;</button><span id="styleName" class="selector-label">Classique</span><button class="btn" onclick="changeShootingStyle(1)">&gt;</button></div>
+                <div id="styleDesc" style="font-size:0.9em; color:#ccc; margin-bottom:5px; height:40px;">Standard</div>
+                <div id="styleStatus" style="margin-bottom:15px; color:#aaa; font-style:italic;">Équipé</div>
+                <button id="btnEquipStyle" class="btn" style="width:100%; font-size: 1.1em;" onclick="buyOrEquipShootingStyle()">Équiper</button>
+
+                <button id="btnToggleHand" class="btn" style="width:100%; margin-top:20px; background:linear-gradient(to bottom, #444, #222); border:1px solid #666;" onclick="toggleHandedness()">MAIN: DROITIER</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="achUI" class="modal" style="display: none;">
+        <button class="modal-close-btn" onclick="closeAchievements()">✕</button>
+        <div class="modal-header">SALLE DES TROPHÉES</div>
+        <div id="achList"></div>
+    </div>
+
+    <div id="leaderboardUI" class="modal" style="display: none;">
+        <button class="modal-close-btn" onclick="closeLeaderboard()">✕</button>
+        <div class="modal-header">CLASSEMENT</div>
+        <div class="modal-content-wrapper">
+            <div class="lb-tab-container">
+                <button id="btnTabClassic" class="lb-tab active" onclick="switchLeaderboardTab('classic')">CLASSIQUE</button>
+                <button id="btnTabContest" class="lb-tab" onclick="switchLeaderboardTab('contest')">CONCOURS</button>
+                <button id="btnTabTime" class="lb-tab" onclick="switchLeaderboardTab('time_attack')">TIME ATK</button>
+            </div>
+            <div id="lbList" class="lb-list">
+                <!-- Rows injected via JS -->
+                <div style="text-align:center; padding: 20px; color:#666;">CHARGEMENT...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="challengesUI" class="modal" style="display: none;">
+        <button class="modal-close-btn" onclick="closeChallenges()">✕</button>
+        <div class="modal-header">DÉFIS</div>
+        <div class="modal-content-wrapper">
+            <div class="lb-tab-container">
+                <button id="btnChalDaily" class="lb-tab active" onclick="switchChallengeTab('daily')">QUOTIDIEN</button>
+                <button id="btnChalWeekly" class="lb-tab" onclick="switchChallengeTab('weekly')">HEBDOMADAIRE</button>
+            </div>
+            <div id="challengeList" class="lb-list" style="text-align:left;">
+                <!-- Rows injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- HAIR CREATOR UI -->
+    <div id="hairCreatorUI" class="modal" style="display: none; width: 600px; max-width:95%;">
+        <button class="modal-close-btn" onclick="closeHairCreator()">✕</button>
+        <div class="modal-header">CRÉATEUR CAPILLAIRE</div>
+        <div class="modal-content-wrapper" style="align-items:center;">
+
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <button id="btnHairViewBack" class="btn" style="background:#444;" onclick="setHairEditorView('back')">ARRIÈRE (CHEVEUX)</button>
+                <button id="btnHairViewFront" class="btn" style="background:#222;" onclick="setHairEditorView('front')">AVANT (BARBE)</button>
+            </div>
+
+            <!-- Canvas Container -->
+            <div style="position:relative; width:300px; height:300px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none;">
+                <canvas id="hairEditorCanvas" width="300" height="300"></canvas>
+            </div>
+
+            <!-- Controls -->
+            <div style="width:100%; text-align:left;">
+                <div style="margin-bottom:10px;">
+                    <span style="color:#CCC;">TAILLE PINCEAU:</span> <span id="brushSizeVal" style="float:right; color:#FFD700;">10</span>
+                    <input type="range" id="brushSizeSlider" min="2" max="30" value="10" oninput="updateBrushSize()">
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <span style="color:#CCC;">TRANSPARENCE:</span> <span id="brushAlphaVal" style="float:right; color:#FFD700;">100%</span>
+                    <input type="range" id="brushAlphaSlider" min="10" max="100" step="5" value="100" oninput="updateBrushAlpha()">
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#CCC;">COULEUR:</span>
+                        <button id="btnEraser" class="btn" style="padding:4px 10px; font-size:0.8em; background:#444;" onclick="toggleEraser()">GOMME: OFF</button>
+                    </div>
+                    <div id="hairColorPalette" style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; gap:10px; margin-top:15px;">
+                    <button class="btn" style="background:#8B0000;" onclick="clearHairLayer()">TOUT EFFACER</button>
+                    <button class="btn" style="background:#444;" onclick="undoHairStroke()">ANNULER</button>
+                </div>
+
+                <hr style="border-color:#333; margin:15px 0;">
+
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <select id="hairSaveSlot" style="background:#222; color:#FFF; padding:8px; border:1px solid #555; flex-grow:1; margin-right:10px;">
+                        <option value="0">Emplacement 1</option>
+                        <option value="1">Emplacement 2</option>
+                        <option value="2">Emplacement 3</option>
+                        <option value="3">Emplacement 4</option>
+                        <option value="4">Emplacement 5</option>
+                    </select>
+                    <button class="btn" style="background:#006400; border-color:#00FF00;" onclick="saveCustomHair()">SAUVEGARDER</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="highScoreUI" class="modal" style="display: none; height: auto; top: 50%; max-width: 700px;">
+        <div class="modal-header">NOUVEAU RECORD !</div>
+        <div class="hs-input-container">
+            <div style="color: #AAA; font-size: 1.2em; margin-bottom: 5px;">ENTREZ VOS INITIALES</div>
+            <div id="hsNameDisplay" class="hs-input-display">_ _ _</div>
+            <div id="keyboard" class="keyboard-grid">
+                <!-- Injected via JS -->
+            </div>
+            <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+                UTILISEZ <span style="color: var(--broadcast-accent)">ARROWS</span> POUR NAVIGUER, <span style="color: var(--broadcast-accent)">ENTER/A</span> POUR CHOISIR
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script src="js/geometry.js"></script>
+<script src="js/data.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
