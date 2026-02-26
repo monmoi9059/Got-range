@@ -13,6 +13,7 @@ CSS_DIR = 'css'
 # main: Environment/Globals (HOOP_POS)
 # renderer: Drawing
 # input: Controller
+# hair_logic: Hair Creator (New)
 # game: Logic/Loop/Entry
 JS_ORDER = [
     'geometry.js',
@@ -21,6 +22,7 @@ JS_ORDER = [
     'main.js',
     'renderer.js',
     'input.js',
+    'hair_logic.js',
     'game.js'
 ]
 
