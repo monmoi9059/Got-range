@@ -1074,6 +1074,11 @@
                 </div>
 
                 <div style="margin-bottom:10px;">
+                    <span style="color:#CCC;">TRANSPARENCE:</span> <span id="brushAlphaVal" style="float:right; color:#FFD700;">100%</span>
+                    <input type="range" id="brushAlphaSlider" min="10" max="100" step="5" value="100" oninput="updateBrushAlpha()">
+                </div>
+
+                <div style="margin-bottom:10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:#CCC;">COULEUR:</span>
                         <button id="btnEraser" class="btn" style="padding:4px 10px; font-size:0.8em; background:#444;" onclick="toggleEraser()">GOMME: OFF</button>
@@ -9615,10 +9620,17 @@ var BallRenderer = {
         blobs.forEach(b => {
              const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
              ctx.fillStyle = col;
+
+             const alpha = (b.a !== undefined) ? b.a : 1.0;
+             const oldAlpha = ctx.globalAlpha;
+             ctx.globalAlpha = oldAlpha * alpha;
+
              const bx = p.x + b.x * headRadius;
              const by = headY + b.y * headRadius;
              const br = b.r * headRadius;
              ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+
+             ctx.globalAlpha = oldAlpha;
         });
     }
 
@@ -18410,6 +18422,7 @@ var BallRenderer = {
         ctx: null,
         view: 'back', // 'back' or 'front'
         brushSize: 10,
+        brushAlpha: 1.0,
         colorIndex: 0,
         data: { back: [], front: [] },
         isEraser: false,
@@ -18513,6 +18526,12 @@ var BallRenderer = {
         document.getElementById('brushSizeVal').innerText = val;
     };
 
+    window.updateBrushAlpha = function() {
+        const val = parseInt(document.getElementById('brushAlphaSlider').value);
+        hairEditor.brushAlpha = val / 100.0;
+        document.getElementById('brushAlphaVal').innerText = val + "%";
+    };
+
     function initHairPalette() {
         const container = document.getElementById('hairColorPalette');
         if(!container) return;
@@ -18601,7 +18620,8 @@ var BallRenderer = {
                 x: (pos.x - cx) / r,
                 y: (pos.y - cy) / r,
                 r: hairEditor.brushSize / r,
-                c: hairEditor.colorIndex
+                c: hairEditor.colorIndex,
+                a: hairEditor.brushAlpha
             };
 
             if(hairEditor.view === 'back') hairEditor.data.back.push(blob);
@@ -18707,9 +18727,15 @@ var BallRenderer = {
         const drawBlobs = (list) => {
             list.forEach(b => {
                 ctx.fillStyle = HAIR_COLORS[b.c];
+                const alpha = (b.a !== undefined) ? b.a : 1.0;
+                const oldAlpha = ctx.globalAlpha;
+                ctx.globalAlpha = oldAlpha * alpha;
+
                 ctx.beginPath();
                 ctx.arc(cx + b.x * r, cy + b.y * r, b.r * r, 0, Math.PI*2);
                 ctx.fill();
+
+                ctx.globalAlpha = oldAlpha;
             });
         };
 

@@ -5334,10 +5334,17 @@ var BallRenderer = {
         blobs.forEach(b => {
              const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
              ctx.fillStyle = col;
+
+             const alpha = (b.a !== undefined) ? b.a : 1.0;
+             const oldAlpha = ctx.globalAlpha;
+             ctx.globalAlpha = oldAlpha * alpha;
+
              const bx = p.x + b.x * headRadius;
              const by = headY + b.y * headRadius;
              const br = b.r * headRadius;
              ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+
+             ctx.globalAlpha = oldAlpha;
         });
     }
 
