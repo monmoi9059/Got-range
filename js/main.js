@@ -341,6 +341,7 @@ let lastDisplayedContestTime = -1;
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            customHairstyles: [], // Custom blobs data
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
             catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
@@ -405,6 +406,7 @@ let lastDisplayedContestTime = -1;
     if(!playerData.skinVariants) playerData.skinVariants = {};
     if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
     if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+    if(!playerData.customHairstyles) playerData.customHairstyles = [];
     if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
     if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
     if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];

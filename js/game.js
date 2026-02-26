@@ -2329,7 +2329,7 @@
         const btn = document.getElementById('mobileShootBtn');
         const btn2 = document.getElementById('mobileShootBtn2');
 
-        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP'];
+        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP', 'HAIR_CREATOR'];
         if(playerData.mobileControls && !menuStates.includes(state)) {
             btn.style.display = 'block';
             if (isSplitscreen && btn2) btn2.style.display = 'block';
