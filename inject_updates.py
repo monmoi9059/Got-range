@@ -21,6 +21,7 @@ JS_ORDER = [
     'main.js',
     'renderer.js',
     'input.js',
+    'hair_logic.js',
     'game.js'
 ]
 
