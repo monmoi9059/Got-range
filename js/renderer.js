@@ -5329,6 +5329,27 @@ var BallRenderer = {
         return x - Math.floor(x);
     }
 
+    function drawCustomBlobs(ctx, p, headY, headRadius, s, blobs) {
+        if (!blobs || !blobs.length) return;
+        blobs.forEach(b => {
+             const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
+             ctx.fillStyle = col;
+             const bx = p.x + b.x * headRadius;
+             const by = headY + b.y * headRadius;
+             const br = b.r * headRadius;
+             ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+        });
+    }
+
+    function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
+         if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
+         if (!playerData.customHairstyles) return;
+         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         if (customData && customData.blobs && customData.blobs.front) {
+             drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
+         }
+    }
+
     function drawBeard(ctx, p, headY, headRadius, s, skinObj) {
         if (!skinObj.beard) return;
 
@@ -5432,6 +5453,17 @@ var BallRenderer = {
             ctx.lineTo(p.x - r, headY - 2*s);
             ctx.fill();
         };
+
+        // --- 0. CUSTOM ---
+        if (style.startsWith('custom_')) {
+             if (playerData.customHairstyles) {
+                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 if (customData && customData.blobs && customData.blobs.back) {
+                     drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
+                 }
+             }
+             return;
+        }
 
         // --- 1. BALD / STUBBLE ---
         if (style === 'bald_clean') {
@@ -6536,6 +6568,7 @@ var BallRenderer = {
         }
 
         // BEARD (Drawn first so body obscures it)
+        drawCustomBeard(ctx, p, headY, headRadius, s, skinObj);
         drawBeard(ctx, p, headY, headRadius, s, skinObj);
         // Draw Neck
         if (neckLen > 5*s) {

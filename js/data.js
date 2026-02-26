@@ -1410,5 +1410,11 @@
         { id: 'med_slick', name: 'Medium Slick', cost: 0 },
         { id: 'med_bedhead', name: 'Bedhead', cost: 0 },
         { id: 'med_bun', name: 'Half-Up Bun', cost: 0 },
-        { id: 'med_undercut', name: 'Long Undercut', cost: 0 }
+        { id: 'med_undercut', name: 'Long Undercut', cost: 0 },
+        // Custom Slots
+        { id: 'custom_0', name: 'Custom 1', cost: 0, isCustom: true },
+        { id: 'custom_1', name: 'Custom 2', cost: 0, isCustom: true },
+        { id: 'custom_2', name: 'Custom 3', cost: 0, isCustom: true },
+        { id: 'custom_3', name: 'Custom 4', cost: 0, isCustom: true },
+        { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
