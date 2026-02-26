@@ -3530,7 +3530,6 @@ let lastDisplayedContestTime = -1;
             unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
             customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
             skinVariants: {}, // Stores active variant index/bool for each skin
-            customHairstyles: [], // Stores {id: 'custom_X', blobs: {front, back}}
             customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
             unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
             currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
@@ -3558,7 +3557,6 @@ let lastDisplayedContestTime = -1;
 
     // Migration logic to fix old saves
     if(!playerData.unlockedAchievements) playerData.unlockedAchievements = [];
-    if(!playerData.customHairstyles) playerData.customHairstyles = [];
     if(!playerData.stats.income) playerData.stats.income = 1;
     if(!playerData.stats.moonwalk) playerData.stats.moonwalk = 1;
     if(!playerData.inputMap) playerData.inputMap = { p1: -1, p2: -1 };
@@ -9644,8 +9642,6 @@ var BallRenderer = {
     }
 
     function drawBeard(ctx, p, headY, headRadius, s, skinObj) {
-        drawCustomBeard(ctx, p, headY, headRadius, s, skinObj);
-
         if (!skinObj.beard) return;
 
         const beardColor = skinObj.beardColor || skinObj.hairColor || '#000';
@@ -9727,17 +9723,6 @@ var BallRenderer = {
         const seedStr = (skinObj.id || 'default') + (style || '');
         for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
 
-        // --- 0. CUSTOM ---
-        if (style.startsWith('custom_')) {
-             if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
-                 if (customData && customData.blobs && customData.blobs.back) {
-                     drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
-                 }
-             }
-             return;
-        }
-
         // --- HELPER: SOLID BASE ---
         const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
             const r = modRadius * radiusMod;
@@ -9759,6 +9744,17 @@ var BallRenderer = {
             ctx.lineTo(p.x - r, headY - 2*s);
             ctx.fill();
         };
+
+        // --- 0. CUSTOM ---
+        if (style.startsWith('custom_')) {
+             if (playerData.customHairstyles) {
+                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 if (customData && customData.blobs && customData.blobs.back) {
+                     drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
+                 }
+             }
+             return;
+        }
 
         // --- 1. BALD / STUBBLE ---
         if (style === 'bald_clean') {
@@ -10863,6 +10859,7 @@ var BallRenderer = {
         }
 
         // BEARD (Drawn first so body obscures it)
+        drawCustomBeard(ctx, p, headY, headRadius, s, skinObj);
         drawBeard(ctx, p, headY, headRadius, s, skinObj);
         // Draw Neck
         if (neckLen > 5*s) {
@@ -17787,7 +17784,7 @@ var BallRenderer = {
         const btn = document.getElementById('mobileShootBtn');
         const btn2 = document.getElementById('mobileShootBtn2');
 
-        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP', 'HAIR_CREATOR'];
+        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP'];
         if(playerData.mobileControls && !menuStates.includes(state)) {
             btn.style.display = 'block';
             if (isSplitscreen && btn2) btn2.style.display = 'block';
@@ -18415,7 +18412,9 @@ var BallRenderer = {
     // Start loop
     requestAnimationFrame(loop);
 
-    // --- HAIR CREATOR LOGIC ---
+// --- END game.js ---
+
+// --- START editor.js ---
     var hairEditor = {
         active: false,
         canvas: null,
@@ -18785,7 +18784,7 @@ var BallRenderer = {
         }
     }
 
-// --- END game.js ---
+// --- END editor.js ---
 
 </script>
 <!-- INJECT_JS_END -->

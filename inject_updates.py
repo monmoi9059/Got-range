@@ -21,7 +21,8 @@ JS_ORDER = [
     'main.js',
     'renderer.js',
     'input.js',
-    'game.js'
+    'game.js',
+    'editor.js'
 ]
 
 def read_file(path):
