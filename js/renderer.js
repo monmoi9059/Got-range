@@ -9422,7 +9422,105 @@ var BallRenderer = {
         const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
+    var g_zonePatternCache = { w: 0, h: 0, canvases: {} };
+
+    function updateZonePatternCache(vpW, vpH) {
+        // Round dimensions to avoid sub-pixel cache misses
+        vpW = Math.ceil(vpW);
+        vpH = Math.ceil(vpH);
+
+        if (g_zonePatternCache.w === vpW && g_zonePatternCache.h === vpH) return;
+
+        g_zonePatternCache.w = vpW;
+        g_zonePatternCache.h = vpH;
+        g_zonePatternCache.canvases = {};
+
+        const types = ['arena', 'carnival', 'grass', 'tree', 'castle', 'street', 'space', 'mountain'];
+        const horizonY = (vpH - 120) * 0.38;
+        const cx = vpW / 2;
+
+        types.forEach(type => {
+            const c = document.createElement('canvas');
+            c.width = vpW;
+            c.height = vpH;
+            const cCtx = c.getContext('2d');
+
+            // Draw Pattern
+            if (type === 'arena') {
+                cCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+                cCtx.lineWidth = 2;
+                const rayCount = 40;
+                for(let i = -rayCount; i <= rayCount; i++) {
+                    const bottomX = cx + (i * vpW * 0.05);
+                    cCtx.beginPath();
+                    cCtx.moveTo(cx, horizonY);
+                    cCtx.lineTo(bottomX, vpH + 100);
+                    cCtx.stroke();
+                }
+            } else if (type === 'carnival') {
+                 cCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                 for(let i = -10; i <= 10; i++) {
+                     const bottomX = cx + (i * vpW * 0.15);
+                     cCtx.beginPath(); cCtx.moveTo(cx, horizonY); cCtx.lineTo(bottomX, vpH+100); cCtx.stroke();
+                 }
+                 let ly = horizonY + 20;
+                 let step = 5;
+                 while(ly < vpH) {
+                     cCtx.fillRect(0, ly, vpW, 2);
+                     ly += step;
+                     step *= 1.1;
+                 }
+            } else if (type === 'grass' || type === 'tree') {
+                cCtx.fillStyle = 'rgba(0,0,0,0.08)';
+                const density = (vpW * vpH) / 1000;
+                for(let i=0; i<density; i++) {
+                    const nx = Math.random() * vpW;
+                    const ny = horizonY + Math.random() * (vpH - horizonY);
+                    cCtx.fillRect(nx, ny, 2, 2);
+                }
+            } else if (type === 'castle' || type === 'street') {
+                cCtx.fillStyle = 'rgba(0,0,0,0.15)';
+                const density = (vpW * vpH) / 500;
+                for(let i=0; i<density; i++) {
+                    const nx = Math.random() * vpW;
+                    const ny = horizonY + Math.random() * (vpH - horizonY);
+                    cCtx.fillRect(nx, ny, 3, 2);
+                }
+            } else if (type === 'space') {
+                 cCtx.fillStyle = 'rgba(255,255,255,0.2)';
+                 const density = 50; // Per full screen? Original was density=20 per zone draw
+                 // The original density was fixed at 20 regardless of size!
+                 // "for(let i=0; i<density; i++)" where density=20.
+                 // So we should just draw some stars.
+                 for(let i=0; i<100; i++) {
+                     cCtx.beginPath();
+                     cCtx.arc(Math.random() * vpW, horizonY + Math.random() * (vpH - horizonY), 1 + Math.random() * 2, 0, Math.PI*2);
+                     cCtx.fill();
+                 }
+            } else if (type === 'mountain') {
+                 const gradRef = cCtx.createLinearGradient(0, horizonY, vpW, vpH);
+                 gradRef.addColorStop(0, 'rgba(255,255,255,0)');
+                 gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+                 gradRef.addColorStop(1, 'rgba(255,255,255,0)');
+                 cCtx.fillStyle = gradRef;
+                 cCtx.fillRect(0, horizonY, vpW, vpH - horizonY);
+            }
+
+            g_zonePatternCache.canvases[type] = c;
+        });
+    }
+
     function drawZonePattern(ctx, y, h, width, zone, horizonY) {
+        // Ensure cache is ready (lazy init)
+        // We use window.LOGICAL_HEIGHT because drawZonePattern doesn't get vpH,
+        // and usually vpH matches LOGICAL_HEIGHT (or is derived from it in splitscreen).
+        // However, width (vpW) is passed.
+        // We need vpH to calculate horizonY for cache generation correctly.
+        // Since horizonY is passed, we can try to deduce vpH or just use global LOGICAL_HEIGHT.
+        // But in splitscreen, vpH is still 600 (height), only width is halved.
+        // So passing window.LOGICAL_HEIGHT for vpH is correct.
+        updateZonePatternCache(width, window.LOGICAL_HEIGHT);
+
         // Base Gradient
         const grad = ctx.createLinearGradient(0, y, 0, y + h);
         grad.addColorStop(0, zone.ground1);
@@ -9438,55 +9536,16 @@ var BallRenderer = {
         ctx.clip();
 
         const type = zone.type;
-        const cx = width / 2;
-        // Deterministic Seed based on zone index/name to prevent jitter if we used random
-        // Using simple modulo logic on coordinates for noise is stable.
+        const cache = g_zonePatternCache.canvases[type];
 
-        if (type === 'arena') {
-            // Wood Planks (Perspective Lines)
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-            ctx.lineWidth = 2;
-            const rayCount = 40;
-            // Draw rays from vanishing point (cx, horizonY)
-            // We only draw the segment within y -> y+h
-            for(let i = -rayCount; i <= rayCount; i++) {
-                const bottomX = cx + (i * width * 0.05); // Fan out
-                ctx.beginPath();
-                ctx.moveTo(cx, horizonY);
-                ctx.lineTo(bottomX, y + h + 100);
-                ctx.stroke();
-            }
-        }
-        else if (type === 'carnival') {
-            // Checkerboard
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            // Vertical Lines
-            for(let i = -10; i <= 10; i++) {
-                const bottomX = cx + (i * width * 0.15);
-                ctx.beginPath(); ctx.moveTo(cx, horizonY); ctx.lineTo(bottomX, y+h+100); ctx.stroke();
-            }
-            // Horizontal lines (Perspective spacing)
-            let ly = horizonY + 20;
-            let step = 5;
-            while(ly < y + h) {
-                if(ly > y) ctx.fillRect(0, ly, width, 2);
-                ly += step;
-                step *= 1.1; // Exponential growth
-            }
-        }
-        else if (type === 'grass' || type === 'tree') {
-            // Grass Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
-            const density = (width * h) / 1000;
-            // Simple stable noise
-            for(let i=0; i<density; i++) {
-                const nx = (i * 157) % width;
-                const ny = y + (i * 83) % h;
-                ctx.fillRect(nx, ny, 2, 2);
-            }
+        if (cache) {
+            // Draw Cached Pattern (Screen Space)
+            // cache is full screen (vpW x vpH).
+            // We draw the slice corresponding to (0, y, width, h).
+            ctx.drawImage(cache, 0, y, width, h, 0, y, width, h);
         }
         else if (type === 'water') {
-            // Waves
+            // Waves (Animated - Not Cached)
             ctx.strokeStyle = 'rgba(255,255,255,0.15)';
             ctx.lineWidth = 1;
             const density = h / 8;
@@ -9497,27 +9556,6 @@ var BallRenderer = {
                 ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+len, ly); ctx.stroke();
                 // Mirrored for density
                 ctx.beginPath(); ctx.moveTo(width - lx, ly); ctx.lineTo(width - lx - len, ly); ctx.stroke();
-            }
-        }
-        else if (type === 'space') {
-            // Stars Reflection / Craters
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            const density = 20;
-            for(let i=0; i<density; i++) {
-                const rx = (i * 211) % width;
-                const ry = y + (i * 103) % h;
-                const r = 1 + (i % 3);
-                ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI*2); ctx.fill();
-            }
-        }
-        else if (type === 'castle' || type === 'street') {
-            // Cobblestone/Asphalt Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            const density = (width * h) / 500;
-            for(let i=0; i<density; i++) {
-                const nx = (i * 97) % width;
-                const ny = y + (i * 47) % h;
-                ctx.fillRect(nx, ny, 3, 2);
             }
         }
 
