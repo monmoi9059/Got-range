@@ -5940,6 +5940,9 @@ var BallRenderer = {
         ctx.fillText(`CAT LVL ${playerData.basketCatSkinIndex || 0}`, xpX, xpY - 2 * s);
     }
 
+    var g_cachedBallObj = null;
+    var g_cachedBallId = null;
+    var g_cachedMoneyBallObj = null;
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
         if (isFire === undefined) isFire = false;
         if (rotation === undefined) rotation = 0;
@@ -5947,12 +5950,18 @@ var BallRenderer = {
         // Determine Ball Object
         var ballObj = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+            if (!g_cachedMoneyBallObj) {
+                g_cachedMoneyBallObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; }) || BALLS_DB[0];
+            }
+            ballObj = g_cachedMoneyBallObj;
         } else {
             var ballId = playerData.currentBall || 'ball_classic';
-            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
+            if (ballId !== g_cachedBallId) {
+                g_cachedBallId = ballId;
+                g_cachedBallObj = BALLS_DB.find(function(b) { return b.id === ballId; }) || BALLS_DB[0];
+            }
+            ballObj = g_cachedBallObj;
         }
-        if (!ballObj) ballObj = BALLS_DB[0];
 
         // Draw High Quality Ball (Scale adjusted: The old function used 8*scale radius, BallRenderer uses 25*scale.
         // We need to match visual size.
