@@ -1,3 +1,4 @@
+// --- START game.js ---
 
     const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
     var evolutionData = { timer: 0, phase: 0 };
@@ -2956,3 +2957,5 @@
 
     // Start loop
     requestAnimationFrame(loop);
+
+// --- END game.js ---

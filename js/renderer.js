@@ -1,3 +1,4 @@
+// --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
 
 RenderEngine.Camera = {
@@ -10796,3 +10797,5 @@ var BallRenderer = {
              }
 
     }
+
+// --- END renderer.js ---

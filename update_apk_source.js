@@ -20,6 +20,17 @@ window.addEventListener('load', function() {
 </script>
 `;
 
+function copyFolderSync(from, to) {
+    if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true });
+    fs.readdirSync(from).forEach(element => {
+        if (fs.lstatSync(path.join(from, element)).isFile()) {
+            fs.copyFileSync(path.join(from, element), path.join(to, element));
+        } else {
+            copyFolderSync(path.join(from, element), path.join(to, element));
+        }
+    });
+}
+
 try {
     // 1. Update Index HTML
     let content = fs.readFileSync(sourceFile, 'utf8');
@@ -37,6 +48,16 @@ try {
 
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
+
+    // 2. Copy JS Folder
+    console.log('Copying JS folder...');
+    copyFolderSync('js', path.join(targetDir, 'js'));
+
+    // 3. Copy CSS Folder
+    console.log('Copying CSS folder...');
+    copyFolderSync('css', path.join(targetDir, 'css'));
+
+    console.log('APK source update complete.');
 
 } catch (err) {
     console.error('Error updating APK source:', err);
