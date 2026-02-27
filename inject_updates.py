@@ -11,6 +11,7 @@ CSS_DIR = 'css'
 # data: Constants
 # audio: System
 # main: Environment/Globals (HOOP_POS)
+# hair_logic: Hair Editor (Must be before renderer because renderer uses drawCustomBlobs)
 # renderer: Drawing
 # input: Controller
 # game: Logic/Loop/Entry
@@ -19,6 +20,7 @@ JS_ORDER = [
     'data.js',
     'audio.js',
     'main.js',
+    'hair_logic.js',
     'renderer.js',
     'input.js',
     'game.js'
