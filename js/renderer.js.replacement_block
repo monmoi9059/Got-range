@@ -1,0 +1,5 @@
+        // Generic Fallback
+        drawSolidLayeredBase(1.0, 0, hairColor);
+    };
+
+    function drawRealisticHuman(p, s, skinObj) {

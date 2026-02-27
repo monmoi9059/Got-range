@@ -10253,30 +10253,7 @@ var BallRenderer = {
              return;
         }
 
-        // --- 8. DEFAULT / UNKNOWN ---
-        // Basic Layered Cut
-        const defGrad = ctx.createRadialGradient(p.x - modRadius*0.3, headY - modRadius*0.5, 0, p.x, headY, modRadius);
-        defGrad.addColorStop(0, adjustColor(hairColor, 30));
-        defGrad.addColorStop(1, hairColor);
-        ctx.fillStyle = defGrad;
-        ctx.beginPath(); ctx.arc(p.x, headY - 5*s, modRadius, 0, Math.PI*2); ctx.fill();
-
-                     // Irregular patches
-                     ctx.beginPath();
-                     ctx.ellipse(sx, sy, 6*s, 4*s, seededRandom(seed+i)*3, 0, Math.PI*2);
-                     ctx.fill();
-                 }
-                 ctx.restore();
-             } else {
-                 const grad = ctx.createLinearGradient(0, headY - modRadius, 0, headY + 5*s);
-                 grad.addColorStop(0, adjustColor(hairColor, 20));
-                 grad.addColorStop(1, adjustColor(hairColor, -10));
-                 drawSolidLayeredBase(1.01, 0, grad, false, 'natural');
-             }
-             return;
-        }
-
-        if (style.startsWith('fade_')) {
+    if (style.startsWith('fade_')) {
              // Skin fade base (Shaved sides)
              drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
 
@@ -11206,10 +11183,15 @@ var BallRenderer = {
              return;
         }
 
-        // Generic Fallback
-        drawSolidLayeredBase(1.0, 0, hairColor);
+    // --- 8. DEFAULT / UNKNOWN ---
+    // Basic Layered Cut
+    const defGrad = ctx.createRadialGradient(p.x - modRadius*0.3, headY - modRadius*0.5, 0, p.x, headY, modRadius);
+    defGrad.addColorStop(0, adjustColor(hairColor, 30));
+    defGrad.addColorStop(1, hairColor);
+    ctx.fillStyle = defGrad;
+    ctx.beginPath(); ctx.arc(p.x, headY - 5*s, modRadius, 0, Math.PI*2); ctx.fill();
+    return;
     }
-
 
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process

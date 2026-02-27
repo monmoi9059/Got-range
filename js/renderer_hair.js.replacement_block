@@ -1,0 +1,8 @@
+        // --- 8. DEFAULT / UNKNOWN ---
+        // Basic Layered Cut
+        const defGrad = ctx.createRadialGradient(p.x - modRadius*0.3, headY - modRadius*0.5, 0, p.x, headY, modRadius);
+        defGrad.addColorStop(0, adjustColor(hairColor, 30));
+        defGrad.addColorStop(1, hairColor);
+        ctx.fillStyle = defGrad;
+        ctx.beginPath(); ctx.arc(p.x, headY - 5*s, modRadius, 0, Math.PI*2); ctx.fill();
+    }
