@@ -185,6 +185,15 @@ window.loadHairSlot = function(slotIndex) {
 
     let data = playerData.customHairstyles.find(h => h.id === id);
 
+    // Reference Dimensions:
+    // Canvas was 300x300 (Center 150,150)
+    // New Canvas is 500x500 (Center 250,250)
+    // Head Radius is still 100 for normalization logic.
+    // We normalize to Relative Coords (x-center)/100.
+    // So loading should work regardless of canvas size as long as we use current center.
+
+    const canvasCenter = 250;
+
     if (!data) {
         // Initialize empty
         hairEditorState.blobs = { front: [], back: [] };
@@ -196,11 +205,10 @@ window.loadHairSlot = function(slotIndex) {
         const denormalize = (list) => {
             if (!list || list.length === 0) return [];
             // Check heuristic: if x is small (e.g., < 50), assume it's normalized relative coords
-            // Canvas is 300x300, center 150. Normalized is (val - 150)/100.
             if (Math.abs(list[0].x) < 50) {
                 return list.map(b => ({
-                    x: b.x * 100 + 150,
-                    y: b.y * 100 + 150,
+                    x: b.x * 100 + canvasCenter,
+                    y: b.y * 100 + canvasCenter,
                     r: (b.r || 0.1) * 100,
                     c: b.c,
                     a: b.a
@@ -232,12 +240,14 @@ window.saveCustomHair = function() {
     const idx = playerData.customHairstyles.findIndex(h => h.id === id);
     if (idx !== -1) playerData.customHairstyles.splice(idx, 1);
 
-    // Normalize Data (Convert 300x300 canvas coords to relative coords based on 100px head radius)
-    // Center is 150, 150. Scale reference is 100.
+    // Normalize Data (Convert 500x500 canvas coords to relative coords based on 100px head radius)
+    // Center is 250, 250. Scale reference is 100.
+    const canvasCenter = 250;
+
     const normalizeBlobs = (list) => {
         return list.map(b => ({
-            x: (b.x - 150) / 100,
-            y: (b.y - 150) / 100,
+            x: (b.x - canvasCenter) / 100,
+            y: (b.y - canvasCenter) / 100,
             r: b.r / 100,
             c: b.c, // Hex color string
             a: b.a
@@ -271,7 +281,7 @@ window.saveCustomHair = function() {
 
 window.zoomHairCanvas = function(delta) {
     hairZoom += delta;
-    if (hairZoom < 1.0) hairZoom = 1.0;
+    if (hairZoom < 0.5) hairZoom = 0.5; // Allow zooming out further (was 1.0)
     if (hairZoom > 3.0) hairZoom = 3.0;
     updateHairZoom();
 };
@@ -297,7 +307,7 @@ function getCanvasCoords(e) {
     const rect = hairCanvas.getBoundingClientRect();
 
     // The rect width/height includes the scale transform.
-    // However, the canvas internal resolution is fixed (300x300).
+    // However, the canvas internal resolution is fixed (500x500).
     // So scaleX/scaleY calculation based on rect will naturally handle the zoom
     // IF the click coordinates are relative to the zoomed element's top-left.
 
