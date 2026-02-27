@@ -1,5 +1,10 @@
 {
   "appId": "PLL.gBE.gotrange",
   "appName": "taco basketball",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
 }

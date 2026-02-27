@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Taco Basket Ball - Québec Édition</title>
     <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
     <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
@@ -658,6 +658,18 @@
         overflow-y: auto !important;
     }
 
+    /* Prevent the Hair Creator UI from shrinking on mobile */
+    #hairCreatorUI {
+        width: 700px !important;
+        height: 800px !important;
+        max-width: none !important;
+        max-height: none !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) scale(0.6) !important; /* Scale it down visually to fit, while keeping internal coords accurate */
+        transform-origin: center center;
+    }
+
     /* Only enforce flex layout when the modal is actually visible */
     .modal[style*="display: block"] {
         display: flex !important;
@@ -1045,6 +1057,7 @@
     </div>
 
     <!-- HAIR CREATOR UI -->
+    <!-- Inline transform here will be overridden by CSS important scale on mobile if needed. Keeping it fixed size. -->
     <div id="hairCreatorUI" class="modal" style="display: none; width: 700px; height: 800px; max-width: none; max-height: none; top: 50%; left: 50%; transform: translate(-50%, -50%); overflow: auto;">
         <button class="modal-close-btn" onclick="closeHairCreator()">✕</button>
         <div class="modal-header">CRÉATEUR CAPILLAIRE</div>
@@ -1125,6 +1138,25 @@
 
     <canvas id="gameCanvas"></canvas>
 </div>
+
+<!-- Capacitor Setup for Immersive Fullscreen -->
+<script>
+    // Since we are running in a Capacitor app, wait for the runtime to be ready
+    document.addEventListener("DOMContentLoaded", () => {
+        // Attempt to hide status bar if Capacitor and StatusBar plugin are available
+        if (window.Capacitor && window.Capacitor.Plugins) {
+            const { StatusBar, NavigationBar } = window.Capacitor.Plugins;
+            if (StatusBar) {
+                StatusBar.hide().catch(e => console.log('StatusBar not available', e));
+                StatusBar.setOverlaysWebView({ overlay: true }).catch(e => console.log('StatusBar overlay not available', e));
+            }
+            // Some community plugins might have NavigationBar
+            if (NavigationBar) {
+                NavigationBar.hide().catch(e => console.log('NavigationBar not available', e));
+            }
+        }
+    });
+</script>
 
 <!-- Load Scripts in dependency order -->
 <script>

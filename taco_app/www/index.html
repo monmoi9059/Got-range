@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Taco Basket Ball - Québec Édition</title>
     <link rel="icon" type="image/svg+xml" sizes="any" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
     <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIzMCIgZmlsbD0iI0ZGOEMwMCIvPjxwYXRoIGQ9Ik01MCAxMCBBIDMwIDMwIDAgMCAxIDUwIDcwIE0yMCA0MCBBIDMwIDMwIDAgMCAxIDgwIDQwIiBzdHJva2U9IiM4QjQ1MDAiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCA1MCBRIDUwIDEwMCA5MCA1MCIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjREFBNTIwIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMTUgNTAgUSAyNSA0MCAzNSA1MCBUIDU1IDUwIFQgNzUgNTAgVCA4NSA1MCIgc3Ryb2tlPSIjMzJDRDMyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
@@ -658,6 +658,18 @@
         overflow-y: auto !important;
     }
 
+    /* Prevent the Hair Creator UI from shrinking on mobile */
+    #hairCreatorUI {
+        width: 700px !important;
+        height: 800px !important;
+        max-width: none !important;
+        max-height: none !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) scale(0.6) !important; /* Scale it down visually to fit, while keeping internal coords accurate */
+        transform-origin: center center;
+    }
+
     /* Only enforce flex layout when the modal is actually visible */
     .modal[style*="display: block"] {
         display: flex !important;
@@ -1045,7 +1057,8 @@
     </div>
 
     <!-- HAIR CREATOR UI -->
-    <div id="hairCreatorUI" class="modal" style="display: none; width: 600px; max-width:95%;">
+    <!-- Inline transform here will be overridden by CSS important scale on mobile if needed. Keeping it fixed size. -->
+    <div id="hairCreatorUI" class="modal" style="display: none; width: 700px; height: 800px; max-width: none; max-height: none; top: 50%; left: 50%; transform: translate(-50%, -50%); overflow: auto;">
         <button class="modal-close-btn" onclick="closeHairCreator()">✕</button>
         <div class="modal-header">CRÉATEUR CAPILLAIRE</div>
         <div class="modal-content-wrapper" style="align-items:center;">
@@ -1055,9 +1068,15 @@
                 <button id="btnHairViewFront" class="btn" style="background:#222;" onclick="setHairEditorView('front')">AVANT (BARBE)</button>
             </div>
 
+            <div style="display:flex; gap:10px; margin-bottom:10px; align-items: center;">
+                <button class="btn" style="background:#333; padding: 5px 10px;" onclick="zoomHairCanvas(0.1)">ZOOM +</button>
+                <button class="btn" style="background:#333; padding: 5px 10px;" onclick="zoomHairCanvas(-0.1)">ZOOM -</button>
+                <span id="hairZoomDisplay" style="color: #FFD700; font-weight: bold;">100%</span>
+            </div>
+
             <!-- Canvas Container -->
-            <div style="position:relative; width:300px; height:300px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none;">
-                <canvas id="hairEditorCanvas" width="300" height="300"></canvas>
+            <div style="position:relative; width:500px; height:500px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <canvas id="hairEditorCanvas" width="500" height="500" style="transition: transform 0.2s ease;"></canvas>
             </div>
 
             <!-- Controls -->
@@ -1119,6 +1138,25 @@
 
     <canvas id="gameCanvas"></canvas>
 </div>
+
+<!-- Capacitor Setup for Immersive Fullscreen -->
+<script>
+    // Since we are running in a Capacitor app, wait for the runtime to be ready
+    document.addEventListener("DOMContentLoaded", () => {
+        // Attempt to hide status bar if Capacitor and StatusBar plugin are available
+        if (window.Capacitor && window.Capacitor.Plugins) {
+            const { StatusBar, NavigationBar } = window.Capacitor.Plugins;
+            if (StatusBar) {
+                StatusBar.hide().catch(e => console.log('StatusBar not available', e));
+                StatusBar.setOverlaysWebView({ overlay: true }).catch(e => console.log('StatusBar overlay not available', e));
+            }
+            // Some community plugins might have NavigationBar
+            if (NavigationBar) {
+                NavigationBar.hide().catch(e => console.log('NavigationBar not available', e));
+            }
+        }
+    });
+</script>
 
 <!-- Load Scripts in dependency order -->
 <script>
@@ -2736,6 +2774,10 @@ window.initHairCreator = function() {
     if (alphaSlider) alphaSlider.value = hairEditorState.brushAlpha;
 
     setBrushColor(typeof HAIR_COLORS !== 'undefined' ? HAIR_COLORS[0] : '#000000');
+
+    // Initialize zoom
+    hairZoom = 1.0;
+    updateHairZoom();
 };
 
 window.openHairCreator = function() {
@@ -2747,6 +2789,12 @@ window.openHairCreator = function() {
     if (typeof state !== 'undefined') state = 'HAIR_CREATOR';
     const ui = document.getElementById('hairCreatorUI');
     if (ui) ui.style.display = 'flex'; // It's a modal, usually flex centered
+
+    // Explicitly hide mobile controls when entering Hair Creator
+    const btnMobile = document.getElementById('mobileShootBtn');
+    if (btnMobile) btnMobile.style.display = 'none';
+    const btnMobile2 = document.getElementById('mobileShootBtn2');
+    if (btnMobile2) btnMobile2.style.display = 'none';
 
     initHairCreator();
 
@@ -2762,6 +2810,11 @@ window.openHairCreator = function() {
 window.closeHairCreator = function() {
     const ui = document.getElementById('hairCreatorUI');
     if (ui) ui.style.display = 'none';
+
+    // Restore mobile controls if enabled
+    if (typeof updateMobileControlsUI === 'function') {
+        updateMobileControlsUI();
+    }
 
     // Return to Shop or Idle
     if (typeof openShop === 'function') openShop();
@@ -2846,6 +2899,15 @@ window.loadHairSlot = function(slotIndex) {
 
     let data = playerData.customHairstyles.find(h => h.id === id);
 
+    // Reference Dimensions:
+    // Canvas was 300x300 (Center 150,150)
+    // New Canvas is 500x500 (Center 250,250)
+    // Head Radius is still 100 for normalization logic.
+    // We normalize to Relative Coords (x-center)/100.
+    // So loading should work regardless of canvas size as long as we use current center.
+
+    const canvasCenter = 250;
+
     if (!data) {
         // Initialize empty
         hairEditorState.blobs = { front: [], back: [] };
@@ -2857,11 +2919,10 @@ window.loadHairSlot = function(slotIndex) {
         const denormalize = (list) => {
             if (!list || list.length === 0) return [];
             // Check heuristic: if x is small (e.g., < 50), assume it's normalized relative coords
-            // Canvas is 300x300, center 150. Normalized is (val - 150)/100.
             if (Math.abs(list[0].x) < 50) {
                 return list.map(b => ({
-                    x: b.x * 100 + 150,
-                    y: b.y * 100 + 150,
+                    x: b.x * 100 + canvasCenter,
+                    y: b.y * 100 + canvasCenter,
                     r: (b.r || 0.1) * 100,
                     c: b.c,
                     a: b.a
@@ -2893,12 +2954,14 @@ window.saveCustomHair = function() {
     const idx = playerData.customHairstyles.findIndex(h => h.id === id);
     if (idx !== -1) playerData.customHairstyles.splice(idx, 1);
 
-    // Normalize Data (Convert 300x300 canvas coords to relative coords based on 100px head radius)
-    // Center is 150, 150. Scale reference is 100.
+    // Normalize Data (Convert 500x500 canvas coords to relative coords based on 100px head radius)
+    // Center is 250, 250. Scale reference is 100.
+    const canvasCenter = 250;
+
     const normalizeBlobs = (list) => {
         return list.map(b => ({
-            x: (b.x - 150) / 100,
-            y: (b.y - 150) / 100,
+            x: (b.x - canvasCenter) / 100,
+            y: (b.y - canvasCenter) / 100,
             r: b.r / 100,
             c: b.c, // Hex color string
             a: b.a
@@ -2928,11 +2991,40 @@ window.saveCustomHair = function() {
     closeHairCreator();
 };
 
+// --- Zoom Logic ---
+
+window.zoomHairCanvas = function(delta) {
+    hairZoom += delta;
+    if (hairZoom < 0.5) hairZoom = 0.5; // Allow zooming out further (was 1.0)
+    if (hairZoom > 3.0) hairZoom = 3.0;
+    updateHairZoom();
+};
+
+function updateHairZoom() {
+    if (!hairCanvas) hairCanvas = document.getElementById('hairEditorCanvas');
+    if (hairCanvas) {
+        hairCanvas.style.transform = `scale(${hairZoom})`;
+    }
+    const display = document.getElementById('hairZoomDisplay');
+    if (display) {
+        display.innerText = Math.round(hairZoom * 100) + '%';
+    }
+}
+
+
 // --- Drawing Logic ---
 
 function getCanvasCoords(e) {
     if (!hairCanvas) return {x:0, y:0};
+
+    // We need to account for the CSS transform (scale) on the canvas
     const rect = hairCanvas.getBoundingClientRect();
+
+    // The rect width/height includes the scale transform.
+    // However, the canvas internal resolution is fixed (500x500).
+    // So scaleX/scaleY calculation based on rect will naturally handle the zoom
+    // IF the click coordinates are relative to the zoomed element's top-left.
+
     const scaleX = hairCanvas.width / rect.width;
     const scaleY = hairCanvas.height / rect.height;
 
@@ -2978,6 +3070,10 @@ function endStroke() {
 
 function addBlob(pos) {
     const list = hairEditorState.blobs[hairEditorState.view];
+    // Scale brush size inversely if needed?
+    // Actually no, if we zoom in, we want more precision, so the brush should stay same size in pixels (smaller on screen)
+    // But currently brushSize is in canvas pixels.
+    // If we zoom, the canvas pixels are bigger on screen.
     const r = hairEditorState.brushSize;
 
     if (hairEditorState.isEraser) {

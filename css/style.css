@@ -647,6 +647,18 @@
         overflow-y: auto !important;
     }
 
+    /* Prevent the Hair Creator UI from shrinking on mobile */
+    #hairCreatorUI {
+        width: 700px !important;
+        height: 800px !important;
+        max-width: none !important;
+        max-height: none !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) scale(0.6) !important; /* Scale it down visually to fit, while keeping internal coords accurate */
+        transform-origin: center center;
+    }
+
     /* Only enforce flex layout when the modal is actually visible */
     .modal[style*="display: block"] {
         display: flex !important;
