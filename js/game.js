@@ -1,3 +1,4 @@
+// --- START game.js ---
 
     const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
     var evolutionData = { timer: 0, phase: 0 };
@@ -1470,8 +1471,9 @@
         document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
-        // Reset to first tab
-        window.switchShopTab('upgrades');
+        // Reset to first tab only if not already open (preserves state)
+        if (!currentShopTab) window.switchShopTab('upgrades');
+        else window.switchShopTab(currentShopTab);
 
         updateDifficulty(); updateShopUI();
         updateMobileControlsUI();
@@ -2956,3 +2958,5 @@
 
     // Start loop
     requestAnimationFrame(loop);
+
+// --- END game.js ---

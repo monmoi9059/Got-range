@@ -1,3 +1,4 @@
+// --- START data.js ---
     var g_viewport = { x: 0, y: 0, w: 1066, h: 600 }; // Default full
     var preJumpTimer = 0;
     var resetTimer = 0;
@@ -1418,3 +1419,5 @@
         { id: 'custom_3', name: 'Custom 4', cost: 0, isCustom: true },
         { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
+
+// --- END data.js ---

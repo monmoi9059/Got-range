@@ -1,3 +1,4 @@
+// --- START main.js ---
 
     // Global Animation State
     var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
@@ -1088,3 +1089,5 @@ let lastDisplayedContestTime = -1;
         invalidateBackgroundCache();
         resizeGame();
     }
+
+// --- END main.js ---

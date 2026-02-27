@@ -1,8 +1,20 @@
+// --- START main.js ---
 
     // Global Animation State
     var g_animState = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_animTarget = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
+    var g_animStateLast = { la: DEFAULT_IDLE.la, ra: DEFAULT_IDLE.ra, lfa: DEFAULT_IDLE.lfa, rfa: DEFAULT_IDLE.rfa, w: DEFAULT_IDLE.w };
     var g_breathingPhase = 0;
+
+    // Cat Logic State
+    var g_catState = {
+        state: 'IDLE', // IDLE, MOVING, EATING, RETURNING
+        x: 733, y: 160, // Base position (Hoop + 10)
+        targetX: 0, targetY: 0,
+        targetTacoIndex: -1,
+        eatTimer: 0,
+        animFrame: 0
+    };
 
     // Center of screen is 1066/2 = 533.
     // Shift hoop to x=600 is fine (slightly right),
@@ -11,6 +23,13 @@
     const PIXELS_PER_FOOT = 4.2426;
 
     var decors = [];
+    // Cat under the hoop (Moved dynamic cat logic to renderer, placeholder removed or kept for initial scan)
+    // We will render the cat manually in renderer.js using g_catState, so we don't push it to decors here anymore
+    // or we push it but update its position in the render loop.
+    // Let's keep it in decors for consistent depth sorting, but we'll update its x/y in update loop.
+    var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
+    decors.push(catDecor);
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -233,6 +252,11 @@
 
     // --- 1.5 AUDIO SYSTEM (RETRO SYNTH) ---
     // --- 2. GLOBAL VARIABLES ---
+    // Resolution Constants
+    window.LOGICAL_HEIGHT = 600;
+    window.LOGICAL_WIDTH = 1066;
+    window.RESOLUTION_SCALE = 1;
+
     const canvas = document.getElementById('gameCanvas');
     var ctx = canvas.getContext('2d');
 
@@ -257,8 +281,16 @@
 
     let viewingAnimalIndex = 0;
     let viewingSkinIndex = 0;
+    let viewingVariantIndex = 0;
+    let viewingHairstyleIndex = 0;
+    let viewingClothingIndex = 0;
+    let viewingHatIndex = 0;
+    let viewingPantsIndex = 0;
+    let viewingShoeIndex = 0;
     let viewingStyleIndex = 0;
     let viewingBallIndex = 0;
+    let viewingCatSkinIndex = 0;
+    let viewingCatAccessoryIndex = 0;
     let currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
@@ -276,7 +308,10 @@ let lastDisplayedContestTime = -1;
     let resetStage = 0;
     let isGroundedShot = false;
     let groundShotTimer = 0;
+    let lastGroundShotTimer = 0; // History
     let airbudJumpTime = 0;
+    // preJumpTimer is defined in data.js
+    let lastPreJumpTimer = 0; // History
 
     // Physique
     const GRAVITY = 0.5;
@@ -285,6 +320,7 @@ let lastDisplayedContestTime = -1;
     var player3D = { x: 433, y: 300, z: 0, vz: 0 };
     var ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, active: false, isFire: false, trail: [], rotationX: 0 };
     var activeBalls = [];
+    var tacosOnGround = []; // New array for tacos
     var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
     var particles = [];
 
@@ -292,19 +328,33 @@ let lastDisplayedContestTime = -1;
     if (DEBUG) {
         window.player3D = player3D;
         window.state = state;
+        window.tacosOnGround = tacosOnGround;
     }
 
     function createDefaultData() {
         return {
             tacos: 0, level: 1, difficulty: 1.0, highScore: 10,
-            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
-            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0 },
+            stats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
+            purchasedStats: { income: 1, aim: 1, luck: 1, moonwalk: 1, extraLives: 0, catNip: 0 },
             lifetimeStats: { shots: 0, makes: 0, misses: 0, contests: 0 },
-            dailyChallenge: { date: '', id: '', progress: 0, claimed: false },
-            unlockedSkins: ['human_anchor', 'rat_classic'], currentSkin: 'human_anchor', unlockedAchievements: [],
+            dailyChallenges: [], weeklyChallenges: [],
+            unlockedSkins: ['human_custom', 'human_anchor', 'rat_classic'], currentSkin: 'human_custom', unlockedAchievements: [],
+            customSkinSettings: { height: 1.0, width: 1.0, skinToneIndex: 4 }, // Default Medium
+            skinVariants: {}, // Stores active variant index/bool for each skin
+            customHairstyle: 'default', unlockedHairstyles: ['default', 'bald'], // Universal Hairstyle
+            unlockedCatSkins: ['cat_default'], currentCatSkin: 'cat_default',
+            currentCatAccessory: 'acc_none', unlockedCatAccessories: ['acc_none'], catScaleResetOffset: 0,
+            catStanceOverride: 'default', catSizeLocked: false, catSizeValue: 1.0,
+            basketCatSkinIndex: 0, basketCatExp: 0,
             unlockedStyles: ['classic'], currentStyle: 'classic', unlockedBalls: ['ball_classic'], currentBall: 'ball_classic', isLefty: false,
+            unlockedHats: ['hat_none'], currentHat: 'hat_none',
+            unlockedClothing: ['clothes_none'], currentClothing: 'clothes_none',
+            unlockedPants: ['pants_none'], currentPants: 'pants_none',
+            unlockedShoes: ['shoe_none'], currentShoes: 'shoe_none',
+            customHairColorIndex: 0, customHairLength: 1.0,
             mobileControls: false, platformChosen: false,
             meterEnabled: true, meterShape: 'arc', meterScale: 1.0,
+            cameraZoomScale: 1.0,
             releaseTiming: 3,
             graphics: 'HIGH',
             currentTrackIndex: 0,
@@ -330,13 +380,51 @@ let lastDisplayedContestTime = -1;
     if(typeof playerData.isLefty === 'undefined') playerData.isLefty = false;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
     if(typeof playerData.platformChosen === 'undefined') playerData.platformChosen = false;
-    if(!playerData.dailyChallenge) playerData.dailyChallenge = { date: '', id: '', progress: 0, claimed: false };
+    if(!playerData.dailyChallenges) playerData.dailyChallenges = [];
+    if(!playerData.weeklyChallenges) playerData.weeklyChallenges = [];
+    if(playerData.dailyChallenge) { // Migration
+         if(playerData.dailyChallenge.id) playerData.dailyChallenges.push(playerData.dailyChallenge);
+         delete playerData.dailyChallenge;
+    }
     if(typeof playerData.meterEnabled === 'undefined') playerData.meterEnabled = true;
     if(typeof playerData.meterShape === 'undefined') playerData.meterShape = 'arc';
+    if(typeof playerData.cameraZoomScale === 'undefined') playerData.cameraZoomScale = 1.0;
     if(typeof playerData.releaseTiming === 'undefined') playerData.releaseTiming = 3;
     if(typeof playerData.graphics === 'undefined') playerData.graphics = 'HIGH';
     if(typeof playerData.currentTrackIndex === 'undefined') playerData.currentTrackIndex = 0;
     if(!playerData.leaderboards) playerData.leaderboards = { classic: [], contest: [], time_attack: [] };
+    if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+    if(!playerData.currentHat) playerData.currentHat = 'hat_none';
+    if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+    if(!playerData.currentClothing) playerData.currentClothing = 'clothes_none';
+    if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+    if(!playerData.currentPants) playerData.currentPants = 'pants_none';
+    if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
+    if(!playerData.currentShoes) playerData.currentShoes = 'shoe_none';
+    if(typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
+    if(typeof playerData.customHairLength === 'undefined') playerData.customHairLength = 1.0;
+    if(!playerData.skinVariants) playerData.skinVariants = {};
+    if(!playerData.customHairstyle) playerData.customHairstyle = 'default';
+    if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+    if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+    if(!playerData.unlockedSkins.includes('human_custom')) playerData.unlockedSkins.push('human_custom');
+    if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+    if(!playerData.currentCatSkin) playerData.currentCatSkin = 'cat_default';
+    if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+    if(!playerData.currentCatAccessory) playerData.currentCatAccessory = 'acc_none';
+    if(typeof playerData.catScaleResetOffset === 'undefined') playerData.catScaleResetOffset = 0;
+    if(typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+    if(typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
+
+    // Migrate old hair settings if present
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairColorIndex !== undefined) {
+        playerData.customHairColorIndex = playerData.customSkinSettings.hairColorIndex;
+        delete playerData.customSkinSettings.hairColorIndex;
+    }
+    if (playerData.customSkinSettings && playerData.customSkinSettings.hairSize !== undefined) {
+        playerData.customHairLength = playerData.customSkinSettings.hairSize;
+        delete playerData.customSkinSettings.hairSize;
+    }
 
     // Migration: purchasedStats
     if (!playerData.purchasedStats) {
@@ -345,32 +433,101 @@ let lastDisplayedContestTime = -1;
             aim: playerData.stats.aim || 1,
             luck: playerData.stats.luck || 1,
             moonwalk: playerData.stats.moonwalk || 1,
-            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0
+            extraLives: (typeof playerData.stats.extraLives !== 'undefined') ? playerData.stats.extraLives : 0,
+            catNip: 0
         };
     }
+    if (typeof playerData.stats.catNip === 'undefined') { playerData.stats.catNip = 0; playerData.purchasedStats.catNip = 0; }
 
     // Don't auto-set mobileControls here anymore, wait for choice if not chosen
     window.playerData = playerData;
 
-    // Initialize Daily Challenge
+    // Initialize Challenges
     initDailyChallenge();
+    initWeeklyChallenge();
 
     // --- 3. HELPER FUNCTIONS ---
-    function saveData() { localStorage.setItem('tacoSaveData', JSON.stringify(playerData)); }
+    var saveTimer = null;
+    function forceSave() {
+        if (window.isResetting) return;
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        localStorage.setItem('tacoSaveData', JSON.stringify(playerData));
+    }
+
+    function saveData() {
+        if (saveTimer) return; // Coalesce: A save is already pending
+        saveTimer = setTimeout(forceSave, 1000);
+    }
+
+    // Ensure data is saved when closing or hiding
+    window.addEventListener('beforeunload', forceSave);
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) forceSave();
+    });
 
     function initDailyChallenge() {
         const today = new Date().toDateString();
-        // Reset if date changed or if data is missing/corrupt
-        if (playerData.dailyChallenge.date !== today || !playerData.dailyChallenge.id) {
-            const randomIndex = Math.floor(Math.random() * DAILY_CHALLENGES.length);
-            const challenge = DAILY_CHALLENGES[randomIndex];
-            playerData.dailyChallenge = {
-                date: today,
-                id: challenge.id,
-                progress: 0,
-                claimed: false
-            };
+
+        // MIGRATION check (Safety)
+        if (playerData.dailyChallenge) {
+             if(playerData.dailyChallenge.date === today && playerData.dailyChallenge.id) {
+                 playerData.dailyChallenges = [playerData.dailyChallenge];
+             } else {
+                 playerData.dailyChallenges = [];
+             }
+             delete playerData.dailyChallenge;
+        }
+
+        // Reset if new day
+        if (!playerData.dailyChallenges || playerData.dailyChallenges.length > 0 && playerData.dailyChallenges[0].date !== today) {
+            playerData.dailyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.dailyChallenges.length < 5) {
+            const pool = [...DAILY_CHALLENGES];
+            // Remove existing
+            playerData.dailyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+            });
+
+            while(playerData.dailyChallenges.length < 5 && pool.length > 0) {
+                const r = Math.floor(Math.random() * pool.length);
+                const c = pool[r];
+                pool.splice(r, 1);
+                playerData.dailyChallenges.push({ date: today, id: c.id, progress: 0, claimed: false });
+            }
             saveData();
+        }
+    }
+
+    function initWeeklyChallenge() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const week = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+        const weekId = `W${week}-${now.getFullYear()}`;
+
+        // Reset if new week
+        if (!playerData.weeklyChallenges || playerData.weeklyChallenges.length > 0 && playerData.weeklyChallenges[0].weekId !== weekId) {
+             playerData.weeklyChallenges = [];
+        }
+
+        // Fill up to 5
+        if (playerData.weeklyChallenges.length < 5) {
+             const pool = [...WEEKLY_CHALLENGES];
+             playerData.weeklyChallenges.forEach(existing => {
+                const idx = pool.findIndex(p => p.id === existing.id);
+                if(idx !== -1) pool.splice(idx, 1);
+             });
+
+             while(playerData.weeklyChallenges.length < 5 && pool.length > 0) {
+                 const r = Math.floor(Math.random() * pool.length);
+                 const c = pool[r];
+                 pool.splice(r, 1);
+                 playerData.weeklyChallenges.push({ weekId: weekId, id: c.id, progress: 0, claimed: false });
+             }
+             saveData();
         }
     }
 
@@ -384,6 +541,9 @@ let lastDisplayedContestTime = -1;
     }
 
     function isHighScore(mode, score) {
+        // Lower threshold for non-classic modes (Contest max is ~30)
+        const minScore = (mode === 'classic') ? 10 : 0;
+        if (score <= minScore) return false;
         const list = getLeaderboard(mode);
         if (list.length < 50) return true;
         const lowest = list[list.length - 1].score;
@@ -404,6 +564,7 @@ let lastDisplayedContestTime = -1;
     }
 
     function openLeaderboard() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
 
@@ -414,7 +575,9 @@ let lastDisplayedContestTime = -1;
         document.getElementById('shopUI').style.display = 'none';
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
         switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        updateMobileControlsUI();
         saveContext(game1);
     }
 
@@ -484,6 +647,74 @@ let lastDisplayedContestTime = -1;
         // Show Leaderboard to confirm
         openLeaderboard();
         // Force the tab to the relevant mode
+        switchLeaderboardTab(pendingHighScore.mode);
+    }
+
+    // Expose for game.js to call
+    window.processAllChallenges = processAllChallenges;
+
+    function processAllChallenges(type, amount) {
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+    }
+
+    function updateChallenge(userC, type, amount, db) {
+        if(userC.claimed) return;
+        const def = db.find(d => d.id === userC.id);
+        if(!def) return;
+
+        if(def.type === type) {
+            let completed = false;
+
+            // Handle specific logic based on type
+            if (type === 'distance_classic') {
+                // High Water Mark logic (Max distance in single game)
+                if (amount > userC.progress) {
+                    userC.progress = amount;
+                    if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                    else saveData();
+                }
+            } else if (type === 'streak') {
+                // Streak is passed as current streak amount. Check if it beats target or best.
+                if (amount >= def.target) { userC.progress = def.target; completed = true; }
+                else if (amount > userC.progress) {
+                    userC.progress = amount;
+                    saveData();
+                }
+            } else {
+                // Cumulative logic (makes, score, distance, play_*, etc.)
+                userC.progress += amount;
+                if (userC.progress >= def.target) { userC.progress = def.target; completed = true; }
+                else saveData();
+            }
+
+            if(completed && !userC.completedNotified) {
+                 userC.completedNotified = true;
+                 saveData();
+                 showNotification("DÉFI TERMINÉ !", 0);
+            }
+        }
+    }
+
+    window.claimChallenge = function(index, isWeekly) {
+        loadContext(game1);
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const c = list[index];
+        const def = db.find(d => d.id === c.id);
+
+        if(c && !c.claimed && c.progress >= def.target) {
+            c.claimed = true;
+            playerData.tacos += def.reward;
+            saveData();
+            updateUI();
+            AudioSystem.playSwish();
+            showNotification("RÉCOMPENSE !", def.reward);
+            renderChallenges(isWeekly ? 'weekly' : 'daily');
+        }
+        saveContext(game1);
+    }
+
     var isSplitscreen = false;
 
     // Define the default/initial state factory
@@ -495,6 +726,7 @@ let lastDisplayedContestTime = -1;
             feedbackTimer: 0,
             player3D: { x: 433, y: 300, z: 0, vz: 0 },
             activeBalls: [],
+            tacosOnGround: [],
             particles: [],
             currentStreak: 0,
             consecutiveMisses: 0,
@@ -516,7 +748,7 @@ let lastDisplayedContestTime = -1;
             resetTimer: 0,
             nextAction: null,
             inputState: { shootPressed: false }, // Abstracted input
-            viewingIndices: { animal: 0, skin: 0, ball: 0, style: 0 } // UI state
+            viewingIndices: { animal: 0, skin: 0, hair: 0, clothing: 0, pants: 0, hat: 0, shoe: 0, ball: 0, style: 0, catAcc: 0 } // UI state
         };
     }
 
@@ -537,6 +769,8 @@ let lastDisplayedContestTime = -1;
         // But the global 'player3D' variable holds the reference.
         ctxObj.player3D = player3D;
         ctxObj.activeBalls = activeBalls;
+        ctxObj.tacosOnGround = tacosOnGround;
+        ctxObj.catState = g_catState; // Save Cat State
         ctxObj.particles = particles;
         ctxObj.currentStreak = currentStreak;
         ctxObj.consecutiveMisses = consecutiveMisses;
@@ -561,8 +795,14 @@ let lastDisplayedContestTime = -1;
         ctxObj.viewingIndices = {
             animal: viewingAnimalIndex,
             skin: viewingSkinIndex,
+            hair: viewingHairstyleIndex,
+            clothing: viewingClothingIndex,
+            pants: viewingPantsIndex,
+            hat: viewingHatIndex,
+            shoe: viewingShoeIndex,
             ball: viewingBallIndex,
-            style: viewingStyleIndex
+            style: viewingStyleIndex,
+            catAcc: viewingCatAccessoryIndex
         };
     }
 
@@ -573,6 +813,8 @@ let lastDisplayedContestTime = -1;
         feedbackTimer = ctxObj.feedbackTimer;
         player3D = ctxObj.player3D;
         activeBalls = ctxObj.activeBalls;
+        tacosOnGround = ctxObj.tacosOnGround || [];
+        if(ctxObj.catState) g_catState = ctxObj.catState; // Load Cat State
         particles = ctxObj.particles;
         currentStreak = ctxObj.currentStreak;
         consecutiveMisses = ctxObj.consecutiveMisses;
@@ -603,8 +845,14 @@ let lastDisplayedContestTime = -1;
         if (ctxObj.viewingIndices) {
             viewingAnimalIndex = ctxObj.viewingIndices.animal;
             viewingSkinIndex = ctxObj.viewingIndices.skin;
+            viewingHairstyleIndex = ctxObj.viewingIndices.hair || 0;
+            viewingClothingIndex = ctxObj.viewingIndices.clothing || 0;
+            viewingPantsIndex = ctxObj.viewingIndices.pants || 0;
+            viewingHatIndex = ctxObj.viewingIndices.hat || 0;
+            viewingShoeIndex = ctxObj.viewingIndices.shoe || 0;
             viewingBallIndex = ctxObj.viewingIndices.ball;
             viewingStyleIndex = ctxObj.viewingIndices.style;
+            viewingCatAccessoryIndex = ctxObj.viewingIndices.catAcc || 0;
         }
 
         // Ensure globals that might be undefined are safe
@@ -613,6 +861,191 @@ let lastDisplayedContestTime = -1;
 
     // Initialize Game 1 with current globals immediately
     saveContext(game1);
+
+    window.closeChallenges = function() { window.closeAllMenus(); }
+
+    window.openChallenges = function() {
+        if(window.closeControlsMenu) window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
+        state = 'CHALLENGES';
+        if(isSplitscreen) { loadContext(game2); state = 'CHALLENGES'; saveContext(game2); loadContext(game1); }
+
+        document.getElementById('challengesUI').style.display = 'block';
+        document.getElementById('shopUI').style.display = 'none';
+        document.getElementById('statsUI').style.display = 'none';
+        document.getElementById('achUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+
+        switchChallengeTab('daily');
+        updateMobileControlsUI();
+        saveContext(game1);
+    }
+
+    window.switchChallengeTab = function(tab) {
+        document.getElementById('btnChalDaily').className = tab === 'daily' ? 'lb-tab active' : 'lb-tab';
+        document.getElementById('btnChalWeekly').className = tab === 'weekly' ? 'lb-tab active' : 'lb-tab';
+        renderChallenges(tab);
+    }
+
+    window.renderChallenges = function(tab) {
+        const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
+        const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
+        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const container = document.getElementById('challengeList');
+        container.innerHTML = '';
+
+        if(!list || list.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:#666">Aucun défi.</div>';
+            return;
+        }
+
+        list.forEach((c, idx) => {
+            const def = db.find(d => d.id === c.id);
+            if(!def) return;
+            const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
+            const isDone = c.progress >= def.target;
+
+            const div = document.createElement('div');
+            div.className = 'challenge-row';
+            div.innerHTML = `
+                <div style="flex-grow:1; text-align:left;">
+                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
+                    <div class="challenge-progress-bg">
+                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
+                    </div>
+                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
+                </div>
+                <div style="text-align:right; margin-left:10px; min-width:80px;">
+                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
+                    ${c.claimed ?
+                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
+                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
+                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.openStats = function() {
+        window.closeControlsMenu();
+        loadContext(game1);
+        if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
+
+        state = 'STATS';
+        if(isSplitscreen) { loadContext(game2); state = 'STATS'; saveContext(game2); loadContext(game1); }
+
+        shopUI.style.display = 'none';
+        achUI.style.display = 'none';
+        statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        populateInputSelects();
+        const ls = playerData.lifetimeStats;
+        document.getElementById('statShots').innerText = ls.shots;
+        document.getElementById('statMakes').innerText = ls.makes;
+        document.getElementById('statMisses').innerText = ls.misses;
+        document.getElementById('statContests').innerText = ls.contests;
+        document.getElementById('statBestDist').innerText = playerData.highScore + " pi";
+        document.getElementById('statTimeAttack').innerText = playerData.timeAttackHighScore || 0;
+        let acc = 0;
+        if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
+        document.getElementById('statAccuracy').innerText = acc + "%";
+
+        const btnMob = document.getElementById('btnToggleMobile');
+        if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
+        const btnGraph = document.getElementById('btnToggleGraphics');
+        if(btnGraph) btnGraph.innerText = (playerData.graphics === 'HIGH') ? "QUALITÉ: HAUTE" : "QUALITÉ: BASSE";
+        const btnMeter = document.getElementById('btnToggleMeter');
+        if(btnMeter) btnMeter.innerText = playerData.meterEnabled ? "VISÉE: OUI" : "VISÉE: NON";
+        const btnShape = document.getElementById('btnCycleMeterShape');
+        if(btnShape) {
+            let shapeName = playerData.meterShape || 'arc';
+            btnShape.innerText = "FORME: " + shapeName.toUpperCase();
+        }
+        const sld = document.getElementById('meterSizeSlider');
+        if(sld) {
+            const sc = playerData.meterScale || 1.0;
+            sld.value = sc;
+            document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
+        }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+    }
+    window.toggleMeter = function() {
+        playerData.meterEnabled = !playerData.meterEnabled;
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.cycleMeterShape = function() {
+        const shapes = ['arc', 'vertical', 'horizontal', 'orb', 'triangle', 'diamond', 'ring', 'chevron'];
+        let idx = shapes.indexOf(playerData.meterShape);
+        if (idx < 0) idx = 0;
+        idx = (idx + 1) % shapes.length;
+        playerData.meterShape = shapes[idx];
+        saveData(); openStats(); // Refresh UI
+        saveContext(game1);
+    }
+    window.updateMeterScale = function() {
+        const val = parseFloat(document.getElementById('meterSizeSlider').value);
+        playerData.meterScale = val;
+        document.getElementById('meterSizeLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.updateCameraZoom = function() {
+        const val = parseFloat(document.getElementById('cameraZoomSlider').value);
+        playerData.cameraZoomScale = val;
+        document.getElementById('cameraZoomLabel').innerText = Math.round(val*100) + "%";
+        saveData();
+        saveContext(game1);
+    }
+
+    window.populateInputSelects = function() {
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const p1Sel = document.getElementById('p1InputSelect');
+        const p2Sel = document.getElementById('p2InputSelect');
+
+        if(!p1Sel || !p2Sel) return;
+
+        const fillSelect = (sel, isP2) => {
+            sel.innerHTML = '';
+
+            const defOpt = document.createElement('option');
+            defOpt.value = "-1";
+            defOpt.textContent = isP2 ? "CLAVIER (ENTER)" : "CLAVIER / SOURIS";
+            sel.appendChild(defOpt);
+
+            for(let i=0; i<4; i++) {
+                const gp = gamepads[i];
+                const opt = document.createElement('option');
+                opt.value = i;
+
+                let label = `MANETTE ${i+1}`;
+                if (gp && gp.connected) {
+                    let id = gp.id;
+                    if(id.length > 15) id = id.substring(0,15) + "...";
+                    label += ` (${id})`;
+                } else {
+                    label += " (Déconnectée)";
+                }
+                opt.textContent = label;
+                sel.appendChild(opt);
+            }
+        };
+
+        fillSelect(p1Sel, false);
+        fillSelect(p2Sel, true);
+
+        p1Sel.value = playerData.inputMap.p1;
+        p2Sel.value = playerData.inputMap.p2;
+    }
 
     // P2 Setup (Separate Profile)
     game2.playerData = createDefaultData();
@@ -624,6 +1057,7 @@ let lastDisplayedContestTime = -1;
     // Let's keep it separate.
 
     function toggleSplitscreen() {
+        if (window.closeControlsMenu) window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         isSplitscreen = !isSplitscreen;
 
@@ -655,3 +1089,5 @@ let lastDisplayedContestTime = -1;
         invalidateBackgroundCache();
         resizeGame();
     }
+
+// --- END main.js ---

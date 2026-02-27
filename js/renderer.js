@@ -1,3 +1,4 @@
+// --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
 
 RenderEngine.Camera = {
@@ -5332,13 +5333,24 @@ var BallRenderer = {
     function drawCustomBlobs(ctx, p, headY, headRadius, s, blobs) {
         if (!blobs || !blobs.length) return;
         blobs.forEach(b => {
-             const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
+             let col = b.c;
+             // Check if it is an index (legacy)
+             if (typeof col === 'number' || (typeof col === 'string' && !col.startsWith('#') && !col.startsWith('rgb'))) {
+                 if (typeof HAIR_COLORS !== 'undefined') {
+                     col = HAIR_COLORS[col] || '#000';
+                 } else {
+                     col = '#000';
+                 }
+             }
              ctx.fillStyle = col;
 
              const alpha = (b.a !== undefined) ? b.a : 1.0;
              const oldAlpha = ctx.globalAlpha;
              ctx.globalAlpha = oldAlpha * alpha;
 
+             // Coordinates are normalized relative to head center and radius
+             // b.x = (pixelX - center) / radius
+             // So: pixelX = center + b.x * radius
              const bx = p.x + b.x * headRadius;
              const by = headY + b.y * headRadius;
              const br = b.r * headRadius;
@@ -10796,3 +10808,5 @@ var BallRenderer = {
              }
 
     }
+
+// --- END renderer.js ---

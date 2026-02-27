@@ -1,3 +1,4 @@
+// --- START audio.js ---
     const AudioSystem = {
         ctx: null,
         isMuted: false,
@@ -506,3 +507,5 @@
             }
         }
     };
+
+// --- END audio.js ---

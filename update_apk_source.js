@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const sourceFile = 'gotrange.html';
 const targetDir = 'taco_app/www';
@@ -21,7 +22,15 @@ window.addEventListener('load', function() {
 `;
 
 try {
+    // 0. Run Build Script to ensure gotrange.html is fresh
+    console.log('Running build.js...');
+    execSync('node build.js', { stdio: 'inherit' });
+
     // 1. Update Index HTML
+    if (!fs.existsSync(sourceFile)) {
+        throw new Error(`${sourceFile} not found. Build failed?`);
+    }
+
     let content = fs.readFileSync(sourceFile, 'utf8');
 
     if (content.includes('</body>')) {
@@ -37,6 +46,13 @@ try {
 
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
+
+    // Note: Since we are using the bundled single-file gotrange.html,
+    // we do NOT need to copy js/css folders anymore for the APK
+    // unless the app structure requires them for other reasons.
+    // The previous refactor copied them, but the single file is self-contained.
+
+    console.log('APK source update complete.');
 
 } catch (err) {
     console.error('Error updating APK source:', err);

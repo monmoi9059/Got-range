@@ -1,3 +1,4 @@
+// --- START input.js ---
     // Virtual Cursor System
     const VirtualCursor = {
         element: null,
@@ -367,3 +368,5 @@
             }
         }
     });
+
+// --- END input.js ---

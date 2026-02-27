@@ -17,6 +17,7 @@ CSS_DIR = 'css'
 JS_ORDER = [
     'geometry.js',
     'data.js',
+    'hair_logic.js',
     'audio.js',
     'main.js',
     'renderer.js',

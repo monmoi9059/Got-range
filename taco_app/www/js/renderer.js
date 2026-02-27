@@ -1,5 +1,252 @@
-    var BallRenderer = {
+// --- START renderer.js ---
+var RenderEngine = RenderEngine || {};
+
+RenderEngine.Camera = {
+    // State
+    rotation: 0,
+    sinRot: 0,
+    cosRot: 1,
+    zoom: 698,
+    height: 0,
+    x: 0,
+    y: 0,
+    smoothPos: null, // {x, y}
+
+    // Constants
+    OFFSET: 550,
+
+    // Ring buffer for projection results to avoid GC
+    _projPool: [],
+    _projPoolIdx: 0,
+
+    init: function() {
+        for(var i=0; i<2048; i++) {
+            this._projPool.push({ x: 0, y: 0, scale: 0, depth: 0 });
+        }
+    },
+
+    update: function(targetX, targetY, vpW, vpH) {
+        // Initialize smooth pos if needed
+        if (!this.smoothPos) {
+            this.smoothPos = { x: targetX, y: targetY };
+            // Legacy global sync
+            window.g_camSmooth = this.smoothPos;
+        }
+
+        // Smooth Interpolation
+        const lerp = 0.1;
+        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
+        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+
+        // Snap
+        if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
+        if (Math.abs(targetY - this.smoothPos.y) < 1) this.smoothPos.y = targetY;
+
+        this.x = this.smoothPos.x;
+        this.y = this.smoothPos.y;
+
+        // Calculate Angle to Hoop
+        const dxToHoop = HOOP_POS.x - this.x;
+        const dyToHoop = HOOP_POS.y - this.y;
+        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+
+        this.rotation = -angleToHoop - Math.PI / 2;
+        this.sinRot = Math.sin(this.rotation);
+        this.cosRot = Math.cos(this.rotation);
+
+        // Zoom Logic
+        let baseZoom = isSplitscreen ? 450 : 698;
+        if (playerData.cameraZoomScale) {
+            baseZoom *= playerData.cameraZoomScale;
+        }
+
+        // Portrait Adjustment
+        if (vpH > vpW) {
+            baseZoom *= 2.0;
+        }
+        this.zoom = baseZoom;
+
+        // Height Logic
+        this.height = 130000 / this.zoom;
+        if (vpH > vpW) {
+            // Lift camera in portrait
+            this.height += vpH * 0.1;
+        }
+
+        // Sync to Legacy Global Cache for compatibility
+        if (!g_camCache) g_camCache = {};
+        g_camCache.rotation = this.rotation;
+        g_camCache.sinRot = this.sinRot;
+        g_camCache.cosRot = this.cosRot;
+        g_camCache.cameraZoom = this.zoom;
+        g_camCache.cameraHeight = this.height;
+        g_camCache.x = this.x;
+        g_camCache.y = this.y;
+
+        // Sync Global Variables (some rendering code uses these directly)
+        cameraZoom = this.zoom;
+        cameraHeight = this.height;
+    },
+
+    project: function(x, y, z, overrideCache) {
+        // Allow using a specific cache state (e.g. for static backgrounds or shadow maps)
+        // Otherwise use current state
+        let r, sin, cos, zoom, h, cx, cy;
+
+        if (overrideCache) {
+            r = overrideCache.rotation;
+            sin = overrideCache.sinRot;
+            cos = overrideCache.cosRot;
+            zoom = overrideCache.cameraZoom;
+            h = overrideCache.cameraHeight;
+            cx = overrideCache.x !== undefined ? overrideCache.x : this.x;
+            cy = overrideCache.y !== undefined ? overrideCache.y : this.y;
+        } else {
+            r = this.rotation;
+            sin = this.sinRot;
+            cos = this.cosRot;
+            zoom = this.zoom;
+            h = this.height;
+            cx = this.x;
+            cy = this.y;
+        }
+
+        // Fallback if not initialized (Startup)
+        if (zoom === undefined) {
+             const dxToHoop = HOOP_POS.x - player3D.x;
+             const dyToHoop = HOOP_POS.y - player3D.y;
+             zoom = 698;
+             h = 130000 / zoom;
+             const angle = Math.atan2(dyToHoop, dxToHoop);
+             r = -angle - Math.PI/2;
+             sin = Math.sin(r);
+             cos = Math.cos(r);
+             cx = player3D.x;
+             cy = player3D.y;
+        }
+
+        const dx = x - cx;
+        const dy = y - cy;
+        const rx = dx * cos - dy * sin;
+        const ry = dx * sin + dy * cos;
+
+        const depth = this.OFFSET - ry;
+        if (depth <= 0) return null;
+
+        const scale = zoom / depth;
+
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
+
+        const screenX = vpW / 2 + (rx * scale);
+        // Horizon Calculation (Fixed 0.38 factor)
+        const horizonY = (vpH - 120) * 0.38;
+        const screenY = horizonY + (h - z) * scale;
+
+        // Use Ring Buffer
+        if (this._projPool.length === 0) this.init();
+
+        const ret = this._projPool[this._projPoolIdx];
+        this._projPoolIdx = (this._projPoolIdx + 1) & 2047;
+
+        ret.x = screenX;
+        ret.y = screenY;
+        ret.scale = scale;
+        ret.depth = depth;
+        return ret;
+    }
+};
+
+RenderEngine.Queue = {
+    list: [],
+    pool: [],
+    poolIdx: 0,
+
+    init: function() {
+        for(let i=0; i<4096; i++) this.pool.push({});
+    },
+
+    clear: function() {
+        this.list.length = 0;
+        this.poolIdx = 0;
+    },
+
+    add: function(type, depth, x, y, scale) {
+        if (this.pool.length === 0) this.init();
+        if (this.poolIdx >= this.pool.length) this.pool.push({});
+
+        const obj = this.pool[this.poolIdx++];
+        obj.type = type;
+        obj.depth = depth;
+        obj.x = x;
+        obj.y = y;
+        obj.scale = scale;
+
+        // Reset properties that might cause issues if undefined
+        obj.ballRef = null;
+        obj.zoneType = null;
+        obj.variant = null;
+        obj.seed = 0;
+        obj.alpha = 1;
+        obj.color = null;
+        obj.z = 0;
+
+        this.list.push(obj);
+        return obj;
+    },
+
+    render: function(ctx) {
+        this.list.sort((a, b) => b.depth - a.depth);
+
+        for (let i = 0; i < this.list.length; i++) {
+            const obj = this.list[i];
+            if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
+            else if (obj.type === 'taco') drawTaco(obj);
+            else if (obj.type === 'hoop') drawHoop(obj);
+            else if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
+            else if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
+            else if (obj.type === 'player') PlayerRenderer.draw(obj);
+            else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
+            else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+            else if (obj.type === 'cat_shadow') drawSimpleShadow(obj);
+            else if (obj.type === 'text') drawFloatingText(obj);
+        }
+    }
+};
+
+function drawSimpleShadow(p) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 25 * p.scale, 10 * p.scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Initialize
+RenderEngine.Camera.init();
+RenderEngine.Queue.init();
+
+var BallRenderer = {
     _projResult: {x:0, y:0, z:0},
+    _noisePattern: null,
+
+    getNoise: function(ctx) {
+        if (this._noisePattern) return this._noisePattern;
+        var cvs = document.createElement('canvas');
+        cvs.width = 128; cvs.height = 128;
+        var c = cvs.getContext('2d');
+        // Generate pebbled leather texture
+        for(var i=0; i<1500; i++) {
+            var x = Math.random() * 128;
+            var y = Math.random() * 128;
+            var s = 1 + Math.random();
+            c.fillStyle = 'rgba(0,0,0,0.15)';
+            c.beginPath(); c.arc(x, y, s, 0, Math.PI*2); c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.05)';
+            c.beginPath(); c.arc(x+1, y+1, s, 0, Math.PI*2); c.fill();
+        }
+        this._noisePattern = ctx.createPattern(cvs, 'repeat');
+        return this._noisePattern;
+    },
 
     projectIso: function(p, r, cosR, sinR) {
         var ry = p.y * cosR - p.z * sinR;
@@ -11,10 +258,7 @@
 
         draw: function(ctx, x, y, scale, rotation, ball, phys) {
             // phys: {x, y, z, rotationX, rotationY, rotationZ}
-            if (phys && playerData.graphics === 'HIGH') {
-                this.draw3D(ctx, ball, phys);
-                return;
-            }
+            // 3D Ball removed in favor of high-quality 2D shader
 
             var radius = 25 * scale;
             if (radius < 1) return; // Cull if too small
@@ -26,7 +270,7 @@
             ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.clip();
 
             this.drawBackground(ctx, radius, ball);
-            this.drawPattern(ctx, radius, rotation, ball);
+            this.drawPattern(ctx, radius, rotation, ball, phys);
             this.drawLighting(ctx, radius, ball);
 
             // Border
@@ -414,136 +658,199 @@
         drawBackground: function(ctx, r, ball) {
             var type = ball.type || 'basketball';
 
-            if (type === 'soccer' || type === 'baseball' || type === 'golf') ctx.fillStyle = ball.color1;
-            else if (type === 'tennis') ctx.fillStyle = ball.color1;
-            else if (type === 'eyeball') ctx.fillStyle = '#EEE';
-            else if (type === 'bille8') ctx.fillStyle = '#000';
-            else if (type === 'donut') ctx.fillStyle = '#D2691E';
-            else if (type === 'watermelon') ctx.fillStyle = '#228B22';
-            else if (type === 'earth') ctx.fillStyle = '#0000FF';
-            else {
-                // Gradient default
-                var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.2, 0, 0, r);
+            // 1. Base Color Determination
+            var color = ball.color1;
+            if (type === 'eyeball') color = '#EEE';
+            else if (type === 'bille8') color = '#151515'; // Dark grey instead of pure black for shading visibility
+            else if (type === 'donut') color = '#D2691E';
+            else if (type === 'watermelon') color = '#228B22';
+            else if (type === 'earth') color = '#0000FF';
+
+            // 2. Base Diffuse Gradient (Under-shading)
+            // Creates a rich spherical base color
+            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
+
+            // Logic for gradients
+            if (['basketball', 'money', 'beach'].includes(type) && ball.color2) {
+                // Dual color balls rely on pattern, but base needs to be one of them or gradient
+                // Standard basketball uses gradient logic
                 grad.addColorStop(0, ball.color1);
                 grad.addColorStop(1, ball.color2);
-                ctx.fillStyle = grad;
+            } else {
+                // Single color balls
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, color);
             }
-            ctx.fillRect(-r, -r, r*2, r*2);
 
-            // Texture Noise
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+
+            // 3. Texture Overlay (Leather/Fuzz)
             if (ball.texture === 'leather' || ball.texture === 'fuzzy') {
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                // Reduce noise count for performance
-                var count = 10;
-                for(var i=0; i<count; i++) {
-                    ctx.fillRect((Math.random()-0.5)*2*r, (Math.random()-0.5)*2*r, 2, 2);
+                var pat = this.getNoise(ctx);
+                if (pat) {
+                    ctx.save();
+                    // Scale pattern relative to ball size (approx)
+                    // If r=25, scale 1. If r=50, scale 2.
+                    var s = r / 25;
+                    ctx.scale(s, s);
+
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = pat;
+                    // Draw large enough rect to cover circle (inverse scale)
+                    ctx.beginPath(); ctx.arc(0, 0, r/s, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
                 }
             }
         },
 
-        drawPattern: function(ctx, r, rot, ball) {
+        drawPattern: function(ctx, r, rot, ball, phys) {
             var type = ball.type || 'basketball';
             var cosR = Math.cos(rot);
             var sinR = Math.sin(rot);
             var self = this;
 
-            if (type === 'basketball') {
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-                ctx.lineWidth = 2 * (r/25);
+            // Pre-calculate rotation trig if physics available
+            var cx, sx, cy, sy, cz, sz;
+            if (phys) {
+                cx = Math.cos(phys.rotationX); sx = Math.sin(phys.rotationX);
+                cy = Math.cos(phys.rotationY); sy = Math.sin(phys.rotationY);
+                cz = Math.cos(phys.rotationZ); sz = Math.sin(phys.rotationZ);
+            }
 
-                // Draw Geometry.basketball
-                ctx.beginPath();
-                var first = true;
-                for(var i=0; i<Geometry.basketball.length; i++) {
-                     if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
-                     this.projectIso(Geometry.basketball[i], r, cosR, sinR);
-                     if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                     else ctx.lineTo(this._projResult.x, this._projResult.y);
+            // Helper to transform points using full 3D physics state if available
+            var transform = function(p) {
+                if (phys) {
+                    // Inline rotation logic to reuse trig values and avoid object allocation
+                    var x = p.x, y = p.y, z = p.z;
+                    // X Rotation
+                    var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
+                    // Y Rotation
+                    var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
+                    // Z Rotation
+                    tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
+
+                    self._projResult.x = x * r;
+                    self._projResult.y = y * r;
+                    self._projResult.z = z; // Z points out/in
+                } else {
+                    self.projectIso(p, r, cosR, sinR);
                 }
-                ctx.stroke();
+            };
+
+            if (type === 'basketball') {
+                // Draw Grooves (Highlight + Shadow)
+                var drawStrip = function(color, width, ox, oy) {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = width;
+                    ctx.beginPath();
+                    var first = true;
+                    for(var i=0; i<Geometry.basketball.length; i++) {
+                         if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
+                         transform(Geometry.basketball[i]);
+                         if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+                         else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+                    }
+                    ctx.stroke();
+                };
+
+                // Highlight (Rim of groove)
+                drawStrip('rgba(255,255,255,0.15)', 2 * (r/25), -0.5, -0.5);
+                // Shadow (The Groove)
+                drawStrip('rgba(0,0,0,0.7)', 2 * (r/25), 0, 0);
             }
             else if (type === 'soccer') {
                 ctx.fillStyle = ball.color2;
+                ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Panel seams
+                ctx.lineWidth = 1;
+
                 for(var i=0; i<Geometry.soccer.length; i++) {
                     var face = Geometry.soccer[i];
                     var avgZ = 0;
-                    // First pass: Z check
                     for(var j=0; j<face.length; j++) {
-                        this.projectIso(face[j], r, cosR, sinR);
-                        avgZ += this._projResult.z;
+                        transform(face[j]);
+                        avgZ += self._projResult.z;
                     }
 
                     if (avgZ > 0) {
                         ctx.beginPath();
-                        // Second pass: Draw
                         for(var k=0; k<face.length; k++) {
-                            this.projectIso(face[k], r, cosR, sinR);
-                            if (k === 0) ctx.moveTo(this._projResult.x, this._projResult.y);
-                            else ctx.lineTo(this._projResult.x, this._projResult.y);
+                            transform(face[k]);
+                            if (k === 0) ctx.moveTo(self._projResult.x, self._projResult.y);
+                            else ctx.lineTo(self._projResult.x, self._projResult.y);
                         }
                         ctx.closePath();
                         ctx.fill();
+                        ctx.stroke(); // Draw seam
                     }
                 }
             }
             else if (type === 'baseball' || type === 'tennis') {
-                ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
-                ctx.lineWidth = 3 * (r/25);
-                if (type === 'baseball') ctx.setLineDash([4, 3]);
+                var c = (type === 'baseball') ? '#FF0000' : '#FFF';
 
-                ctx.beginPath();
-                var first = true;
-                for(var i=0; i<Geometry.seam.length; i++) {
-                    this.projectIso(Geometry.seam[i], r, cosR, sinR);
-                    if (this._projResult.z > -0.5) {
-                        if (first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                        else ctx.lineTo(this._projResult.x, this._projResult.y);
-                    } else {
-                        first = true;
+                var drawSeam = function(col, w, ox, oy, dash) {
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = w;
+                    if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+                    ctx.beginPath();
+                    var first = true;
+                    for(var i=0; i<Geometry.seam.length; i++) {
+                        transform(Geometry.seam[i]);
+                        if (self._projResult.z > -0.5) {
+                            if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+                            else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+                        } else {
+                            first = true;
+                        }
                     }
-                }
-                ctx.stroke();
-                ctx.setLineDash([]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                };
+
+                // Drop Shadow for Thread
+                drawSeam('rgba(0,0,0,0.3)', 4 * (r/25), 1, 1, (type === 'baseball') ? [4, 3] : []);
+                // Thread
+                drawSeam(c, 3 * (r/25), 0, 0, (type === 'baseball') ? [4, 3] : []);
             }
             else if (type === 'golf') {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 for(var i=0; i<Geometry.dimples.length; i++) {
-                    this.projectIso(Geometry.dimples[i], r, cosR, sinR);
-                    if (this._projResult.z > 0) {
-                        ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
+                    transform(Geometry.dimples[i]);
+                    if (self._projResult.z > 0) {
+                        ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
             else if (type === 'bille8') {
-                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
-                if (this._projResult.z > 0) {
+                transform({x:0, y:0, z:1});
+                if (self._projResult.z > 0) {
                     ctx.fillStyle = '#FFF';
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold ' + (r*0.6) + 'px Arial';
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText('8', this._projResult.x, this._projResult.y);
+                    ctx.fillText('8', self._projResult.x, self._projResult.y);
                 }
             }
             else if (type === 'bowling') {
                  var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
                  ctx.fillStyle = '#111';
                  holes.forEach(function(h) {
-                     self.projectIso(h, r, cosR, sinR);
+                     transform(h);
                      if (self._projResult.z > 0) {
                          ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.12, 0, Math.PI*2); ctx.fill();
                      }
                  });
             }
             else if (type === 'eyeball') {
-                this.projectIso({x:0, y:0, z:1}, r, cosR, sinR);
-                if (this._projResult.z > 0) {
+                transform({x:0, y:0, z:1});
+                if (self._projResult.z > 0) {
                     ctx.fillStyle = ball.color2;
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = '#000';
-                    ctx.beginPath(); ctx.arc(this._projResult.x, this._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
                     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.beginPath(); ctx.arc(this._projResult.x - r*0.15, this._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
                 }
             }
             else if (type === 'beach') {
@@ -556,10 +863,10 @@
                      ctx.beginPath();
                      var line = Geometry.beach[s];
                      for(var i=0; i<line.length; i++) {
-                         this.projectIso(line[i], r, cosR, sinR);
-                         if (this._projResult.z > -0.2) {
-                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                             else ctx.lineTo(this._projResult.x, this._projResult.y);
+                         transform(line[i]);
+                         if (self._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+                             else ctx.lineTo(self._projResult.x, self._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -568,8 +875,8 @@
                 ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
             }
             else if (type === 'donut') {
-                 this.projectIso({x:0, y:-0.9, z:0}, r, cosR, sinR);
-                 var cx = this._projResult.x; var cy = this._projResult.y; var cz = this._projResult.z;
+                 transform({x:0, y:-0.9, z:0});
+                 var cx = self._projResult.x; var cy = self._projResult.y; var cz = self._projResult.z;
                  if (cz > -r) {
                      ctx.fillStyle = ball.color1;
                      ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI*2); ctx.fill();
@@ -590,10 +897,10 @@
                      var first = true;
                      var line = Geometry.watermelon[s];
                      for(var i=0; i<line.length; i++) {
-                         this.projectIso(line[i], r, cosR, sinR);
-                         if(this._projResult.z > -0.2) {
-                             if(first) { ctx.moveTo(this._projResult.x, this._projResult.y); first=false; }
-                             else ctx.lineTo(this._projResult.x, this._projResult.y);
+                         transform(line[i]);
+                         if(self._projResult.z > -0.2) {
+                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+                             else ctx.lineTo(self._projResult.x, self._projResult.y);
                          } else first = true;
                      }
                      ctx.stroke();
@@ -604,7 +911,7 @@
                 var patches = [1,2,3,4];
                 patches.forEach(function(i) {
                     var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
-                    self.projectIso(p, r, cosR, sinR);
+                    transform(p);
                     if (self._projResult.z > 0) {
                         ctx.beginPath();
                         ctx.arc(self._projResult.x, self._projResult.y, r * 0.4, 0, Math.PI*2);
@@ -617,7 +924,7 @@
                  var continents = [0, 2, 4];
                  continents.forEach(function(i) {
                     var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
-                    self.projectIso(p, r, cosR, sinR);
+                    transform(p);
                      if (self._projResult.z > 0) {
                         ctx.beginPath();
                         ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2);
@@ -629,17 +936,39 @@
 
         drawLighting: function(ctx, r, ball) {
             var shininess = ball.shininess || 0.3;
-            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, -r*0.3, -r*0.3, r*1.2);
-            grad.addColorStop(0, 'rgba(255,255,255,' + shininess + ')');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0)');
-            ctx.fillStyle = grad;
+
+            // 1. Core Shadow (Volume)
+            // Darken bottom-right
+            var shadowGrad = ctx.createRadialGradient(-r*0.2, -r*0.2, r*0.4, 0, 0, r*1.1);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(0.6, 'rgba(0,0,0,0.1)'); // Mid-tone falloff
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Deep shadow edge
+            ctx.fillStyle = shadowGrad;
             ctx.fill();
 
-            var shadow = ctx.createRadialGradient(0, 0, r*0.8, 0, 0, r);
-            shadow.addColorStop(0, 'rgba(0,0,0,0)');
-            shadow.addColorStop(1, 'rgba(0,0,0,0.4)');
-            ctx.fillStyle = shadow;
+            // 2. Specular Highlight (Key Light)
+            // Sharp reflection at top-left
+            var spotX = -r * 0.35;
+            var spotY = -r * 0.35;
+            var specGrad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, r * 0.8);
+            specGrad.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, shininess + 0.3) + ')'); // Hotspot
+            specGrad.addColorStop(0.15, 'rgba(255,255,255,' + (shininess) + ')');
+            specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = specGrad;
             ctx.fill();
+
+            // 3. Rim Light (Bounce Light)
+            // Subtle reflection from ground at the very bottom
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI*2);
+            ctx.clip();
+            var rimGrad = ctx.createLinearGradient(0, r*0.6, 0, r);
+            rimGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            rimGrad.addColorStop(1, 'rgba(200,220,255,0.3)'); // Cool bounce light
+            ctx.fillStyle = rimGrad;
+            ctx.fillRect(-r, r*0.6, r*2, r*0.4);
+            ctx.restore();
         }
     };
     function drawShotMeter(cx, cy, radius, s, progress, greenStart, shape, greenEnd) {
@@ -769,69 +1098,48 @@
     function resizeGame() {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
-        // Target 16:9 ratio (1066x600)
-        // If we want NO gap, we should cover. But "filling up" often implies "contain" without bars if ratio matches.
-        // The user said "16:9 equivalent ... no distortion ... filling up screen".
-        // Since most phones are wider than 16:9, we should stick to CONTAIN logic (Math.min) to ensure everything is visible.
-        // However, removing the 0.95 margin (done previously) is key.
-        const scale = Math.min(winW / 1066, winH / 600);
-        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        const dpr = window.devicePixelRatio || 1;
+
+        // Set Physical Resolution
+        canvas.width = Math.ceil(winW * dpr);
+        canvas.height = Math.ceil(winH * dpr);
+
+        // Set CSS Size to Fill Window
+        canvas.style.width = winW + 'px';
+        canvas.style.height = winH + 'px';
+
+        // Override Container Styles to Fill Screen
+        if (container) {
+            container.style.width = '100%';
+            container.style.height = '100%';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.transform = 'none';
+        }
+
+        // Calculate Resolution Scale
+        // In portrait, fit width. In landscape, fit height.
+        if (winW < winH) {
+            // Portrait
+            // Fit logical width (e.g. 1066) to screen width
+            window.RESOLUTION_SCALE = canvas.width / 1066;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = canvas.height / window.RESOLUTION_SCALE;
+        } else {
+            // Landscape (Original logic)
+            // Fit logical height (600) to screen height
+            window.RESOLUTION_SCALE = canvas.height / 600;
+            window.LOGICAL_HEIGHT = 600;
+            window.LOGICAL_WIDTH = canvas.width / window.RESOLUTION_SCALE;
+        }
+
         invalidateBackgroundCache();
     }
     window.addEventListener('resize', resizeGame);
 
-    var g_projPool = [];
-    var g_projPoolIdx = 0;
-    // Ring buffer size 2048 to safely handle all transient projections per frame
-    for(var i=0; i<2048; i++) g_projPool.push({ x: 0, y: 0, scale: 0, depth: 0 });
-
+    // Global Project Wrapper (Delegates to Camera)
     function project(x, y, z, cache) {
-        let rotation, sinRot, cosRot;
-
-        if (cache) {
-            rotation = cache.rotation;
-            sinRot = cache.sinRot;
-            cosRot = cache.cosRot;
-            cameraZoom = cache.cameraZoom;
-            cameraHeight = cache.cameraHeight;
-        } else if (g_camCache) {
-            rotation = g_camCache.rotation;
-            sinRot = g_camCache.sinRot;
-            cosRot = g_camCache.cosRot;
-            cameraZoom = g_camCache.cameraZoom;
-            cameraHeight = g_camCache.cameraHeight;
-        } else {
-            const dxToHoop = HOOP_POS.x - player3D.x;
-            const dyToHoop = HOOP_POS.y - player3D.y;
-            cameraZoom = 698;
-            cameraHeight = 130000 / cameraZoom;
-            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-            rotation = -angleToHoop - Math.PI/2;
-            sinRot = Math.sin(rotation);
-            cosRot = Math.cos(rotation);
-        }
-
-        let camX = player3D.x;
-        let camY = player3D.y;
-        if (cache && cache.x !== undefined) { camX = cache.x; camY = cache.y; }
-        else if (g_camCache && g_camCache.x !== undefined) { camX = g_camCache.x; camY = g_camCache.y; }
-
-        const dx = x - camX; const dy = y - camY;
-        const rx = dx * cosRot - dy * sinRot;
-        const ry = dx * sinRot + dy * cosRot;
-        const cameraOffset = 550; const depth = cameraOffset - ry;
-        if (depth <= 0) return null;
-        const scale = cameraZoom / depth;
-        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
-        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
-        const screenX = vpW / 2 + (rx * scale);
-        const horizonY = (vpH - 120) * 0.38;
-        const screenY = horizonY + (cameraHeight - z) * scale;
-
-        var ret = g_projPool[g_projPoolIdx];
-        g_projPoolIdx = (g_projPoolIdx + 1) & 2047;
-        ret.x = screenX; ret.y = screenY; ret.scale = scale; ret.depth = depth;
-        return ret;
+        return RenderEngine.Camera.project(x, y, z, cache);
     }
 
     // --- 4. DRAWING FUNCTIONS ---
@@ -939,8 +1247,283 @@
 
     const weather = new WeatherSystem();
 
+    // Aquatic Life System
+    class AquaticLifeSystem {
+        constructor() {
+            this.entities = [];
+            this.timer = 0;
+            // Pre-populate with surface objects (Occasional activity)
+            for(let i=0; i<2; i++) this.spawnEntity(true);
+        }
+
+        spawnEntity(randomX = false) {
+            const isLeft = Math.random() > 0.5;
+            const u = randomX ? Math.random() : (isLeft ? -0.1 : 1.1);
+            const v = 0.1 + Math.random() * 0.9; // Keep away from horizon line slightly
+            const dir = isLeft ? 1 : -1;
+
+            // Selection Logic
+            const r = Math.random();
+            let type = 'duck';
+            let category = 'bird'; // bird, jumper
+
+            if (r < 0.5) {
+                // BIRDS (50%)
+                const opts = ['duck', 'swan', 'seagull'];
+                type = opts[Math.floor(Math.random() * opts.length)];
+                category = 'bird';
+            } else {
+                // JUMPERS (50%)
+                const opts = ['whale', 'dolphin', 'fish'];
+                type = opts[Math.floor(Math.random() * opts.length)];
+                category = 'jumper';
+            }
+
+            // Speed tuning
+            let speedBase = 0.05;
+            if (category === 'jumper') speedBase = 0.08;
+
+            const speed = (speedBase + Math.random() * 0.02) * dir;
+
+            const entity = {
+                u: u,
+                v: v,
+                speed: speed,
+                type: type,
+                category: category,
+                wobbleOffset: Math.random() * Math.PI * 2,
+                // Jumper specific
+                jumpPhase: 0, // 0 to PI
+                jumpHeightMult: (type === 'whale' ? 1.5 : (type === 'fish' ? 0.5 : 1.0)),
+                hasSplashed: false
+            };
+
+            this.entities.push(entity);
+        }
+
+        update(dt) {
+            // Spawn Rate: "Occasional"
+            // ~1 every 10 seconds
+            this.timer += dt;
+            if (this.timer > 300) {
+                if (Math.random() < 0.5) this.spawnEntity();
+                this.timer = 0;
+            }
+
+            for (let i = this.entities.length - 1; i >= 0; i--) {
+                let e = this.entities[i];
+                e.u += e.speed * 0.005 * dt;
+
+                // Jumper Logic
+                if (e.category === 'jumper') {
+                    // Jump arc logic: Use a portion of the screen width as the "jump zone"
+                    // Or just cycle phase based on time
+                    e.jumpPhase += Math.abs(e.speed) * 0.2 * dt;
+                    // Reset phase to loop jumps? Or just jump once?
+                    // Let's loop jumps for dolphins/fish, but make them submerge for a bit.
+                    if (e.jumpPhase > Math.PI * 2) { // Period includes submerged time
+                        e.jumpPhase = 0;
+                        e.hasSplashed = false;
+                    }
+                }
+
+                // Despawn
+                if (e.u < -0.3 || e.u > 1.3) {
+                    this.entities.splice(i, 1);
+                }
+            }
+        }
+
+        draw(ctx, horizonY, riverBottomY, vpW) {
+            const riverH = riverBottomY - horizonY;
+            if (riverH <= 0) return;
+
+            // Draw River Base
+            const grad = ctx.createLinearGradient(0, horizonY, 0, riverBottomY);
+            grad.addColorStop(0, '#87CEEB');
+            grad.addColorStop(1, '#1E90FF');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, horizonY, vpW, riverH);
+
+            // Sparkles
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            for(let i=0; i<15; i++) {
+                const time = Date.now() * 0.001;
+                const x = (Math.sin(i * 132 + time) * 0.5 + 0.5) * vpW;
+                const y = horizonY + (Math.cos(i * 54 + time) * 0.5 + 0.5) * riverH;
+                if (Math.random() > 0.95) ctx.fillRect(x, y, 2, 2);
+            }
+
+            // Sort by depth (v)
+            const sorted = this.entities.slice().sort(function(a,b){ return a.v - b.v; });
+            const self = this;
+
+            sorted.forEach(function(b) {
+                const yBase = horizonY + b.v * riverH;
+                const x = b.u * vpW;
+                const scale = 0.3 + b.v * 0.7;
+                let size = 30 * scale; // Base size unit
+
+                // Vertical Offset calculation
+                let offsetY = 0;
+                let rotation = 0;
+                let isSubmerged = false;
+
+                if (b.category === 'jumper') {
+                    // Jump Logic: Sin wave where 0->PI is Jump, PI->2PI is Submerged
+                    const phase = b.jumpPhase % (Math.PI * 2);
+
+                    if (phase < Math.PI) {
+                        // In Air
+                        const h = Math.sin(phase);
+                        offsetY = -h * 60 * scale * b.jumpHeightMult;
+
+                        // Rotate to follow arc
+                        // derivative of sin is cos
+                        const slope = Math.cos(phase);
+                        rotation = -slope * 0.8;
+
+                        // Splash on entry/exit (approx)
+                        if (phase < 0.2 || phase > 2.9) {
+                            // Draw Splash
+                            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                            for(let k=0; k<3; k++) {
+                                ctx.beginPath();
+                                ctx.arc(x + (Math.random()-0.5)*10*scale, yBase, 3*scale, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+                        }
+
+                        // Whale Spout at apex
+                        if (b.type === 'whale' && phase > 1.4 && phase < 1.7) {
+                            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                            const sx = x;
+                            const sy = yBase + offsetY - 10*scale; // Top of whale
+                            // Draw spray
+                            for(let s=0; s<5; s++) {
+                                ctx.beginPath();
+                                ctx.arc(sx + (Math.random()-0.5)*10*scale, sy - 15*scale - Math.random()*15*scale, 2*scale, 0, Math.PI*2);
+                                ctx.fill();
+                            }
+                        }
+
+                    } else {
+                        isSubmerged = true;
+                    }
+                } else {
+                    // Floating wobble
+                    offsetY = Math.sin(Date.now() * 0.005 + b.wobbleOffset) * 2 * scale;
+                }
+
+                if (isSubmerged) return;
+
+                const drawY = yBase + offsetY;
+
+                ctx.save();
+                ctx.translate(x, drawY);
+                if (b.speed < 0) ctx.scale(-1, 1);
+                if (rotation !== 0) ctx.rotate(rotation);
+
+                // --- DRAWING LOGIC ---
+
+                // BIRDS
+                if (b.type === 'duck') {
+                    // Improved Duck
+                    // Body
+                    ctx.fillStyle = '#FFD700'; // Gold
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.4, size*0.25, 0, 0, Math.PI*2); ctx.fill();
+                    // Wing
+                    ctx.fillStyle = '#DAA520'; // Darker Gold
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.25, size*0.15, 0.2, 0, Math.PI*2); ctx.fill();
+                    // Head
+                    ctx.fillStyle = '#FFD700'; // Green head for mallard? Or classic rubber duck yellow? User said "ugly as shit", assuming generic duck. Let's do Mallard style for variety? No, Classic Yellow or White is safer.
+                    ctx.fillStyle = '#006400'; // Mallard Green Head
+                    ctx.beginPath(); ctx.arc(size*0.3, -size*0.25, size*0.15, 0, Math.PI*2); ctx.fill();
+                    // Neck ring
+                    ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*scale;
+                    ctx.beginPath(); ctx.arc(size*0.3, -size*0.25, size*0.15, 0.5, 2.5); ctx.stroke();
+                    // Bill
+                    ctx.fillStyle = '#FFA500';
+                    ctx.beginPath(); ctx.moveTo(size*0.4, -size*0.25); ctx.lineTo(size*0.6, -size*0.2); ctx.lineTo(size*0.4, -size*0.15); ctx.fill();
+                }
+                else if (b.type === 'swan') {
+                    ctx.fillStyle = '#FFF';
+                    // Body
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.5, size*0.3, 0, 0, Math.PI*2); ctx.fill();
+                    // Neck (S curve)
+                    ctx.lineWidth = size*0.15; ctx.strokeStyle = '#FFF'; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(size*0.3, -size*0.1);
+                    ctx.bezierCurveTo(size*0.6, -size*0.4, size*0.1, -size*0.6, size*0.4, -size*0.8); ctx.stroke();
+                    // Head
+                    ctx.beginPath(); ctx.arc(size*0.4, -size*0.8, size*0.12, 0, Math.PI*2); ctx.fill();
+                    // Beak
+                    ctx.fillStyle = '#FFA500';
+                    ctx.beginPath(); ctx.moveTo(size*0.5, -size*0.8); ctx.lineTo(size*0.65, -size*0.75); ctx.lineTo(size*0.5, -size*0.7); ctx.fill();
+                }
+                else if (b.type === 'seagull') {
+                    ctx.fillStyle = '#EEE';
+                    // Body
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.3, size*0.15, 0, 0, Math.PI*2); ctx.fill();
+                    // Head
+                    ctx.beginPath(); ctx.arc(size*0.2, -size*0.2, size*0.1, 0, Math.PI*2); ctx.fill();
+                    // Beak
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath(); ctx.moveTo(size*0.3, -size*0.2); ctx.lineTo(size*0.4, -size*0.15); ctx.lineTo(size*0.3, -size*0.1); ctx.fill();
+                }
+
+                // JUMPERS
+                else if (b.type === 'whale') {
+                    // Big Grey Body
+                    ctx.fillStyle = '#708090'; // SlateGrey
+                    ctx.beginPath();
+                    // Curved body
+                    ctx.moveTo(-size*1.2, 0);
+                    ctx.quadraticCurveTo(0, -size*0.8, size*0.8, 0); // Back
+                    ctx.quadraticCurveTo(0, size*0.5, -size*1.2, 0); // Belly
+                    ctx.fill();
+                    // Tail Flukes
+                    ctx.beginPath(); ctx.moveTo(-size*1.2, 0); ctx.lineTo(-size*1.5, -size*0.3); ctx.lineTo(-size*1.5, size*0.3); ctx.fill();
+                    // Eye
+                    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(size*0.4, -size*0.1, size*0.05, 0, Math.PI*2); ctx.fill();
+                    // Belly stripes
+                    ctx.strokeStyle = '#A9A9A9'; ctx.lineWidth = 1*scale;
+                    ctx.beginPath(); ctx.moveTo(-size*0.5, size*0.1); ctx.lineTo(size*0.2, size*0.1); ctx.stroke();
+                }
+                else if (b.type === 'dolphin') {
+                    ctx.fillStyle = '#B0C4DE'; // LightSteelBlue
+                    // Streamlined body
+                    ctx.beginPath();
+                    ctx.moveTo(-size, 0);
+                    ctx.quadraticCurveTo(0, -size*0.5, size, 0); // Top
+                    ctx.quadraticCurveTo(0, size*0.3, -size, 0); // Bottom
+                    ctx.fill();
+                    // Dorsal Fin
+                    ctx.beginPath(); ctx.moveTo(-size*0.1, -size*0.3); ctx.lineTo(size*0.1, -size*0.6); ctx.lineTo(size*0.2, -size*0.3); ctx.fill();
+                    // Snout
+                    ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(size*1.2, 0.1); ctx.lineTo(size, 0.2); ctx.fill();
+                }
+                else if (b.type === 'fish') {
+                    ctx.fillStyle = '#FFA07A'; // Salmon
+                    ctx.beginPath(); ctx.ellipse(0, 0, size*0.3, size*0.15, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#FF4500';
+                    ctx.beginPath(); ctx.moveTo(-size*0.3, 0); ctx.lineTo(-size*0.45, -size*0.15); ctx.lineTo(-size*0.45, size*0.15); ctx.fill();
+                }
+
+                ctx.restore();
+            });
+        }
+    }
+
+    const boatSystem = new AquaticLifeSystem();
+
     function drawBroadcastLowerThird() {
-        const h = 120;
+        const dpr = window.devicePixelRatio || 1;
+        const isPortrait = canvas.width < canvas.height;
+        // Scale down broadcast HUD in portrait to match CSS UI scale (0.8) and prevent crowding
+        const s = dpr * (isPortrait ? 0.8 : 1.0);
+
+        const h = 60 * s; // Height scaled by DPI
+        const w = canvas.width;
         const y = canvas.height - h;
 
         // 1. Background Bar (Glossy Dark)
@@ -949,75 +1532,80 @@
         bgGrad.addColorStop(0.5, '#151515');
         bgGrad.addColorStop(1, '#0a0a0a');
         ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, y, canvas.width, h);
+        ctx.fillRect(0, y, w, h);
 
         // Top Border (Gold)
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, canvas.width, 4);
+        ctx.fillRect(0, y, w, 4 * s);
 
-        // NBA Logo (Bottom Left Corner)
-        // Red/Blue/Silhouette
-        const lX = 20; const lY = canvas.height - 40;
-        const lW = 15; const lH = 30;
+        // NBA Logo (Bottom Left Corner) - Scaled down
+        const lX = 20 * s; const lY = canvas.height - 30 * s;
+        const lW = 10 * s; const lH = 20 * s;
 
         ctx.fillStyle = '#C9082A'; // Red
         ctx.fillRect(lX, lY - lH/2, lW, lH);
         ctx.fillStyle = '#17408B'; // Blue
         ctx.fillRect(lX + lW, lY - lH/2, lW, lH);
-        // Silhouette (Simple curve)
+
+        // Silhouette (Simple curve) - Adjusted for smaller size
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.moveTo(lX + lW + 2, lY + lH/2 - 2);
-        ctx.lineTo(lX + lW - 4, lY - lH/2 + 5);
-        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 5, lY - lH/2 + 5);
-        ctx.lineTo(lX + lW + 2, lY + lH/2 - 2);
+        ctx.moveTo(lX + lW + 1 * s, lY + lH/2 - 1 * s);
+        ctx.lineTo(lX + lW - 2 * s, lY - lH/2 + 3 * s);
+        ctx.quadraticCurveTo(lX + lW, lY - lH/2, lX + lW + 3 * s, lY - lH/2 + 3 * s);
+        ctx.lineTo(lX + lW + 1 * s, lY + lH/2 - 1 * s);
         ctx.fill();
-        ctx.beginPath(); ctx.arc(lX + lW + 6, lY - lH/2 + 8, 2, 0, Math.PI*2); ctx.fill(); // Ball
+        ctx.beginPath(); ctx.arc(lX + lW + 4 * s, lY - lH/2 + 5 * s, 1.5 * s, 0, Math.PI*2); ctx.fill(); // Ball
 
         // 2. Content Logic
         const dist = 10 + (distanceLevel * 5);
         const scaleObj = getScaleObject(dist);
 
         // Fonts (using Canvas fonts that match CSS imports)
-        const fontTitle = "bold 14px 'Roboto Condensed', 'Arial Narrow', sans-serif";
-        const fontValue = "bold 36px 'Russo One', 'Impact', sans-serif";
-        const fontIcon = "50px Arial";
+        const fontTitle = `bold ${10 * s}px 'Roboto Condensed', 'Arial Narrow', sans-serif`;
+        const fontValue = `bold ${22 * s}px 'Russo One', 'Impact', sans-serif`;
+        const fontIcon = `${28 * s}px Arial`;
+        const fontName = `bold ${18 * s}px 'Roboto Condensed', sans-serif`;
+        const fontLive = `bold ${9 * s}px sans-serif`;
 
         // Center Separator
-        ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(canvas.width / 2, y + 20); ctx.lineTo(canvas.width / 2, canvas.height - 20); ctx.stroke();
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * s;
+        ctx.beginPath(); ctx.moveTo(w / 2, y + 10 * s); ctx.lineTo(w / 2, canvas.height - 10 * s); ctx.stroke();
+
+        const rowTitleY = y + 20 * s;
+        const rowValueY = y + 48 * s;
 
         if (currentGameMode === 'CLASSIC') {
             // LEFT SIDE: Record & Current Distance
             // Record
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("RECORD", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(playerData.highScore + " ft", canvas.width / 2 - 250, y + 85);
+            ctx.fillText(playerData.highScore + " ft", w / 2 - 180 * s, rowValueY);
 
             // Current Distance
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("CURRENT DISTANCE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("CURRENT DISTANCE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(dist + " ft", canvas.width / 2 - 25, y + 85);
+            ctx.fillText(dist + " ft", w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: Comparison
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCALE EQUIVALENT", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("SCALE EQUIVALENT", w / 2 + 25 * s, rowTitleY);
 
             // Icon
             ctx.textAlign = "center"; ctx.font = fontIcon;
-            const iconX = canvas.width / 2 + 65;
-            ctx.fillText(scaleObj.icon, iconX, y + 90);
+            const iconX = w / 2 + 45 * s;
+            ctx.fillText(scaleObj.icon, iconX, rowValueY);
 
             // Name
             ctx.textAlign = "left";
             ctx.fillStyle = "#FFD700"; // Gold
-            ctx.font = "bold 24px 'Roboto Condensed', sans-serif";
-            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 40, y + 85);
+            ctx.font = fontName;
+            ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25 * s, rowValueY - 2 * s);
         }
         else if (currentGameMode === 'CONTEST') {
             const time = Math.ceil(contestData.timer);
@@ -1026,23 +1614,23 @@
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("TIME", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+            ctx.fillText(time, w / 2 - 180 * s, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("SCORE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(contestData.score, canvas.width / 2 - 25, y + 85);
+            ctx.fillText(contestData.score, w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: RACK
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RACK", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("RACK", w / 2 + 25 * s, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText(contestData.rack + " / 5", canvas.width / 2 + 25, y + 85);
+            ctx.fillText(contestData.rack + " / 5", w / 2 + 25 * s, rowValueY);
         }
         else if (currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
@@ -1051,29 +1639,49 @@
             // Time
             ctx.textAlign = "right";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("TIME", canvas.width / 2 - 250, y + 45);
+            ctx.fillText("TIME", w / 2 - 180 * s, rowTitleY);
             ctx.fillStyle = time <= 10 ? "#D32F2F" : "#fff"; ctx.font = fontValue;
-            ctx.fillText(time, canvas.width / 2 - 250, y + 85);
+            ctx.fillText(time, w / 2 - 180 * s, rowValueY);
 
             // Score
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("SCORE", canvas.width / 2 - 25, y + 45);
+            ctx.fillText("SCORE", w / 2 - 25 * s, rowTitleY);
             ctx.fillStyle = "#FFD700"; ctx.font = fontValue;
-            ctx.fillText(timeAttackData.score, canvas.width / 2 - 25, y + 85);
+            ctx.fillText(timeAttackData.score, w / 2 - 25 * s, rowValueY);
 
             // RIGHT SIDE: RECORD
             ctx.textAlign = "left";
             ctx.fillStyle = "#aaa"; ctx.font = fontTitle;
-            ctx.fillText("RECORD", canvas.width / 2 + 25, y + 45);
+            ctx.fillText("RECORD", w / 2 + 25 * s, rowTitleY);
 
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
-            ctx.fillText((playerData.timeAttackHighScore || 0), canvas.width / 2 + 25, y + 85);
+            ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * s, rowValueY);
         }
 
         // Live Indicator
-        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20, y + 20, 8, 8);
-        ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
-        ctx.fillText("LIVE", 35, y + 28);
+        ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * s, y + 10 * s, 6 * s, 6 * s);
+        ctx.fillStyle = "#fff"; ctx.font = fontLive; ctx.textAlign = "left";
+        ctx.fillText("LIVE", 30 * s, y + 16 * s);
+
+        // Cat XP Bar (Right of LIVE)
+        const exp = (playerData.basketCatExp || 0);
+        const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
+        const expPct = Math.min(1.0, exp / maxExp);
+        const xpX = 80 * s;
+        const xpY = y + 10 * s;
+        const xpW = 80 * s;
+        const xpH = 6 * s;
+
+        // Bg
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fillRect(xpX, xpY, xpW, xpH);
+        // Fill
+        ctx.fillStyle = "#FFA500"; // Orange
+        ctx.fillRect(xpX, xpY, xpW * expPct, xpH);
+        // Label
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.font = `bold ${6 * s}px sans-serif`;
+        ctx.fillText(`CAT LVL ${playerData.basketCatSkinIndex || 0}`, xpX, xpY - 2 * s);
     }
 
     function drawBallSprite(x, y, scale, isFire, rotation, phys) {
@@ -1098,17 +1706,29 @@
 
         BallRenderer.draw(ctx, x, y, scale * 0.32, rotation, ballObj, phys);
 
-        // Fire Effect Glow (Overlay)
+        // NBA Jam Fire Effect (Fireball)
         if (isFire) {
             ctx.save();
             ctx.translate(x, y);
-            var r = 8 * scale; // Match visual radius
-            var glow = ctx.createRadialGradient(0, 0, r, 0, 0, r * 2.0);
+            var r = 8 * scale;
             var hue = (typeof getStreakFireHue === 'function') ? getStreakFireHue(currentStreak || 10) : 30;
-            glow.addColorStop(0, 'hsla('+hue+', 100%, 50%, 0.6)');
-            glow.addColorStop(1, 'hsla('+hue+', 100%, 50%, 0)');
-            ctx.fillStyle = glow;
+
+            // 1. Intense Core Glow
+            var coreGlow = ctx.createRadialGradient(0, 0, r*0.5, 0, 0, r * 2.0);
+            coreGlow.addColorStop(0, '#FFF');
+            coreGlow.addColorStop(0.3, `hsl(${hue}, 100%, 70%)`);
+            coreGlow.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+            ctx.fillStyle = coreGlow;
             ctx.beginPath(); ctx.arc(0, 0, r * 2.0, 0, Math.PI*2); ctx.fill();
+
+            // 2. Random Flame Tongues (Visual Noise)
+            ctx.fillStyle = `hsla(${hue}, 100%, 60%, 0.6)`;
+            for(let k=0; k<8; k++) {
+                let ang = Math.random() * Math.PI * 2;
+                let dist = r * (1.0 + Math.random() * 0.8);
+                let size = r * (0.5 + Math.random() * 0.5);
+                ctx.beginPath(); ctx.arc(Math.cos(ang)*dist, Math.sin(ang)*dist, size, 0, Math.PI*2); ctx.fill();
+            }
             ctx.restore();
         }
     }
@@ -1117,56 +1737,61 @@
         if (!p) return;
         const targetBall = ballRef || ball; // Fallback for safety
 
-        // Draw Trail (High Graphics)
+        // Use Interpolated Physics if available
+        let phys = targetBall;
+        if (targetBall.renderX !== undefined) {
+             phys = {
+                 x: targetBall.renderX,
+                 y: targetBall.renderY,
+                 z: targetBall.renderZ,
+                 rotationX: targetBall.renderRotX || targetBall.rotationX,
+                 rotationY: targetBall.rotationY,
+                 rotationZ: targetBall.rotationZ
+             };
+        }
+
+        // Draw Trail (NBA Jam Style - Smoke/Fire Puffs)
         if (targetBall.isFire && targetBall.trail && targetBall.trail.length > 1 && playerData.graphics === 'HIGH') {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            for (let i = 0; i < targetBall.trail.length - 1; i++) {
-                const pt1 = targetBall.trail[i];
-                const pt2 = targetBall.trail[i+1];
+            for (let i = 0; i < targetBall.trail.length; i++) {
+                const pt = targetBall.trail[i];
+                const proj = project(pt.x, pt.y, pt.z, g_camCache);
 
-                // Project both points
-                const proj1 = project(pt1.x, pt1.y, pt1.z, g_camCache);
-                const proj2 = project(pt2.x, pt2.y, pt2.z, g_camCache);
-
-                if (proj1 && proj2) {
+                if (proj) {
                     const ratio = i / targetBall.trail.length; // 0 (oldest) to 1 (newest)
-                    const alpha = ratio * 0.6;
-                    ctx.lineWidth = (5 + 15 * ratio) * proj1.scale;
+                    const size = (25 - 15 * ratio) * proj.scale; // Old = big smoke, New = small fire
 
-                    // Fire Gradient color
-                    // Newest: Yellow/White, Middle: Orange, Oldest: Red/Trans
-                    let r = 255;
-                    let g = Math.floor(ratio * 200); // 0 to 200
-                    let b = 0;
-                    if(ratio > 0.8) { g = 255; b = Math.floor((ratio-0.8)*5 * 255); } // White hot tip
+                    // Color Logic: New=White/Yellow, Mid=Orange/Red, Old=Grey Smoke
+                    let color;
+                    if (ratio > 0.8) {
+                        // Core (Newest)
+                        color = `rgba(255, 255, ${Math.floor((ratio-0.8)*5*255)}, 0.9)`;
+                    } else if (ratio > 0.4) {
+                        // Fire (Mid)
+                        const green = Math.floor((ratio-0.4)*2.5 * 255);
+                        color = `rgba(255, ${green}, 0, 0.7)`;
+                    } else {
+                        // Smoke (Old)
+                        const grey = 50 + Math.floor(ratio*200);
+                        color = `rgba(${grey}, ${grey}, ${grey}, ${ratio * 0.5})`;
+                    }
 
-                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-
-                    // Add glow to trail
-                    ctx.shadowColor = `rgba(${r}, ${Math.floor(g/2)}, 0, 1)`;
-                    ctx.shadowBlur = 10 * proj1.scale;
-
+                    ctx.fillStyle = color;
                     ctx.beginPath();
-                    ctx.moveTo(proj1.x, proj1.y);
-                    ctx.lineTo(proj2.x, proj2.y);
-                    ctx.stroke();
-
-                    ctx.shadowBlur = 0;
+                    ctx.arc(proj.x, proj.y, size, 0, Math.PI*2);
+                    ctx.fill();
                 }
             }
         }
 
-        drawBallSprite(p.x, p.y, p.scale, targetBall.isFire, targetBall.rotationX, targetBall);
+        drawBallSprite(p.x, p.y, p.scale, targetBall.isFire, phys.rotationX, phys);
     }
 
     function getTempBallPhys(sx, sy, p) {
         if (playerData.graphics !== 'HIGH') return null;
 
-        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : canvas.width;
-        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : canvas.height;
+        const vpW = (g_viewport && g_viewport.w) ? g_viewport.w : window.LOGICAL_WIDTH;
+        const vpH = (g_viewport && g_viewport.h) ? g_viewport.h : window.LOGICAL_HEIGHT;
         const horizonY = (vpH - 120) * 0.38;
-
         const wz = g_camCache.cameraHeight - (sy - horizonY) / p.scale;
         const rx = (sx - vpW/2) / p.scale;
         const ry = 550 - p.depth;
@@ -1230,8 +1855,33 @@
 
     function drawSmoke(p, alpha, color) {
         const s = p.scale;
-        ctx.fillStyle = color || `rgba(220, 220, 220, ${alpha * 0.6})`;
+        const oldAlpha = ctx.globalAlpha;
+        if (color) {
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+        } else {
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.fillStyle = '#DCDCDC';
+        }
         ctx.beginPath(); ctx.arc(p.x, p.y, 15 * s, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = oldAlpha;
+    }
+
+    function drawFloatingText(p) {
+        const s = p.scale;
+        const oldAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = p.alpha;
+
+        ctx.font = `bold ${24 * s}px 'Russo One', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = p.color || '#FFD700';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3 * s;
+
+        ctx.strokeText(p.text, p.x, p.y);
+        ctx.fillText(p.text, p.x, p.y);
+
+        ctx.globalAlpha = oldAlpha;
     }
 
     // --- FUR & ANATOMY HELPERS ---
@@ -1246,7 +1896,7 @@
             if (!close && i === points.length - 1) break;
 
             const dist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
-            const segments = Math.max(2, Math.floor(dist / (4 * scale)));
+            const segments = Math.max(2, Math.floor(dist / (8 * scale)));
 
             if(i===0) ctx.moveTo(p1.x, p1.y);
 
@@ -1321,7 +1971,15 @@
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
     const g_circlePoints = [];
-    for(let i=0; i<CIRCLE_SEGS; i++) { g_circlePoints.push({x: 0, y: 0}); }
+    // Precomputed unit circle for performance (replaces trig in drawFuzzyCircle)
+    const g_circleCos = new Float32Array(CIRCLE_SEGS);
+    const g_circleSin = new Float32Array(CIRCLE_SEGS);
+    for(let i=0; i<CIRCLE_SEGS; i++) {
+        g_circlePoints.push({x: 0, y: 0});
+        const a = (i/CIRCLE_SEGS)*Math.PI*2;
+        g_circleCos[i] = Math.cos(a);
+        g_circleSin[i] = Math.sin(a);
+    }
 
     const g_limbPoints = [{x:0,y:0}, {x:0,y:0}, {x:0,y:0}, {x:0,y:0}];
 
@@ -1331,16 +1989,16 @@
                 // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
                 grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.2, c);
+                grad.addColorStop(0.3, c);
                 grad.addColorStop(1, '#000000'); // Shadow
                 // Blend with base color to avoid white/black takeover
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
 
                 // Overlay gradient
                 const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.3)');
+                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.4)');
                 gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.3)');
+                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.5)');
                 ctx.fillStyle = gradOverlay; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
@@ -1349,19 +2007,19 @@
         }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
-            const a = (i/CIRCLE_SEGS)*Math.PI*2;
+            // Use precomputed lookup (faster than Math.cos/sin)
             const p = g_circlePoints[i];
-            p.x = cx + Math.cos(a)*r;
-            p.y = cy + Math.sin(a)*r;
+            p.x = cx + g_circleCos[i]*r;
+            p.y = cy + g_circleSin[i]*r;
         }
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
         if (applyShading) {
             // Radial Shading Overlay
             const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.15)'); // Subtle Highlight
-            grad.addColorStop(0.6, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.4)'); // Shadow edge
+            grad.addColorStop(0, 'rgba(255,255,255,0.25)'); // Stronger Highlight
+            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.6)'); // Deeper Shadow edge
 
             ctx.save();
             ctx.beginPath();
@@ -1376,6 +2034,236 @@
             ctx.restore();
         }
     };
+
+    function drawContinuousLimb(p1, p2, p3, w1, w2, w3, color, scale, isFurry, seed = 1, options = {}) {
+        // Calculate segment vectors and angles
+        const dx1 = p2.x - p1.x; const dy1 = p2.y - p1.y;
+        const dx2 = p3.x - p2.x; const dy2 = p3.y - p2.y;
+        const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+        const len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+        const a1 = Math.atan2(dy1, dx1);
+        const a2 = Math.atan2(dy2, dx2);
+
+        // Normals
+        const n1 = a1 + Math.PI / 2;
+        const n2 = a2 + Math.PI / 2;
+
+        // Calculate offset points
+        // Start (P1)
+        const p1L = { x: p1.x + Math.cos(n1) * w1/2, y: p1.y + Math.sin(n1) * w1/2 };
+        const p1R = { x: p1.x - Math.cos(n1) * w1/2, y: p1.y - Math.sin(n1) * w1/2 };
+
+        // End (P3)
+        const p3L = { x: p3.x + Math.cos(n2) * w3/2, y: p3.y + Math.sin(n2) * w3/2 };
+        const p3R = { x: p3.x - Math.cos(n2) * w3/2, y: p3.y - Math.sin(n2) * w3/2 };
+
+        // Elbow/Knee (P2)
+        // Incoming segment end
+        const p2L_in = { x: p2.x + Math.cos(n1) * w2/2, y: p2.y + Math.sin(n1) * w2/2 };
+        const p2R_in = { x: p2.x - Math.cos(n1) * w2/2, y: p2.y - Math.sin(n1) * w2/2 };
+        // Outgoing segment start
+        const p2L_out = { x: p2.x + Math.cos(n2) * w2/2, y: p2.y + Math.sin(n2) * w2/2 };
+        const p2R_out = { x: p2.x - Math.cos(n2) * w2/2, y: p2.y - Math.sin(n2) * w2/2 };
+
+        // Miter/Corner point calculation for smooth outer elbow
+        // Vector average for angle bisector
+        let bx = Math.cos(n1) + Math.cos(n2);
+        let by = Math.sin(n1) + Math.sin(n2);
+        const blen = Math.sqrt(bx*bx + by*by);
+        if (blen > 0.01) { bx /= blen; by /= blen; }
+
+        // Check "sidedness" to see which side is outer
+        // Cross product of seg1 and seg2
+        const cross = dx1 * dy2 - dy1 * dx2;
+        const isRightTurn = cross > 0; // If > 0, turns right (in screen coords Y-down?)
+        // Screen coords: x right, y down.
+        // Right turn means outer side is Left side?
+
+        // We'll construct a path
+        const points = [];
+
+        // 1. Start Cap (Semi-circle approx)
+        if (!isFurry) {
+            // Manual curve points for start cap could be added, but for fuzzy path just points
+        }
+        points.push(p1L);
+
+        // 2. Elbow Left
+        points.push(p2L_in);
+        if (!isFurry) points.push(p2L_out); // Sharp transition for now, handled by curveTo later
+
+        // 3. End Left
+        points.push(p3L);
+
+        // 4. End Cap
+        points.push(p3R);
+
+        // 5. Elbow Right
+        points.push(p2R_out);
+        if (!isFurry) points.push(p2R_in);
+
+        // 6. Start Right
+        points.push(p1R);
+
+        if (isFurry) {
+            // Add intermediate points for fuzzy texture continuity
+            // Just pass the main outline points, drawFuzzyPath handles subdivision
+            drawFuzzyPath(points, color, scale, true, seed);
+
+            // Add shading
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            ctx.closePath();
+            ctx.clip();
+        } else {
+            ctx.beginPath();
+            // Start Cap
+            ctx.moveTo(p1L.x, p1L.y);
+            ctx.quadraticCurveTo(p1.x - Math.cos(a1)*w1*0.5, p1.y - Math.sin(a1)*w1*0.5, p1R.x, p1R.y);
+
+            // Upper Arm Side
+            ctx.lineTo(p2R_in.x, p2R_in.y);
+
+            // Elbow Outer/Inner
+            // Quadratic curve between IN and OUT points to smooth the joint
+            // Control point is intersection of lines? Or just the corner projection.
+            // Simple: Miter point
+            let miterLen = (w2/2) * 1.2;
+            const bisectAngle = Math.atan2(by, bx);
+            // We need to determine if we are drawing the Right side joint or Left side joint
+            // Since we are tracing P1R -> P2R, this is the "Right" side of the bone.
+            // If the arm bends right (cross > 0), the Right side is the Inner Elbow (crease).
+            // If the arm bends left (cross < 0), the Right side is the Outer Elbow (point).
+
+            // Actually, simpler logic:
+            // Curve from p2R_in to p2R_out
+            ctx.quadraticCurveTo(p2.x - Math.cos(bisectAngle)*miterLen, p2.y - Math.sin(bisectAngle)*miterLen, p2R_out.x, p2R_out.y);
+
+            // Forearm Side
+            ctx.lineTo(p3R.x, p3R.y);
+
+            // End Cap
+            ctx.quadraticCurveTo(p3.x + Math.cos(a2)*w3*0.5, p3.y + Math.sin(a2)*w3*0.5, p3L.x, p3L.y);
+
+            // Forearm Return
+            ctx.lineTo(p2L_out.x, p2L_out.y);
+
+            // Elbow Return
+            ctx.quadraticCurveTo(p2.x + Math.cos(bisectAngle)*miterLen, p2.y + Math.sin(bisectAngle)*miterLen, p2L_in.x, p2L_in.y);
+
+            // Upper Arm Return
+            ctx.lineTo(p1L.x, p1L.y);
+
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Clip for shading
+            ctx.save();
+            // OPTIMIZATION: Polygon clip instead of Bezier clip for performance
+            ctx.beginPath();
+            ctx.moveTo(p1L.x, p1L.y);
+            // Cap 1 (Approximate curve with 2 lines)
+            const cap1Mid = {x: p1.x - Math.cos(a1)*w1*0.5, y: p1.y - Math.sin(a1)*w1*0.5};
+            ctx.lineTo(cap1Mid.x, cap1Mid.y);
+            ctx.lineTo(p1R.x, p1R.y);
+            ctx.lineTo(p2R_in.x, p2R_in.y);
+            // Elbow Outer
+            const elbowOutMid = {x: p2.x - Math.cos(bisectAngle)*miterLen, y: p2.y - Math.sin(bisectAngle)*miterLen};
+            ctx.lineTo(elbowOutMid.x, elbowOutMid.y);
+            ctx.lineTo(p2R_out.x, p2R_out.y);
+            ctx.lineTo(p3R.x, p3R.y);
+            // Cap 2
+            const cap2Mid = {x: p3.x + Math.cos(a2)*w3*0.5, y: p3.y + Math.sin(a2)*w3*0.5};
+            ctx.lineTo(cap2Mid.x, cap2Mid.y);
+            ctx.lineTo(p3L.x, p3L.y);
+            ctx.lineTo(p2L_out.x, p2L_out.y);
+            // Elbow Inner
+            const elbowInMid = {x: p2.x + Math.cos(bisectAngle)*miterLen, y: p2.y + Math.sin(bisectAngle)*miterLen};
+            ctx.lineTo(elbowInMid.x, elbowInMid.y);
+            ctx.lineTo(p2L_in.x, p2L_in.y);
+            ctx.closePath();
+            ctx.clip();
+        }
+
+        // Texture Overlay
+        if (playerData.graphics === 'HIGH') {
+            const pat = getFabricPattern(ctx);
+            if (pat) {
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = pat;
+                // Fill entire bounds
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        // Apply Photorealistic Cartoon Shading (Rim Light + Volume)
+
+        // Upper Arm Shading
+        const grad1 = ctx.createLinearGradient(p1L.x, p1L.y, p1R.x, p1R.y);
+        grad1.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark edge
+        grad1.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad1.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Shine
+        grad1.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad1.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad1.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
+        ctx.fillStyle = grad1;
+
+        // Draw rect covering upper segment (slightly oversized to cover joint)
+        ctx.beginPath();
+        ctx.moveTo(p1L.x, p1L.y); ctx.lineTo(p2L_in.x, p2L_in.y); ctx.lineTo(p2R_in.x, p2R_in.y); ctx.lineTo(p1R.x, p1R.y);
+        ctx.fill();
+
+        // Forearm Shading
+        const grad2 = ctx.createLinearGradient(p2L_out.x, p2L_out.y, p2R_out.x, p2R_out.y);
+        grad2.addColorStop(0, 'rgba(0,0,0,0.6)');
+        grad2.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad2.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+        grad2.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad2.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad2.addColorStop(1, 'rgba(0,0,0,0.7)');
+        ctx.fillStyle = grad2;
+
+        ctx.beginPath();
+        ctx.moveTo(p2L_out.x, p2L_out.y); ctx.lineTo(p3L.x, p3L.y); ctx.lineTo(p3R.x, p3R.y); ctx.lineTo(p2R_out.x, p2R_out.y);
+        ctx.fill();
+
+        // Joint Occlusion Shadow (The crease)
+        // Draw a shadow gradient at the elbow crease
+        const creaseX = p2.x; const creaseY = p2.y;
+        const shadowR = w2 * 0.8;
+        const radGrad = ctx.createRadialGradient(creaseX, creaseY, 0, creaseX, creaseY, shadowR);
+        radGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = radGrad;
+        ctx.beginPath(); ctx.arc(creaseX, creaseY, shadowR, 0, Math.PI*2); ctx.fill();
+
+        // Pattern Overlay (e.g. Diagonal Stripes on Sleeve)
+        if (options.pattern === 'stripes_sleeve_diag') {
+             ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 3*scale;
+             const spacing = 10 * scale;
+             ctx.beginPath();
+             // Draw diagonal lines over the bounding box
+             const minX = Math.min(p1L.x, p1R.x, p3L.x, p3R.x) - 50*scale;
+             const maxX = Math.max(p1L.x, p1R.x, p3L.x, p3R.x) + 50*scale;
+             const minY = Math.min(p1L.y, p1R.y, p3L.y, p3R.y) - 50*scale;
+             const maxY = Math.max(p1L.y, p1R.y, p3L.y, p3R.y) + 50*scale;
+
+             for(let x = minX; x < maxX; x+=spacing) {
+                 ctx.moveTo(x, minY);
+                 ctx.lineTo(x - (maxY-minY), maxY);
+             }
+             ctx.stroke();
+        }
+
+        ctx.restore(); // End Clip
+    }
 
     function drawFuzzyLimb(x1, y1, x2, y2, width, color, scale, isFurry, seed = 1, endWidth = null) {
         if(!isFurry) {
@@ -1412,11 +2300,12 @@
 
         // Gradient: Dark edges, lighter center
         const grad3d = ctx.createLinearGradient(0, -w1, 0, w1);
-        grad3d.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark Edge
-        grad3d.addColorStop(0.3, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(0.5, 'rgba(255,255,255,0.15)'); // Highlight Center
-        grad3d.addColorStop(0.7, 'rgba(0,0,0,0.1)');
-        grad3d.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark Edge
+        grad3d.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark Edge
+        grad3d.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+        grad3d.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Highlight Center
+        grad3d.addColorStop(0.6, 'rgba(0,0,0,0)');
+        grad3d.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+        grad3d.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark Edge
 
         ctx.fillStyle = grad3d;
         ctx.beginPath();
@@ -1438,6 +2327,9 @@
         ctx.restore();
     }
 
+    // Cache for hat lookup (Memoization) to avoid Array.find every frame
+    const g_hatCache = new Map();
+
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
         const roundness = options.roundness || 0;
@@ -1452,6 +2344,7 @@
         const hipY = topY + h;
 
         let points = [];
+        let clothingW = w; // Track effective width for clothing overlays
 
         if (anchors && anchors.shoulders && anchors.hips) {
             const sl = anchors.shoulders.left;
@@ -1463,6 +2356,7 @@
                  const bellyY = topY + h * 0.55;
                  const hipY_adj = hr.y - h*0.05;
                  const bellyW = w * 1.45;
+                 clothingW = bellyW; // Bear is wide
 
                  points = [];
                  points.push(sl);
@@ -1482,6 +2376,7 @@
                  points.push({x: sl.x - (Math.abs(sl.x-cx) - bellyW/2)*0.25, y: sl.y + (bellyY - sl.y)*0.3});
             } else if (options.bodyShape === 'round') {
                  const bellyW = w * 1.9;
+                 clothingW = bellyW;
                  const bellyY = topY + h * 0.7;
                  points = [
                      sl, sr,
@@ -1502,6 +2397,7 @@
             } else if (options.bodyShape === 'heavy') {
                  // Elephant: Wide belly
                  const bellyW = w * 1.4;
+                 clothingW = bellyW;
                  points = [
                      sl, sr,
                      {x: cx + bellyW/2, y: topY + h*0.5},
@@ -1511,6 +2407,7 @@
             } else if (options.bodyShape === 'penguin') {
                  // Tear drop
                  const botW = w * 1.5;
+                 clothingW = botW;
                  points = [
                      sl, sr,
                      {x: cx + botW/2, y: hl.y - h*0.2},
@@ -1523,6 +2420,7 @@
                  let midWScale = 1.0;
                  if (options.bodyShape === 'oval') midWScale = 1.2;
                  else if (options.bodyShape === 'athletic_animal') midWScale = 0.9;
+                 clothingW = w * midWScale;
                  const midR = { x: cx + (w*midWScale)/2, y: midY };
                  const midL = { x: cx - (w*midWScale)/2, y: midY };
                  points = [sl, sr, midR, hr, hl, midL];
@@ -1535,6 +2433,7 @@
              const hipW = w * 1.25; // Rounded bottom
              const bellyY = topY + h * 0.55;
              const hipY_adj = hipY - h*0.05; // Slightly up to round bottom
+             clothingW = bellyW;
 
              // Dense Points for Smoothness (Fuzzy & Poly fallback)
              points = [];
@@ -1564,6 +2463,7 @@
              // Pig/Cow Shape: Narrow shoulders, wide belly/hips (Pear / Triangle)
              const shoulderW = w * 0.6;
              const bellyW = w * 1.9;
+             clothingW = bellyW;
              const hipW = w * 1.8;
              const bellyY = topY + h * 0.7;
 
@@ -1585,6 +2485,7 @@
              // Small Animal (Rat, Cat, etc.) - Simple Ovalish body
              const shoulderW = w * 0.9;
              const midW = w * 1.2;
+             clothingW = midW;
              const hipW = w * 1.0;
              const midY = topY + h * 0.5;
 
@@ -1624,6 +2525,7 @@
              // Elephant/Hippo - Boxy and wide
              const shoulderW = w * 1.3;
              const bellyW = w * 1.4;
+             clothingW = bellyW;
              const hipW = w * 1.3;
              points = [
                  {x: cx - shoulderW/2, y: shoulderY},
@@ -1638,6 +2540,7 @@
              // Tear drop
              const topW = w * 0.5;
              const botW = w * 1.5;
+             clothingW = botW;
              points = [
                  {x: cx - topW/2, y: shoulderY},
                  {x: cx + topW/2, y: shoulderY},
@@ -1648,28 +2551,189 @@
         }
         else {
             // Default Humanoid (Hourglass/Trapezoid)
-            points = [
-                {x: cx - sW/2, y: shoulderY},     // 0: Top Left
-                {x: cx + sW/2, y: shoulderY},     // 1: Top Right
-                {x: cx + wW/2, y: waistY},        // 2: Waist Right
-                {x: cx + hW/2, y: hipY},          // 3: Hip Right
-                {x: cx - hW/2, y: hipY},          // 4: Hip Left
-                {x: cx - wW/2, y: waistY}         // 5: Waist Left
-            ];
+            // Determine clothing fit
+            let fitType = 'standard'; // standard, baggy, boxy, fitted, robe
+            const ct = options.clothingType;
+            if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+            else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+            else if (ct === 'robe') fitType = 'robe';
+            else if (ct === 'poncho') fitType = 'poncho';
+            else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
 
-            if (isFurry && roundness > 0) {
-                 const rOffset = w * roundness;
-                 const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
-                 const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
-                 const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
-                 points = [ points[0], points[1], midR1, points[2], midR2, points[3], points[4], midL1, points[5], midL2 ];
+            // Modifier Scalars
+            let sMod = 1.0; // Shoulder Width Mod
+            let wMod = 1.0; // Waist Width Mod
+            let hMod = 1.0; // Hip Width Mod
+
+            // RADICAL SHAPE REDEFINITION
+            if (fitType === 'baggy') {
+                // PEAR SHAPE (Wide bottom, drooping shoulders)
+                const bagS = sW * 1.1; // Broad shoulders
+                const bagW = hW * 1.15; // Bulge wider than hips
+                clothingW = bagW;
+                const bagH = hW * 1.0; // Elastic hem matches hips
+
+                const dropY = shoulderY + h * 0.15; // Shoulders start lower/sloped
+                const hemY = hipY + h * 0.05; // Slightly longer
+
+                points = [
+                    {x: cx - bagS/2, y: dropY}, // Top Left (Dropped)
+                    {x: cx, y: shoulderY},      // Neck (Peak)
+                    {x: cx + bagS/2, y: dropY}, // Top Right (Dropped)
+
+                    {x: cx + bagW/2, y: waistY},         // Bulge Right
+                    {x: cx + bagH/2, y: hemY},           // Hip Right
+                    {x: cx - bagH/2, y: hemY},           // Hip Left
+                    {x: cx - bagW/2, y: waistY}          // Bulge Left
+                ];
             }
+            else if (fitType === 'boxy') {
+                // RECTANGLE SHAPE (Hard lines, no taper)
+                // Straight down from shoulders
+                const boxS = sW * 1.1;
+                clothingW = boxS;
+
+                points = [
+                    {x: cx - boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: shoulderY},
+                    {x: cx + boxS/2, y: hipY + h*0.05}, // Straight down
+                    {x: cx - boxS/2, y: hipY + h*0.05}  // Straight down
+                ];
+            }
+            else if (fitType === 'robe') {
+                // TRAPEZOID SHAPE (Flared bottom)
+                const robeTop = sW * 1.05;
+                const robeBot = hW * 1.5; // Dramatic flare
+                clothingW = robeBot;
+
+                points = [
+                    {x: cx - robeTop/2, y: shoulderY},
+                    {x: cx + robeTop/2, y: shoulderY},
+                    {x: cx + robeBot/2, y: hipY},
+                    {x: cx - robeBot/2, y: hipY}
+                ];
+            }
+            else if (fitType === 'poncho') {
+                // DIAMOND/TRIANGLE SHAPE
+                const ponchoTop = sW * 0.9;
+                const ponchoBot = hW * 2.0;
+                clothingW = ponchoBot;
+
+                points = [
+                    {x: cx - ponchoTop/2, y: shoulderY},
+                    {x: cx + ponchoTop/2, y: shoulderY},
+                    {x: cx + ponchoBot/2, y: hipY + h*0.2}, // Low corners
+                    {x: cx, y: hipY + h*0.5}, // Point at bottom center
+                    {x: cx - ponchoBot/2, y: hipY + h*0.2}
+                ];
+            }
+            else if (fitType === 'fitted') {
+                // V-SHAPE (Exaggerated taper)
+                const fitS = sW * 1.05;
+                const fitW = wW * 0.95; // Snatched waist (Relaxed)
+                const fitH = hW * 0.95;
+
+                points = [
+                    {x: cx - fitS/2, y: shoulderY},
+                    {x: cx + fitS/2, y: shoulderY},
+                    {x: cx + fitW/2, y: waistY},
+                    {x: cx + fitH/2, y: hipY},
+                    {x: cx - fitH/2, y: hipY},
+                    {x: cx - fitW/2, y: waistY}
+                ];
+            }
+            else {
+                // STANDARD (Hourglass/Trapezoid) + Anatomical refinement
+                if (options.animal === 'human' && !options.isJersey && playerData.graphics === 'HIGH') {
+                    // Detailed V-Taper for shirtless humans
+                    const armpitY = shoulderY + h * 0.15;
+                    const latY = shoulderY + h * 0.35;
+                    const armpitW = sW * 0.9;
+                    const latW = sW * 0.75; // V-taper
+
+                    points = [
+                        {x: cx - sW/2, y: shoulderY}, // TL
+                        {x: cx + sW/2, y: shoulderY}, // TR
+                        {x: cx + armpitW/2, y: armpitY}, // Armpit R
+                        {x: cx + latW/2, y: latY}, // Lat R
+                        {x: cx + wW/2, y: waistY}, // Waist R
+                        {x: cx + hW/2, y: hipY}, // Hip R
+                        {x: cx - hW/2, y: hipY}, // Hip L
+                        {x: cx - wW/2, y: waistY}, // Waist L
+                        {x: cx - latW/2, y: latY}, // Lat L
+                        {x: cx - armpitW/2, y: armpitY} // Armpit L
+                    ];
+                } else {
+                    // Simple shape for clothes/low graphics
+                    points = [
+                        {x: cx - sW/2, y: shoulderY},
+                        {x: cx + sW/2, y: shoulderY},
+                        {x: cx + wW/2, y: waistY},
+                        {x: cx + hW/2, y: hipY},
+                        {x: cx - hW/2, y: hipY},
+                        {x: cx - wW/2, y: waistY}
+                    ];
+                }
+
+                if (isFurry && roundness > 0) {
+                     const rOffset = w * roundness;
+                     const midR1 = { x: cx + wW/2 + rOffset, y: (shoulderY + waistY)/2 };
+                     const midR2 = { x: cx + hW/2 + rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL1 = { x: cx - hW/2 - rOffset*0.5, y: (waistY + hipY)/2 };
+                     const midL2 = { x: cx - wW/2 - rOffset, y: (shoulderY + waistY)/2 };
+                     // Reconstruct with curve points if needed, but fuzzy path handles points nicely
+                     // For now, keep simple points if fuzzy, let drawFuzzyPath smooth it.
+                     // Merging logic:
+                     points = [
+                        {x: cx - sW/2, y: shoulderY},
+                        {x: cx + sW/2, y: shoulderY},
+                        midR1,
+                        {x: cx + wW/2, y: waistY},
+                        midR2,
+                        {x: cx + hW/2, y: hipY},
+                        {x: cx - hW/2, y: hipY},
+                        midL1,
+                        {x: cx - wW/2, y: waistY},
+                        midL2
+                     ];
+                }
+            }
+        }
+
+        // Expand for Clothing (Animal Fix)
+        if (options.clothingType && options.clothingType !== 'none' && !isFurry && points.length > 2) {
+             const expansion = 3 * scale;
+             let centroidX = 0, centroidY = 0;
+             points.forEach(p => { centroidX+=p.x; centroidY+=p.y; });
+             centroidX /= points.length; centroidY /= points.length;
+
+             for(let i=0; i<points.length; i++) {
+                 const dx = points[i].x - centroidX;
+                 const dy = points[i].y - centroidY;
+                 const len = Math.sqrt(dx*dx + dy*dy);
+                 if(len > 0) {
+                     points[i].x += (dx/len) * expansion;
+                     points[i].y += (dy/len) * expansion;
+                 }
+             }
         }
 
         const drawPatterns = () => {
              const pat = options.pattern;
              const s = scale;
+
+             // Pinstripes (Overlay on top of any pattern or base)
+             if (options.pinstripesColor) {
+                 ctx.strokeStyle = options.pinstripesColor;
+                 ctx.lineWidth = 1 * s;
+                 const pinGap = 6 * s;
+                 ctx.beginPath();
+                 for (let i = pinGap/2; i < w; i += pinGap) {
+                      ctx.moveTo(cx - w/2 + i, topY);
+                      ctx.lineTo(cx - w/2 + i, topY + h);
+                 }
+                 ctx.stroke();
+             }
 
              // Patterns logic refactored from drawPlayer and clipped
              if(pat === 'tiger_stripes') {
@@ -1748,6 +2812,105 @@
                  ctx.strokeRect(cx - w*0.3, topY + h*0.2, w*0.6, h*0.4);
                  ctx.fillStyle = '#EEE'; ctx.fillRect(cx - w*0.2, topY + h*0.25, w*0.4, h*0.3);
              }
+             else if (pat === 'camo') {
+                 const c1 = '#556B2F'; const c2 = '#8B4513'; const c3 = '#2E8B57';
+                 for(let i=0; i<15; i++) {
+                     // Deterministic blobs
+                     const bx = cx - w/2 + (Math.abs(Math.sin(seed * 13 + i * 47)) * w);
+                     const by = topY + (Math.abs(Math.cos(seed * 7 + i * 29)) * h);
+                     const r = (5 + (Math.abs(Math.sin(i)) * 8)) * s;
+                     ctx.fillStyle = (i%2===0) ? c2 : c3;
+                     ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (pat === 'stripes_side') {
+                 const sc = options.sideStripesColor || options.chestStripeColor || '#FFF';
+                 const lw = 1.5*s;
+                 const gap = 2*s;
+
+                 ctx.strokeStyle = sc;
+                 ctx.lineWidth = lw;
+                 ctx.lineCap = 'butt';
+
+                 if (points && points.length >= 6 && (!options.bodyShape || options.bodyShape === 'human')) {
+                     for(let k=0; k<3; k++) {
+                         const offset = 2*s + k*(lw+gap);
+                         // Left Stripe (P0 -> P5 -> P4)
+                         ctx.beginPath();
+                         ctx.moveTo(points[0].x + offset, points[0].y);
+                         ctx.lineTo(points[5].x + offset, points[5].y);
+                         ctx.lineTo(points[4].x + offset, points[4].y);
+                         ctx.stroke();
+
+                         // Right Stripe (P1 -> P2 -> P3)
+                         ctx.beginPath();
+                         ctx.moveTo(points[1].x - offset, points[1].y);
+                         ctx.lineTo(points[2].x - offset, points[2].y);
+                         ctx.lineTo(points[3].x - offset, points[3].y);
+                         ctx.stroke();
+                     }
+                 } else {
+                     ctx.fillStyle = sc;
+                     for(let k=0; k<3; k++) {
+                         ctx.fillRect(cx - w/2 + 2*s + k*(lw+gap), topY, lw, h);
+                         ctx.fillRect(cx + w/2 - 2*s - (k+1)*(lw+gap), topY, lw, h);
+                     }
+                 }
+             }
+             else if (pat === 'galaxy') {
+                 // Stars
+                 ctx.fillStyle = '#FFF';
+                 for(let i=0; i<30; i++) {
+                     const sx = cx - w/2 + Math.abs(Math.sin(seed + i)) * w;
+                     const sy = topY + Math.abs(Math.cos(seed + i*2)) * h;
+                     const size = (Math.random() * 2 + 0.5) * s;
+                     ctx.globalAlpha = Math.random();
+                     ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+                 }
+                 ctx.globalAlpha = 1.0;
+                 // Nebulae
+                 ctx.fillStyle = 'rgba(255, 0, 255, 0.15)';
+                 ctx.beginPath(); ctx.arc(cx - w*0.2, topY + h*0.3, w*0.4, 0, Math.PI*2); ctx.fill();
+                 ctx.fillStyle = 'rgba(0, 255, 255, 0.15)';
+                 ctx.beginPath(); ctx.arc(cx + w*0.2, topY + h*0.7, w*0.3, 0, Math.PI*2); ctx.fill();
+             }
+             else if (pat === 'tie_dye') {
+                 const colors = ['#FF0000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF', '#FF00FF'];
+                 for(let i=0; i<6; i++) {
+                     ctx.beginPath();
+                     // Spiral approximation
+                     ctx.arc(cx, topY + h/2, w * (0.8 - i*0.12), 0, Math.PI*2);
+                     ctx.fillStyle = colors[i];
+                     ctx.fill();
+                 }
+             }
+             else if (pat === 'gradient_blue_pink') {
+                 const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY + h);
+                 grad.addColorStop(0, '#00FFFF');
+                 grad.addColorStop(1, '#FF69B4');
+                 ctx.fillStyle = grad;
+                 ctx.fillRect(cx - w/2, topY, w, h);
+             }
+             else if (pat === 'camo_shark') {
+                 // Camo Base
+                 const c1 = '#556B2F'; const c2 = '#8B4513'; const c3 = '#2E8B57';
+                 for(let i=0; i<15; i++) {
+                     const bx = cx - w/2 + (Math.abs(Math.sin(seed * 13 + i * 47)) * w);
+                     const by = topY + (Math.abs(Math.cos(seed * 7 + i * 29)) * h);
+                     const r = (5 + (Math.abs(Math.sin(i)) * 8)) * s;
+                     ctx.fillStyle = (i%2===0) ? c2 : c3;
+                     ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
+                 }
+             }
+             else if (pat === 'stripes_sleeve_diag') {
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 4*s;
+                 ctx.beginPath();
+                 for(let i=-w; i<w*2; i+=15*s) {
+                     ctx.moveTo(cx - w + i, topY);
+                     ctx.lineTo(cx - w + i - 20*s, topY + h);
+                 }
+                 ctx.stroke();
+             }
         };
 
         if (isFurry) {
@@ -1768,11 +2931,12 @@
 
             // Cylindrical Shading (Horizontal gradient)
             const grad = ctx.createLinearGradient(cx - w/2, topY, cx + w/2, topY);
-            grad.addColorStop(0, 'rgba(0,0,0,0.5)'); // Dark side
+            grad.addColorStop(0, 'rgba(0,0,0,0.6)');
             grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.5, 'rgba(255,255,255,0.1)'); // Highlight center (spine)
-            grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Dark side
+            grad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Shine
+            grad.addColorStop(0.6, 'rgba(0,0,0,0.05)');
+            grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark edge (No Rim)
             ctx.fillStyle = grad;
             ctx.fill();
             ctx.restore();
@@ -1879,105 +3043,31 @@
                 ctx.restore();
             }
 
-            // Muscle Definition (High Graphics) - BACK VIEW
-            if (!options.isJersey && playerData.graphics === 'HIGH' && !isFurry) {
-                 const animal = options.animal || 'human';
-                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-
-                 if (animal === 'dino') {
-                     // Dino: Spine Ridge (Protruding vertebrae)
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h * 0.1);
-                     ctx.lineTo(cx, topY + h * 0.9);
-                     ctx.lineWidth = w * 0.08;
-                     ctx.strokeStyle = 'rgba(0,0,0,0.2)'; // Darker spine
-                     ctx.stroke();
-
-                     // Horizontal Skin Folds
-                     ctx.lineWidth = w * 0.04;
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.3); ctx.lineTo(cx + w*0.3, topY + h*0.35); ctx.stroke();
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.5); ctx.lineTo(cx + w*0.3, topY + h*0.55); ctx.stroke();
-                     ctx.beginPath(); ctx.moveTo(cx - w*0.3, topY + h*0.7); ctx.lineTo(cx + w*0.3, topY + h*0.75); ctx.stroke();
-                 }
-                 else if (animal === 'elephant') {
-                     // Elephant: Deep Spine Indent + Wrinkles
-                     ctx.lineWidth = w * 0.05;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.1); ctx.lineTo(cx, topY + h * 0.9); ctx.stroke();
-
-                     // Wrinkles
-                     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-                     ctx.lineWidth = w * 0.02;
-                     for(let i=1; i<5; i++) {
-                         let y = topY + h * (0.2 * i);
-                         ctx.beginPath();
-                         ctx.moveTo(cx - w*0.4, y);
-                         ctx.quadraticCurveTo(cx, y + h*0.05, cx + w*0.4, y);
-                         ctx.stroke();
-                     }
-                 }
-                 else if (animal === 'frog') {
-                     // Frog: Angular Spine hump
-                     ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                     ctx.lineWidth = w * 0.06;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
-                     // Hip Bumps
-                     ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                     ctx.beginPath(); ctx.arc(cx - w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
-                     ctx.beginPath(); ctx.arc(cx + w*0.3, topY + h*0.3, w*0.1, 0, Math.PI*2); ctx.fill();
-                 }
-                 else if (animal === 'penguin') {
-                     // Smooth, just faint spine
-                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     ctx.lineWidth = w * 0.03;
-                     ctx.beginPath(); ctx.moveTo(cx, topY + h * 0.2); ctx.lineTo(cx, topY + h * 0.8); ctx.stroke();
-                 }
-                 else if (animal === 'human' || animal === 'monkey') {
-                     // Human / Monkey (Scapula)
-                     // Spine Indentation
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h * 0.2);
-                     ctx.lineTo(cx, topY + h * 0.8);
-                     ctx.lineWidth = w * 0.05;
-                     ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     ctx.stroke();
-
-                     // Shoulder Blades (Scapula)
-                     const scapY = topY + h * 0.25;
-
-                     // Left Scapula
-                     ctx.beginPath();
-                     ctx.moveTo(cx - w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx - w*0.35, scapY + h*0.1, cx - w*0.2, scapY + h*0.25);
-                     ctx.lineWidth = w * 0.03;
-                     ctx.stroke();
-
-                     // Right Scapula
-                     ctx.beginPath();
-                     ctx.moveTo(cx + w*0.15, scapY);
-                     ctx.quadraticCurveTo(cx + w*0.35, scapY + h*0.1, cx + w*0.2, scapY + h*0.25);
-                     ctx.stroke();
-
-                     // Trapezius / Upper Back shading
-                     ctx.fillStyle = 'rgba(0,0,0,0.05)';
-                     ctx.beginPath();
-                     ctx.moveTo(cx, topY + h*0.1);
-                     ctx.lineTo(cx - w*0.3, topY + h*0.2);
-                     ctx.lineTo(cx, topY + h*0.4);
-                     ctx.lineTo(cx + w*0.3, topY + h*0.2);
-                     ctx.fill();
-                 }
-                 // Turtles and others get no muscle definition (shell or smooth)
+            // Texture Overlay (Body)
+            if (playerData.graphics === 'HIGH') {
+                const pat = getFabricPattern(ctx);
+                if (pat) {
+                    ctx.save();
+                    ctx.clip();
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = pat;
+                    ctx.fillRect(cx - w, topY, w*2, h);
+                    ctx.restore();
+                }
             }
 
-            // Rim Light
+            // Photorealistic Cartoon Shading (Body)
+            const bodyGrad = ctx.createLinearGradient(cx - w*0.9, topY, cx + w*0.9, topY);
+            bodyGrad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Dark left
+            bodyGrad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+            bodyGrad.addColorStop(0.35, 'rgba(255,255,255,0.25)'); // Stronger Spine/Center shine
+            bodyGrad.addColorStop(0.6, 'rgba(0,0,0,0)');
+            bodyGrad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+            bodyGrad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Dark right (No Rim)
+
             ctx.save();
             ctx.clip();
-            const rimGrad = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
-            rimGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
-            rimGrad.addColorStop(0.8, 'rgba(255,255,255,0.0)');
-            rimGrad.addColorStop(1, 'rgba(255,255,255,0.3)');
-            ctx.fillStyle = rimGrad;
+            ctx.fillStyle = bodyGrad;
             ctx.fill();
             ctx.restore();
 
@@ -2008,8 +3098,160 @@
             ctx.fillRect(cx - w*2, topY, w*4, h * 0.25);
             ctx.restore();
         }
+
+        // --- NEW CLOTHING GEOMETRY OVERLAY ---
+        if (options.skinId && options.clothingType) {
+            const cType = options.clothingType;
+            const cStyle = options.clothingStyle;
+            const cMat = options.clothingMaterial;
+
+            // 1. PUFFER TEXTURE (Horizontal Segments)
+            if (cStyle === 'puffer') {
+                ctx.save();
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true); // Clip
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2*scale;
+                const numSegs = 6;
+                for(let i=1; i<numSegs; i++) {
+                    const y = topY + (h * (i/numSegs));
+                    // Curved line for volume
+                    ctx.beginPath();
+                    ctx.moveTo(cx - clothingW, y);
+                    ctx.quadraticCurveTo(cx, y + 5*scale, cx + clothingW, y);
+                    ctx.stroke();
+
+                    // Highlight top of puff
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(cx - clothingW, y - (h/numSegs)*0.8, clothingW*2, (h/numSegs)*0.4);
+                }
+                ctx.restore();
+            }
+
+            // 2. INTERNAL WRINKLES & FOLDS
+            // Enable for animals too if they have clothing
+            if (cStyle === 'baggy' || cType === 'hoodie' || cType === 'sweatshirt') {
+                ctx.save();
+                // Clip to body path again if needed, or assume containment
+                if (isFurry) {
+                    drawFuzzyPath(points, null, scale, true, seed, true);
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    ctx.closePath();
+                }
+                ctx.clip();
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2*scale;
+                // Armpit folds
+                ctx.beginPath(); ctx.moveTo(cx - clothingW*0.9, topY + h*0.3); ctx.lineTo(cx - clothingW*0.7, topY + h*0.4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx + clothingW*0.9, topY + h*0.3); ctx.lineTo(cx + clothingW*0.7, topY + h*0.4); ctx.stroke();
+                // Lower Back bunching (Humans only)
+                if (options.animal === 'human') {
+                    ctx.beginPath(); ctx.moveTo(cx - clothingW*0.4, topY + h*0.8); ctx.quadraticCurveTo(cx, topY + h*0.9, cx + clothingW*0.4, topY + h*0.8); ctx.stroke();
+                }
+                ctx.restore();
+
+                // Hoodie Pocket Pouch Outline (Back view - just side bulges or stitching?)
+                // Actually back view shouldn't see pocket.
+                // But we can see the gathered hem.
+                ctx.fillStyle = adjustColor(color, -10);
+
+                if (options.animal === 'human') {
+                    // Standard Rectangular Hem for Humans
+                    ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 8*scale);
+                }
+            }
+
+            // 3. ROBE (Long Skirt)
+            if (cType === 'robe') {
+                const robeLen = h * 1.2;
+                const skirtY = topY + h * 0.8;
+                const baseW = clothingW * 1.5;
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(cx - clothingW*0.9, skirtY);
+                ctx.lineTo(cx + clothingW*0.9, skirtY);
+                ctx.lineTo(cx + baseW, skirtY + robeLen);
+                ctx.lineTo(cx - baseW, skirtY + robeLen);
+                ctx.fill();
+
+                // Center Split / Fold
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*scale;
+                ctx.beginPath(); ctx.moveTo(cx, skirtY); ctx.lineTo(cx, skirtY + robeLen); ctx.stroke();
+            }
+
+            // 4. COLLARS (Jacket/Vest/Robe)
+            if (['jacket', 'vest', 'robe'].includes(cType)) {
+                ctx.fillStyle = options.clothingTrim ? options.clothingTrim : adjustColor(color, -20);
+                // Collar geometry behind neck
+                ctx.beginPath();
+                ctx.moveTo(cx - clothingW*0.5, topY + 5*scale);
+                ctx.quadraticCurveTo(cx, topY - 5*scale, cx + clothingW*0.5, topY + 5*scale); // Back curve
+                ctx.lineTo(cx + clothingW*0.6, topY + 12*scale);
+                ctx.lineTo(cx + clothingW*0.4, topY + 12*scale);
+                ctx.quadraticCurveTo(cx, topY + 2*scale, cx - clothingW*0.4, topY + 12*scale);
+                ctx.lineTo(cx - clothingW*0.6, topY + 12*scale);
+                ctx.fill();
+            }
+
+            // 4. MATERIAL EFFECTS
+            if (cMat === 'leather') {
+                 // High Specular
+                 ctx.save();
+                 // Re-clip to body
+                 // (Simplified clip rect for performance)
+                 ctx.beginPath(); ctx.rect(cx-clothingW, topY, clothingW*2, h); ctx.clip();
+
+                 const grad = ctx.createLinearGradient(cx-clothingW, topY, cx+clothingW, topY);
+                 grad.addColorStop(0.2, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.3, 'rgba(255,255,255,0.2)'); // Sharp highlight
+                 grad.addColorStop(0.4, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.7, 'rgba(255,255,255,0)');
+                 grad.addColorStop(0.8, 'rgba(255,255,255,0.15)');
+                 ctx.fillStyle = grad;
+                 ctx.fill();
+                 ctx.restore();
+            }
+
+            // 5. VARSITY DETAILS
+            if (cStyle === 'varsity') {
+                // Ribbed Waistband
+                ctx.fillStyle = '#FFF'; // Default white trim if no sleeve color available, but we can't access skinObj here easily. Assume white/contrast.
+                ctx.fillRect(cx - clothingW, topY + h - 10*scale, clothingW*2, 10*scale);
+                // Stripes on waistband
+                ctx.fillStyle = color;
+                ctx.fillRect(cx - clothingW, topY + h - 8*scale, clothingW*2, 2*scale);
+                ctx.fillRect(cx - clothingW, topY + h - 4*scale, clothingW*2, 2*scale);
+            }
+        }
     }
 
+
+    var g_fabricPattern = null;
+    function getFabricPattern(ctx) {
+        if (g_fabricPattern) return g_fabricPattern;
+        const cvs = document.createElement('canvas');
+        cvs.width = 64; cvs.height = 64;
+        const c = cvs.getContext('2d');
+        // Noise
+        for(let i=0; i<200; i++) {
+            c.fillStyle = (i%2===0) ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+            c.fillRect(Math.random()*64, Math.random()*64, 1, 1);
+        }
+        g_fabricPattern = ctx.createPattern(cvs, 'repeat');
+        return g_fabricPattern;
+    }
 
     function drawLimb(x1, y1, x2, y2, width, color) {
         const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
@@ -2024,32 +3266,32 @@
 
         ctx.beginPath();
 
-        if (playerData.graphics === 'HIGH') {
-            // Curvy "Muscle" Limb
-            const bulge = width * 0.15;
-
-            // Start (Shoulder/Hip)
-            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
-            // Top Edge (Bicep/Quad bulge)
-            ctx.quadraticCurveTo(len*0.5, -width/2 - bulge, len, -width*0.4);
-            // End Cap (Elbow/Knee - narrower)
-            ctx.arc(len, 0, width*0.4, -Math.PI/2, Math.PI/2);
-            // Bottom Edge
-            ctx.quadraticCurveTo(len*0.5, width/2 + bulge*0.5, 0, width/2);
-        } else {
-            ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
-            ctx.lineTo(len, -width/2);
-            ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
-            ctx.lineTo(0, width/2);
-        }
+        // Standard Limb
+        ctx.arc(0, 0, width/2, Math.PI/2, -Math.PI/2);
+        ctx.lineTo(len, -width/2);
+        ctx.arc(len, 0, width/2, -Math.PI/2, Math.PI/2);
+        ctx.lineTo(0, width/2);
         ctx.fill();
 
-        // Cylindrical Shading Overlay
+        // Texture Overlay (High Graphics)
+        if (playerData.graphics === 'HIGH') {
+            const pat = getFabricPattern(ctx);
+            if (pat) {
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = pat;
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        // Photorealistic Cartoon Shading (Volume Only - No Rim)
         const grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
-        grad.addColorStop(0, 'rgba(0,0,0,0.3)');
-        grad.addColorStop(0.2, 'rgba(255,255,255,0.1)');
-        grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-        grad.addColorStop(0.9, 'rgba(0,0,0,0.4)');
+        grad.addColorStop(0, 'rgba(0,0,0,0.6)'); // Darker Edge
+        grad.addColorStop(0.15, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+        grad.addColorStop(0.6, 'rgba(0,0,0,0)'); // Base Color
+        grad.addColorStop(0.9, 'rgba(0,0,0,0.5)'); // Deeper Shadow
+        grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge (No Rim)
 
         ctx.fillStyle = grad;
         ctx.fill();
@@ -2058,22 +3300,31 @@
     }
 
     function drawJoint(x, y, radius, color, isMechanical) {
-        if (!isMechanical) return;
+        // Always draw joint to prevent gaps (especially shoulders)
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI*2);
         ctx.fillStyle = color;
         ctx.fill();
 
-        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
-        grad.addColorStop(0, 'rgba(255,255,255,0.2)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.4)');
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Slight Outline
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        // Shading
+        if (isMechanical) {
+            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+            grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            // Mechanical Outline
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } else {
+            // Softer shading for organic/cloth
+            const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 0, x, y, radius);
+            grad.addColorStop(0, 'rgba(255,255,255,0.1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
     }
 
     function drawRoundedRect(x, y, w, h, r, color) {
@@ -2101,6 +3352,37 @@
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
         ctx.stroke();
+    }
+
+    function drawTaco(p) {
+        const s = p.scale;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+
+        // Shell
+        ctx.fillStyle = '#DAA520'; // Goldenrod
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 * s, 0, Math.PI, true); // Semi-circle up
+        ctx.fill();
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+
+        // Fillings (visible at top/opening)
+        // Meat
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath(); ctx.ellipse(0, -5*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+        // Lettuce
+        ctx.fillStyle = '#32CD32';
+        ctx.beginPath(); ctx.arc(-5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(5*s, -8*s, 3*s, 0, Math.PI*2); ctx.fill();
+        // Tomato
+        ctx.fillStyle = '#FF4500';
+        ctx.beginPath(); ctx.arc(-2*s, -6*s, 3*s, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
     }
 
     function drawDecor(p, type, variant, seed) {
@@ -2357,6 +3639,80 @@
              ctx.beginPath(); ctx.arc(p.x+10*s, p.y-12*s, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, p.y-14*s, 6*s, 0, Math.PI*2); ctx.fill();
         }
+        else if (type === 'cat_hoop') {
+             // --- NEW EVOLUTION LOGIC ---
+             const maxExp = 50 * ((playerData.basketCatSkinIndex || 0) + 1);
+             const exp = playerData.basketCatExp || 0;
+             const progress = Math.min(1.0, exp / maxExp);
+
+             // Scale from 0.25 to 1.25 (Reduced from 2.0)
+             let ageScale = 0.25 + (progress * 1.0);
+
+             // Override Size if Locked
+             if (playerData.catSizeLocked && playerData.catSizeValue !== undefined) {
+                 ageScale = parseFloat(playerData.catSizeValue);
+             }
+
+             const s = p.scale * ageScale;
+
+             // Skin Selection
+             const skinIdx = playerData.basketCatSkinIndex || 0;
+             let skinData = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[skinIdx] : null;
+             if (!skinData && typeof CAT_SKINS_DB !== 'undefined') skinData = CAT_SKINS_DB[0];
+
+             // Stance Logic
+             let stance = 0; // Default Sitting
+             const sVal = skinData ? skinData.stance : 'sitting';
+             const stanceMap = {
+                 'sitting': 0, 'loaf': 1, 'standing': 2, 'sprawled': 3, 'sleeping': 4, 'begging': 5, 'stretching': 6, 'arched': 7,
+                 'yoga': 8, 'dab': 9, 'meditate': 10, 'boxing': 11, 'grooming': 12, 'upside_down': 13,
+                 'superman': 14, 'ball': 15, 'scared_leap': 16, 'high_five': 17, 'stalking': 18, 'belly_up': 19,
+                 'butt_wiggle': 20, 'facepalm': 21, 'thinking': 22, 'surprised': 23, 'running': 24, 'sitting_chair': 25,
+                 'ninja_kick': 26, 'crying': 27, 'sunglasses_cool': 28, 'sleeping_box': 29, 'yarn_tangle': 30, 'bread_head': 31,
+                 'liquid': 32
+             };
+             if (stanceMap.hasOwnProperty(sVal)) stance = stanceMap[sVal];
+             else stance = 0;
+
+             // Override Stance
+             if (playerData.catStanceOverride && playerData.catStanceOverride !== 'default' && CAT_STANCES[playerData.catStanceOverride] !== undefined) {
+                 stance = CAT_STANCES[playerData.catStanceOverride];
+             }
+
+             let isEating = false;
+             let isPassing = false;
+             let animProgress = 0;
+             let bounce = 0;
+
+             // Dynamic State Logic
+             // Support legacy timer for simple reaction (Score celebration)
+             if (typeof g_catEatTimer !== 'undefined' && g_catEatTimer > 0) {
+                 isEating = true;
+                 animProgress = Math.abs(Math.sin(Date.now() * 0.05)); // Fast chew
+                 bounce = animProgress * 5 * s;
+             }
+             // Support complex state if linked (Roaming AI)
+             else if (typeof g_catState !== 'undefined') {
+                 if (g_catState.state === 'EATING') {
+                     isEating = true;
+                     animProgress = Math.abs(Math.sin(Date.now() * 0.02)); // Slow chew
+                     bounce = animProgress * 3 * s;
+                 } else if (g_catState.state === 'MOVING' || g_catState.state === 'RETURNING') {
+                     // Walking bounce
+                     bounce = Math.abs(Math.sin(Date.now() * 0.015)) * 8 * s;
+                 } else {
+                     // Idle
+                     bounce = Math.sin(Date.now() * 0.002) * 2 * s;
+                 }
+             }
+
+             const mouthOpen = isEating ? animProgress * 10 * s : 0;
+             p.y += bounce;
+
+             if (typeof drawCatDecor === 'function') {
+                 drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing);
+             }
+        }
         else if (type === 'crowd') {
              const s = p.scale;
              const w = 200 * s;
@@ -2509,6 +3865,57 @@
         }
     }
 
+    var ShadowCache = {
+        entries: {},
+        keys: [],
+        MAX_ENTRIES: 128,
+        get: function(key) {
+            var entry = this.entries[key];
+            if (entry) {
+                // Move to end of keys for LRU-ish behavior
+                var idx = this.keys.indexOf(key);
+                if (idx > -1) {
+                    this.keys.splice(idx, 1);
+                    this.keys.push(key);
+                }
+                return entry;
+            }
+            return null;
+        },
+        set: function(key, canvas) {
+            if (this.entries[key]) return;
+            if (this.keys.length >= this.MAX_ENTRIES) {
+                var oldKey = this.keys.shift();
+                delete this.entries[oldKey];
+            }
+            this.entries[key] = canvas;
+            this.keys.push(key);
+        }
+    };
+
+    function getShadowKey(type, obj) {
+        if (type === 'player') {
+            var skin = playerData.currentSkin;
+            var variant = (playerData.skinVariants && playerData.skinVariants[skin]) ? playerData.skinVariants[skin] : 0;
+            var anim = g_animState;
+            var q = 20; // Quantization factor
+            var key = 'p_' + skin + '_v' + variant + '_' + (playerData.isLefty ? 'L' : 'R') + '_' +
+                Math.round(anim.la * q) + '_' + Math.round(anim.ra * q) + '_' +
+                Math.round(anim.lfa * q) + '_' + Math.round(anim.rfa * q) + '_' +
+                Math.round(anim.w * q) + '_' + Math.round(anim.la_z * q) + '_' +
+                Math.round(anim.ra_z * q) + '_' + Math.round(anim.lfa_z * q) + '_' +
+                Math.round(anim.rfa_z * q) + '_' + Math.round(obj.scale * 50);
+            return key;
+        } else if (type === 'ball') {
+            var targetBall = obj.ballRef || ball;
+            var ballId = targetBall.id || 'classic';
+            var rot = targetBall.rotationX || 0;
+            var key = 'b_' + ballId + '_' + Math.round(rot * 10) + '_' + Math.round(obj.scale * 50);
+            return key;
+        }
+        return null;
+    }
+
     var ShadowSystem = {
         canvas: null,
         ctx: null,
@@ -2519,7 +3926,12 @@
             this.canvas.height = 512;
             this.ctx = this.canvas.getContext('2d');
         },
-        render: function(drawFn, x, y) {
+        render: function(drawFn, x, y, cacheKey) {
+            if (cacheKey) {
+                var cached = ShadowCache.get(cacheKey);
+                if (cached) return cached;
+            }
+
             this.init();
 
             // Clear
@@ -2552,6 +3964,15 @@
             this.ctx.fillRect(0, 0, 512, 512);
             this.ctx.globalCompositeOperation = 'source-over';
 
+            if (cacheKey) {
+                var cachedCanvas = document.createElement('canvas');
+                cachedCanvas.width = 512;
+                cachedCanvas.height = 512;
+                cachedCanvas.getContext('2d').drawImage(this.canvas, 0, 0);
+                ShadowCache.set(cacheKey, cachedCanvas);
+                return cachedCanvas;
+            }
+
             return this.canvas;
         }
     };
@@ -2578,13 +3999,19 @@
         var blur = Math.min(10, 2 + (z / 50));
 
         // Render Silhouette
+        var cacheKey = getShadowKey(type, obj);
         var sCanvas = ShadowSystem.render(function() {
             if (type === 'player') {
-                drawPlayer(obj);
+                // Skip supersampling for shadows
+                if (typeof _drawPlayerInternal === 'function') {
+                    _drawPlayerInternal(obj);
+                } else {
+                    PlayerRenderer.draw(obj);
+                }
             } else if (type === 'ball') {
                 drawBall(obj, obj.ballRef);
             }
-        }, obj.x, obj.y);
+        }, obj.x, obj.y, cacheKey);
 
         ctx.save();
         ctx.translate(obj.x, obj.y);
@@ -2853,10 +4280,10 @@
                     const grad = gCtx.createLinearGradient(0, 0, 0, 256);
                     grad.addColorStop(0, 'rgba(0,0,0,0.6)');
                     grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
-                    grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
-                    grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge
                     gCtx.fillStyle = grad;
                     gCtx.fillRect(0, 0, 1, 256);
                     g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
@@ -2920,24 +4347,230 @@
         ctx.restore();
     }
 
-    function drawRealisticShoe(x, y, w, h, color, isRight) {
-        // Detailed sneaker
-        // Sole
-        ctx.fillStyle = '#DDD';
-        ctx.beginPath();
-        ctx.ellipse(x, y + h*0.2, w, h*0.4, 0, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+        function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s) {
+        type = type || 'sneakers';
+        const soleColor = '#EEE';
+        const laceColor = detailColor || 'rgba(0,0,0,0.3)';
 
-        // Upper
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y - h*0.2, w*0.9, 0, Math.PI*2); // Main foot
-        ctx.fill();
+        ctx.save();
+        ctx.translate(x, y);
 
-        // Detail lines (laces area)
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath(); ctx.moveTo(x - w*0.5, y - h*0.5); ctx.lineTo(x + w*0.5, y - h*0.5); ctx.stroke();
+        // Helper for mirroring details based on foot
+        // Note: Render logic here assumes back view.
+        // Left foot (isRight=false) is on left of screen. Right foot is on right.
+        // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
+        const sideMult = isRight ? 1 : -1;
+
+        if (type === 'foam') {
+            // Yeezy Foam Runner (Blobby, porous)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            // Organic Shape
+            ctx.moveTo(-w*0.6, -h*0.5);
+            ctx.quadraticCurveTo(-w, 0, -w*0.8, h*0.5);
+            ctx.quadraticCurveTo(0, h*0.8, w*0.8, h*0.5);
+            ctx.quadraticCurveTo(w, 0, w*0.6, -h*0.5);
+            ctx.fill();
+
+            // Holes
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            const holes = [[0,0,0.3], [0.5,0.2,0.2], [-0.5,0.2,0.2], [0, -0.3, 0.25]];
+            holes.forEach(p => {
+                ctx.beginPath();
+                ctx.ellipse(p[0]*w, p[1]*h, p[2]*w, p[2]*h*0.6, 0, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+        } else if (type === 'hightop_canvas') {
+            // Converse (Canvas texture, toe cap, logo)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(w*0.8, h*0.3); ctx.stroke();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.75, -h*0.8, w*1.5, h*0.9);
+
+            // White stitching
+            ctx.strokeStyle = '#FFF'; ctx.setLineDash([2*s, 2*s]);
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.8); ctx.lineTo(-w*0.4, h*0.1); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w*0.4, -h*0.8); ctx.lineTo(w*0.4, h*0.1); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Star Logo (Inner side)
+            // Left foot: Inner is Right side. Right foot: Inner is Left side.
+            const logoX = isRight ? -w*0.5 : w*0.5;
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(logoX, -h*0.2, w*0.25, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'blue';
+            ctx.beginPath(); ctx.moveTo(logoX, -h*0.25); ctx.lineTo(logoX+2*s, -h*0.15); ctx.lineTo(logoX-2*s, -h*0.15); ctx.fill();
+
+        } else if (type === 'slipon') {
+            // Vans (Low, wide, pattern)
+            // Sole
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w*0.95, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, 0, w*0.9, h*0.5, 0, Math.PI, 0); ctx.fill();
+
+            // Checkerboard Pattern
+            if (color === '#FFF') { // Hack for checkerboard ID
+                ctx.fillStyle = '#000';
+                const size = 4*s;
+                for(let i=-2; i<=2; i++) {
+                    for(let j=-2; j<=0; j++) {
+                        if((i+j)%2===0) ctx.fillRect(i*size, j*size, size, size);
+                    }
+                }
+            }
+
+        } else if (type === 'retro_bulky' || type === 'retro') {
+            // Jordan 4 / Yeezy 2 (Bulky tech)
+
+            // Sole (Chunky)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath();
+            ctx.moveTo(-w, h*0.5); ctx.lineTo(w, h*0.5); ctx.lineTo(w*0.9, 0); ctx.lineTo(-w*0.9, 0);
+            ctx.fill();
+
+            // Midsole Detail
+            if (type === 'retro_bulky') {
+                ctx.fillStyle = detailColor; // Mudguard
+                ctx.beginPath(); ctx.arc(0, 0, w*0.9, 0, Math.PI, true); ctx.fill();
+
+                // Air Bubble
+                ctx.fillStyle = 'rgba(0,255,255,0.5)';
+                ctx.fillRect(-w*0.3, h*0.2, w*0.6, h*0.2);
+            }
+
+            // Upper
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, 0); ctx.lineTo(-w*0.7, -h*0.8); // High collar
+            ctx.lineTo(w*0.7, -h*0.8); ctx.lineTo(w*0.8, 0);
+            ctx.fill();
+
+            // Plastic Wings / Straps
+            ctx.fillStyle = detailColor;
+            if (type === 'retro_bulky') {
+                // Triangle Wings
+                ctx.beginPath(); ctx.moveTo(-w*0.7, -h*0.2); ctx.lineTo(-w*0.8, -h*0.6); ctx.lineTo(-w*0.5, -h*0.4); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(w*0.7, -h*0.2); ctx.lineTo(w*0.8, -h*0.6); ctx.lineTo(w*0.5, -h*0.4); ctx.fill();
+                // Heel Tab
+                ctx.fillRect(-w*0.4, -h*0.8, w*0.8, h*0.4);
+            } else {
+                // Spikes/Scales (Yeezy 2)
+                ctx.strokeStyle = detailColor;
+                for(let i=0; i<5; i++) {
+                     ctx.beginPath(); ctx.moveTo(-w*0.8, -h*0.8 + i*5*s); ctx.lineTo(w*0.8, -h*0.8 + i*5*s); ctx.stroke();
+                }
+            }
+
+        } else if (type === 'hightop_future') {
+            // Mag
+            ctx.fillStyle = '#EEE'; // Sole
+            ctx.fillRect(-w*0.9, h*0.2, w*1.8, h*0.3);
+            // Lights
+            ctx.fillStyle = detailColor; ctx.shadowBlur = 5*s; ctx.shadowColor = detailColor;
+            ctx.fillRect(-w*0.4, h*0.3, 5*s, 5*s);
+            ctx.shadowBlur = 0;
+
+            // Tall Upper
+            ctx.fillStyle = color;
+            ctx.fillRect(-w*0.8, -h*1.2, w*1.6, h*1.4);
+            // Straps
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(-w*0.85, -h*1.0, w*1.7, h*0.2);
+            ctx.fillStyle = 'rgba(0,255,255,0.5)'; // Light up logo
+            ctx.fillText("AIR", -w*0.3, -h*1.0 + 10*s);
+
+        } else if (type === 'boots_work' || type === 'boots') {
+            // Timberland
+            ctx.fillStyle = '#333'; // Lug Sole
+            ctx.fillRect(-w*0.9, h*0.3, w*1.8, h*0.2);
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(-w*0.8, -h*0.8);
+            ctx.lineTo(w*0.8, -h*0.8); ctx.lineTo(w*0.8, h*0.3);
+            ctx.fill();
+
+            // Padded Collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.85, -h*0.9, w*1.7, h*0.25);
+
+            // Laces
+            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.2); ctx.lineTo(w*0.4, -h*0.2); ctx.stroke();
+
+        } else if (type === 'hightop') {
+            // J1 Style
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = color; // Main
+            ctx.beginPath(); ctx.arc(0, -h*0.2, w*0.9, 0, Math.PI*2); ctx.fill(); // Heel cup
+
+            ctx.fillStyle = detailColor; // Swoosh-like or panels
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.lineTo(w*0.4, h*0.2); ctx.lineTo(-w*0.4, h*0.2); ctx.fill(); // Tongue area
+
+            // High ankle collar
+            ctx.fillStyle = detailColor;
+            ctx.fillRect(-w*0.8, -h*0.8, w*1.6, h*0.4);
+
+        } else if (type === 'heels') {
+             ctx.fillStyle = color;
+             ctx.beginPath(); ctx.ellipse(0, 0, w*0.8, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+             ctx.strokeStyle = color; ctx.lineWidth = 3*s;
+             ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.lineTo(0, h*0.8); ctx.stroke();
+
+        } else if (type === 'sandals' || type === 'slides') {
+             ctx.fillStyle = '#D2B48C'; // Foot/Sole
+             ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = color; // Strap
+             ctx.fillRect(-w*0.8, -h*0.1, w*1.6, h*0.4);
+
+        } else if (type === 'cleats') {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.8, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+            // Studs
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(-w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+
+        } else if (type === 'slippers_bunny') {
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*1.1, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+            // Ears
+            ctx.fillStyle = 'pink';
+            ctx.beginPath(); ctx.ellipse(-w*0.4, -h*0.5, 3*s, 8*s, -0.3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(w*0.4, -h*0.5, 3*s, 8*s, 0.3, 0, Math.PI*2); ctx.fill();
+
+        } else {
+            // Default Sneakers (Low Top)
+            ctx.fillStyle = soleColor;
+            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, -h*0.1, w*0.9, 0, Math.PI*2); ctx.fill();
+
+            // Tongue
+            ctx.fillStyle = detailColor || '#FFF';
+            ctx.beginPath(); ctx.arc(0, -h*0.3, w*0.5, Math.PI, 0); ctx.fill();
+
+            // Laces
+            ctx.strokeStyle = laceColor; ctx.lineWidth = 2*s;
+            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.3); ctx.lineTo(w*0.4, -h*0.3); ctx.stroke();
+        }
+
+        ctx.restore();
     }
 
     // --- OPTIMIZATION: Gradient Caching ---
@@ -2961,38 +4594,40 @@
         return pattern;
     }
 
-    function drawJersey(cx, topY, w, h, scale, skinObj, anchors = null) {
-        // V-Taper Jersey
+    function drawJersey(cx, topY, baseW, h, scale, skinObj, anchors = null) {
+        // baseW passed here is now the HIP WIDTH (matching pants)
         const color = skinObj.jerseyColor || '#FFF';
 
         let slX, srX, sY, blX, brX, bY;
 
+        // Base Dimensions relative to Hip Width
+        // "Shoulder width just a bit larger than hips" -> 1.2x hips
+        const baseShoulderW = baseW * 1.2;
+        const baseWaistW = baseW; // Exact match to hips
+
         if (anchors && anchors.shoulders) {
-            // Narrow shoulders by 10% for the jersey fabric
-            slX = cx + (anchors.shoulders.left.x - cx) * 0.9;
-            srX = cx + (anchors.shoulders.right.x - cx) * 0.9;
+            // If we have anchors, prioritize them but nudge towards our new ideal proportion
+            // Calculate anchor widths
+            const anchorSW = (anchors.shoulders.right.x - anchors.shoulders.left.x);
+            // Blend anchor with ideal (Weighted towards ideal for "clothing" shape)
+            const targetSW = Math.max(anchorSW, baseShoulderW);
+
+            slX = cx - targetSW/2;
+            srX = cx + targetSW/2;
             sY = anchors.shoulders.left.y;
 
-            // For bottom, use hips if available, otherwise calculate from width
-            // Jersey tucks into shorts, so align with hip joints
-            if (anchors.hips) {
-                blX = anchors.hips.left.x;
-                brX = anchors.hips.right.x;
-                bY = anchors.hips.left.y; // Assuming roughly level
-            } else {
-                const waistW = w * 0.9;
-                blX = cx - waistW/2;
-                brX = cx + waistW/2;
-                bY = topY + h;
-            }
+            // For bottom, force alignment with baseWaistW (Hips)
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
+            bY = topY + h;
         } else {
-            const shoulderW = w * 1.6;
-            const waistW = w * 0.9;
-            slX = cx - shoulderW/2;
-            srX = cx + shoulderW/2;
+            // Standard Construction
+            slX = cx - baseShoulderW/2;
+            srX = cx + baseShoulderW/2;
             sY = topY;
-            blX = cx - waistW/2;
-            brX = cx + waistW/2;
+
+            blX = cx - baseWaistW/2;
+            brX = cx + baseWaistW/2;
             bY = topY + h;
         }
 
@@ -3001,22 +4636,96 @@
         const bottomY = bY;
         const armpitY = sY + h * 0.4;
 
+        // DETERMINE FIT TYPE
+        let fitType = 'standard';
+        const ct = skinObj.clothingType;
+        if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+        else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+        else if (ct === 'robe') fitType = 'robe';
+        else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
+
+        // Calculate Relative Widths from our new standard baselines
+        const halfHip = waistW / 2;
+        const halfShoulder = shoulderW / 2;
+
+        // DRAW PATH BASED ON FIT
         ctx.beginPath();
-        ctx.moveTo(slX, sY);
-        // Gentle neck curve (High back collar)
-        ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
 
-        // Right side
-        ctx.lineTo(srX, armpitY);
-        // Curve from armpit to bottom right (hip)
-        ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+        if (fitType === 'baggy') {
+            // Pear shape: Shoulders sloped, body wider than hips
+            const slopeY = sY + h * 0.1;
+            // Bulge width slightly larger than hips (1.1x)
+            const bulgeW = halfHip * 1.15;
+            // Hem width matches hips (1.0x) or slightly gathered (0.95x)? User said "base off hips".
+            // Let's make hem match hips exactly for "physical correctness" of elastic band.
+            const hemW = halfHip * 1.0;
 
-        // Bottom curve (Tuck)
-        ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+            // Shoulders (Sloped down)
+            ctx.moveTo(slX, slopeY);
+            ctx.quadraticCurveTo(cx, sY - h*0.05, srX, slopeY); // Neck arc
 
-        // Left side
-        ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
-        ctx.lineTo(slX, sY);
+            // Right Side (Bulge out then in to hip)
+            ctx.bezierCurveTo(cx + bulgeW, sY + h*0.5, cx + hemW, bY, cx + hemW, bY + h*0.05);
+
+            // Hem
+            ctx.quadraticCurveTo(cx, bY + h*0.1, cx - hemW, bY + h*0.05);
+
+            // Left Side
+            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX, slopeY);
+        }
+        else if (fitType === 'boxy') {
+            // Rectangle: Shoulders = Hips = Box
+            // User said shoulder width > hips. Boxy jacket falls straight from shoulders?
+            // If shoulders > hips, straight down means hem > hips.
+            // Let's conform to shoulders.
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(srX, bY + h*0.05); // Straight down from shoulder
+            ctx.lineTo(slX, bY + h*0.05);
+            ctx.lineTo(slX, sY);
+        }
+        else if (fitType === 'robe') {
+            // Trapezoid: Flared bottom
+            const robeBot = halfHip * 1.5;
+            const robeLen = h * 1.3;
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            ctx.lineTo(cx + robeBot, sY + robeLen);
+            ctx.lineTo(cx - robeBot, sY + robeLen);
+            ctx.lineTo(slX, sY);
+        }
+        else if (fitType === 'fitted') {
+            // V-Shape: Follows the base dimensions exactly (which are already V-shaped: 1.2x -> 1.0x)
+            // Just slightly tighter at the waist/midsection?
+            const waistPinch = halfHip * 0.9;
+
+            ctx.moveTo(slX, sY);
+            ctx.lineTo(srX, sY);
+            // Taper in
+            ctx.quadraticCurveTo(cx + waistPinch, sY + h*0.6, brX, bY);
+            ctx.lineTo(blX, bY);
+            ctx.quadraticCurveTo(cx - waistPinch, sY + h*0.6, slX, sY);
+        }
+        else {
+            // Standard Jersey (Existing logic)
+            ctx.moveTo(slX, sY);
+            // Gentle neck curve (High back collar)
+            ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
+
+            // Right side
+            ctx.lineTo(srX, armpitY);
+            // Curve from armpit to bottom right (hip)
+            ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+
+            // Bottom curve (Tuck)
+            ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+
+            // Left side
+            ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
+            ctx.lineTo(slX, sY);
+        }
 
         ctx.closePath();
 
@@ -3034,47 +4743,6 @@
 
         ctx.globalCompositeOperation = 'source-over';
 
-        // High Graphics Folds
-        if (playerData.graphics === 'HIGH') {
-             ctx.save();
-             ctx.clip();
-
-             // Spine Indent (Deeper)
-             ctx.fillStyle = 'rgba(0,0,0,0.2)';
-             ctx.beginPath();
-             ctx.moveTo(cx, topY + 5*scale);
-             ctx.lineTo(cx + 3*scale, bottomY);
-             ctx.lineTo(cx - 3*scale, bottomY);
-             ctx.fill();
-
-             // Tension Lines (Wrinkles)
-             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-             ctx.lineWidth = 1.5 * scale;
-             ctx.lineCap = 'round';
-
-             // Radiating from armpits
-             for(let i=0; i<3; i++) {
-                 // Left
-                 ctx.beginPath();
-                 ctx.moveTo(cx - shoulderW/2 + 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx - waistW*0.3, armpitY + 10*scale + i*5*scale, cx - waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
-
-                 // Right
-                 ctx.beginPath();
-                 ctx.moveTo(cx + shoulderW/2 - 2*scale, armpitY + i*4*scale);
-                 ctx.quadraticCurveTo(cx + waistW*0.3, armpitY + 10*scale + i*5*scale, cx + waistW*0.2, bottomY - 10*scale);
-                 ctx.stroke();
-             }
-
-             // Horizontal crunch at waist
-             ctx.beginPath();
-             ctx.moveTo(cx - waistW*0.3, bottomY - 5*scale);
-             ctx.quadraticCurveTo(cx, bottomY - 8*scale, cx + waistW*0.3, bottomY - 5*scale);
-             ctx.stroke();
-
-             ctx.restore();
-        }
 
         // --- PATTERNS ---
         // Pinstripes
@@ -3662,642 +5330,1177 @@
         return x - Math.floor(x);
     }
 
+    function drawCustomBlobs(ctx, p, headY, headRadius, s, blobs) {
+        if (!blobs || !blobs.length) return;
+        blobs.forEach(b => {
+             const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
+             ctx.fillStyle = col;
+
+             const alpha = (b.a !== undefined) ? b.a : 1.0;
+             const oldAlpha = ctx.globalAlpha;
+             ctx.globalAlpha = oldAlpha * alpha;
+
+             const bx = p.x + b.x * headRadius;
+             const by = headY + b.y * headRadius;
+             const br = b.r * headRadius;
+             ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+
+             ctx.globalAlpha = oldAlpha;
+        });
+    }
+
+    function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
+         if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
+         if (!playerData.customHairstyles) return;
+         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         if (customData && customData.blobs && customData.blobs.front) {
+             drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
+         }
+    }
+
+    function drawBeard(ctx, p, headY, headRadius, s, skinObj) {
+        if (!skinObj.beard) return;
+
+        const beardColor = skinObj.beardColor || skinObj.hairColor || '#000';
+        const isBig = skinObj.beardBig; // For Harden
+        const seed = stringToSeed(skinObj.id || 'beard');
+
+        // Improved Beard Geometry: Smooth, Full, Groomed
+        let lengthMult = 1.3;
+        let widthMult = 1.1;
+
+        if (isBig) {
+            widthMult = 1.35;
+            lengthMult = 1.6;
+        }
+
+        const beardW = headRadius * widthMult;
+        const beardLen = headRadius * lengthMult;
+        const jawY = headY + headRadius * 0.6;
+
+        ctx.fillStyle = beardColor;
+        ctx.beginPath();
+
+        // 1. Left Sideburn (Top)
+        ctx.moveTo(p.x - headRadius * 0.9, headY);
+
+        // 2. Left Jaw Curve (Fullness)
+        // Bulge out slightly before curving in
+        ctx.quadraticCurveTo(p.x - beardW, jawY, p.x - beardW * 0.6, headY + beardLen * 0.85);
+
+        // 3. Chin (Rounded bottom)
+        ctx.quadraticCurveTo(p.x, headY + beardLen, p.x + beardW * 0.6, headY + beardLen * 0.85);
+
+        // 4. Right Jaw Curve
+        ctx.quadraticCurveTo(p.x + beardW, jawY, p.x + headRadius * 0.9, headY);
+
+        // 5. Close Top (Behind Head)
+        ctx.quadraticCurveTo(p.x, headY - 10*s, p.x - headRadius * 0.9, headY);
+
+        ctx.fill();
+
+        // Internal Texture (Fullness/Noise) - Clipped
+        ctx.save();
+        ctx.clip();
+
+        // Shading Gradient (Bottom darker)
+        const grad = ctx.createLinearGradient(0, headY, 0, headY + beardLen);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Noise Texture
+        ctx.fillStyle = adjustColor(beardColor, 20); // Lighter dots for texture
+        const density = 20;
+        for(let i=0; i<density; i++) {
+            const rx = (seededRandom(seed + i) - 0.5) * beardW * 2;
+            const ry = (seededRandom(seed + i + 100)) * beardLen;
+            // Simple check if inside approx box
+            if (Math.abs(rx) < beardW && ry > 0) {
+                ctx.beginPath(); ctx.arc(p.x + rx, headY + ry, 1*s, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
     function drawHairstyle(ctx, p, headY, headRadius, s, skinObj) {
         const hairColor = skinObj.hairColor || '#000';
-        const style = skinObj.hairStyle;
+        let style = skinObj.hairStyle || 'bald_clean';
 
-        // Derive a stable seed from the skin ID and render position (optional, but skin ID is best for static texture)
-        // If we use 'p.x', it might change slightly if camera pans? No, 'p' is screen coords.
-        // If the player moves, 'p' changes. If we seed on 'p', texture swims.
-        // We MUST seed on something stable like skinObj.id + sub-index.
-        let baseSeed = stringToSeed(skinObj.id || 'default');
+        // Map legacy
+        if (style === 'bald') style = 'bald_clean';
+        if (style === 'short') style = 'buzz_cut';
 
-        // Common base for most styles (scalp coverage)
-        // Note: 'p.x' is center X. 'headY' is center Y of skull.
+        const hairScale = skinObj.hairScale || 1.0;
+        const modRadius = headRadius * hairScale;
 
-        if (style === 'bald') {
-             // Shiny scalp
+        // Deterministic Seed
+        let seed = 0;
+        const seedStr = (skinObj.id || 'default') + (style || '');
+        for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
+
+        // --- HELPER: SOLID BASE ---
+        const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
+            const r = modRadius * radiusMod;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, headY - 2*s, r, Math.PI, 0);
+            ctx.lineTo(p.x + r, headY + lengthMod);
+
+            if (neckType === 'square') {
+                ctx.lineTo(p.x - r, headY + lengthMod);
+            } else if (neckType === 'tapered') {
+                ctx.quadraticCurveTo(p.x + r*0.5, headY + lengthMod + 4*s, p.x, headY + lengthMod + 6*s);
+                ctx.quadraticCurveTo(p.x - r*0.5, headY + lengthMod + 4*s, p.x - r, headY + lengthMod);
+            } else if (neckType === 'shaved') {
+                ctx.quadraticCurveTo(p.x, headY + lengthMod - 5*s, p.x - r, headY + lengthMod);
+            } else { // Natural
+                ctx.quadraticCurveTo(p.x, headY + lengthMod + (isBack ? 5*s : 2*s), p.x - r, headY + lengthMod);
+            }
+            ctx.lineTo(p.x - r, headY - 2*s);
+            ctx.fill();
+        };
+
+        // --- 0. CUSTOM ---
+        if (style.startsWith('custom_')) {
+             if (playerData.customHairstyles) {
+                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 if (customData && customData.blobs && customData.blobs.back) {
+                     drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
+                 }
+             }
+             return;
+        }
+
+        // --- 1. BALD / STUBBLE ---
+        if (style === 'bald_clean') {
+             // Shiny Skin Match
              if (hairColor && hairColor !== '#000' && hairColor !== skinObj.skinTone) {
                  ctx.fillStyle = hairColor;
                  ctx.globalAlpha = 0.2;
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
                  ctx.globalAlpha = 1.0;
              }
+             // High gloss
              const shine = ctx.createRadialGradient(p.x + headRadius*0.3, headY - headRadius*0.4, 0, p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.4);
-             shine.addColorStop(0, 'rgba(255,255,255,0.4)');
+             shine.addColorStop(0, 'rgba(255,255,255,0.6)');
              shine.addColorStop(1, 'rgba(255,255,255,0)');
              ctx.fillStyle = shine;
-             ctx.beginPath();
-             ctx.ellipse(p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.3, headRadius*0.2, -0.5, 0, Math.PI*2);
-             ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.3, headY - headRadius*0.4, headRadius*0.3, headRadius*0.2, -0.5, 0, Math.PI*2); ctx.fill();
              return;
         }
 
-        if (style === 'short') {
-             // Modern Fade: Sharp top, faded sides/back
-             const r = headRadius * 1.02;
-             // Vertical Gradient for fade
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
-             fadeGrad.addColorStop(0, hairColor);
-             fadeGrad.addColorStop(0.5, hairColor);
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade to transparent
+        if (style === 'bald_stubble') {
+             // Matte texture
+             ctx.fillStyle = hairColor;
+             ctx.globalAlpha = 0.4;
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
+             ctx.globalAlpha = 1.0;
+             // Stipple dots
+             ctx.fillStyle = adjustColor(hairColor, -20);
+             for(let i=0; i<30; i++) {
+                 const angle = seededRandom(seed + i) * Math.PI * 2;
+                 const r = seededRandom(seed + i + 100) * headRadius * 0.9;
+                 ctx.fillRect(p.x + Math.cos(angle)*r, headY - 2*s + Math.sin(angle)*r, 1.5*s, 1.5*s);
+             }
+             return;
+        }
 
-             ctx.fillStyle = fadeGrad;
+        // --- 2. SHORT / BUZZ / FADES ---
+        if (style === 'buzz_cut' || style === 'buzz_colored') {
+             // Tight to head
+             drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -20), true, 'natural'); // Shadow
+
+             if (style === 'buzz_colored') {
+                 // Rodman Pattern (Dye on head, not floating)
+                 const baseColor = hairColor;
+                 const spotColor = skinObj.hairColor2 || '#FFD700';
+
+                 // Draw Base
+                 drawSolidLayeredBase(1.01, 0, baseColor, false, 'natural');
+
+                 // Draw Spots (Clipped to head shape logic)
+                 ctx.save();
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0); // Top arch
+                 ctx.lineTo(p.x + modRadius, headY);
+                 ctx.lineTo(p.x - modRadius, headY);
+                 ctx.clip();
+
+                 ctx.fillStyle = spotColor;
+                 const numSpots = 5;
+                 for(let i=0; i<numSpots; i++) {
+                     // Spread points on surface
+                     const angle = (seededRandom(seed + i * 13) * Math.PI) - Math.PI/2;
+                     const dist = (seededRandom(seed + i * 7)) * modRadius * 0.8;
+                     const sx = p.x + Math.sin(angle) * dist;
+                     const sy = headY - 2*s - Math.cos(angle) * dist * 0.6;
+
+                     // Irregular patches
+                     ctx.beginPath();
+                     ctx.ellipse(sx, sy, 6*s, 4*s, seededRandom(seed+i)*3, 0, Math.PI*2);
+                     ctx.fill();
+                 }
+                 ctx.restore();
+             } else {
+                 const grad = ctx.createLinearGradient(0, headY - modRadius, 0, headY + 5*s);
+                 grad.addColorStop(0, adjustColor(hairColor, 20));
+                 grad.addColorStop(1, adjustColor(hairColor, -10));
+                 drawSolidLayeredBase(1.01, 0, grad, false, 'natural');
+             }
+             return;
+        }
+
+        if (style.startsWith('fade_')) {
+             // Skin fade base (Shaved sides)
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
+
+             // Top geometry varies
+             const w = modRadius * 0.9;
+             let topH = modRadius * 1.1;
+
+             if (style === 'fade_box') topH = modRadius * 1.5; // Flat top
+             if (style === 'fade_retro') topH = modRadius * 1.2; // Round 80s
+             if (style === 'fade_king') topH = modRadius * 1.05; // Tight
+             if (style === 'fade_chef') topH = modRadius * 1.1; // Textured
+             if (style === 'fade_pompadour') topH = modRadius * 1.4; // High volume (Luka)
+             if (style === 'fade_low') topH = modRadius * 1.05;
+             if (style === 'curly_top_fade') topH = modRadius * 1.2;
+
+             const topY = headY - topH;
+             ctx.fillStyle = hairColor;
              ctx.beginPath();
 
-             // Textured Top (Subtle bumps for buzz cut)
-             const numBumps = 30; // More bumps = smoother/tighter for straight hair
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = Math.PI + (i / numBumps) * Math.PI;
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = r + (rnd * 0.8 * s); // Smaller variation than curly
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
-                 if (i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
+             if (style === 'fade_box') {
+                 ctx.moveTo(p.x - w*0.8, topY);
+                 ctx.lineTo(p.x + w*0.8, topY); // Flat top
+                 ctx.lineTo(p.x + w*0.9, headY); // Sides taper in
+                 ctx.lineTo(p.x - w*0.9, headY);
+             } else if (style === 'fade_king') {
+                 // Crown shape: Wide top, tapered sides, slightly peaked center
+                 ctx.moveTo(p.x - w, headY - s);
+                 ctx.quadraticCurveTo(p.x - w*0.5, topY, p.x, topY - 2*s); // Peak
+                 ctx.quadraticCurveTo(p.x + w*0.5, topY, p.x + w, headY - s);
+                 ctx.lineTo(p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
+             } else if (style === 'fade_pompadour') {
+                 // Voluminous top (Luka) - Swept back
+                 ctx.moveTo(p.x - w, headY - 2*s);
+                 ctx.bezierCurveTo(p.x - w, topY, p.x + w, topY, p.x + w, headY - 2*s);
+                 ctx.fill();
+                 return; // Skip standard fill
+             } else if (style === 'curly_top_fade') {
+                 // Curly Top: Bumpy surface
+                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
+             } else if (style === 'fade_low') {
+                 // Low Fade: Rounded, shorter on sides, uniform top
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY - 2*s, w, w * 0.8, 0, Math.PI, 0);
+                 ctx.lineTo(p.x + w, headY + s);
+                 ctx.lineTo(p.x - w, headY + s);
+             } else if (style === 'fade_retro') {
+                 // Retro 80s: Boxy but rounded corners (not sharp fade_box)
+                 ctx.moveTo(p.x - w*0.9, topY);
+                 ctx.lineTo(p.x + w*0.9, topY);
+                 ctx.quadraticCurveTo(p.x + w, headY, p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
+                 ctx.quadraticCurveTo(p.x - w, headY, p.x - w*0.9, topY);
+             } else {
+                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
              }
-
-             // Tapered sides
-             ctx.lineTo(p.x + r, headY + 3*s);
-             ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.6, headY + 8*s); // Sideburn curve in
-             // Neckline - Lowered and Rounded (Natural "U")
-             ctx.quadraticCurveTo(p.x, headY + 9*s, p.x - r * 0.6, headY + 8*s);
-             ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
-             ctx.lineTo(p.x - r, headY - 2*s);
              ctx.fill();
 
-             // Internal Texture (Stubble Dots)
-             ctx.fillStyle = adjustColor(hairColor, 15);
-             for(let i=0; i<40; i++) { // Dense stubble
-                 const rnd1 = seededRandom(baseSeed + 300 + i);
-                 const rnd2 = seededRandom(baseSeed + 400 + i);
-                 const tx = p.x + (rnd1-0.5) * r * 1.8;
-                 const ty = headY - 2*s + (rnd2-0.5) * r * 1.2;
-                 // Clip circle check
-                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < r) {
-                     ctx.beginPath(); ctx.arc(tx, ty, 0.8*s, 0, Math.PI*2); ctx.fill();
+             // Curly Top Texture
+             if (style === 'curly_top_fade') {
+                 ctx.fillStyle = adjustColor(hairColor, 10);
+                 const dens = 10;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed+i) - 0.5) * w * 1.5;
+                     const ry = (seededRandom(seed+i+20) - 0.5) * w * 0.8;
+                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 4*s + ry, 3*s, 0, Math.PI*2); ctx.fill();
                  }
              }
+
+             // Texture details (Sponge Curls / Chef)
+             if (style === 'fade_chef') {
+                 // Dense, solid sponge texture - Overdraw the smooth top with a noisy edge
+                 ctx.fillStyle = hairColor;
+                 const spongeSteps = 24;
+                 const topCenterY = headY - 2*s;
+
+                 // Redraw top surface with bumpy edge
+                 ctx.beginPath();
+                 for(let i=0; i<=spongeSteps; i++) {
+                     const t = i/spongeSteps;
+                     const angle = Math.PI - (t * Math.PI); // Left to Right arc
+
+                     // Noise for sponge edge
+                     const noise = (seededRandom(seed + i * 13) - 0.5) * 4 * s;
+                     const r = w + noise * 0.5; // Slight radius var
+
+                     const px = p.x + Math.cos(angle) * r;
+                     const py = topCenterY - Math.sin(angle) * (topH*0.8) + noise; // Scaled height
+
+                     if (i===0) ctx.moveTo(px, py);
+                     else ctx.lineTo(px, py);
+                 }
+                 ctx.lineTo(p.x + w, headY);
+                 ctx.lineTo(p.x - w, headY);
+                 ctx.fill();
+
+                 // Internal Highlights (Pores)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const poreDens = 25;
+                 for(let i=0; i<poreDens; i++) {
+                     const r = seededRandom(seed + i * 7) * w * 0.8;
+                     const a = seededRandom(seed + i * 3) * Math.PI - Math.PI/2;
+                     const tx = p.x + Math.cos(a) * r;
+                     const ty = topCenterY + Math.sin(a) * r * 0.5;
+
+                     if (ty < headY - 5*s) { // Keep away from fade line
+                         ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
+
              return;
         }
-        if (style === 'short_curly') {
-             // Textured Fade (Curry/Giannis) - Restored
-             const r = headRadius * 1.05;
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r * 1.2);
-             fadeGrad.addColorStop(0, hairColor);
-             fadeGrad.addColorStop(0.6, hairColor);
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
 
-             ctx.fillStyle = fadeGrad;
-
-             ctx.beginPath();
-             const numBumps = 18;
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = Math.PI + (i / numBumps) * Math.PI; // Top arc
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = r + (rnd * 2 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
-                 if (i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
+        if (style === 'waves' || style === 'waves_360') {
+             drawSolidLayeredBase(1.01, 1*s, hairColor, false, 'shaved');
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 2*s;
+             const numWaves = (style === 'waves_360') ? 5 : 3;
+             for(let i=0; i<numWaves; i++) {
+                 ctx.beginPath();
+                 ctx.arc(p.x, headY - 2*s, modRadius * (0.3 + i*(0.7/numWaves)), 0, Math.PI*2);
+                 ctx.stroke();
              }
-             // Tapered sides & Neckline
-             ctx.lineTo(p.x + r, headY + 3*s);
-             ctx.quadraticCurveTo(p.x + r, headY + 8*s, p.x + r * 0.7, headY + 8*s);
-             ctx.quadraticCurveTo(p.x, headY + 9.5*s, p.x - r * 0.7, headY + 8*s); // Deep round neckline
-             ctx.quadraticCurveTo(p.x - r, headY + 8*s, p.x - r, headY + 3*s);
-             ctx.lineTo(p.x - r, headY - 2*s);
+             return;
+        }
+
+        if (style === 'buzz_line') {
+             drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -10), true, 'natural');
+             ctx.strokeStyle = '#333'; // Skin tone gap approx or dark line? usually skin exposed
+             // Draw line on side
+             ctx.lineWidth = 2*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - modRadius*0.7, headY - 5*s);
+             ctx.lineTo(p.x - modRadius*0.9, headY + 5*s);
+             ctx.globalCompositeOperation = 'destination-out';
+             ctx.stroke();
+             ctx.globalCompositeOperation = 'source-over';
+             return;
+        }
+
+        if (style === 'caesar_cut') {
+             // Low cut with straight fringe
+             drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), true, 'square');
+             // Fringe
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 5*s, modRadius, Math.PI, 0);
+             ctx.lineTo(p.x + modRadius, headY);
+             ctx.lineTo(p.x - modRadius, headY);
              ctx.fill();
+             return;
+        }
 
-             // Internal Texture (Curls)
-             ctx.fillStyle = adjustColor(hairColor, 20); // Highlights
-             for(let i=0; i<15; i++) {
-                 const rnd1 = seededRandom(baseSeed + 100 + i);
-                 const rnd2 = seededRandom(baseSeed + 200 + i);
+        // --- 3. AFROS & CURLS ---
+        if (style.startsWith('afro_') || style === 'curls_textured') {
+             // Universal Afro logic with Shape differentiation
+             let sizeMult = 1.2;
+             // Base sizes (if no user override)
+             if (style === 'afro_classic') sizeMult = 1.4; // Medium-Large
+             if (style === 'afro_blowout') sizeMult = 1.6; // XL Wide
+             if (style === 'curls_textured') sizeMult = 1.15; // Tight
+             if (style === 'afro_taper') sizeMult = 1.25; // Tall but narrow bottom
 
-                 const tx = p.x + (rnd1-0.5) * r * 1.5;
-                 const ty = headY - 2*s + (rnd2-0.5) * r;
-                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < r) {
+             // Apply Global or Skin-specific Scale override
+             if (skinObj.hairScale) sizeMult *= skinObj.hairScale;
+             if (skinObj.afroSize) sizeMult = skinObj.afroSize; // Legacy direct override
+
+             const r = modRadius * sizeMult;
+
+             // Shadow Halo
+             ctx.fillStyle = adjustColor(hairColor, -40);
+
+             // Shape Logic
+             if (style === 'afro_taper') {
+                 // High top, tapered sides (Trapezoid/Boxy)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - r*0.6, headY + 5*s); // Bottom left
+                 ctx.lineTo(p.x - r, headY - r*0.8); // Top left flare
+                 ctx.quadraticCurveTo(p.x, headY - r*1.2, p.x + r, headY - r*0.8); // Top dome
+                 ctx.lineTo(p.x + r*0.6, headY + 5*s); // Bottom right
+                 ctx.fill();
+             } else if (style === 'afro_blowout') {
+                 // Wide Oval
+                 ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.15, r*0.9, 0, 0, Math.PI*2); ctx.fill();
+             } else if (style === 'curls_textured') {
+                 // Tight Nappy Curls (KD/Tatum)
+                 // Use a full ellipse to ensure crown coverage
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY - 2*s, r * 0.95, r * 0.95, 0, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Dense Noise Texture (Sponge effect)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const dens = 40;
+                 const w = r * 0.95;
+                 const h = r * 0.95;
+
+                 for(let i=0; i<dens; i++) {
+                     // Random point inside circle
+                     const ang = seededRandom(seed + i) * Math.PI * 2;
+                     const rad = Math.sqrt(seededRandom(seed + i + 50)) * w * 0.9; // Bias outward slightly
+
+                     const tx = p.x + Math.cos(ang) * rad;
+                     const ty = (headY - 2*s) + Math.sin(ang) * rad * 0.9; // Flatten Y slightly
+
                      ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
                  }
-             }
-             return;
-        }
-
-        if (style === 'curly') {
-             // Loose curls / small afro (Magic Johnson style) - Restored
-             const rW = headRadius * 1.2;
-             const rH = headRadius * 1.3;
-
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY - rH * 0.3, rW, hairColor);
-
-             ctx.beginPath();
-             // Shape: Rounded square-ish but soft
-             ctx.moveTo(p.x - headRadius, headY + 2*s);
-             ctx.quadraticCurveTo(p.x - rW, headY, p.x - rW, headY - rH * 0.5);
-
-             // Top bumps
-             const numBumps = 12;
-             for(let i=0; i<=numBumps; i++) {
-                 const t = i/numBumps;
-                 const angle = Math.PI + t * Math.PI; // Top arc approx
-                 // We want a flat-ish top with bumps
-                 // Let's just use bezier control points or simple bumps along the top edge
+             } else {
+                 // Classic / Mini (Spherical)
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
              }
 
-             // Simplification: Standard shape with bumps added on top?
-             // Or just use the organic shape:
-             ctx.bezierCurveTo(p.x - rW, headY - rH * 1.2, p.x + rW, headY - rH * 1.2, p.x + rW, headY - rH * 0.5);
-             ctx.quadraticCurveTo(p.x + rW, headY, p.x + headRadius, headY + 2*s);
-             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - headRadius, headY + 2*s);
-             ctx.fill();
+             // Internal Texture (Noise for all types except textured which handles its own)
+             if (style !== 'curls_textured') {
+                 // Main Body Gradient
+                 const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
+                 grad.addColorStop(0, adjustColor(hairColor, 30));
+                 grad.addColorStop(0.6, hairColor);
+                 grad.addColorStop(1, adjustColor(hairColor, -30));
+                 ctx.fillStyle = grad;
+                 // Re-fill shape with gradient
+                 if (style === 'afro_blowout') { ctx.fill(); }
+                 else if (style === 'afro_taper') { ctx.fill(); }
+                 else { ctx.fill(); }
 
-             // Add seeded bumps on perimeter
-             ctx.fillStyle = hairColor;
-             for(let i=0; i<20; i++) {
-                 const t = i/20;
-                 const angle = Math.PI + t * Math.PI; // Top half
-                 const rnd = seededRandom(baseSeed + i*50);
-                 const cx = p.x + Math.cos(angle) * rW * 0.9;
-                 const cy = (headY - rH*0.4) + Math.sin(angle) * rH * 0.6;
-
-                 // Only draw if outside the main fill to create bump?
-                 // Easier: Just draw texture circles inside
-             }
-
-             // Texture
-             ctx.fillStyle = adjustColor(hairColor, 10);
-             for(let i=0; i<20; i++) {
-                 const rndX = seededRandom(baseSeed + 2000 + i);
-                 const rndY = seededRandom(baseSeed + 2100 + i);
-                 const tx = p.x + (rndX-0.5) * rW * 1.6;
-                 const ty = headY - rH*0.5 + (rndY-0.5) * rH;
-                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-rH*0.3))**2) < rW) {
-                     ctx.beginPath(); ctx.arc(tx, ty, 2*s, 0, Math.PI*2); ctx.fill();
+                 // Detail Texture (No floating balls)
+                 ctx.fillStyle = adjustColor(hairColor, 15);
+                 const dens = 12;
+                 for(let i=0; i<dens; i++) {
+                     const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
+                     const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
+                     // Clip to approx shape
+                     if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
+                         ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
+                     }
                  }
              }
              return;
         }
 
+        // --- 4. BRAIDS / CORNROWS ---
+        if (style.startsWith('cornrows_') || style === 'braids_box' || style === 'braids_zigzag') {
+             // Scalp Base
+             ctx.fillStyle = adjustColor(hairColor, -20);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-        if (style === 'afro') {
-             const afroR = headRadius * 1.5;
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, afroR, hairColor);
-
-             ctx.beginPath();
-             // Textured Perimeter
-             const numBumps = 24;
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = (i / numBumps) * Math.PI * 2; // Full circle
-                 const rnd = seededRandom(baseSeed + i);
-                 const bumpR = afroR * 0.2;
-                 const nr = (afroR * 0.9) + (rnd * 2 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = (headY - 2*s) + Math.sin(angle) * nr;
-
-                 // Draw arc for bump
-                 // Simplified: Just move to and arc
-                 if (i===0) ctx.moveTo(cx + bumpR, cy);
-                 ctx.arc(cx, cy, bumpR, 0, Math.PI*2);
-             }
-             ctx.fill();
-
-             // Internal Texture (Tight Curls)
-             ctx.fillStyle = adjustColor(hairColor, -15); // Darker pockets
-             for(let i=0; i<25; i++) {
-                 const rnd1 = seededRandom(baseSeed + 500 + i);
-                 const rnd2 = seededRandom(baseSeed + 600 + i);
-                 const tx = p.x + (rnd1-0.5) * afroR * 1.5;
-                 const ty = headY - 2*s + (rnd2-0.5) * afroR * 1.5;
-                 if (Math.sqrt((tx-p.x)**2 + (ty-(headY-2*s))**2) < afroR * 0.8) {
-                     ctx.beginPath(); ctx.arc(tx, ty, 2.5*s, 0, Math.PI*2); ctx.fill();
-                 }
-             }
-             return;
-        }
-
-        if (style === 'cornrows') {
-             // Tight braids logic
-             const r = headRadius * 1.0;
-
-             // Base scalp (darkened skin or hair color base)
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
-
-             const numRows = 7;
-             const braidWidth = 3 * s;
+             const numRows = (style === 'cornrows_straight' || style === 'braids_zigzag') ? 9 : 7;
+             let rowW = 3.5 * s;
+             if (style === 'cornrows_braids') { rowW = 5 * s; }
+             if (style === 'braids_zigzag') { rowW = 3.5 * s; }
+             if (style === 'braids_box') { rowW = 6 * s; }
 
              for(let i=0; i<numRows; i++) {
-                 // Perspective: Rows converge towards the neck slightly
-                 const t = (i / (numRows - 1)) * 2 - 1; // -1 to 1 (Left to Right)
-                 const absT = Math.abs(t);
+                 // Spherical Distribution
+                 const t = (i / (numRows - 1)); // 0 to 1
+                 const angle = (t - 0.5) * 2.0; // -1 to 1 (Normalized angle)
+                 const theta = angle * 1.2; // Radians spread (approx -70 to 70 deg)
 
-                 // Top Point (Spread out) - Tapered Height
-                 const startX = p.x + t * (r * 0.9);
-                 // Middle (t=0) is higher, sides (t=1) are lower
-                 const startY = (headY - r * 1.1) + (absT * r * 0.4);
+                 // Start (Forehead/Top)
+                 // Curve start Y based on angle to simulate spherical hairline
+                 const sx = p.x + Math.sin(theta) * modRadius * 0.85;
+                 const sy = (headY - 2*s) - Math.cos(theta) * modRadius * 0.95;
 
-                 // Bottom Point (Converging at nape)
-                 const endX = p.x + t * (r * 0.3); // Converge tighter
-                 const endY = headY + r * 0.95;
+                 // End (Nape)
+                 // Pinch in slightly at neck
+                 const ex = p.x + Math.sin(theta) * modRadius * 0.6;
+                 const ey = (headY - 2*s) + modRadius * 0.9;
 
-                 // Control Points - follow head sphere
-                 // Side braids curve OUT then in
-                 const cp1x = startX + (t * r * 0.8); // Bulge out
-                 const cp1y = (headY - r * 0.6) + (absT * r * 0.3); // Curve follows startY slope
-                 const cp2x = endX + (t * r * 0.2);
-                 const cp2y = headY + r * 0.5;
+                 // Control Points for spherical wrapping
+                 // Push out in X to simulate sphere volume
+                 const cpX = p.x + Math.sin(theta) * modRadius * 1.15;
+                 const cpY = (headY - 2*s); // Mid-height
 
-                 // Draw Braid Path
-                 // Shadow/Gap
-                 ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-                 ctx.lineWidth = braidWidth + 1*s;
                  ctx.lineCap = 'round';
-                 ctx.beginPath(); ctx.moveTo(startX, startY); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY); ctx.stroke();
+                 const path = new Path2D();
 
-                 // Braid Body
+                 if (style === 'braids_box') {
+                     // Loose hanging braids (Travis/Asap)
+                     const hangX = p.x + Math.sin(theta) * modRadius * 1.1;
+                     const hangY = headY + 15*s;
+                     path.moveTo(sx, sy);
+                     // Messy dangle
+                     const r1 = (seededRandom(seed + i) - 0.5) * 10 * s;
+                     const r2 = (seededRandom(seed + i + 50) - 0.5) * 10 * s;
+                     path.bezierCurveTo(cpX + r1, cpY, hangX + r2, hangY - 10*s, hangX, hangY);
+                 } else if (style === 'braids_zigzag') {
+                     // Zig Zag Pattern (Cornrows style)
+                     path.moveTo(sx, sy);
+
+                     // Tighter control point to hug scalp
+                     const tightCpX = p.x + Math.sin(theta) * modRadius * 1.02;
+
+                     // Oscillate along the path
+                     const steps = 30; // Smoother
+                     const zigFreq = 10 * Math.PI; // Tighter frequency
+                     const zigAmp = 1.5 * s; // Reduced amplitude (less messy)
+
+                     for (let j = 1; j <= steps; j++) {
+                         const t = j / steps;
+                         // Quadratic Bezier Interpolation
+                         const invT = 1 - t;
+                         const bx = invT * invT * sx + 2 * invT * t * tightCpX + t * t * ex;
+                         const by = invT * invT * sy + 2 * invT * t * cpY + t * t * ey;
+
+                         // Zig Zag Offset
+                         // Alternating phase per row (i) to interlock
+                         const offset = Math.sin(t * zigFreq + (i * Math.PI)) * zigAmp;
+
+                         path.lineTo(bx + offset, by);
+                     }
+                 } else if (style === 'cornrows_braids') {
+                     // Thick Braids (Klaw) - Slightly looser/3D
+                     path.moveTo(sx, sy);
+                     path.quadraticCurveTo(cpX, cpY, ex, ey);
+                 } else {
+                     // Cornrows Straight (AI) - Tight to skull
+                     path.moveTo(sx, sy);
+                     path.quadraticCurveTo(cpX, cpY, ex, ey);
+                 }
+
+                 // Draw Shadow/Border
+                 ctx.strokeStyle = adjustColor(hairColor, -30);
+                 ctx.lineWidth = rowW + 1.5*s;
+                 ctx.stroke(path);
+
+                 // Draw Main Strand
                  ctx.strokeStyle = hairColor;
-                 ctx.lineWidth = braidWidth;
-                 ctx.beginPath(); ctx.moveTo(startX, startY); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY); ctx.stroke();
+                 ctx.lineWidth = rowW;
+                 ctx.stroke(path);
 
-                 // Braid Texture
-                 ctx.fillStyle = adjustColor(hairColor, 30); // Highlight
-                 const steps = 12;
-                 for(let j=0; j<=steps; j++) {
-                     const tt = j/steps;
-                     const inv = 1 - tt;
-                     const bx = inv*inv*inv*startX + 3*inv*inv*tt*cp1x + 3*inv*tt*tt*cp2x + tt*tt*tt*endX;
-                     const by = inv*inv*inv*startY + 3*inv*inv*tt*cp1y + 3*inv*tt*tt*cp2y + tt*tt*tt*endY;
-                     ctx.beginPath(); ctx.arc(bx, by, 1*s, 0, Math.PI*2); ctx.fill();
+                 // Detail Pattern (Braided look)
+                 if (rowW > 3*s) {
+                     ctx.strokeStyle = adjustColor(hairColor, 20);
+                     ctx.lineWidth = 1*s;
+                     ctx.setLineDash([2*s, 2*s]);
+                     ctx.stroke(path);
+                     ctx.setLineDash([]);
                  }
              }
-
-             // Headband (Team Color)
-             const bandColor = skinObj.headbandColor || skinObj.jerseyColor || '#FFF';
-             const bandY = headY - 1*s; // Lower
-             const bandH = 3*s; // Thinner
-
-             ctx.fillStyle = bandColor;
-             ctx.beginPath();
-             // Band follows curvature around back of head (over braids)
-             ctx.ellipse(p.x, bandY, r + 2*s, bandH, 0, 0, Math.PI*2);
-             ctx.fill();
-
-             // Texture/Detail on headband
-             ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.ellipse(p.x, bandY, r + 2*s, bandH, 0, 0, Math.PI*2); ctx.stroke();
-
              return;
         }
 
-        if (style === 'mohawk') {
-             // Shaved sides (Fade) - Draw fading scalp first
-             const r = headRadius * 1.0;
-             const fadeGrad = ctx.createLinearGradient(0, headY - r, 0, headY + r);
-             fadeGrad.addColorStop(0, adjustColor(skinObj.skinTone, -10));
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-             ctx.fillStyle = fadeGrad;
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
+        // --- 5. DREADS ---
+        if (style.startsWith('dreads_')) {
+             if (style === 'dreads_tied') {
+                 // High Bun (Ja/Booker)
+                 drawSolidLayeredBase(1.0, 0, hairColor);
+                 // Bun
+                 ctx.fillStyle = adjustColor(hairColor, 10);
+                 ctx.beginPath(); ctx.arc(p.x, headY - modRadius, 10*s, 0, Math.PI*2); ctx.fill();
+                 // Tips
+                 ctx.strokeStyle = hairColor; ctx.lineWidth = 4*s;
+                 ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x - 15*s, headY - modRadius + 15*s); ctx.stroke();
+                 ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x + 15*s, headY - modRadius + 15*s); ctx.stroke();
+             } else if (style === 'dreads_short') {
+                 // Jimmy Butler / Short Dreads
+                 ctx.fillStyle = adjustColor(hairColor, -10);
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-             // Draw Central Strip
-             const stripW = 8 * s;
-             const stripTopY = headY - headRadius * 1.4;
-             const stripBotY = headY + headRadius * 1.0;
+                 const num = 12;
+                 const len = 10 * s;
+                 for(let i=0; i<num; i++) {
+                     const angle = (i/num)*Math.PI + Math.PI; // Top arc
+                     const sx = p.x + Math.cos(angle) * modRadius * 0.8;
+                     const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.8;
+                     ctx.strokeStyle = hairColor;
+                     ctx.lineWidth = 4*s;
+                     ctx.lineCap = 'round';
+                     ctx.beginPath();
+                     ctx.moveTo(sx, sy);
+                     const rx = (seededRandom(seed+i) - 0.5) * 5 * s;
+                     ctx.lineTo(sx + rx, sy + len);
+                     ctx.stroke();
+                 }
+             } else {
+                 // Loose (Long)
+                 ctx.fillStyle = adjustColor(hairColor, -20); // Base
+                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-             // Strip Gradient
-             const grad = ctx.createLinearGradient(0, stripTopY, 0, stripBotY);
-             grad.addColorStop(0, hairColor);
-             grad.addColorStop(1, adjustColor(hairColor, -20));
-             ctx.fillStyle = grad;
+                 const num = 14;
+                 const len = 18 * s;
+                 for(let i=0; i<num; i++) {
+                     const t = i/(num-1);
+                     const angle = Math.PI * 0.8 + t * Math.PI * 1.4;
+                     const sx = p.x; const sy = headY - 10*s;
 
-             ctx.beginPath();
-             // Top Texture
-             const numSpikes = 10;
-             for(let i=0; i<=numSpikes; i++) {
-                 const angle = Math.PI + (i/numSpikes)*Math.PI; // Top arc
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = (stripW/2) + (rnd * 2 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = stripTopY + Math.sin(angle) * (stripW/4); // Flattened top
-                 if(i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
-             }
-             ctx.lineTo(p.x + stripW/2, stripBotY);
-             // Rounded bottom
-             ctx.arc(p.x, stripBotY, stripW/2, 0, Math.PI);
-             ctx.lineTo(p.x - stripW/2, stripTopY); // Close loop
-             ctx.fill();
-
-             // Internal Texture
-             ctx.fillStyle = adjustColor(hairColor, 20);
-             for(let i=0; i<10; i++) {
-                 const rnd = seededRandom(baseSeed + 700 + i);
-                 const tx = p.x + (rnd-0.5) * stripW;
-                 const ty = stripTopY + (seededRandom(baseSeed+800+i) * (stripBotY - stripTopY));
-                 ctx.beginPath(); ctx.arc(tx, ty, 1*s, 0, Math.PI*2); ctx.fill();
+                     ctx.strokeStyle = (i%2===0) ? hairColor : adjustColor(hairColor, -10);
+                     ctx.lineWidth = 5 * s;
+                     ctx.beginPath();
+                     ctx.moveTo(sx + Math.cos(angle)*10*s, sy + Math.sin(angle)*10*s);
+                     ctx.quadraticCurveTo(p.x + Math.cos(angle)*modRadius*1.5, headY + len*0.5, p.x + Math.cos(angle)*modRadius*1.2, headY + len);
+                     ctx.stroke();
+                 }
              }
              return;
         }
 
-        if (style === 'straight' || style === 'long') {
-             // Straight hair falling down
-             const len = (style === 'long') ? 25*s : 10*s;
-             const w = headRadius * 1.1;
+        // --- 6. LONG & LEGEND ---
+        if (style === 'mullet_80s') {
+             // Bird Style
+             const r = modRadius * 1.05;
+             const len = 18 * s;
 
-             const grad = ctx.createLinearGradient(0, headY - headRadius, 0, headY + len);
-             grad.addColorStop(0, adjustColor(hairColor, 20));
-             grad.addColorStop(1, adjustColor(hairColor, -20));
-             ctx.fillStyle = grad;
-
+             // Back (Feathered)
+             ctx.fillStyle = adjustColor(hairColor, -10);
              ctx.beginPath();
-             // Texture Top (Raised to cover skull)
-             const numStrands = 20;
-             const topY = headY - headRadius * 0.3; // Higher anchor
-             for(let i=0; i<=numStrands; i++) {
-                 const angle = Math.PI + (i/numStrands)*Math.PI;
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = w + (rnd * 1 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = topY + Math.sin(angle) * nr * 0.7; // Taller arc
-                 if(i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
-             }
-
-             ctx.lineTo(p.x + w, headY + len); // Right side down
-             // Bottom edge (Ragged)
-             for(let i=0; i<=10; i++) {
-                 const t = i/10;
-                 const tx = (p.x + w)*(1-t) + (p.x - w)*t;
-                 const ty = headY + len + (seededRandom(baseSeed+900+i)*4*s);
-                 ctx.lineTo(tx, ty);
-             }
-             ctx.lineTo(p.x - w, topY); // Left side up
+             ctx.moveTo(p.x - r, headY);
+             ctx.quadraticCurveTo(p.x - r*1.5, headY + len*0.5, p.x - r*0.8, headY + len);
+             ctx.lineTo(p.x + r*0.8, headY + len);
+             ctx.quadraticCurveTo(p.x + r*1.5, headY + len*0.5, p.x + r, headY);
              ctx.fill();
 
-             // Strand lines (Randomized Lengths)
-             ctx.strokeStyle = adjustColor(hairColor, -30);
-             ctx.lineWidth = 1*s;
-             ctx.beginPath();
-             // Increase density for natural look
-             for(let i=0; i<15; i++) {
-                 const x = p.x + (seededRandom(baseSeed+1000+i)-0.5) * w * 1.6;
-                 if (Math.abs(x - p.x) > w * 0.9) continue;
-
-                 // Vary start and length
-                 const startOffset = seededRandom(baseSeed + 2000 + i) * len * 0.4; // Start anywhere in top 40%
-                 const lineLen = len * 0.4 + (seededRandom(baseSeed + 3000 + i) * len * 0.5); // Random length
-
-                 const startY = topY + 5*s + startOffset;
-                 let endY = startY + lineLen;
-
-                 // Clip end to hair bottom
-                 if (endY > headY + len - 2*s) endY = headY + len - 2*s;
-
-                 ctx.moveTo(x, startY);
-                 ctx.lineTo(x, endY);
-             }
-             ctx.stroke();
+             // Top (Short/Feathered)
+             drawSolidLayeredBase(1.0, 2*s, hairColor, false, 'natural');
              return;
         }
 
-        if (style === 'curly_long') {
-             // Dirk/Weird Al style
-             const len = 20*s;
-             const w = headRadius * 1.3;
+        if (style === 'anchor_man_80s') {
+             // Ron Burgundy style: Voluminous, side-parted, thick back
+             const r = modRadius * 1.15; // Wide top
+             const len = 12 * s; // Moderate length, not full mullet
 
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY, w, hairColor);
-
+             // Back/Sides (Thick block)
+             ctx.fillStyle = adjustColor(hairColor, -10);
              ctx.beginPath();
-             // Top Bumps (Raised)
-             const numBumps = 15;
-             const topY = headY - headRadius * 0.5;
-             for(let i=0; i<=numBumps; i++) {
-                 const angle = Math.PI + (i/numBumps)*Math.PI;
-                 const rnd = seededRandom(baseSeed + i);
-                 const nr = w + (rnd * 3 * s);
-                 const cx = p.x + Math.cos(angle) * nr;
-                 const cy = topY + Math.sin(angle) * nr * 0.8; // Rounder top
-                 if(i===0) ctx.moveTo(cx, cy);
-                 else ctx.lineTo(cx, cy);
-             }
-
-             // Right Side (Wavy)
-             ctx.bezierCurveTo(p.x + w*1.2, headY, p.x + w*0.8, headY + len/2, p.x + w, headY + len);
-             // Bottom
-             ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x - w, headY + len);
-             // Left Side (Wavy)
-             ctx.bezierCurveTo(p.x - w*0.8, headY + len/2, p.x - w*1.2, headY, p.x - w, topY); // Connect back to start
+             ctx.moveTo(p.x - r, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - r*1.2, headY + len*0.5, p.x - r*0.9, headY + len);
+             ctx.lineTo(p.x + r*0.9, headY + len);
+             ctx.quadraticCurveTo(p.x + r*1.2, headY + len*0.5, p.x + r, headY - 5*s);
              ctx.fill();
 
-             // Internal Curls (Twisting Lines)
+             // Top (Voluminous Helmet)
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - r, headY - 2*s);
+             // Big arc
+             ctx.bezierCurveTo(p.x - r, headY - modRadius*1.8, p.x + r, headY - modRadius*1.8, p.x + r, headY - 2*s);
+             // Bottom edge of hair cap
+             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY - 2*s);
+             ctx.fill();
+
+             // Parting line visual
              ctx.strokeStyle = adjustColor(hairColor, -20);
-             ctx.lineWidth = 1.5*s;
-             ctx.beginPath();
-             for(let i=0; i<12; i++) {
-                 // Static seed positions
-                 const rndX = seededRandom(baseSeed + 1100 + i);
-                 const startX = p.x + (rndX-0.5) * w * 1.6;
-                 const startY = topY + (seededRandom(baseSeed + 1200 + i) * len * 0.8);
-
-                 // Strict Clipping: Keep inside drawn width
-                 if (Math.abs(startX - p.x) > w * 0.85) continue;
-
-                 const curlLen = 8 * s + seededRandom(baseSeed + 1300 + i) * 8 * s;
-                 // Ensure end point is also somewhat contained
-                 if (startY + curlLen > headY + len) continue;
-
-                 const waveW = 3 * s; // Reduced wave width
-
-                 ctx.moveTo(startX, startY);
-                 // Draw S-Curve
-                 ctx.bezierCurveTo(
-                     startX + waveW, startY + curlLen * 0.3,
-                     startX - waveW, startY + curlLen * 0.6,
-                     startX, startY + curlLen
-                 );
-             }
-             ctx.stroke();
+             ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x - r*0.6, headY - modRadius*1.2); ctx.lineTo(p.x - r*0.4, headY); ctx.stroke();
              return;
         }
 
-        if (style === 'headband') {
-             const hbColor = skinObj.hairColor || '#000';
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY - 2*s, headRadius, hbColor);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
+        if (style === 'long_flow' || style === 'long_layered') {
+             // Dirk/Nash: Shaggy, layered, floppy
+             // Base Scalp (Darker)
+             ctx.fillStyle = adjustColor(hairColor, -20);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
 
-             const bandColor = skinObj.headbandColor || '#FFF';
-             ctx.strokeStyle = bandColor; ctx.lineWidth = 4*s;
-             ctx.beginPath(); ctx.moveTo(p.x-11*s, headY-5*s); ctx.lineTo(p.x+11*s, headY-5*s); ctx.stroke();
+             const len = 16 * s; // Shorter (Was 24)
 
-             // Highlight on band
-             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1*s;
-             ctx.beginPath(); ctx.moveTo(p.x-11*s, headY-6*s); ctx.lineTo(p.x+11*s, headY-6*s); ctx.stroke();
-             return;
-        }
+             // Draw Locks (Back to Front)
+             const numLocks = 32;
+             for(let i=0; i<numLocks; i++) {
+                 const t = i / numLocks; // 0 to 1
+                 const angle = (t - 0.5) * 4.0; // Spread around head (-2.0 to 2.0 rad)
 
-        if (style === 'spikes') {
-             const baseGrad = createHairGradient(ctx, p.x, headY - 1*s, headRadius * 1.3, hairColor);
-             ctx.fillStyle = baseGrad;
-             ctx.beginPath(); ctx.arc(p.x, headY - 1*s, headRadius * 1.1, 0, Math.PI*2); ctx.fill();
+                 // Randomize slightly (Deterministic)
+                 const rLen = len + (seededRandom(seed + i) - 0.5) * 6 * s;
+                 const rAngle = angle + (seededRandom(seed + i + 50) - 0.5) * 0.2;
+                 const wavy = (seededRandom(seed + i + 100) - 0.5) * 8 * s;
 
-             const numSpikes = 7;
-             for(let i=0; i<numSpikes; i++) {
-                 const angle = Math.PI + (i / (numSpikes-1)) * Math.PI;
-                 const sx = p.x + Math.cos(angle) * 10*s;
-                 const sy = (headY - 2*s) + Math.sin(angle) * 10*s;
-                 const ex = p.x + Math.cos(angle) * 25*s;
-                 const ey = (headY - 2*s) + Math.sin(angle) * 25*s;
+                 const sx = p.x + Math.sin(rAngle) * modRadius * 0.9;
+                 const sy = (headY - 5*s) - Math.cos(rAngle) * modRadius * 0.6;
+
+                 // Narrower bottom spread (Was modRadius + 15*s -> modRadius + 2*s)
+                 const ex = p.x + Math.sin(rAngle) * (modRadius + 2*s);
+                 const ey = headY + rLen;
+
+                 // Control point for waviness
+                 const cpX = sx + (ex - sx)*0.5 + wavy;
+                 const cpY = sy + (ey - sy)*0.5;
+
+                 // Draw Lock
+                 ctx.strokeStyle = (i % 3 === 0) ? adjustColor(hairColor, -15) : hairColor;
+                 ctx.lineWidth = 7 * s;
+                 ctx.lineCap = 'round';
 
                  ctx.beginPath();
-                 ctx.moveTo(sx + Math.cos(angle+1.5)*6*s, sy + Math.sin(angle+1.5)*6*s);
-                 ctx.lineTo(ex, ey);
-                 ctx.lineTo(sx + Math.cos(angle-1.5)*6*s, sy + Math.sin(angle-1.5)*6*s);
+                 ctx.moveTo(sx, sy);
+                 ctx.quadraticCurveTo(cpX, cpY, ex, ey);
+                 ctx.stroke();
+             }
+
+             // Top messy bit
+             for(let i=0; i<8; i++) {
+                 const angle = (i/8) * Math.PI * 2;
+                 const dist = (seededRandom(seed + i + 200)) * modRadius * 0.5;
+                 ctx.fillStyle = hairColor;
+                 ctx.beginPath();
+                 ctx.arc(p.x + Math.cos(angle)*dist, headY - modRadius*0.7 + Math.sin(angle)*dist, 6*s, 0, Math.PI*2);
                  ctx.fill();
              }
              return;
         }
 
-        if (style === 'hat') {
-             const hColor = skinObj.hairColor || '#3c2415';
-             const capColor = skinObj.hatColor || '#F00';
+        if (style === 'slicked_back' || style === 'slick_side_part' || style === 'ivy_league' || style === 'undercut_slick') {
+             // The Anchor / Riley / Gentleman / Ivy / Undercut
+             const isUndercut = (style === 'undercut_slick');
+             const sideLen = isUndercut ? 0 : 4*s;
+             const sideType = isUndercut ? 'shaved' : 'tapered';
+             const baseColor = isUndercut ? adjustColor(hairColor, -40) : adjustColor(hairColor, -10);
 
-             // Hair sticking out bottom
-             ctx.fillStyle = hColor;
+             drawSolidLayeredBase(1.0, sideLen, baseColor, false, sideType);
+
+             ctx.fillStyle = hairColor;
+             const w = modRadius * 0.9;
+             // Top Block
              ctx.beginPath();
-             ctx.arc(p.x, headY + 4*s, headRadius * 1.05, Math.PI, 0, true); // Bottom half
+             ctx.moveTo(p.x - w, headY);
+             ctx.bezierCurveTo(p.x - w, headY - modRadius*1.5, p.x + w, headY - modRadius*1.5, p.x + w, headY);
+             // Back taper
+             if (isUndercut) {
+                 ctx.lineTo(p.x + w*0.6, headY + 12*s); // Long back slick
+                 ctx.lineTo(p.x - w*0.6, headY + 12*s);
+             } else {
+                 ctx.lineTo(p.x + w*0.8, headY + 8*s);
+                 ctx.lineTo(p.x - w*0.8, headY + 8*s);
+             }
              ctx.fill();
 
-             // Cap
-             const capGrad = createHairGradient(ctx, p.x, headY - 2*s, headRadius * 1.2, capColor);
-             ctx.fillStyle = capGrad;
+             // Texture Lines
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 2*s;
              ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, headRadius * 1.15, Math.PI, 0); // Top
-             ctx.lineTo(p.x + headRadius * 1.15, headY + 2*s);
-             ctx.quadraticCurveTo(p.x, headY + 6*s, p.x - headRadius * 1.15, headY + 2*s);
-             ctx.lineTo(p.x - headRadius * 1.15, headY - 2*s);
-             ctx.fill();
-             return;
-        }
+             const lines = (style === 'ivy_league') ? 7 : 4;
+             for(let i=0; i<lines; i++) {
+                 // Fan out slightly
+                 const t = (i/lines);
+                 const x = p.x - w*0.6 + t * w * 1.2;
+                 ctx.moveTo(x, headY - modRadius * (0.8 + seededRandom(seed+i)*0.2));
+                 ctx.lineTo(x, headY + 6*s);
+             }
+             ctx.stroke();
 
-        if (style === 'snakes') {
-             ctx.lineWidth = 3*s;
-             ctx.lineCap = 'round';
-             const numSnakes = 8;
-             for(let i=0; i<numSnakes; i++) {
-                 // Static snakes!
-                 const rndAngle = seededRandom(baseSeed + i*10);
-                 const rndCp1 = seededRandom(baseSeed + i*10 + 1);
-                 const rndCp2 = seededRandom(baseSeed + i*10 + 2);
-
-                 const angle = Math.PI + (i / (numSnakes-1)) * Math.PI;
-                 const sx = p.x + Math.cos(angle) * 8*s;
-                 const sy = (headY - 5*s) + Math.sin(angle) * 8*s;
-
-                 const cp1x = sx + Math.cos(angle) * 10*s + rndCp1*5*s;
-                 const cp1y = sy + Math.sin(angle) * 10*s;
-                 const cp2x = sx + Math.cos(angle) * 20*s - rndCp2*5*s;
-                 const cp2y = sy + Math.sin(angle) * 20*s;
-                 const ex = sx + Math.cos(angle) * 25*s;
-                 const ey = sy + Math.sin(angle) * 25*s;
-
-                 ctx.strokeStyle = adjustColor(hairColor, -30);
-                 ctx.lineWidth = 4*s;
-                 ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey); ctx.stroke();
-
-                 ctx.strokeStyle = hairColor;
-                 ctx.lineWidth = 3*s;
-                 ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey); ctx.stroke();
+             if (style === 'slick_side_part' || style === 'ivy_league') {
+                 // Hard Part line
+                 ctx.strokeStyle = '#333';
+                 ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 const partX = (style === 'ivy_league') ? p.x + w*0.5 : p.x - w*0.6;
+                 ctx.moveTo(partX, headY - modRadius*0.8);
+                 ctx.lineTo(partX, headY + s);
+                 ctx.stroke();
              }
              return;
         }
 
-        if (style === 'crew_cut') {
-             // Jokic: Simple, uniform short hair (Boxier than bald, less faded than short)
-             const r = headRadius * 1.03;
+        if (style === 'shaggy_top' || style === 'side_swept_fringe' || style === 'surfer_flow') {
+            // Messy / Long Top styles
+            const isSurfer = (style === 'surfer_flow');
+            const isFringe = (style === 'side_swept_fringe');
+
+            // Base
+            const backLen = isSurfer ? 18*s : 5*s;
+            drawSolidLayeredBase(1.05, backLen, adjustColor(hairColor, -15), false, isSurfer ? 'natural' : 'tapered');
+
+            // Top Layers
+            const numLocks = isSurfer ? 20 : 15;
+            const spread = isFringe ? 1.5 : 3.0; // Fringe swept to side
+
+            for(let i=0; i<numLocks; i++) {
+                const t = i / numLocks;
+                const angle = (t - 0.5) * spread;
+
+                // Shift angle for side sweep
+                const finalAngle = isFringe ? angle + 0.5 : angle;
+
+                const rLen = (12 + seededRandom(seed+i)*8) * s;
+                const sx = p.x + Math.sin(finalAngle) * modRadius * 0.5;
+                const sy = headY - modRadius * 0.8;
+                const ex = p.x + Math.sin(finalAngle) * (modRadius + (isSurfer?10:5)*s);
+                const ey = headY + (isSurfer ? rLen + 10*s : rLen);
+
+                ctx.strokeStyle = hairColor;
+                ctx.lineWidth = (isSurfer ? 5 : 6) * s;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                const cpX = sx + (ex-sx)*0.2 + (seededRandom(seed+i+50)-0.5)*10*s;
+                ctx.quadraticCurveTo(cpX, sy - 5*s, ex, ey);
+                ctx.stroke();
+            }
+            return;
+        }
+
+        if (style === 'mohawk_fade' || style === 'mohawk_burst' || style === 'mohawk_short') {
+             // Harden Style
+             let w = modRadius * 0.6;
+             if (style === 'mohawk_short') w = modRadius * 0.7;
+
+             const topY = headY - modRadius * 1.3;
+             const botY = headY + modRadius;
+
+             // Skin Fade Base
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -40), false, 'shaved');
+
+             // Hawk
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - w, topY);
+             ctx.quadraticCurveTo(p.x, topY - 5*s, p.x + w, topY);
+             ctx.lineTo(p.x + w, botY);
+             ctx.lineTo(p.x - w, botY);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'top_knot') {
+            drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -20), false, 'shaved');
+            ctx.fillStyle = hairColor;
+            ctx.beginPath(); ctx.arc(p.x, headY - modRadius*1.2, 5*s, 0, Math.PI*2); ctx.fill();
+            return;
+        }
+
+        if (style === 'crew_messy') {
+            // Jokic: Short crew cut, slightly messy but not cartoony spikes
+            const w = modRadius * 0.95;
+            const topH = modRadius * 1.15;
+
+            // Draw Sides (Short Fade)
+            drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), false, 'tapered');
+
+            // Draw Top (Solid textured mass)
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+
+            // Top Curve with micro-noise
+            const steps = 12;
+            for(let i=0; i<=steps; i++) {
+                const t = i/steps;
+                const angle = Math.PI - (t * Math.PI); // Left to Right
+
+                // Subtle unevenness
+                const noise = (seededRandom(seed + i * 23) - 0.5) * 3 * s;
+
+                const px = p.x + Math.cos(angle) * w;
+                const py = (headY - 2*s) - Math.sin(angle) * (topH * 0.9) + noise;
+
+                if(i===0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+
+            // Close shape at sides
+            ctx.lineTo(p.x + w, headY + 2*s);
+            ctx.lineTo(p.x - w, headY + 2*s);
+            ctx.fill();
+
+            // Front/Top Texture (Simulate short strands)
+            ctx.fillStyle = adjustColor(hairColor, 15); // Lighter tips
+            for(let i=0; i<15; i++) {
+                const rx = (seededRandom(seed + i * 11) - 0.5) * w * 1.6;
+                const ry = (seededRandom(seed + i * 17) - 0.5) * topH * 0.6;
+                // Tiny vertical ticks
+                const tx = p.x + rx;
+                const ty = headY - topH*0.5 + ry;
+                ctx.fillRect(tx, ty, 1.5*s, 3*s);
+            }
+            return;
+        }
+
+        // --- 7. MEDIUM STYLES ---
+        if (style === 'med_bob') {
+             // Classic Bob: Shoulder length, rounded bottom, straight
+             const len = 16 * s;
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             // Top
+             ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0);
+             // Sides down
+             ctx.lineTo(p.x + modRadius, headY + len);
+             // Rounded bottom inward
+             ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x - modRadius, headY + len);
+             ctx.lineTo(p.x - modRadius, headY - 2*s);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'med_shag') {
+             // The Shag: Layered, messy edges, longer
+             const len = 18 * s;
+             ctx.fillStyle = hairColor;
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0);
+
+             // Zigzag sides down
+             let cy = headY;
+             let cx = p.x + modRadius;
+             while(cy < headY + len) {
+                 cy += 4*s;
+                 cx += (seededRandom(seed + cy) - 0.5) * 4 * s;
+                 ctx.lineTo(cx, cy);
+             }
+             // Messy bottom
+             const bottomY = headY + len;
+             for(let x = cx; x > p.x - modRadius; x -= 5*s) {
+                 ctx.lineTo(x, bottomY + (seededRandom(seed + x) * 5 * s));
+             }
+             // Left side up
+             ctx.lineTo(p.x - modRadius, headY - 2*s);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'med_curtain') {
+             // Curtain Bangs: Center part, flows to sides, shoulder length
+             const len = 16 * s;
+             drawSolidLayeredBase(1.05, len, hairColor, false, 'natural');
+
+             // Parting line
+             ctx.strokeStyle = adjustColor(hairColor, -30);
+             ctx.lineWidth = 2*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - modRadius * 0.8);
+             ctx.lineTo(p.x, headY + 5*s);
+             ctx.stroke();
+             return;
+        }
+
+        if (style === 'med_wolf') {
+             // Wolf Cut: Volume on top, thinner bottom, long mullet-esque
+             // Top Volume
+             drawSolidLayeredBase(1.1, 4*s, hairColor, false, 'natural');
+             // Thinner bottom layers
+             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.beginPath();
+             const botLen = 20*s;
+             ctx.moveTo(p.x - modRadius*0.8, headY + 4*s);
+             ctx.quadraticCurveTo(p.x - modRadius, headY + botLen*0.5, p.x - modRadius*0.6, headY + botLen);
+             ctx.lineTo(p.x + modRadius*0.6, headY + botLen);
+             ctx.quadraticCurveTo(p.x + modRadius, headY + botLen*0.5, p.x + modRadius*0.8, headY + 4*s);
+             ctx.fill();
+             return;
+        }
+
+        if (style === 'med_wavy') {
+             // Wavy Shoulder
+             const len = 20*s;
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 6*s;
+             ctx.lineCap = 'round';
+             const numStrands = 20;
+             for(let i=0; i<numStrands; i++) {
+                 const t = i/numStrands;
+                 const angle = Math.PI + t * Math.PI; // Top arc
+                 const sx = p.x + Math.cos(angle) * modRadius * 0.8;
+                 const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.8;
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 // S-Curve
+                 const mx = sx + (seededRandom(seed+i)-0.5)*10*s;
+                 ctx.bezierCurveTo(sx - 10*s, sy + len*0.3, sx + 10*s, sy + len*0.6, mx, sy + len);
+                 ctx.stroke();
+             }
+             return;
+        }
+
+        if (style === 'med_curly') {
+             // Curly Shoulder
+             ctx.fillStyle = hairColor;
+             // Base
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+
+             // Curls
+             const len = 18*s;
+             const numCurls = 30;
+             for(let i=0; i<numCurls; i++) {
+                 const t = i/numCurls;
+                 const angle = (t - 0.5) * 3.5; // Wider spread
+                 const r = modRadius + (seededRandom(seed+i)*5*s);
+                 const cx = p.x + Math.sin(angle) * r;
+                 const cy = headY + (Math.abs(angle)*5*s); // Lower on sides
+
+                 const curlR = (3 + seededRandom(seed+i+50)*2)*s;
+
+                 // Draw rings down
+                 for(let j=0; j<4; j++) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy + j*curlR*1.5, curlR, 0, Math.PI*2);
+                    ctx.fill();
+                 }
+             }
+             return;
+        }
+
+        if (style === 'med_twist') {
+             // Twist Out (ID corrected)
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 4*s;
+             const num = 25;
+             const len = 16*s;
+
+             // Base
+             ctx.fillStyle = adjustColor(hairColor, -20);
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius*0.9, 0, Math.PI*2); ctx.fill();
+
+             for(let i=0; i<num; i++) {
+                 const angle = (i/num) * Math.PI * 2;
+                 const dist = seededRandom(seed+i) * modRadius;
+                 const sx = p.x + Math.cos(angle) * dist;
+                 const sy = headY - 2*s + Math.sin(angle) * dist;
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 // Twist line
+                 ctx.lineTo(sx + (seededRandom(seed+i+9)*10*s - 5*s), sy + len);
+                 ctx.stroke();
+             }
+             return;
+        }
+
+        if (style === 'med_braids') {
+             // Medium Box Braids (Thick)
+             const num = 16;
+             const len = 20*s;
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 5*s;
+             ctx.setLineDash([2*s, 2*s]); // Braided texture
+
+             for(let i=0; i<num; i++) {
+                 const t = i/num;
+                 const angle = Math.PI + t * Math.PI; // Back of head arc
+                 const sx = p.x + Math.cos(angle) * modRadius * 0.9;
+                 const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.5; // Start higher up
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 ctx.quadraticCurveTo(sx + (seededRandom(seed+i)-0.5)*10*s, headY + len*0.5, sx, headY + len);
+                 ctx.stroke();
+             }
+             ctx.setLineDash([]);
+             return;
+        }
+
+        if (style === 'med_slick') {
+             // Medium Slick (Greaser / Wet look)
+             const len = 14*s;
+             drawSolidLayeredBase(1.0, len, hairColor, false, 'tapered');
+
+             // Shine lines
+             ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+             ctx.lineWidth = 2*s;
+             ctx.beginPath();
+             const lines = 6;
+             for(let i=0; i<lines; i++) {
+                 const x = p.x - modRadius*0.6 + i*(modRadius*1.2/lines);
+                 ctx.moveTo(x, headY - modRadius*0.8);
+                 ctx.lineTo(x, headY + len);
+             }
+             ctx.stroke();
+             return;
+        }
+
+        if (style === 'med_bedhead') {
+             // Bedhead (ID corrected)
+             const len = 14*s;
              ctx.fillStyle = hairColor;
 
-             // Top Texture (Subtle stubble)
-             const grad = createHairGradient(ctx, p.x, headY - 2*s, r, hairColor);
-             ctx.fillStyle = grad;
-
              ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0); // Top
-             ctx.lineTo(p.x + r, headY + 4*s);
-             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY + 4*s);
-             ctx.lineTo(p.x - r, headY - 2*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'luka_fade') {
-             // Modern Luka: Volume on top, clean fade sides
-             const r = headRadius * 1.05;
-             const topH = headRadius * 0.4;
-
-             // Gradient
-             const fadeGrad = ctx.createLinearGradient(0, headY - r - topH, 0, headY + r);
-             fadeGrad.addColorStop(0, adjustColor(hairColor, 20)); // Highlight top
-             fadeGrad.addColorStop(0.5, hairColor);
-             fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-             ctx.fillStyle = fadeGrad;
-
-             ctx.beginPath();
-             // Top Volume (Pompadour-ish but wider)
-             ctx.moveTo(p.x - r, headY - 2*s);
-             ctx.bezierCurveTo(p.x - r, headY - r - topH, p.x + r, headY - r - topH, p.x + r, headY - 2*s);
-
-             // Sides (Fade)
-             ctx.lineTo(p.x + r, headY + 3*s);
-             ctx.quadraticCurveTo(p.x + r, headY + 7*s, p.x + r * 0.7, headY + 7*s);
-             // Neckline (Clean U)
-             ctx.quadraticCurveTo(p.x, headY + 8*s, p.x - r * 0.7, headY + 7*s);
-             ctx.quadraticCurveTo(p.x - r, headY + 7*s, p.x - r, headY + 3*s);
-             ctx.lineTo(p.x - r, headY - 2*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'luka_shaggy') {
-             // "Wonderboy" / Longer Luka: Messy, falling slightly over ears/neck
-             const r = headRadius * 1.1;
-
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY, r, hairColor);
-
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, r, Math.PI, 0); // Top
-
-             // Sides (Covering top of ears)
-             ctx.bezierCurveTo(p.x + r * 1.1, headY + 4*s, p.x + r, headY + 8*s, p.x + r * 0.5, headY + 8*s);
-             // Neck (Shaggy/Messy)
-             const seed = baseSeed;
-             const neckY = headY + 9*s;
-             // Jagged bottom
-             for(let i=0; i<=5; i++) {
-                 const t = i/5;
-                 const x = (p.x + r * 0.5) * (1-t) + (p.x - r * 0.5) * t;
-                 const y = neckY + (seededRandom(seed + i) * 3 * s);
-                 ctx.lineTo(x, y);
+             // Spiky outline
+             const numPts = 20;
+             for(let i=0; i<=numPts; i++) {
+                 const angle = Math.PI + (i/numPts) * Math.PI; // Top arc
+                 const r = modRadius + (seededRandom(seed+i) * 8 * s);
+                 const px = p.x + Math.cos(angle) * r;
+                 const py = headY - 2*s + Math.sin(angle) * r;
+                 if(i===0) ctx.moveTo(px, py);
+                 else ctx.lineTo(px, py);
              }
-
-             ctx.bezierCurveTo(p.x - r, headY + 8*s, p.x - r * 1.1, headY + 4*s, p.x - r, headY - 2*s);
+             // Bottom messy
+             ctx.lineTo(p.x + modRadius, headY + len);
+             for(let x=p.x+modRadius; x>p.x-modRadius; x-=5*s) {
+                 ctx.lineTo(x, headY + len + (seededRandom(seed+x)*5*s));
+             }
+             ctx.lineTo(p.x - modRadius, headY + len);
              ctx.fill();
              return;
         }
 
-        // Fallback: Generic Hair (Pompadour style mostly)
-        if (style === 'pompadour') {
-             ctx.fillStyle = createHairGradient(ctx, p.x, headY, headRadius*1.2, hairColor);
+        if (style === 'med_bun') {
+             // Half-up Bun (ID corrected)
+             const len = 16*s;
+             // Bottom hair flowing
+             ctx.fillStyle = hairColor;
              ctx.beginPath();
-             ctx.ellipse(p.x, headY - 6*s, headRadius * 1.2, headRadius * 1.4, 0, Math.PI, 0);
-             ctx.lineTo(p.x + headRadius * 0.8, headY + 10*s);
-             ctx.quadraticCurveTo(p.x, headY + 14*s, p.x - headRadius * 0.8, headY + 10*s);
-             ctx.lineTo(p.x - headRadius * 1.2, headY - 6*s);
+             ctx.moveTo(p.x - modRadius, headY);
+             ctx.lineTo(p.x - modRadius*1.1, headY + len);
+             ctx.lineTo(p.x + modRadius*1.1, headY + len);
+             ctx.lineTo(p.x + modRadius, headY);
              ctx.fill();
+
+             // Top pulled back
+             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, 10));
+
+             // Bun (Larger and visible)
+             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.beginPath();
+             // Draw bun slightly higher
+             ctx.arc(p.x, headY - modRadius*1.0, 10*s, 0, Math.PI*2);
+             ctx.fill();
+             return;
         }
+
+        if (style === 'med_undercut') {
+             // Long Undercut (Shaved sides, long top falling back/side)
+             // Shaved Sides
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -40), false, 'shaved');
+
+             // Long Top Overlay
+             ctx.fillStyle = hairColor;
+             const topW = modRadius * 0.8;
+             const len = 18*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - topW, headY - 2*s);
+             ctx.bezierCurveTo(p.x - topW, headY - modRadius*1.5, p.x + topW, headY - modRadius*1.5, p.x + topW, headY - 2*s);
+             ctx.lineTo(p.x + topW*0.8, headY + len); // Flowing back
+             ctx.lineTo(p.x - topW*0.8, headY + len);
+             ctx.fill();
+             return;
+        }
+
+        // Generic Fallback
+        drawSolidLayeredBase(1.0, 0, hairColor);
     }
 
 
     function drawRealisticHuman(p, s, skinObj) {
+        // Fallback: Ensure clothing data is present if missing from pre-process
+        if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             if (cItem) {
+                 skinObj.clothing = cItem;
+                 skinObj.clothingType = cItem.type;
+                 skinObj.clothingStyle = cItem.style;
+                 skinObj.clothingMaterial = cItem.material;
+                 // Ensure color is available
+                 if(!skinObj.jerseyColor) skinObj.jerseyColor = cItem.color;
+             }
+        }
+
         const isMechanical = isMechanicalSkin(skinObj.id);
         // Base Setup
         const sizeMod = {
@@ -4372,6 +6575,9 @@
             leftForeArmZ = r_lfa_z; rightForeArmZ = r_rfa_z;
         }
 
+        // BEARD (Drawn first so body obscures it)
+        drawCustomBeard(ctx, p, headY, headRadius, s, skinObj);
+        drawBeard(ctx, p, headY, headRadius, s, skinObj);
         // Draw Neck
         if (neckLen > 5*s) {
             ctx.fillStyle = skinTone;
@@ -4380,7 +6586,7 @@
         }
         let shoulderY = torsoY + (2*s);
         let armY = torsoY + (5*s);
-        let leftShoulderX = p.x - 16*s; let rightShoulderX = p.x + 16*s;
+        let leftShoulderX = p.x - 16*s * sizeMod.w; let rightShoulderX = p.x + 16*s * sizeMod.w;
         const upperArmLen = 20 * s * sizeMod.h * 1.05;
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
@@ -4441,7 +6647,7 @@
                  headY = torsoY - (10 * s * sizeMod.head);
                  shoulderY = torsoY + (2*s);
                  armY = torsoY + (5*s);
-                 leftShoulderX = p.x - 16*s; rightShoulderX = p.x + 16*s;
+                 leftShoulderX = p.x - 16*s * sizeMod.w; rightShoulderX = p.x + 16*s * sizeMod.w;
              }
         }
 
@@ -4474,8 +6680,8 @@
         // Legs
         const baseKneeY = p.y - (legLen * 0.5);
         const stanceModLegs = sizeMod.stance || 1.0;
-        const hipOffset = 7 * s;
-        const footOffset = 10 * s * stanceModLegs;
+        const hipOffset = 7 * s * sizeMod.w;
+        const footOffset = 10 * s * sizeMod.w * stanceModLegs;
         const kneeOffset = (hipOffset + footOffset) / 2;
 
         let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
@@ -4498,17 +6704,6 @@
 
         const drawHumanArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
             const isShootingSide = (playerData.isLefty && !isRight) || (!playerData.isLefty && isRight);
-            let uColor = skinTone, fColor = skinTone;
-            let activeSleeveColor = null;
-
-            if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') uColor = jerseyColor;
-
-            if (isRight && sleeveRight) activeSleeveColor = sleeveRight;
-            if (!isRight && sleeveLeft) activeSleeveColor = sleeveLeft;
-
-            if (activeSleeveColor) {
-                fColor = activeSleeveColor;
-            }
 
             let uZ = angle1_z || 0;
             let fZ = angle2_z || 0;
@@ -4517,23 +6712,108 @@
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(uZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(fZ));
 
-            drawJoint(sx, sy, 4*s*sizeMod.armWidth, uColor, isMechanical);
-
             let elbow = getJoint(sx, sy, effUpper, angle1);
-            const upperTattoos = skinObj.tattoos && !activeSleeveColor;
-            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, uColor, 'thigh', s, upperTattoos);
+            let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
 
-            if (activeSleeveColor) {
-                 const midX = (sx + elbow.x) / 2;
-                 const midY = (sy + elbow.y) / 2;
-                 drawMuscleLimb(midX, midY, elbow.x, elbow.y, 8.2*s*sizeMod.armWidth, activeSleeveColor, 'thigh', s, false);
+            // 1. Draw BASE SKIN ARM (Always Full)
+            // Shoulder
+            drawJoint(sx, sy, 4*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Upper Arm
+            drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            // Elbow
+            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, skinTone, isMechanical);
+            // Forearm
+            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, skinTone, 'thigh', s, skinObj.tattoos);
+
+
+            // 2. LAYERED CLOTHING LOGIC
+            let clothColor = null;
+            let isBulky = false;
+            let isPartial = false; // T-shirt
+            let isTight = false; // Compression sleeve
+
+            // Robust Lookup for Clothing Item
+            // Prioritize passed object, fallback to global state if needed
+            let cItem = skinObj.clothing;
+            if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
             }
 
-            let wrist = getJoint(elbow.x, elbow.y, effFore, angle2);
-            const foreTattoos = skinObj.tattoos && !activeSleeveColor;
-            drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6*s*sizeMod.armWidth, fColor, 'thigh', s, foreTattoos);
+            if (cItem) {
+                const type = cItem.type;
+                if (['jacket', 'hoodie', 'robe', 'track', 'sweatshirt'].includes(type)) {
+                    isBulky = true;
+                    clothColor = cItem.color;
+                    // Handle sleeves override
+                    if (cItem.sleeveColor) clothColor = cItem.sleeveColor;
+                } else if (type === 'tshirt') {
+                    isPartial = true;
+                    clothColor = cItem.color;
+                }
+            }
+            // Fallback Legacy Jersey Types (only if no clothing item found)
+            else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                isPartial = true;
+                clothColor = skinObj.jerseyColor;
+            } else if (skinObj.sleeveColor && skinObj.sleeveColor !== skinTone) {
+                // Generic Long Sleeve (Jersey w/ sleeves)
+                isBulky = false; // Regular fit
+                clothColor = skinObj.sleeveColor;
+            }
 
-            drawJoint(elbow.x, elbow.y, 3*s*sizeMod.armWidth, activeSleeveColor || uColor, isMechanical);
+            // Check Accessory Sleeves (Overrides Clothing if present? Or overlays?)
+            // Usually accessories like shooting sleeves are tight.
+            let accessorySleeveColor = null;
+            if (isRight && skinObj.sleeveRight) accessorySleeveColor = skinObj.sleeveRight;
+            if (!isRight && skinObj.sleeveLeft) accessorySleeveColor = skinObj.sleeveLeft;
+
+            // DRAW CLOTHING LAYER
+            if (clothColor) {
+                let widthMult = isBulky ? 1.35 : 1.15; // Bulky vs Regular fit
+                if (isPartial) widthMult = 1.2;
+
+                // Shoulder Joint Cover
+                drawJoint(sx, sy, 4.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                if (isPartial) {
+                    // T-Shirt: Upper half of upper arm
+                    const midBicep = { x: sx + (elbow.x-sx)*0.6, y: sy + (elbow.y-sy)*0.6 };
+                    // Use drawLimb for smoother cloth look, or drawMuscleLimb if tight
+                    drawLimb(sx, sy, midBicep.x, midBicep.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor);
+                } else {
+                    // Full Sleeve
+                    // Upper
+                    if (isBulky) {
+                        drawLimb(sx, sy, elbow.x, elbow.y, 9*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+
+                    // Elbow Cover
+                    drawJoint(elbow.x, elbow.y, 3.5*s*sizeMod.armWidth*widthMult, clothColor, false);
+
+                    // Forearm
+                    if (isBulky) {
+                        drawLimb(elbow.x, elbow.y, wrist.x, wrist.y, 7*s*sizeMod.armWidth*widthMult, clothColor);
+                    } else {
+                        drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.5*s*sizeMod.armWidth*widthMult, clothColor, 'thigh', s, false);
+                    }
+                }
+            }
+
+            // DRAW ACCESSORY SLEEVE (Tight overlay)
+            if (accessorySleeveColor) {
+                isTight = true;
+                const tightMult = 1.05; // Just above skin
+                // Shoulder
+                drawJoint(sx, sy, 4.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Upper
+                drawMuscleLimb(sx, sy, elbow.x, elbow.y, 8.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+                // Elbow
+                drawJoint(elbow.x, elbow.y, 3.1*s*sizeMod.armWidth, accessorySleeveColor, false);
+                // Forearm
+                drawMuscleLimb(elbow.x, elbow.y, wrist.x, wrist.y, 6.1*s*sizeMod.armWidth*tightMult, accessorySleeveColor, 'thigh', s, false);
+            }
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
@@ -4553,13 +6833,94 @@
         drawHumanArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
         drawHumanArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
 
-        drawJoint(p.x - 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
-        drawJoint(p.x + 7*s, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        // Move legs inward for pants to align with shorts leg holes
+        const hipBaseOff = 7 * s * sizeMod.w;
+        const hipOffsetX = (skinObj.legType === 'pants') ? (5.0 * s * sizeMod.w) : hipBaseOff;
 
-        drawMuscleLimb(p.x - 7*s, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
-        drawMuscleLimb(p.x + 7*s, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        drawJoint(p.x - hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
+        drawJoint(p.x + hipOffsetX, p.y - legLen, 4*s*sizeMod.legWidth, skinTone, isMechanical);
 
-        // Neck (Layer 1.5)
+        if (skinObj.legType === 'pants') {
+            // Pants Mode: Draw SINGLE continuous shape from Hip to Shoe
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            const pantW = 10 * s * sizeMod.legWidth; // Uniform baggy width
+
+            // Left Leg
+            drawContinuousLimb(
+                {x: p.x - hipOffsetX, y: p.y - legLen}, // Hip
+                {x: lKneeX, y: lKneeY},                 // Knee
+                {x: lFootX, y: lFootY + 1.0*s},         // Ankle (Extend slightly)
+                pantW, pantW, pantW * 1.3,              // Widths (Flare at bottom)
+                pantsColor, s, false, 50,
+                { pattern: (playerData.graphics==='HIGH') ? 'fabric' : null }
+            );
+            // Left Shoe (On top)
+            if(skinObj.shoesColor) {
+                drawRealisticShoe(lFootX, lFootY, 5.5*s, 5.5*s, skinObj.shoesColor, false, skinObj.shoeType, skinObj.shoeDetailColor, s);
+            }
+
+            // Right Leg
+            drawContinuousLimb(
+                {x: p.x + hipOffsetX, y: p.y - legLen}, // Hip
+                {x: rKneeX, y: rKneeY},                 // Knee
+                {x: rFootX, y: rFootY + 1.0*s},         // Ankle
+                pantW, pantW, pantW * 1.3,              // Widths
+                pantsColor, s, false, 51,
+                { pattern: (playerData.graphics==='HIGH') ? 'fabric' : null }
+            );
+            // Right Shoe (On top)
+            if(skinObj.shoesColor) {
+                drawRealisticShoe(rFootX, rFootY, 5.5*s, 5.5*s, skinObj.shoesColor, true, skinObj.shoeType, skinObj.shoeDetailColor, s);
+            }
+
+        } else {
+            // Skin Mode
+            drawMuscleLimb(p.x - hipOffsetX, p.y - legLen, lKneeX, lKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+            drawMuscleLimb(p.x + hipOffsetX, p.y - legLen, rKneeX, rKneeY, 8*s*sizeMod.legWidth, skinTone, 'thigh', s, skinObj.tattoos);
+        }
+
+        // HEAD BASE
+        if (skinObj.headType && skinObj.headType !== 'human') {
+            drawHybridHead(p, headY, headRadius, s, skinObj.headType, skinObj);
+        } else {
+            // Standard Human Head - Back View
+            ctx.fillStyle = skinTone;
+            // Ears
+            ctx.beginPath(); ctx.ellipse(p.x - headRadius*0.95, headY, 3.5*s, 6*s, -0.1, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.95, headY, 3.5*s, 6*s, 0.1, 0, Math.PI*2); ctx.fill();
+
+            if(skinObj.ears === 'elf') {
+                 ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.6, headY-10*s); ctx.lineTo(p.x - headRadius*0.9, headY+2*s); ctx.fill();
+                 ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.6, headY-10*s); ctx.lineTo(p.x + headRadius*0.9, headY+2*s); ctx.fill();
+            }
+
+            // Skull
+            ctx.beginPath();
+            ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
+
+            if (playerData.graphics === 'HIGH') {
+                 const r = headRadius;
+                 ctx.fillStyle = skinTone;
+                 ctx.fill();
+                 const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
+                 shade.addColorStop(0, 'rgba(255,255,255,0.1)');
+                 shade.addColorStop(0.5, 'rgba(0,0,0,0)');
+                 shade.addColorStop(1, 'rgba(0,0,0,0.4)');
+                 ctx.fillStyle = shade;
+                 ctx.fill();
+                 const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.9, 0, p.x, headY + r*0.9, r*0.7);
+                 neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
+                 neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
+                 ctx.fillStyle = neckShadow;
+                 ctx.beginPath(); ctx.ellipse(p.x, headY + r*0.7, r*0.5, r*0.3, 0, 0, Math.PI*2); ctx.fill();
+            } else {
+                 ctx.fill();
+                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                 ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // NECK
         const neckW = 10 * s * sizeMod.w;
         const neckH = 10 * s;
         ctx.fillStyle = skinTone;
@@ -4576,15 +6937,64 @@
         // Torso & Shorts
         const jerseyH = bodyH * 0.85;
         const reducedBodyW = bodyW * 0.9;
+        // Calculate HIP WIDTH standard (Matches pants)
+        const hipWidth = reducedBodyW * 1.05;
+
         const waistY = torsoY + bodyH * 0.85;
         let shortsLen = (0.5 * legLen) + (0.15 * bodyH) + 2*s;
         if (skinObj.shortsLength === 'short') { shortsLen = (0.25 * legLen) + (0.1 * bodyH); }
 
-        drawShorts(p.x, waistY, reducedBodyW * 1.05, shortsLen, s, skinObj);
+        if (skinObj.legType === 'pants') {
+            // Draw seamless "Pants Pelvis" block instead of shorts
+            // This connects the waistY to the hip joint level (p.y - legLen)
+            const pantsColor = skinObj.shortsColor || skinObj.pantsColor || '#000080';
+            const hipY = p.y - legLen;
+
+            // Draw Pelvis Block
+            ctx.fillStyle = pantsColor;
+
+            // Texture
+            if (playerData.graphics === 'HIGH') {
+                const pat = getFabricPattern(ctx);
+                if (pat) {
+                    const grad = ctx.createLinearGradient(0, waistY, 0, hipY);
+                    grad.addColorStop(0, 'rgba(0,0,0,0)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0.1)'); // Slight shadow at crotch
+                    // We need to apply this to the shape.
+                    // Let's just draw the shape.
+                }
+            }
+
+            // Simple trapezoid from waist width to hip width
+            const wTop = reducedBodyW * 1.0;
+            const wBot = reducedBodyW * 1.1; // Slightly wider at hips
+
+            ctx.beginPath();
+            ctx.moveTo(p.x - wTop/2, waistY);
+            ctx.lineTo(p.x + wTop/2, waistY);
+            ctx.lineTo(p.x + wBot/2, hipY);
+            ctx.lineTo(p.x - wBot/2, hipY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add texture overlay if high graphics
+            if (playerData.graphics === 'HIGH') {
+                 const pat = getFabricPattern(ctx);
+                 if(pat) {
+                     ctx.globalCompositeOperation = 'overlay';
+                     ctx.fillStyle = pat;
+                     ctx.fill();
+                     ctx.globalCompositeOperation = 'source-over';
+                 }
+            }
+
+        } else {
+            drawShorts(p.x, waistY, hipWidth, shortsLen, s, skinObj);
+        }
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
-            hips: { left: {x: p.x - 7*s, y: p.y - legLen}, right: {x: p.x + 7*s, y: p.y - legLen} }
+            hips: { left: {x: p.x - 7*s * sizeMod.w, y: p.y - legLen}, right: {x: p.x + 7*s * sizeMod.w, y: p.y - legLen} }
         };
 
         if (skinObj.jerseyType === 'none') {
@@ -4594,7 +7004,8 @@
         } else if (skinObj.jerseyType === 'link_tunic') {
              drawLinkTunic(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
         } else {
-             drawJersey(p.x, torsoY, reducedBodyW, jerseyH, s, skinObj, anchors);
+             // Pass hipWidth as the base width for jersey construction
+             drawJersey(p.x, torsoY, hipWidth, jerseyH, s, skinObj, anchors);
         }
 
         if (skinObj.jerseyName) {
@@ -4637,26 +7048,34 @@
         }
 
         const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             let calfCol = skinTone;
-             if (skinObj.legType === 'pants') calfCol = shortsColor;
-             drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
-             if(socksColor) {
-                 const sockH = 7 * s;
-                 const sockY = yBot - 5*s - sockH;
-                 const t = (sockY - yTop) / (yBot - yTop);
-                 const sockTopX = xTop + (xBot - xTop) * t;
-                 const ankleY = yBot - 5*s;
-                 const t2 = (ankleY - yTop) / (yBot - yTop);
-                 const ankleX = xTop + (xBot - xTop) * t2;
-                 drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
-                 ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
-                 for(let i=0; i<3; i++) {
-                     const ly = sockY + (i*2*s);
-                     ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+             if (skinObj.legType === 'pants') {
+                 // Do nothing - Pants are drawn as a single continuous limb in the main body loop
+             } else {
+                 // 1. Skin / Tights
+                 let calfCol = skinTone;
+                 if (skinObj.legType === 'tights') calfCol = shortsColor;
+                 drawMuscleLimb(xTop, yTop, xBot, yBot, 7*s*sizeMod.legWidth, calfCol, 'calf', s);
+
+                 // 2. Socks
+                 if(socksColor) {
+                     const sockH = 7 * s;
+                     const sockY = yBot - 5*s - sockH;
+                     const t = (sockY - yTop) / (yBot - yTop);
+                     const sockTopX = xTop + (xBot - xTop) * t;
+                     const ankleY = yBot - 5*s;
+                     const t2 = (ankleY - yTop) / (yBot - yTop);
+                     const ankleX = xTop + (xBot - xTop) * t2;
+                     drawMuscleLimb(sockTopX, sockY, ankleX, ankleY, 6.5*s*sizeMod.legWidth, socksColor, 'standard', s);
+                     ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1;
+                     for(let i=0; i<3; i++) {
+                         const ly = sockY + (i*2*s);
+                         ctx.beginPath(); ctx.moveTo(sockTopX - 3*s, ly); ctx.lineTo(sockTopX + 3*s, ly); ctx.stroke();
+                     }
                  }
-             }
-             if(shoesColor) {
-                 drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight);
+                 // 3. Shoes
+                 if(shoesColor) {
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                 }
              }
         };
         drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false);
@@ -4690,93 +7109,152 @@
             }
         }
 
-        // HEAD AND HAIR
-        if (skinObj.headType && skinObj.headType !== 'human') {
-            drawHybridHead(p, headY, headRadius, s, skinObj.headType, skinObj);
-        } else {
-            // Standard Human Head - Back View
-            ctx.fillStyle = skinTone;
-            // Ears
-            ctx.beginPath(); ctx.ellipse(p.x - headRadius*0.95, headY, 3.5*s, 6*s, -0.1, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(p.x + headRadius*0.95, headY, 3.5*s, 6*s, 0.1, 0, Math.PI*2); ctx.fill();
-
-            if(skinObj.ears === 'elf') {
-                 ctx.beginPath(); ctx.moveTo(p.x - headRadius*0.9, headY-5*s); ctx.lineTo(p.x - headRadius*1.6, headY-10*s); ctx.lineTo(p.x - headRadius*0.9, headY+2*s); ctx.fill();
-                 ctx.beginPath(); ctx.moveTo(p.x + headRadius*0.9, headY-5*s); ctx.lineTo(p.x + headRadius*1.6, headY-10*s); ctx.lineTo(p.x + headRadius*0.9, headY+2*s); ctx.fill();
-            }
-
-            // Skull
-            ctx.beginPath();
-            ctx.ellipse(p.x, headY - 1*s, headRadius * 0.95, headRadius * 1.05, 0, 0, Math.PI*2);
-
-            if (playerData.graphics === 'HIGH') {
-                 const r = headRadius;
-                 ctx.fillStyle = skinTone;
-                 ctx.fill();
-                 const shade = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r*1.1);
-                 shade.addColorStop(0, 'rgba(255,255,255,0.1)');
-                 shade.addColorStop(0.5, 'rgba(0,0,0,0)');
-                 shade.addColorStop(1, 'rgba(0,0,0,0.4)');
-                 ctx.fillStyle = shade;
-                 ctx.fill();
-                 const neckShadow = ctx.createRadialGradient(p.x, headY + r*0.9, 0, p.x, headY + r*0.9, r*0.7);
-                 neckShadow.addColorStop(0, 'rgba(0,0,0,0.3)');
-                 neckShadow.addColorStop(1, 'rgba(0,0,0,0)');
-                 ctx.fillStyle = neckShadow;
-                 ctx.beginPath(); ctx.ellipse(p.x, headY + r*0.7, r*0.5, r*0.3, 0, 0, Math.PI*2); ctx.fill();
-            } else {
-                 ctx.fill();
-                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
-                 ctx.beginPath(); ctx.arc(p.x, headY + headRadius*0.6, 5*s, 0, Math.PI*2); ctx.fill();
-            }
-
-            // NEW HAIR LOGIC CALL
+        // HAIR
+        if (!skinObj.headType || skinObj.headType === 'human') {
             drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
         }
 
-        // Accessories
-        if (skinObj.headAccessory === 'sombrero') {
-            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
+        // Head Accessories
+        let accessoryType = skinObj.headAccessory;
+        let accessoryColor = skinObj.hatColor;
+
+        if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
+             let hat = g_hatCache.get(playerData.currentHat);
+             if (!hat) {
+                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
+                 if (hat) g_hatCache.set(playerData.currentHat, hat);
+             }
+             if (hat) {
+                 accessoryType = hat.type;
+                 if (hat.color) accessoryColor = hat.color;
+             }
+        }
+
+        if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'party_hat') {
+             ctx.fillStyle = accessoryColor || '#FF00FF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 8*s, headY - 8*s);
+             ctx.lineTo(p.x + 8*s, headY - 8*s);
+             ctx.lineTo(p.x, headY - 35*s); // Cone tip
+             ctx.fill();
+        }
+        else if (accessoryType === 'propeller_cap') {
+             ctx.fillStyle = '#FF0000';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI, Math.PI*1.5); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI*1.5, 0); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#FFFF00';
+             ctx.beginPath(); ctx.arc(p.x, headY - 17*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FFD700';
+             ctx.fillRect(p.x - 10*s, headY - 19*s, 20*s, 2*s);
+             ctx.fillRect(p.x - 2*s, headY - 19*s, 4*s, 4*s);
+        }
+        else if (accessoryType === 'bucket_hat') {
+             ctx.fillStyle = accessoryColor || '#FFFF00';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, headRadius * 0.9, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillRect(p.x - headRadius * 0.9, headY - 12*s, headRadius * 1.8, 8*s);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 1.4, headY + 2*s);
+             ctx.lineTo(p.x - headRadius * 1.4, headY + 2*s);
+             ctx.fill();
+        }
+        else if (accessoryType === 'santa_hat') {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.2, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FF0000';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - 30*s, p.x + 20*s, headY - 15*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x + 20*s, headY - 15*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'viking_helmet') {
+             ctx.fillStyle = accessoryColor || '#AAA';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x - 20*s, headY - 20*s, p.x - 25*s, headY - 30*s); ctx.lineTo(p.x - 12*s, headY - 12*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x + 20*s, headY - 20*s, p.x + 25*s, headY - 30*s); ctx.lineTo(p.x + 12*s, headY - 12*s); ctx.fill();
+        }
+        else if (accessoryType === 'pirate_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 20*s, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - 10*s, headY - 20*s, p.x, headY - 10*s);
+             ctx.quadraticCurveTo(p.x + 10*s, headY - 20*s, p.x + 20*s, headY - 5*s);
+             ctx.lineTo(p.x, headY - 15*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'sombrero') {
+            ctx.fillStyle = accessoryColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'crown') {
+        else if (accessoryType === 'hat') {
+             ctx.fillStyle = accessoryColor || '#5D4037';
+             // Brim
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             // Top
+             ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'fez') {
+             ctx.fillStyle = '#8B0000';
+             ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
+             ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
+        }
+        else if (accessoryType === 'crown') {
             ctx.fillStyle = '#FFD700'; ctx.strokeStyle='#DAA520'; ctx.lineWidth=2*s;
             ctx.beginPath(); ctx.moveTo(p.x - 12*s, headY - 5*s); ctx.lineTo(p.x + 12*s, headY - 5*s); ctx.lineTo(p.x + 15*s, headY - 15*s); ctx.lineTo(p.x + 5*s, headY - 10*s); ctx.lineTo(p.x, headY - 20*s); ctx.lineTo(p.x - 5*s, headY - 10*s); ctx.lineTo(p.x - 15*s, headY - 15*s); ctx.closePath();
             ctx.fill(); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'halo') {
+        else if (accessoryType === 'halo') {
             ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3*s;
             ctx.beginPath(); ctx.ellipse(p.x, headY - 25*s, 12*s, 4*s, 0, 0, Math.PI*2); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'horns') {
+        else if (accessoryType === 'horns') {
             ctx.fillStyle = '#8B0000';
             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 5*s); ctx.quadraticCurveTo(p.x - 15*s, headY - 15*s, p.x - 5*s, headY - 20*s); ctx.lineTo(p.x - 8*s, headY - 5*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 5*s); ctx.quadraticCurveTo(p.x + 15*s, headY - 15*s, p.x + 5*s, headY - 20*s); ctx.lineTo(p.x + 8*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            ctx.fillStyle = skinObj.hatColor || '#000080';
+        else if (accessoryType === 'wizard_hat') {
+            ctx.fillStyle = accessoryColor || '#000080';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 10*s, 20*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.lineTo(p.x + 10*s, headY - 10*s); ctx.lineTo(p.x + 5*s, headY - 25*s); ctx.lineTo(p.x - 20*s, headY - 35*s); ctx.fill(); // Crooked tip
         }
-        else if (skinObj.headAccessory === 'chef_hat') {
+        else if (accessoryType === 'chef_hat') {
             ctx.fillStyle = '#FFF'; ctx.strokeStyle='#EEE'; ctx.lineWidth=1*s;
             ctx.fillRect(p.x-10*s, headY-15*s, 20*s, 10*s);
             ctx.beginPath(); ctx.arc(p.x, headY-20*s, 12*s, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'helmet') {
-            const hColor = skinObj.hatColor || '#AAA';
+        else if (accessoryType === 'helmet') {
+            const hColor = accessoryColor || '#AAA';
             ctx.fillStyle = hColor;
             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.3, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.fillRect(p.x - 12*s, headY, 24*s, 5*s); // Visor area
         }
-        else if (skinObj.headAccessory === 'top_hat') {
+        else if (accessoryType === 'top_hat') {
             ctx.fillStyle = '#111';
             ctx.fillRect(p.x - 15*s, headY - 10*s, 30*s, 4*s); // Brim
             ctx.fillRect(p.x - 10*s, headY - 25*s, 20*s, 15*s); // Cylinder
         }
-        else if (skinObj.headAccessory === 'flower') {
+        else if (accessoryType === 'flower') {
             ctx.fillStyle = '#FF69B4';
             for(let i=0; i<5; i++) {
                 const angle = (i/5)*Math.PI*2;
@@ -4784,41 +7262,41 @@
             }
             ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(p.x + 10*s, headY - 10*s, 4*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bow') {
-            ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'bow') {
+            ctx.fillStyle = accessoryColor || '#FF0000';
             ctx.beginPath(); ctx.moveTo(p.x, headY - 15*s); ctx.lineTo(p.x - 10*s, headY - 20*s); ctx.lineTo(p.x - 10*s, headY - 10*s); ctx.fill();
             ctx.beginPath(); ctx.moveTo(p.x, headY - 15*s); ctx.lineTo(p.x + 10*s, headY - 20*s); ctx.lineTo(p.x + 10*s, headY - 10*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'beanie') {
-            ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'beanie') {
+            ctx.fillStyle = accessoryColor || '#FF0000';
             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.lineTo(p.x + headRadius*1.1, headY); ctx.lineTo(p.x - headRadius*1.1, headY); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 3*s, 0, Math.PI*2); ctx.fill(); // Pom
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-            ctx.fillStyle = skinObj.hatColor || '#FFF';
+        else if (accessoryType === 'ear_muffs') {
+            ctx.fillStyle = accessoryColor || '#FFF';
             ctx.beginPath(); ctx.arc(p.x - 12*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x + 12*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#333'; ctx.lineWidth = 2*s;
             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 12*s, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'headband' && skinObj.hairStyle !== 'headband') {
+        else if (accessoryType === 'headband' && skinObj.hairStyle !== 'headband') {
              // Standalone headband (e.g. Ninja)
-             const bandColor = skinObj.hatColor || '#FF0000';
+             const bandColor = accessoryColor || '#FF0000';
              ctx.fillStyle = bandColor;
              ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
              ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'bandana_neck') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.fillStyle = skinObj.hatColor || '#8B0000';
-             ctx.lineWidth = 6*s; ctx.strokeStyle = skinObj.hatColor || '#8B0000';
+        else if (accessoryType === 'scarf') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             ctx.lineWidth = 6*s; ctx.strokeStyle = accessoryColor || '#8B0000';
              ctx.beginPath(); ctx.arc(p.x, headY + 5*s, 10*s, 0, Math.PI*2); ctx.stroke();
              ctx.fillRect(p.x + 5*s, headY + 5*s, 6*s, 15*s); // Hanging part
         }
-        else if (skinObj.headAccessory === 'gold_bands') {
+        else if (accessoryType === 'gold_bands') {
              ctx.fillStyle = '#FFD700';
              ctx.fillRect(p.x - 15*s, headY - 15*s, 30*s, 5*s);
              ctx.fillRect(p.x - 15*s, headY + 5*s, 30*s, 5*s);
@@ -4851,6 +7329,19 @@
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
         }
+        if (skinObj.backAccessory === 'hoodie_hood') {
+             ctx.fillStyle = skinObj.backColor || '#555';
+             // Draw hood down shape on upper back
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
+             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
+             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
+             ctx.fill();
+             // Hood crease/shadow
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
+        }
         drawMeterCommon(p, s, sizeMod);
     }
 
@@ -4867,14 +7358,39 @@
             const boost = 0.5 * 0.10 * 60;
             const adjustedMaxVz = baseMaxVz + boost;
 
-            const curVz = getCurrentVz();
+            // Interpolate Vz logic
+            let interpVz = 0;
+            const alpha = p.alpha !== undefined ? p.alpha : 1.0;
+
+            if (isGroundedShot) {
+                // Ground Shot: 8.0 - (timer * 0.5)
+                const gT = (typeof window.groundShotTimer !== 'undefined') ? window.groundShotTimer : 0;
+                const lastT = (typeof window.lastGroundShotTimer !== 'undefined') ? window.lastGroundShotTimer : gT;
+                const iTimer = lerp(lastT, gT, alpha);
+                interpVz = 8.0 - (iTimer * 0.5);
+            } else if (state === 'PRE_JUMP') {
+                // Pre-Jump: base + (0.5 * timer * 60)
+                // Note: preJumpTimer decreases from 0.10
+                const pT = (typeof window.preJumpTimer !== 'undefined') ? window.preJumpTimer : 0;
+                const lastT = (typeof window.lastPreJumpTimer !== 'undefined') ? window.lastPreJumpTimer : pT;
+                const iTimer = lerp(lastT, pT, alpha);
+                const jv = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
+                interpVz = jv + (0.5 * iTimer * 60);
+            } else {
+                // Jumping: player3D.vz
+                const lastV = (player3D.lastVz !== undefined) ? player3D.lastVz : player3D.vz;
+                interpVz = lerp(lastV, player3D.vz, alpha);
+            }
+
             const targetVz = getReleaseTargetVz(baseMaxVz);
             const dist = adjustedMaxVz - targetVz;
 
-            let progress = 1.0 - (Math.abs(curVz - targetVz) / dist);
+            let progress = 1.0 - (Math.abs(interpVz - targetVz) / dist);
             progress = Math.max(0, Math.min(1, progress));
 
-            const groundY = p.y + (player3D.z * s);
+            // Use interpolated Z if available to prevent meter shaking
+            const renderZ = (p.z !== undefined) ? p.z : player3D.z;
+            const groundY = p.y + (renderZ * s);
             const meterY = groundY - (130 * s * sizeMod.h);
             const cx = p.x + (60 * s); const radius = 50 * s;
 
@@ -4891,22 +7407,183 @@
         }
     }
 
-    function drawPlayer(p) {
+    var PlayerRenderer = {
+        draw: function(p) {
+            // Optimization: Removed 4x MSAA Supersampling
         if (!p) return;
-        // Debug
-        // if(Math.random() < 0.01) console.log("drawPlayer", p, playerData.currentSkin);
+        const alpha = p.alpha !== undefined ? p.alpha : 1.0;
 
         const s = p.scale;
-        const skin = playerData.currentSkin;
+        let skin = playerData.currentSkin;
+
+        // SHOP PREVIEW OVERRIDE
+        if (state === 'SHOP' && typeof currentShopTab !== 'undefined' && currentShopTab === 'character' && typeof getSkinGroups === 'function') {
+             try {
+                 const currentAnimal = ANIMALS[viewingAnimalIndex];
+                 const groups = getSkinGroups(currentAnimal);
+                 const group = groups[viewingSkinIndex];
+                 if (group) {
+                     const variant = group[viewingVariantIndex] || group[0];
+                     if (variant) skin = variant.id;
+                 }
+             } catch(e) { console.error("Preview error", e); }
+        }
 
         let skinObj;
-        if (skin === g_cachedSkinId && g_cachedSkinObj) {
+        if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
             skinObj = SKINS_DB.find(x => x.id === skin);
             if(!skinObj) skinObj = SKINS_DB[0];
-            g_cachedSkinId = skin;
-            g_cachedSkinObj = skinObj;
+
+            if (state !== 'SHOP') {
+                g_cachedSkinId = skin;
+                g_cachedSkinObj = skinObj;
+            }
+        }
+
+        // Apply Custom Human Settings
+        if (skin === 'human_custom') {
+             // Create shallow copy
+             skinObj = Object.assign({}, skinObj);
+
+             if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+             const cs = playerData.customSkinSettings;
+
+             // Base human is ~1.06 height (Anchor). Range 0.5 to 1.5 -> 0.53 to 1.59
+             skinObj.heightScale = 1.06 * cs.height;
+             skinObj.widthScale = 1.0 * cs.width;
+
+             // Arm/Leg width should scale with width?
+             // Renderer defaults armWidth/legWidth to widthScale if not set.
+             // But let's explicitly scale them to keep proportions or let it fallback.
+             // Fallback logic: if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
+             // This works fine.
+
+             if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
+                 skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
+             }
+        }
+
+        // Apply Global Hair Overrides
+        const hasCustomHair = (playerData.customHairstyle && playerData.customHairstyle !== 'default');
+        const hasCustomColor = (playerData.customHairColorIndex !== undefined);
+        const hasCustomLength = (playerData.customHairLength !== undefined && Math.abs(playerData.customHairLength - 1.0) > 0.01);
+
+        if (hasCustomHair || hasCustomLength || (hasCustomColor && (hasCustomHair || skin === 'human_custom'))) {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+
+             if (hasCustomHair) {
+                 skinObj.hairStyle = playerData.customHairstyle;
+             }
+
+             if (hasCustomLength) {
+                 skinObj.hairScale = playerData.customHairLength;
+             }
+
+             if (hasCustomColor && (hasCustomHair || skin === 'human_custom')) {
+                 if (typeof HAIR_COLORS !== 'undefined') {
+                     skinObj.hairColor = HAIR_COLORS[playerData.customHairColorIndex];
+                 }
+             }
+        }
+
+        // Apply Variant Overrides (Style 2)
+        if (playerData.skinVariants && playerData.skinVariants[skin] === 1) {
+             // Create shallow copy to avoid mutating global cache
+             skinObj = Object.assign({}, skinObj);
+             if (skinObj.hairStyle2) skinObj.hairStyle = skinObj.hairStyle2;
+             if (skinObj.hairColor2) skinObj.hairColor = skinObj.hairColor2;
+             if (skinObj.afroSize2) skinObj.afroSize = skinObj.afroSize2;
+             if (skinObj.beard2 !== undefined) skinObj.beard = skinObj.beard2;
+             if (skinObj.headbandColor2 !== undefined) skinObj.headbandColor = skinObj.headbandColor2;
+             if (skinObj.pattern2) skinObj.pattern = skinObj.pattern2;
+        }
+
+        // Apply Clothing Overrides
+        // ROBUST LOOKUP: Ensure clothing data is populated even if previous steps failed
+        if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+             // Ensure we are working on a copy
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+
+             // Force re-lookup to guarantee data integrity
+             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+
+             if (clothing) {
+                 skinObj.clothing = clothing; // Tag for later use
+                 skinObj.jerseyColor = clothing.color;
+
+                 // Explicitly propagate type for shape logic
+                 skinObj.clothingType = clothing.type;
+                 skinObj.clothingStyle = clothing.style;
+                 skinObj.clothingMaterial = clothing.material;
+
+                 if (clothing.type === 'tshirt') {
+                     skinObj.jerseyType = 'tshirt';
+                     skinObj.sleeveColor = null;
+                 } else if (clothing.sleeveColor) {
+                     skinObj.sleeveColor = clothing.sleeveColor;
+                 }
+
+                 if (clothing.pattern) skinObj.pattern = clothing.pattern;
+                 if (clothing.decal) skinObj.decal = clothing.decal;
+
+                 // Copy Jersey Details (Name, Number, Stripes)
+                 if (clothing.jerseyName) skinObj.jerseyName = clothing.jerseyName;
+                 if (clothing.number) skinObj.number = clothing.number;
+                 if (clothing.numberColor) skinObj.numberColor = clothing.numberColor;
+                 if (clothing.sideStripesColor) skinObj.sideStripesColor = clothing.sideStripesColor;
+                 if (clothing.chestStripeColor) skinObj.chestStripeColor = clothing.chestStripeColor;
+                 if (clothing.trimColor) skinObj.trimColor = clothing.trimColor;
+                 if (clothing.pinstripesColor) skinObj.pinstripesColor = clothing.pinstripesColor;
+
+                 // Override back props if hoodie
+                 if (clothing.type === 'hoodie') {
+                     skinObj.backAccessory = 'hoodie_hood';
+                     skinObj.backColor = clothing.hoodColor || clothing.color;
+                 }
+
+                 // Remove conflicting built-in details
+                 if (['track', 'hoodie', 'sweatshirt', 'jacket', 'vest', 'robe'].includes(clothing.type)) {
+                     skinObj.clothingDetail = null; // Hide suspenders etc.
+                     // Track suits often have stripes
+                     if(clothing.stripeColor) {
+                         if (clothing.pattern === 'stripes_side') {
+                             skinObj.sideStripesColor = clothing.stripeColor;
+                         } else {
+                             skinObj.chestStripeColor = clothing.stripeColor;
+                         }
+                     }
+                 }
+             }
+        }
+
+                // Apply Pants Overrides
+        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             if (pants) {
+                 skinObj.shortsColor = pants.color;
+                 if (pants.type === 'long') {
+                     skinObj.legType = 'pants';
+                 } else if (pants.type === 'short') {
+                     skinObj.legType = null;
+                     skinObj.shortsLength = 'short';
+                 } else if (pants.type === 'tights') {
+                     skinObj.legType = 'tights';
+                 }
+             }
+        }
+
+        // Apply Shoes Overrides
+        if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
+             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+             const shoe = SHOES_DB.find(s => s.id === playerData.currentShoes);
+             if (shoe) {
+                 skinObj.shoesColor = shoe.color;
+                 skinObj.shoeType = shoe.type;
+                 skinObj.shoeDetailColor = shoe.detailColor || shoe.color2;
+             }
         }
 
         const isMechanical = isMechanicalSkin(skinObj.id);
@@ -5034,18 +7711,24 @@
         }
 
         // 0. Calculate Arm Config EARLY
-        // Uses global smooth animation state
-        const r_la = g_animState.la;
-        const r_ra = g_animState.ra;
-        const r_lfa = g_animState.lfa;
-        const r_rfa = g_animState.rfa;
-        const r_w = g_animState.w;
+        const getInterp = (prop) => {
+            if (typeof g_animStateLast !== 'undefined' && g_animStateLast[prop] !== undefined) {
+                return lerp(g_animStateLast[prop], g_animState[prop], alpha);
+            }
+            return g_animState[prop];
+        };
+
+        const r_la = getInterp('la');
+        const r_ra = getInterp('ra');
+        const r_lfa = getInterp('lfa');
+        const r_rfa = getInterp('rfa');
+        const r_w = getInterp('w');
 
         // Z-Rotation (Depth)
-        const r_la_z = g_animState.la_z || 0;
-        const r_ra_z = g_animState.ra_z || 0;
-        const r_lfa_z = g_animState.lfa_z || 0;
-        const r_rfa_z = g_animState.rfa_z || 0;
+        const r_la_z = getInterp('la_z') || 0;
+        const r_ra_z = getInterp('ra_z') || 0;
+        const r_lfa_z = getInterp('lfa_z') || 0;
+        const r_rfa_z = getInterp('rfa_z') || 0;
 
         let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
         let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
@@ -5071,17 +7754,21 @@
         if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
 
         let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
+
+        // Match Human Shortening Logic for Crouch
+        if (state === 'PRE_JUMP') {
+            legLen *= 0.7;
+        }
+
         let neckLen = 0;
 
         // Pose Logic
         const isSitting = (state === 'GAMEOVER' && currentAnimal !== 'human');
-        const isCrouching = (state === 'PRE_JUMP'); // Now applies to animals too (Gather)
+        // const isCrouching = (state === 'PRE_JUMP'); // Handled via legLen scaling
 
         let torsoY;
         if (isSitting) {
              torsoY = p.y - bodyH * 0.85; // Low to ground
-        } else if (isCrouching) {
-             torsoY = p.y - legLen * 0.6 - bodyH; // Crouched
         } else {
              torsoY = p.y - legLen - bodyH;
         }
@@ -5089,23 +7776,22 @@
         let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
         let headRadius = 12 * s * sizeMod.head;
 
-        // Super Saiyan Aura
+        // NBA Jam "He's On Fire" Smoke & Turbo Effect
         if (currentStreak >= 10) {
              const hue = getStreakFireHue(currentStreak);
+             // Turbo Smoke Rising
              ctx.save();
-             // Outer Glow
-             ctx.shadowBlur = 30 * s;
-             ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
-             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 2.5, bodyH * 2.0, 0, 0, Math.PI*2);
-             ctx.fill();
-             // Inner Core
-             ctx.shadowBlur = 15 * s;
-             ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.3)`;
-             ctx.beginPath();
-             ctx.ellipse(p.x, torsoY + bodyH*0.5, bodyW * 1.5, bodyH * 1.5, 0, 0, Math.PI*2);
-             ctx.fill();
+             for(let k=0; k<8; k++) {
+                 // Random puffs rising from body area
+                 let px = p.x + (Math.random() - 0.5) * bodyW * 2.5;
+                 let py = torsoY + bodyH - (Math.random() * bodyH * 1.5);
+                 let size = (20 + Math.random() * 15) * s;
+                 ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.4)`;
+                 ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+             }
+             // Ground Scorch
+             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.3)`;
+             ctx.beginPath(); ctx.ellipse(p.x, p.y, bodyW * 1.5, 10*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.restore();
         }
 
@@ -5151,7 +7837,7 @@
         let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
 
         // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
-        // Updated to handle Z-foreshortening in IK (Approximation)
+        // Updated to use Human Logic (Animation + Fixed Offset)
         if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
             const isRightHand = !isLefty;
 
@@ -5161,7 +7847,6 @@
             const shootUZ = isRightHand ? rightArmZ : leftArmZ;
             const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
 
-            // Calculate effective lengths for 2D projection
             const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
             const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
 
@@ -5169,71 +7854,90 @@
             const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
             const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
 
-            // 2. Calculate Guide Arm Target
-            const guideTargetX = ballPos.x + (isRightHand ? -15*s : 15*s);
+            const guideTargetX = ballPos.x + (isRightHand ? -8*s : 8*s);
             const guideTargetY = ballPos.y;
-
             const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
 
-            // 3. Solve IK
-            const distSq = (guideTargetX - guideSX)**2 + (guideTargetY - armY)**2;
-            const maxLen = upperArmLen + foreArmLen;
-            const minScale = Math.min(1.0, Math.sqrt(distSq) / maxLen);
-            const maxZ = Math.acos(Math.max(0, Math.min(1, minScale * 0.99)));
-            const guideZ = Math.min(shootUZ, maxZ);
+            const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
+            const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
+            const finalGuideU = isRightHand ? animGuideU : (-Math.PI - animGuideU);
 
-            const effGuideUpper = upperArmLen * Math.max(0.1, Math.cos(guideZ));
-            const effGuideFore = foreArmLen * Math.max(0.1, Math.cos(guideZ));
+            const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
+            const guideElbow = getJoint(guideSX, armY, guideEffUpper, finalGuideU);
 
-            const ik = solveIK(guideSX, armY, guideTargetX, guideTargetY, effGuideUpper, effGuideFore, isLefty);
+            const dx = guideTargetX - guideElbow.x;
+            const dy = guideTargetY - guideElbow.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const fixedGuideFAngle = Math.atan2(dy, dx);
+            const ratio = Math.min(0.99, dist / foreArmLen);
+            const fixedGuideFZ = Math.acos(ratio);
 
-            // 4. Override Guide Arm Angles
             if (isRightHand) {
-                leftArmAngle = ik.uAngle;
-                leftForeArmAngle = ik.fAngle;
-                // Sync Z
-                leftArmZ = guideZ; leftForeArmZ = guideZ;
+                leftArmAngle = finalGuideU; leftForeArmAngle = fixedGuideFAngle;
+                leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
             } else {
-                rightArmAngle = ik.uAngle;
-                rightForeArmAngle = ik.fAngle;
-                rightArmZ = guideZ; rightForeArmZ = guideZ;
+                rightArmAngle = finalGuideU; rightForeArmAngle = fixedGuideFAngle;
+                rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
             }
         }
 
         const isShadow = (p.type === 'player_shadow');
 
         const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
-            const armFurry = isFurry && (armColor === furColor);
             const seedBase = isRight ? 10 : 20;
             const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
 
+            // 1. Determine Base Colors based on Clothing
             let thisUpperColor = armColor;
             let thisForeColor = armColor;
-            let activeSleeveColor = null;
+            let upperIsCovered = false; // By clothing
+            let foreIsCovered = false;  // By clothing
 
-            // T-Shirt Logic
-            if(skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+            if (skinObj.clothing) {
+                const c = skinObj.clothing;
+                if (c.type === 'tshirt') {
+                    thisUpperColor = c.color; // T-Shirt covers upper arm
+                    thisForeColor = furColor; // Forearm exposed
+                    upperIsCovered = true;
+                } else if (['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(c.type)) {
+                    // Long sleeves cover both
+                    const sColor = c.sleeveColor || c.color;
+                    thisUpperColor = sColor;
+                    thisForeColor = sColor;
+                    upperIsCovered = true;
+                    foreIsCovered = true;
+                } else if (c.type === 'vest') {
+                    // Vest is sleeveless
+                    thisUpperColor = furColor;
+                    thisForeColor = furColor;
+                    upperIsCovered = false;
+                    foreIsCovered = false;
+                }
+            } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+                // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
                 thisUpperColor = torsoColor;
+                upperIsCovered = true;
             }
 
-            // Sleeve Logic (Physical side based)
-            if(isRight && skinObj.sleeveRight) {
-                activeSleeveColor = skinObj.sleeveRight;
-            }
-            if(!isRight && skinObj.sleeveLeft) {
-                activeSleeveColor = skinObj.sleeveLeft;
-            }
+            // 2. Accessory Overrides (Compression Sleeves)
+            let activeSleeveColor = null;
+            if(isRight && skinObj.sleeveRight) activeSleeveColor = skinObj.sleeveRight;
+            if(!isRight && skinObj.sleeveLeft) activeSleeveColor = skinObj.sleeveLeft;
 
-            if (activeSleeveColor) {
-                thisForeColor = activeSleeveColor;
-            }
+            // 3. Determine Fuzziness
+            const isFurryArm = isFurry && !upperIsCovered && !foreIsCovered && !activeSleeveColor;
 
             // Calculate Tapered Widths
             const taper = sizeMod.limbTaper || 0.7;
-            const upperStartW = 7 * s * sizeMod.armWidth;
+            let upperStartW = 7 * s * sizeMod.armWidth;
+
+            // Bulky Jacket Sleeves
+            if (skinObj.clothingType === 'jacket') {
+                upperStartW *= 1.3;
+            }
+
             const upperEndW = upperStartW * taper;
-            const foreStartW = upperEndW; // Seamless transition
-            const foreEndW = foreStartW * taper;
+            const foreEndW = upperEndW * taper;
 
             // FORESHORTENING
             let uFactor = Math.cos(angle1_z || 0);
@@ -5241,14 +7945,6 @@
 
             // Shadow Logic: Show full length (projected to ground) to imply depth
             if (isShadow) {
-                // If shadow, we ignore the Z-shortening because the shadow
-                // of a forward-reaching arm (parallel to ground) is full length.
-                // However, our Z-angle is "angle from screen plane".
-                // If Z=90, arm is pointing at camera (horizontal). Shadow is full length.
-                // If Z=0, arm is parallel to screen (horizontal). Shadow is full length.
-                // What if arm is pointing UP? That's controlled by angle1 (X/Y).
-                // If angle1 is -PI/2 (UP), and Z=0, arm is vertical. Shadow is short (blob).
-                // So, we should use uFactor = 1.0 for shadow pass?
                 uFactor = 1.0;
                 fFactor = 1.0;
             }
@@ -5256,64 +7952,77 @@
             uFactor = Math.max(0.1, Math.abs(uFactor));
             fFactor = Math.max(0.1, Math.abs(fFactor));
 
-            let elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
+            const elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
+            const wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
 
-            // Shoulder Joint (Radius = Half Width for seamless look)
-            if(!armFurry) drawJoint(sx, sy, upperStartW * 0.5, thisUpperColor, isMechanical);
-            else drawFuzzyCircle(sx, sy, upperStartW * 0.5, thisUpperColor, seedBase, s, true);
+            // Determine Draw Mode
+            let drawMode = 'skin';
+            if (activeSleeveColor) drawMode = 'long_sleeve';
+            else if (upperIsCovered && foreIsCovered) drawMode = 'long_cloth'; // Track suit etc
+            else if (upperIsCovered && !foreIsCovered) drawMode = 'tshirt';
+            else drawMode = 'skin';
 
-            // Upper Arm (Tapered)
-            drawFuzzyLimb(sx, sy, elbow.x, elbow.y, upperStartW, thisUpperColor, s, armFurry, seedBase, upperEndW);
-
-            // Arm Sleeve Upper Segment (Mid-Bicep to Elbow)
-            if (activeSleeveColor) {
-                const midX = (sx + elbow.x) / 2;
-                const midY = (sy + elbow.y) / 2;
-                // Interpolate width at mid point
-                const midW = upperStartW + (upperEndW - upperStartW) * 0.5;
-                drawFuzzyLimb(midX, midY, elbow.x, elbow.y, midW, activeSleeveColor, s, false, seedBase, upperEndW);
+            // Draw Arm Structure
+            if (drawMode === 'long_sleeve') {
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, activeSleeveColor, s, false, seedBase);
             }
-
-            let wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
-
-            // Forearm (Tapered)
-            drawFuzzyLimb(elbow.x, elbow.y, wrist.x, wrist.y, foreStartW, thisForeColor, s, activeSleeveColor ? false : armFurry, seedBase + 1, foreEndW);
-
-            // Elbow Joint (Radius = Half Width)
-            let elbowColor = thisUpperColor;
-            if (activeSleeveColor) {
-                elbowColor = activeSleeveColor;
-            } else if (thisForeColor === furColor && thisUpperColor !== furColor) {
-                elbowColor = thisUpperColor; // Sleeve covers elbow
-            } else if (thisUpperColor === furColor) {
-                elbowColor = furColor;
+            else if (drawMode === 'long_cloth') {
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, thisUpperColor, s, isFurry && (thisUpperColor === furColor), seedBase, {pattern: skinObj.pattern});
             }
-
-            const elbowFurry = activeSleeveColor ? false : armFurry;
-            if(!elbowFurry) drawJoint(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, isMechanical);
-            else drawFuzzyCircle(elbow.x, elbow.y, upperEndW * 0.5, elbowColor, seedBase+2, s, true);
+            else if (drawMode === 'tshirt') {
+                 // Skin Arm
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW*0.9, upperEndW*0.9, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+                 // Sleeve
+                 const sleeveLen = upperArmLen * uFactor * 0.45;
+                 const sleeveEnd = getJoint(sx, sy, sleeveLen, angle1);
+                 const sleeveW = upperStartW * 1.1;
+                 // Draw short segment
+                 drawContinuousLimb({x:sx,y:sy}, sleeveEnd, sleeveEnd, sleeveW, sleeveW*0.9, sleeveW*0.9, thisUpperColor, s, false, 0, {pattern: skinObj.pattern});
+            }
+            else { // Skin
+                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+            }
 
             ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
 
-            // Paw / Hand
-            if (armFurry && !activeSleeveColor) {
+            // Hand / Paw
+            const foreFurry = isFurry && !foreIsCovered && !activeSleeveColor;
+            if (foreFurry) {
                  // Fuzzy Paw
-                 const pawColor = thisForeColor;
+                 const pawColor = furColor;
                  drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
                  // Toes
                  for(let k=-1; k<=1; k++) {
                      drawFuzzyCircle(k*3*s, 5*s, 2.5*s, pawColor, seedBase+6+k, s, true);
                  }
             } else {
-                 // Simple Hand
-                 ctx.fillStyle = furColor; ctx.beginPath(); ctx.arc(0, 0, 5*s, 0, Math.PI*2); ctx.fill();
+                 // Human Hand (Mitten shape for style)
+                 const handColor = (currentAnimal === 'human') ? (skinObj.skinTone || '#8d5524') : furColor;
+
+                 ctx.fillStyle = handColor;
+                 ctx.beginPath();
+                 // Palm
+                 ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Thumb (medial)
+                 const thumbX = isRight ? -2.5*s : 2.5*s;
+                 ctx.beginPath();
+                 ctx.ellipse(thumbX, 2*s, 1.5*s, 2.5*s, isRight ? 0.5 : -0.5, 0, Math.PI*2);
+                 ctx.fill();
+
+                 // Simple shading
+                 const gradH = ctx.createRadialGradient(-1*s, 2*s, 0, 0, 3*s, 5*s);
+                 gradH.addColorStop(0, 'rgba(255,255,255,0.1)');
+                 gradH.addColorStop(1, 'rgba(0,0,0,0.1)');
+                 ctx.fillStyle = gradH;
+                 ctx.beginPath(); ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2); ctx.fill();
             }
 
             if (wristAngle > 0.5 && isShootingSide) {
                  if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
             }
 
-            // Ball removed (drawn earlier)
             ctx.restore();
         };
 
@@ -5383,14 +8092,8 @@
              rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
              lFootX = p.x - 12*s; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
-        } else if (isCrouching) {
-             // Crouch Pose: Knees bent outward
-             lKneeX = p.x - 15*s*stanceMod; lKneeY = p.y - legLen * 0.3;
-             rKneeX = p.x + 15*s*stanceMod; rKneeY = p.y - legLen * 0.3;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
         } else {
-             // Standing
+             // Standing (Includes Crouch via legLen shortening)
              const baseKneeY = p.y - (legLen * 0.5);
              lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
              rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
@@ -5429,74 +8132,187 @@
         const calfStartW = thighEndW;
         const calfEndW = calfStartW * legTaper;
 
-        // Hip Joints
-        if(!legFurry) {
-            drawJoint(p.x - hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
-            drawJoint(p.x + hipX, hipY, thighStartW * 0.5, thighColor, isMechanical);
-        } else {
-            drawFuzzyCircle(p.x - hipX, hipY, thighStartW * 0.5, thighColor, 10, s, true);
-            drawFuzzyCircle(p.x + hipX, hipY, thighStartW * 0.5, thighColor, 30, s, true);
-        }
+        // Unified Leg Drawer
+        const drawLeg = (hipP, kneeP, ankleP, isRight) => {
+            const seedBase = isRight ? 30 : 40;
 
-        // Tapered Thighs
-        drawFuzzyLimb(p.x - hipX, hipY, lKneeX, lKneeY, thighStartW, thighColor, s, legFurry, 1, thighEndW);
-        drawFuzzyLimb(p.x + hipX, hipY, rKneeX, rKneeY, thighStartW, thighColor, s, legFurry, 3, thighEndW);
+            let legMode = 'skin';
+            if (skinObj.legType === 'pants' || skinObj.legType === 'tights') legMode = 'pants';
 
-        // Calves & Socks/Shoes
-        const drawLowerLeg = (xTop, yTop, xBot, yBot, isRight) => {
-             const calfBaseColor = calfColor;
+            // Helper to draw feet (Socks + Shoes/Paws)
+            const drawFeet = () => {
+                // Socks
+                if (skinObj.socksColor) {
+                     const sockH = 0.4; // % of calf
+                     const sockTop = {
+                         x: kneeP.x + (ankleP.x - kneeP.x) * (1-sockH),
+                         y: kneeP.y + (ankleP.y - kneeP.y) * (1-sockH)
+                     };
+                     const sockW = calfEndW * 1.1;
+                     // Use simple limb for sock
+                     drawLimb(sockTop.x, sockTop.y, ankleP.x, ankleP.y, sockW, skinObj.socksColor);
+                }
 
-             // Draw Base Calf
-             drawFuzzyLimb(xTop, yTop, xBot, yBot, calfStartW, calfBaseColor, s, legFurry, isRight?4:2, calfEndW);
+                // Feet / Shoes
+                if (skinObj.shoesColor) {
+                     // Shoe covers ankle
+                     drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                } else if (legFurry) {
+                     // Paw
+                     const pawColor = furColor;
+                     drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
+                     // Toes
+                     for(let k=-1; k<=1; k++) {
+                         drawFuzzyCircle(ankleP.x + k*3*s, ankleP.y + 4*s, 3*s, pawColor, seedBase+6+k, s, true);
+                     }
+                } else {
+                     // Human Foot
+                     const footColor = (legMode === 'pants') ? thighColor : furColor;
+                     ctx.fillStyle = footColor;
+                     // Simple foot shape
+                     const toeX = isRight ? ankleP.x + 3*s : ankleP.x - 3*s;
+                     ctx.beginPath();
+                     ctx.moveTo(ankleP.x, ankleP.y - 2*s);
+                     ctx.quadraticCurveTo(toeX, ankleP.y, toeX, ankleP.y + 3*s);
+                     ctx.lineTo(ankleP.x, ankleP.y + 4*s);
+                     ctx.fill();
+                }
+            };
 
-             // Paw / Foot (If no shoes)
-             if (legFurry && !skinObj.shoesColor) {
-                 const pawColor = calfBaseColor;
-                 const footS = sizeMod.footScale || 1.0;
-                 drawFuzzyCircle(xBot, yBot, 4.5*s*footS, pawColor, isRight?50:60, s, true);
-                 // Toes
-                 for(let k=-1; k<=1; k++) {
-                     drawFuzzyCircle(xBot + k*3*s*footS, yBot + 4*s*footS, 3*s*footS, pawColor, isRight?51+k:61+k, s, true);
-                 }
-             }
+            // 1. Draw Main Structure (Continuous)
+            if (legMode === 'pants') {
+                if (skinObj.legType === 'tights') {
+                    // Tights (Form fitting, no flare)
+                    drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
+                    drawFeet(); // Draw feet OVER tights
+                } else {
+                    // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
 
-             // Knee Joint (Radius = Half Width)
-             if(!legFurry) drawJoint(xTop, yTop, thighEndW * 0.5, thighColor, isMechanical);
-             else drawFuzzyCircle(xTop, yTop, thighEndW * 0.5, thighColor, isRight?40:20, s, true);
+                    // LAYER FIX: Draw Shoes FIRST so pants drape over them
+                    drawFeet();
 
-             // Socks & Shoes Overlay
-             if(skinObj.socksColor || skinObj.shoesColor) {
-                 const shoeH = 5 * s; const sockH = 7 * s;
-                 // Calculate local Y relative to the foot Y
-                 const ankleY = yBot - shoeH; const sockY = ankleY - sockH;
+                    // Override widths to be wider and straighter (hiding animal shape/taper)
+                    // Ensure it is at least wide enough to look like pants (13*s base)
+                    const pantWidth = Math.max(thighStartW * 1.1, 13 * s);
 
-                 // Interpolate X/Y
-                 const getXAtY = (y) => {
-                     const t = (y - yTop) / (yBot - yTop);
-                     return xTop + (xBot - xTop) * t;
-                 };
+                    // SPLIT SEGMENT RENDERING: Draw Thigh and Shin separately to simulate fabric stiffness/crease
+                    // Thigh Segment
+                    drawLimb(hipP.x, hipP.y, kneeP.x, kneeP.y, pantWidth, thighColor);
 
-                 if(skinObj.socksColor) {
-                     const sockTopX = getXAtY(sockY);
-                     const ankleX = getXAtY(ankleY);
-                     // Interpolate widths
-                     const sockTopW = calfStartW + (calfEndW - calfStartW) * ((sockY - yTop)/(yBot - yTop));
-                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
-                     drawFuzzyLimb(sockTopX, sockY, ankleX, ankleY, sockTopW, skinObj.socksColor, s, false, 0, ankleW);
-                 }
-                 if(skinObj.shoesColor) {
-                     const ankleX = getXAtY(ankleY);
-                     const ankleW = calfStartW + (calfEndW - calfStartW) * ((ankleY - yTop)/(yBot - yTop));
-                     drawFuzzyLimb(ankleX, ankleY, xBot, yBot, ankleW, skinObj.shoesColor, s, false, 0, calfEndW);
-                     // Shoe Foot
-                     ctx.fillStyle = skinObj.shoesColor;
-                     ctx.beginPath(); ctx.ellipse(xBot, yBot + 1*s, 4.5*s, 2.5*s, 0, 0, Math.PI*2); ctx.fill();
-                 }
-             }
+                    // Knee Joint (Circle to cover gap)
+                    ctx.fillStyle = thighColor;
+                    ctx.beginPath(); ctx.arc(kneeP.x, kneeP.y, pantWidth/2, 0, Math.PI*2); ctx.fill();
+
+                    // CUSTOM SHIN SEGMENT ("Sleeve")
+                    // Replace drawLimb with custom geometry to avoid rounded bottom cap.
+                    // We want a flat or slightly curved opening at the bottom.
+
+                    const dx = ankleP.x - kneeP.x;
+                    const dy = ankleP.y - kneeP.y;
+                    const angle = Math.atan2(dy, dx);
+                    const len = Math.sqrt(dx*dx + dy*dy);
+
+                    // Extend length slightly to cover shoe top
+                    const extLen = len + 2*s;
+
+                    // Flare the bottom slightly for baggy look
+                    const topW = pantWidth;
+                    const botW = pantWidth * 1.15; // Bell bottom / Boot cut effect
+
+                    ctx.save();
+                    ctx.translate(kneeP.x, kneeP.y);
+                    ctx.rotate(angle);
+
+                    // Draw Trapazoid (Thigh-width at top, Flared at bottom)
+                    const topExt = -15 * s; // Extend backwards to tuck under knee
+                    ctx.beginPath();
+                    ctx.moveTo(topExt, -topW/2); // Top Left
+                    ctx.lineTo(extLen, -botW/2); // Bottom Left
+
+                    // Bottom Edge (Curved "Smile" to match cuff perspective)
+                    // Use bezier to curve it slightly inward (concave) or outward (convex)?
+                    // A visual sleeve opening usually looks like an ellipse.
+                    // We draw the back half of the ellipse here or just a flat line?
+                    // Flat line is better than rounded cap.
+                    // Let's do a slight curve matching the cuff ellipse we will draw later.
+                    ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, botW/2);
+
+                    ctx.lineTo(topExt, topW/2); // Top Right
+                    ctx.closePath();
+
+                    ctx.fillStyle = thighColor;
+                    ctx.fill();
+
+                    // Apply Pattern (Replicating drawLimb)
+                    if (playerData.graphics === 'HIGH') {
+                        const pat = getFabricPattern(ctx);
+                        if (pat) {
+                            ctx.globalCompositeOperation = 'overlay';
+                            ctx.fillStyle = pat;
+                            ctx.fill();
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
+                    }
+
+                    // Draw Cuff / Hem (Relative to rotated context)
+                    // Draw at extLen
+                    ctx.translate(extLen, 0);
+                    ctx.rotate(Math.PI/2); // Make ellipse perpendicular to leg
+
+                    // Dark hollow opening
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // Hem Ring (Thickness)
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    if(playerData.graphics === 'LOW') ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.lineWidth = 1.5*s;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+            } else {
+                // Skin Leg (Furry or Human Skin)
+                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+
+                // Shorts Overlay
+                if (!legFurry) {
+                    // Shorts Length Choice (Short vs Normal)
+                    const isShortShorts = (skinObj.shortsLength === 'short');
+                    const shortsLen = isShortShorts ? 0.35 : 0.5;
+                    const shortsFlare = isShortShorts ? 1.1 : 1.25; // Normal shorts are baggier
+
+                    // Interpolate shorts end
+                    const shortsEnd = {
+                        x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
+                        y: hipP.y + (kneeP.y - hipP.y) * shortsLen
+                    };
+                    const shortsW = thighStartW * shortsFlare;
+                    // Draw shorts as a short limb
+                    drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
+
+                    // Side Stripes on Shorts
+                    if (skinObj.sideStripesColor) {
+                        ctx.strokeStyle = skinObj.sideStripesColor;
+                        ctx.lineWidth = 2 * s;
+                        const sideX = isRight ? (hipP.x + shortsW*0.4) : (hipP.x - shortsW*0.4);
+                        const sideXEnd = isRight ? (shortsEnd.x + shortsW*0.45) : (shortsEnd.x - shortsW*0.45);
+                        ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
+                    }
+                }
+
+                // Draw Feet Second (Over skin)
+                drawFeet();
+            }
         };
 
-        drawLowerLeg(lKneeX, lKneeY, lFootX, lFootY, false); // Left
-        drawLowerLeg(rKneeX, rKneeY, rFootX, rFootY, true); // Right
+        // Draw Legs
+        drawLeg({x:p.x-hipX, y:hipY}, {x:lKneeX, y:lKneeY}, {x:lFootX, y:lFootY}, false);
+        drawLeg({x:p.x+hipX, y:hipY}, {x:rKneeX, y:rKneeY}, {x:rFootX, y:rFootY}, true);
 
         // 6. Draw Body (Layer 2)
         const bodyFurry = isFurry && (torsoColor === furColor);
@@ -5529,6 +8345,20 @@
         bodyOptions.hasSpots = hasSpots;
         bodyOptions.spotColor = skinObj.spotColor;
         bodyOptions.isTabby = skin.includes('tabby');
+        bodyOptions.chestStripeColor = skinObj.chestStripeColor;
+        bodyOptions.sideStripesColor = skinObj.sideStripesColor;
+        bodyOptions.pinstripesColor = skinObj.pinstripesColor;
+
+        // Pass Clothing Info
+        bodyOptions.clothingType = skinObj.clothingType;
+        bodyOptions.clothingStyle = skinObj.clothingStyle;
+        bodyOptions.clothingMaterial = skinObj.clothingMaterial;
+        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor) || skinObj.trimColor;
+
+        // Force side stripes pattern if color is present but pattern is missing
+        if (skinObj.sideStripesColor && !bodyOptions.pattern) {
+             bodyOptions.pattern = 'stripes_side';
+        }
 
         const anchors = {
             shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
@@ -5898,6 +8728,10 @@
              });
         }
         else if (currentAnimal === 'human') {
+            // Adjust Head Y for human to obscure face/top of head better in rear view
+            // Move it up slightly
+            headY -= 12 * s;
+
             // Human Ears (Keep existing logic, simplified)
             ctx.fillStyle = furColor;
             if (skinObj.ears === 'elf') {
@@ -6060,77 +8894,161 @@
              ctx.fill();
         }
 
+        // Hairstyle Support (Universal)
+        drawHairstyle(ctx, p, headY, headRadius, s, skinObj);
 
         // Head Accessories
-        if (skinObj.headAccessory === 'sombrero') {
-            ctx.fillStyle = skinObj.hatColor || '#1a1a1a';
+        let accessoryType = skinObj.headAccessory;
+        let accessoryColor = skinObj.hatColor;
+
+        if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
+             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             if (hat) {
+                 accessoryType = hat.type;
+                 if (hat.color) accessoryColor = hat.color;
+             }
+        }
+
+        if (accessoryType === 'cap') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             // Dome
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); ctx.fill();
+             // Button
+             ctx.fillStyle = 'rgba(0,0,0,0.2)';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, 4*s, 0, Math.PI*2); ctx.fill();
+             // Snapback hole (since back view)
+             ctx.fillStyle = '#333';
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, 3*s, Math.PI, 0); ctx.fill();
+        }
+        else if (accessoryType === 'party_hat') {
+             ctx.fillStyle = accessoryColor || '#FF00FF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 8*s, headY - 8*s);
+             ctx.lineTo(p.x + 8*s, headY - 8*s);
+             ctx.lineTo(p.x, headY - 35*s); // Cone tip
+             ctx.fill();
+        }
+        else if (accessoryType === 'propeller_cap') {
+             ctx.fillStyle = '#FF0000';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI, Math.PI*1.5); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#0000FF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius, Math.PI*1.5, 0); ctx.lineTo(p.x, headY-5*s); ctx.fill();
+             ctx.fillStyle = '#FFFF00';
+             ctx.beginPath(); ctx.arc(p.x, headY - 17*s, 2*s, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FFD700';
+             ctx.fillRect(p.x - 10*s, headY - 19*s, 20*s, 2*s);
+             ctx.fillRect(p.x - 2*s, headY - 19*s, 4*s, 4*s);
+        }
+        else if (accessoryType === 'bucket_hat') {
+             ctx.fillStyle = accessoryColor || '#FFFF00';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, headRadius * 0.9, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillRect(p.x - headRadius * 0.9, headY - 12*s, headRadius * 1.8, 8*s);
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 0.9, headY - 4*s);
+             ctx.lineTo(p.x + headRadius * 1.4, headY + 2*s);
+             ctx.lineTo(p.x - headRadius * 1.4, headY + 2*s);
+             ctx.fill();
+        }
+        else if (accessoryType === 'santa_hat') {
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.2, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.fillStyle = accessoryColor || '#FF0000';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - 30*s, p.x + 20*s, headY - 15*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x + 20*s, headY - 15*s, 4*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'viking_helmet') {
+             ctx.fillStyle = accessoryColor || '#AAA';
+             ctx.beginPath(); ctx.arc(p.x, headY - 5*s, headRadius * 1.1, Math.PI, 0); ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x - 20*s, headY - 20*s, p.x - 25*s, headY - 30*s); ctx.lineTo(p.x - 12*s, headY - 12*s); ctx.fill();
+             ctx.beginPath(); ctx.moveTo(p.x + 10*s, headY - 10*s); ctx.quadraticCurveTo(p.x + 20*s, headY - 20*s, p.x + 25*s, headY - 30*s); ctx.lineTo(p.x + 12*s, headY - 12*s); ctx.fill();
+        }
+        else if (accessoryType === 'pirate_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
+             ctx.beginPath();
+             ctx.moveTo(p.x - 20*s, headY - 5*s);
+             ctx.quadraticCurveTo(p.x - 10*s, headY - 20*s, p.x, headY - 10*s);
+             ctx.quadraticCurveTo(p.x + 10*s, headY - 20*s, p.x + 20*s, headY - 5*s);
+             ctx.lineTo(p.x, headY - 15*s);
+             ctx.fill();
+             ctx.fillStyle = '#FFF';
+             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'sombrero') {
+            ctx.fillStyle = accessoryColor || '#1a1a1a';
             ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, 30*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'crown') {
+        else if (accessoryType === 'crown') {
             ctx.fillStyle = '#FFD700';
             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-10*s); ctx.lineTo(p.x-4*s, headY-18*s); ctx.lineTo(p.x, headY-10*s);
             ctx.lineTo(p.x+4*s, headY-18*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-5*s); ctx.lineTo(p.x-8*s, headY-5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'wizard_hat') {
-            ctx.fillStyle = skinObj.hatColor || '#000080';
+        else if (accessoryType === 'wizard_hat') {
+            ctx.fillStyle = accessoryColor || '#000080';
             ctx.beginPath(); ctx.moveTo(p.x-10*s, headY-5*s); ctx.lineTo(p.x+10*s, headY-5*s); ctx.lineTo(p.x, headY-30*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'chef_hat') {
+        else if (accessoryType === 'chef_hat') {
              ctx.fillStyle = '#FFF'; ctx.fillRect(p.x-8*s, headY-25*s, 16*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'helmet') {
-             ctx.strokeStyle = skinObj.hatColor || '#87CEEB'; ctx.lineWidth=2*s;
+        else if (accessoryType === 'helmet') {
+             ctx.strokeStyle = accessoryColor || '#87CEEB'; ctx.lineWidth=2*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius-2*s, 0, Math.PI*2); ctx.stroke();
-             if(skinObj.hatColor === '#FFF') { // Hockey mask fill
+             if(accessoryColor === '#FFF') { // Hockey mask fill
                  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fill();
              }
         }
-        else if (skinObj.headAccessory === 'horns') {
+        else if (accessoryType === 'horns') {
              ctx.fillStyle = 'red';
              ctx.beginPath(); ctx.moveTo(p.x-5*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-18*s); ctx.lineTo(p.x-2*s, headY-10*s); ctx.fill();
              ctx.beginPath(); ctx.moveTo(p.x+5*s, headY-10*s); ctx.lineTo(p.x+8*s, headY-18*s); ctx.lineTo(p.x+2*s, headY-10*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'halo') {
+        else if (accessoryType === 'halo') {
              ctx.strokeStyle='#FFD700'; ctx.lineWidth=2*s; ctx.beginPath(); ctx.ellipse(p.x, headY-15*s, 8*s, 3*s, 0, 0, Math.PI*2); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'beanie') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
+        else if (accessoryType === 'beanie') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; ctx.fillRect(p.x-10*s, headY-12*s, 20*s, 6*s);
         }
-        else if (skinObj.headAccessory === 'ear_muffs') {
-             const col = skinObj.hatColor || '#FFF';
+        else if (accessoryType === 'ear_muffs') {
+             const col = accessoryColor || '#FFF';
              ctx.fillStyle = col;
              ctx.beginPath(); ctx.arc(p.x - headRadius - 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x + headRadius + 2*s, headY, 6*s, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = col; ctx.lineWidth = 3*s;
              ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 4*s, Math.PI, 0); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'collar') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000';
+        else if (accessoryType === 'collar') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.fillRect(p.x - headRadius, headY + headRadius - 2*s, headRadius * 2, 4*s);
              ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 3*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'scarf') {
-             ctx.strokeStyle = skinObj.hatColor || '#00008B'; ctx.lineWidth = 6*s;
+        else if (accessoryType === 'scarf') {
+             ctx.strokeStyle = accessoryColor || '#00008B'; ctx.lineWidth = 6*s;
              ctx.beginPath(); ctx.arc(p.x, headY + headRadius, 6*s, 0, Math.PI, false); ctx.stroke();
              // Dangling part
-             ctx.fillStyle = skinObj.hatColor || '#00008B';
+             ctx.fillStyle = accessoryColor || '#00008B';
              ctx.fillRect(p.x + 4*s, headY + headRadius, 6*s, 15*s);
         }
-        else if (skinObj.headAccessory === 'fez') {
+        else if (accessoryType === 'fez') {
              ctx.fillStyle = '#8B0000';
              ctx.beginPath(); ctx.moveTo(p.x - 6*s, headY - 8*s); ctx.lineTo(p.x + 6*s, headY - 8*s); ctx.lineTo(p.x + 4*s, headY - 18*s); ctx.lineTo(p.x - 4*s, headY - 18*s); ctx.fill();
              ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1*s; ctx.beginPath(); ctx.moveTo(p.x, headY - 18*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.stroke();
         }
-        else if (skinObj.headAccessory === 'bow') {
-             ctx.fillStyle = skinObj.hatColor || '#FFC0CB';
+        else if (accessoryType === 'bow') {
+             ctx.fillStyle = accessoryColor || '#FFC0CB';
              ctx.beginPath();
              ctx.ellipse(p.x - 6*s, headY - 8*s, 6*s, 4*s, -0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath();
              ctx.ellipse(p.x + 6*s, headY - 8*s, 6*s, 4*s, 0.2, 0, Math.PI*2); ctx.fill();
              ctx.beginPath(); ctx.arc(p.x, headY - 8*s, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'flower') {
+        else if (accessoryType === 'flower') {
              ctx.fillStyle = '#FF69B4';
              const fx = p.x + headRadius; const fy = headY - 5*s;
              for(let i=0; i<5; i++) {
@@ -6139,19 +9057,19 @@
              }
              ctx.fillStyle = '#FFFF00'; ctx.beginPath(); ctx.arc(fx, fy, 2*s, 0, Math.PI*2); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'algae') {
+        else if (accessoryType === 'algae') {
              ctx.fillStyle = '#2E8B57';
              drawFuzzyPath([{x:p.x-5*s,y:headY-10*s},{x:p.x+5*s,y:headY-12*s},{x:p.x+8*s,y:headY-5*s},{x:p.x-8*s,y:headY-4*s}], '#2E8B57', s, true, 200);
         }
-        else if (skinObj.headAccessory === 'hat') {
-             ctx.fillStyle = skinObj.hatColor || '#5D4037';
+        else if (accessoryType === 'hat') {
+             ctx.fillStyle = accessoryColor || '#5D4037';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.8, 4*s, 0, 0, Math.PI*2); ctx.fill();
              // Top
              ctx.beginPath(); ctx.arc(p.x, headY - 10*s, headRadius * 0.9, Math.PI, 0); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'floppy_cap') {
-             const capColor = skinObj.hatColor || '#00A000';
+        else if (accessoryType === 'floppy_cap') {
+             const capColor = accessoryColor || '#00A000';
              ctx.fillStyle = capColor;
              // Base (Headband part)
              ctx.beginPath();
@@ -6170,25 +9088,25 @@
              ctx.quadraticCurveTo(p.x - 5*s, headY + 15*s, p.x - headRadius + 2*s, headY - 8*s);
              ctx.fill();
         }
-        else if (skinObj.headAccessory === 'top_hat') {
-             ctx.fillStyle = '#111';
+        else if (accessoryType === 'top_hat') {
+             ctx.fillStyle = accessoryColor || '#111';
              // Brim
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.5, 3*s, 0, 0, Math.PI*2); ctx.fill();
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
-        else if (skinObj.headAccessory === 'headband') {
-             ctx.fillStyle = skinObj.hatColor || '#FF0000'; // Default red
-             if(skinObj.hatColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
+        else if (accessoryType === 'headband') {
+             ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
+             if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
              ctx.fillRect(p.x - headRadius, headY - 8*s, headRadius * 2, 6*s);
              // Knot/Tails
              ctx.beginPath(); ctx.moveTo(p.x + headRadius, headY - 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY + 5*s); ctx.lineTo(p.x + headRadius + 10*s, headY - 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'bandana_neck') {
-             ctx.fillStyle = '#FF0000';
+        else if (accessoryType === 'bandana_neck') {
+             ctx.fillStyle = accessoryColor || '#FF0000';
              ctx.beginPath(); ctx.moveTo(p.x - 10*s, headY + 5*s); ctx.lineTo(p.x, headY + 15*s); ctx.lineTo(p.x + 10*s, headY + 5*s); ctx.fill();
         }
-        else if (skinObj.headAccessory === 'feathers') {
+        else if (accessoryType === 'feathers') {
              ctx.fillStyle = '#FFF';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 4*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
@@ -6227,6 +9145,44 @@
         if (skinObj.backAccessory === 'backpack') {
              ctx.fillStyle = skinObj.backColor || '#555';
              ctx.fillRect(p.x - bodyW/2, torsoY + 10*s, bodyW, bodyH*0.6);
+        }
+        if (skinObj.backAccessory === 'hoodie_hood') {
+             ctx.fillStyle = skinObj.backColor || '#555';
+             // Draw hood down shape on upper back
+             ctx.beginPath();
+             ctx.moveTo(p.x - bodyW*0.4, torsoY + 5*s);
+             ctx.quadraticCurveTo(p.x, torsoY + 20*s, p.x + bodyW*0.4, torsoY + 5*s);
+             ctx.lineTo(p.x + bodyW*0.3, torsoY - 5*s); // Tuck under head
+             ctx.lineTo(p.x - bodyW*0.3, torsoY - 5*s);
+             ctx.fill();
+             // Hood crease/shadow
+             ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2*s;
+             ctx.beginPath(); ctx.moveTo(p.x, torsoY+2*s); ctx.lineTo(p.x, torsoY+15*s); ctx.stroke();
+
+             // Shark Face
+             if (skinObj.pattern === 'camo_shark') {
+                 // Eyes
+                 ctx.fillStyle = '#FFF'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+                 ctx.beginPath(); ctx.arc(p.x - 8*s, torsoY + 8*s, 3*s, 0, Math.PI*2); ctx.fill(); ctx.stroke(); // Left
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x - 8*s, torsoY + 8*s, 1*s, 0, Math.PI*2); ctx.fill();
+
+                 ctx.fillStyle = '#FFF';
+                 ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 8*s, 3*s, 0, Math.PI*2); ctx.fill(); ctx.stroke(); // Right
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x + 8*s, torsoY + 8*s, 1*s, 0, Math.PI*2); ctx.fill();
+
+                 // Mouth (Zigzag)
+                 ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - 12*s, torsoY + 15*s);
+                 for(let k=0; k<6; k++) {
+                     ctx.lineTo(p.x - 12*s + (k+0.5)*4*s, torsoY + 12*s);
+                     ctx.lineTo(p.x - 12*s + (k+1)*4*s, torsoY + 15*s);
+                 }
+                 ctx.stroke();
+                 // Outline mouth
+                 ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+                 ctx.strokeRect(p.x - 12*s, torsoY + 12*s, 24*s, 3*s);
+             }
         }
         if (skinObj.backAccessory === 'shell') {
              const shellW = bodyW * 1.4;
@@ -6438,103 +9394,229 @@
              }
         }
 
-        // 9. Jersey Number (Layer 5)
-        if(!skin.includes('alien') && !skin.includes('robot') && skinObj.number) {
-            ctx.fillStyle = skinObj.numberColor || "#FFF";
-            ctx.font = `bold ${12 * s}px Arial`;
-            ctx.textAlign = "center";
-            ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+        // 9. Jersey Name & Number (Layer 5)
+        if(!skin.includes('alien') && !skin.includes('robot')) {
+             if (skinObj.jerseyName) {
+                 ctx.fillStyle = skinObj.numberColor || "#FFF";
+                 ctx.font = `bold ${8 * s}px 'Roboto Condensed', sans-serif`;
+                 ctx.textAlign = "center";
+                 // Arc the text slightly if possible, or just draw straight
+                 ctx.fillText(skinObj.jerseyName, p.x, torsoY + bodyH * 0.35);
+             }
+
+             if (skinObj.number) {
+                ctx.fillStyle = skinObj.numberColor || "#FFF";
+                ctx.font = `bold ${12 * s}px 'Russo One', Arial`;
+                ctx.textAlign = "center";
+                ctx.fillText(skinObj.number, p.x, torsoY + bodyH * 0.6);
+            }
         }
 
         // 10. Shot Meter (Layer 6)
         drawMeterCommon(p, s, sizeMod);
     }
+};
     function getProjectedY(gDist, currentDist, horizonY) {
         if (gDist <= 0) { const p = project(HOOP_POS.x, HOOP_POS.y, 0); return p ? p.y : horizonY; }
         const ratio = gDist / currentDist;
         const wx = HOOP_POS.x + (player3D.x - HOOP_POS.x) * ratio; const wy = HOOP_POS.y + (player3D.y - HOOP_POS.y) * ratio;
-        const p = project(wx, wy, 0); return p ? p.y : canvas.height;
+        const p = project(wx, wy, 0); return p ? p.y : window.LOGICAL_HEIGHT;
     }
 
-    function drawMountainLayer(layer, horizonY, dx, scale) {
-        if (playerData.graphics === 'HIGH') {
-            if (!layer.gradient) {
-                const grad = ctx.createLinearGradient(0, horizonY - 150, 0, horizonY);
-                grad.addColorStop(0, layer.color);
-                grad.addColorStop(1, '#1a1a1a');
-                layer.gradient = grad;
+    function drawZonePattern(ctx, y, h, width, zone, horizonY) {
+        // Base Gradient
+        const grad = ctx.createLinearGradient(0, y, 0, y + h);
+        grad.addColorStop(0, zone.ground1);
+        grad.addColorStop(1, zone.ground2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, y, width, h);
+
+        // Texture Overlay
+        // Clip to zone area
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, y, width, h);
+        ctx.clip();
+
+        const type = zone.type;
+        const cx = width / 2;
+        // Deterministic Seed based on zone index/name to prevent jitter if we used random
+        // Using simple modulo logic on coordinates for noise is stable.
+
+        if (type === 'arena') {
+            // Wood Planks (Perspective Lines)
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+            ctx.lineWidth = 2;
+            const rayCount = 40;
+            // Draw rays from vanishing point (cx, horizonY)
+            // We only draw the segment within y -> y+h
+            for(let i = -rayCount; i <= rayCount; i++) {
+                const bottomX = cx + (i * width * 0.05); // Fan out
+                ctx.beginPath();
+                ctx.moveTo(cx, horizonY);
+                ctx.lineTo(bottomX, y + h + 100);
+                ctx.stroke();
             }
-            ctx.fillStyle = layer.gradient;
-        } else {
-            ctx.fillStyle = layer.color;
+        }
+        else if (type === 'carnival') {
+            // Checkerboard
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            // Vertical Lines
+            for(let i = -10; i <= 10; i++) {
+                const bottomX = cx + (i * width * 0.15);
+                ctx.beginPath(); ctx.moveTo(cx, horizonY); ctx.lineTo(bottomX, y+h+100); ctx.stroke();
+            }
+            // Horizontal lines (Perspective spacing)
+            let ly = horizonY + 20;
+            let step = 5;
+            while(ly < y + h) {
+                if(ly > y) ctx.fillRect(0, ly, width, 2);
+                ly += step;
+                step *= 1.1; // Exponential growth
+            }
+        }
+        else if (type === 'grass' || type === 'tree') {
+            // Grass Noise
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            const density = (width * h) / 1000;
+            // Simple stable noise
+            for(let i=0; i<density; i++) {
+                const nx = (i * 157) % width;
+                const ny = y + (i * 83) % h;
+                ctx.fillRect(nx, ny, 2, 2);
+            }
+        }
+        else if (type === 'water') {
+            // Waves
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            const density = h / 8;
+            for(let i=0; i<density; i++) {
+                const ly = y + (i * 8 + (Date.now()*0.01 + i)%8);
+                const lx = (i * 123) % width;
+                const len = 20 + (i*17)%40;
+                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+len, ly); ctx.stroke();
+                // Mirrored for density
+                ctx.beginPath(); ctx.moveTo(width - lx, ly); ctx.lineTo(width - lx - len, ly); ctx.stroke();
+            }
+        }
+        else if (type === 'space') {
+            // Stars Reflection / Craters
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            const density = 20;
+            for(let i=0; i<density; i++) {
+                const rx = (i * 211) % width;
+                const ry = y + (i * 103) % h;
+                const r = 1 + (i % 3);
+                ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        else if (type === 'castle' || type === 'street') {
+            // Cobblestone/Asphalt Noise
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            const density = (width * h) / 500;
+            for(let i=0; i<density; i++) {
+                const nx = (i * 97) % width;
+                const ny = y + (i * 47) % h;
+                ctx.fillRect(nx, ny, 3, 2);
+            }
         }
 
-        if (!scale) scale = 1.0;
-
-        ctx.beginPath();
-        ctx.moveTo((layer.points[0].x * scale) + dx, horizonY);
-        layer.points.forEach(p => { ctx.lineTo((p.x * scale) + dx, horizonY - (p.y * scale)); });
-        ctx.lineTo((layer.points[layer.points.length-1].x * scale) + dx, horizonY);
-        ctx.fill();
+        ctx.restore();
     }
 
-    function drawBackground(vpX, vpY, vpW, vpH) {
-        if (vpW === undefined) { vpX=0; vpY=0; vpW=canvas.width; vpH=canvas.height; }
+    // Optimization: Cache mountain layers to offscreen canvas
+    var g_mountainCanvas = null;
+    function ensureMountainCache() {
+        if (g_mountainCanvas) return g_mountainCanvas;
+
+        let maxWidth = 2200; // From js/main.js loop limit
+
+        g_mountainCanvas = [];
+
+        mountainLayers.forEach(layer => {
+            const c = document.createElement('canvas');
+            c.width = maxWidth;
+            c.height = 400; // Fixed height buffer
+            const ctx2 = c.getContext('2d');
+
+            // Normalized height baseline for cache
+            const hY = 350;
+
+            if (playerData.graphics === 'HIGH') {
+                const grad = ctx2.createLinearGradient(0, hY - 150, 0, hY);
+                grad.addColorStop(0, layer.color);
+                grad.addColorStop(1, '#1a1a1a');
+                ctx2.fillStyle = grad;
+            } else {
+                ctx2.fillStyle = layer.color;
+            }
+
+            ctx2.beginPath();
+            ctx2.moveTo(layer.points[0].x, hY);
+            layer.points.forEach(p => { ctx2.lineTo(p.x, hY - p.y); });
+            ctx2.lineTo(layer.points[layer.points.length-1].x, hY);
+            ctx2.fill();
+
+            g_mountainCanvas.push({ cvs: c, w: maxWidth, hY: hY });
+        });
+
+        return g_mountainCanvas;
+    }
+
+    function drawMountainLayerCached(layerIndex, horizonY, dx, scale) {
+        if (!g_mountainCanvas) ensureMountainCache();
+        const cache = g_mountainCanvas[layerIndex];
+        if (!cache) return;
+
+        ctx.drawImage(cache.cvs,
+            0, 0, cache.w, 400,
+            dx, horizonY - (cache.hY * scale), cache.w * scale, 400 * scale
+        );
+    }
+
+    function drawBackground(vpX, vpY, vpW, vpH, alpha) {
+        if (vpW === undefined) { vpX=0; vpY=0; vpW=window.LOGICAL_WIDTH; vpH=window.LOGICAL_HEIGHT; }
+        if (alpha === undefined) alpha = 1.0;
         g_viewport = { x: vpX, y: vpY, w: vpW, h: vpH };
 
-        // Optimization: Per-frame camera calculation
-        // Camera Follow Logic
-        if (!window.g_camSmooth) window.g_camSmooth = { x: player3D.x, y: player3D.y };
+        // Interpolate Player
+        const pX = (player3D.lastX !== undefined) ? lerp(player3D.lastX, player3D.x, alpha) : player3D.x;
+        const pY = (player3D.lastY !== undefined) ? lerp(player3D.lastY, player3D.y, alpha) : player3D.y;
+        const pZ = (player3D.lastZ !== undefined) ? lerp(player3D.lastZ, player3D.z, alpha) : player3D.z;
 
-        let targetX = player3D.x;
-        let targetY = player3D.y;
+        // Determine Target
+        let targetX = pX;
+        let targetY = pY;
 
         if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
-                targetX = b.x;
-                targetY = b.y;
+                const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
+                const bY = (b.lastY !== undefined) ? lerp(b.lastY, b.y, alpha) : b.y;
+                targetX = bX;
+                targetY = bY;
             }
         }
 
-        // Smooth Interpolation
-        const lerp = 0.1;
-        window.g_camSmooth.x += (targetX - window.g_camSmooth.x) * lerp;
-        window.g_camSmooth.y += (targetY - window.g_camSmooth.y) * lerp;
+        // Update Camera
+        RenderEngine.Camera.update(targetX, targetY, vpW, vpH);
 
-        // Snap if close to avoid micro-jitter
-        if (Math.abs(targetX - window.g_camSmooth.x) < 1) window.g_camSmooth.x = targetX;
-        if (Math.abs(targetY - window.g_camSmooth.y) < 1) window.g_camSmooth.y = targetY;
-
-        const camX = window.g_camSmooth.x;
-        const camY = window.g_camSmooth.y;
-
-        const dxToHoop = HOOP_POS.x - camX;
-        const dyToHoop = HOOP_POS.y - camY;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-        const camRotation = -angleToHoop - Math.PI / 2;
-        const camSin = Math.sin(camRotation);
-        const camCos = Math.cos(camRotation);
-        const camZoom = isSplitscreen ? 450 : 698;
-        const camHeight = 130000 / camZoom;
-
-        if (!g_camCache) g_camCache = {};
-        g_camCache.rotation = camRotation;
-        g_camCache.sinRot = camSin;
-        g_camCache.cosRot = camCos;
-        g_camCache.cameraZoom = camZoom;
-        g_camCache.cameraHeight = camHeight;
-        g_camCache.x = camX;
-        g_camCache.y = camY;
-
-        // Ensure globals are updated
-        cameraZoom = camZoom;
-        cameraHeight = camHeight;
+        // Retrieve calculated values for local use in this function
+        const camX = RenderEngine.Camera.x;
+        const camY = RenderEngine.Camera.y;
+        const camSin = RenderEngine.Camera.sinRot;
+        const camCos = RenderEngine.Camera.cosRot;
+        const camZoom = RenderEngine.Camera.zoom;
+        const camHeight = RenderEngine.Camera.height;
 
         const horizonY = (vpH - 120) * 0.38;
 
         if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
             bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+
+            // Invalidate Mountain Cache on level change (just in case style changes, though currently static)
+            g_mountainCanvas = null;
 
             let court;
             if (currentGameMode === 'CONTEST') {
@@ -6566,35 +9648,58 @@
                  fCtx.fillRect(0, 0, fCv.width, fCv.height);
 
                  // Procedural Textures based on Type
+                 const cx = fCv.width / 2;
                  if (court.type === 'arena') {
-                     // Wood Planks
-                     fCtx.fillStyle = court.ground2;
-                     const plankW = 40;
-                     for(let i=0; i<fCv.width; i+=plankW) {
-                         fCtx.fillRect(i, 0, 2, fCv.height);
+                     // Wood Planks (Perspective Lines)
+                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+                     fCtx.lineWidth = 2;
+                     const rayCount = 40;
+                     // Draw rays from vanishing point (cx, 0) relative to this canvas which starts at horizonY
+                     // Actually, this canvas IS the floor from horizonY downwards.
+                     // So vanishing point Y is 0 (top of this canvas).
+                     for(let i = -rayCount; i <= rayCount; i++) {
+                         const bottomX = cx + (i * fCv.width * 0.05);
+                         fCtx.beginPath();
+                         fCtx.moveTo(cx, 0); // Top center
+                         fCtx.lineTo(bottomX, fCv.height + 100);
+                         fCtx.stroke();
                      }
                  }
                  else if (court.type === 'carnival') {
                      // Carnival Checkerboard
-                     const size = 50;
-                     fCtx.fillStyle = court.ground2;
-                     for(let y=0; y<fCv.height; y+=size) {
-                         for(let x=0; x<fCv.width; x+=size) {
-                             if ((Math.floor(x/size) + Math.floor(y/size)) % 2 === 0) {
-                                 fCtx.fillRect(x, y, size, size);
-                             }
-                         }
+                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
+                     // Vertical Lines
+                     for(let i = -10; i <= 10; i++) {
+                         const bottomX = cx + (i * fCv.width * 0.15);
+                         fCtx.beginPath(); fCtx.moveTo(cx, 0); fCtx.lineTo(bottomX, fCv.height+100); fCtx.stroke();
+                     }
+                     // Horizontal lines (Perspective spacing)
+                     let ly = 20;
+                     let step = 5;
+                     while(ly < fCv.height) {
+                         fCtx.fillRect(0, ly, fCv.width, 2);
+                         ly += step;
+                         step *= 1.1;
                      }
                  }
                  else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Blades removed for clean High graphics
+                     // Grass Noise
+                     fCtx.fillStyle = 'rgba(0,0,0,0.08)';
+                     const density = (fCv.width * fCv.height) / 1000;
+                     for(let i=0; i<density; i++) {
+                         fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 2, 2);
+                     }
                  }
                  else if (court.type === 'castle') {
-                    // Clean asphalt
+                    // Clean asphalt/cobblestone noise
+                    fCtx.fillStyle = 'rgba(0,0,0,0.15)';
+                    const density = (fCv.width * fCv.height) / 500;
+                    for(let i=0; i<density; i++) {
+                        fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 3, 2);
+                    }
                  }
                  else if (court.type === 'mountain') {
                      // Ice / Snow Gloss
-                     // Reflections (Fake)
                      const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
                      gradRef.addColorStop(0, 'rgba(255,255,255,0)');
                      gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
@@ -6603,17 +9708,25 @@
                      fCtx.fillRect(0, 0, fCv.width, fCv.height);
                  }
                  else if (court.type === 'water') {
-                    // Clean water
+                    // Waves
+                    fCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    fCtx.lineWidth = 1;
+                    const density = fCv.height / 8;
+                    for(let i=0; i<density; i++) {
+                        const ly = i * 8 + (Math.random()*4);
+                        const lx = Math.random() * fCv.width;
+                        const len = 20 + Math.random()*20;
+                        fCtx.beginPath(); fCtx.moveTo(lx, ly); fCtx.lineTo(lx+len, ly); fCtx.stroke();
+                        // Mirror
+                        fCtx.beginPath(); fCtx.moveTo(fCv.width - lx, ly); fCtx.lineTo(fCv.width - lx - len, ly); fCtx.stroke();
+                    }
                  }
                  else if (court.type === 'space') {
                      // Craters / Dust
-                     fCtx.fillStyle = 'rgba(0,0,0,0.2)';
-                     for(let i=0; i<20; i++) {
-                         const r = 10 + Math.random() * 40;
-                         const cx = Math.random() * fCv.width;
-                         const cy = Math.random() * fCv.height;
+                     fCtx.fillStyle = 'rgba(255,255,255,0.2)';
+                     for(let i=0; i<50; i++) {
                          fCtx.beginPath();
-                         fCtx.arc(cx, cy, r, 0, Math.PI*2);
+                         fCtx.arc(Math.random() * fCv.width, Math.random() * fCv.height, 1 + Math.random() * 2, 0, Math.PI*2);
                          fCtx.fill();
                      }
                  }
@@ -6623,24 +9736,6 @@
                  const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
                  currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
                  bgCache.currentFloor = currentZoneGrad;
-            }
-
-            // Past Floors (Only for CLASSIC)
-            if (currentGameMode === 'CLASSIC') {
-                const currentDist = 10 + (distanceLevel * 5);
-                for (let i = 0; i < COURT_ZONES.length; i++) {
-                    const z = COURT_ZONES[i];
-                    let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
-                    let zEnd = z.limit;
-                    if (zStart >= currentDist) break;
-                    let drawEnd = Math.min(zEnd, currentDist);
-                    const yTop = getProjectedY(zStart, currentDist, horizonY); const yBottom = getProjectedY(drawEnd, currentDist, horizonY);
-                    if ((yBottom - yTop) > 0.5) {
-                        const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                        grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                        bgCache.pastFloors.push({ y: yTop, h: (yBottom - yTop) + 2, grad: grad });
-                    }
-                }
             }
         }
 
@@ -6675,9 +9770,12 @@
             }
 
             // BACKGROUND MOUNTAINS
+            // Optimization: Use Offscreen Canvas Cache
+            if (!g_mountainCanvas) ensureMountainCache(horizonY);
+
             const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
 
-            mountainLayers.forEach(layer => {
+            mountainLayers.forEach((layer, idx) => {
                  const shift = (camX + camY) * layer.speed;
                  const loopWidth = 2000 * mountainScale;
                  const offset = shift % loopWidth;
@@ -6686,7 +9784,7 @@
 
                  let currentX = startX;
                  while(currentX < vpW) {
-                     drawMountainLayer(layer, horizonY, currentX, mountainScale);
+                     drawMountainLayerCached(idx, horizonY, currentX, mountainScale);
                      currentX += loopWidth;
                  }
             });
@@ -6714,8 +9812,16 @@
              ctx.fillStyle = bgCache.currentFloor; ctx.fillRect(0, horizonY, vpW, vpH - horizonY);
         }
 
+        // River Injection
+        const poleProj = project(HOOP_POS.x, HOOP_POS.y, 0);
+        if (poleProj) {
+            const riverBottomY = poleProj.y;
+            boatSystem.draw(ctx, horizonY, riverBottomY, vpW);
+        }
+
         if (currentGameMode === 'CLASSIC') {
             const currentDist = 10 + (distanceLevel * 5);
+            // Optimization: Reuse Gradient Objects
             for (let i = 0; i < COURT_ZONES.length; i++) {
                 const z = COURT_ZONES[i];
                 let zStart = (i === 0) ? 0 : COURT_ZONES[i-1].limit;
@@ -6735,13 +9841,10 @@
                 const pEnd = project(wxEnd, wyEnd, 0, g_camCache);
 
                 const yTop = pStart ? pStart.y : horizonY;
-                const yBottom = pEnd ? pEnd.y : canvas.height;
+                const yBottom = pEnd ? pEnd.y : window.LOGICAL_HEIGHT;
 
                 if ((yBottom - yTop) > 0.5) {
-                    const grad = ctx.createLinearGradient(0, yTop, 0, yBottom);
-                    grad.addColorStop(0, z.ground1); grad.addColorStop(1, z.ground2);
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, yTop, vpW, yBottom - yTop);
+                    drawZonePattern(ctx, yTop, yBottom - yTop, vpW, z, horizonY);
                 }
             }
         }
@@ -6749,8 +9852,7 @@
         ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(vpW, horizonY); ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
 
         // 3D OBJECTS
-        g_poolIndex = 0;
-        g_renderList.length = 0;
+        RenderEngine.Queue.clear();
 
         // Use cached camera values (already calculated at top of function)
 
@@ -6764,11 +9866,14 @@
         // Objects with d.dist << playerDistFromHoop are too far in the distance to be seen (sub-pixel scale).
         // We assume a max visible depth of ~15000 pixels.
 
-        // Helper to process decor immediately (Avoids array allocation)
-        const processDecor = function(d) {
+        // Optimization: Inline decor processing to avoid intermediate array allocation
+        const processDecor = (d, overrideX, overrideY) => {
+            const dX = (overrideX !== undefined) ? overrideX : d.x;
+            const dY = (overrideY !== undefined) ? overrideY : d.y;
+
             // Fast Z-Check
-            const dx = d.x - camX;
-            const dy = d.y - camY;
+            const dx = dX - camX;
+            const dy = dY - camY;
             // ry calculation: dx * sin + dy * cos
             const ry = dx * camSin + dy * camCos;
             // cameraOffset is 550 in project()
@@ -6781,16 +9886,10 @@
             const screenX = vpW / 2 + (rx * scale);
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
-            const obj = getRenderItem();
-            obj.type = 'decor';
-            obj.depth = depth;
-            obj.x = screenX;
-            obj.y = screenY;
-            obj.scale = scale;
-            obj.zoneType = d.zoneType;
-            obj.variant = d.variant;
-            obj.seed = d.seed;
-            g_renderList.push(obj);
+            const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
+            item.zoneType = d.zoneType;
+            item.variant = d.variant;
+            item.seed = d.seed;
         };
 
         if (currentGameMode === 'CLASSIC') {
@@ -6802,7 +9901,18 @@
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
                 if (d.dist > cullDist) break;
-                processDecor(d);
+
+                if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
+                    processDecor(d, g_catState.x, g_catState.y, g_catState.z);
+                    if ((g_catState.z || 0) > 5) {
+                        const sProj = project(g_catState.x, g_catState.y, 0, g_camCache);
+                        if (sProj) {
+                            RenderEngine.Queue.add('cat_shadow', sProj.depth + 0.1, sProj.x, sProj.y, sProj.scale);
+                        }
+                    }
+                } else {
+                    processDecor(d);
+                }
             }
         } else if (currentGameMode === 'TIME_ATTACK') {
             // Carnival: Circle of tents around hoop
@@ -6817,6 +9927,14 @@
                     seed: i
                 });
             }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
+                    else processDecor(cat);
+                }
+            }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
             const r = 900;
@@ -6830,55 +9948,64 @@
                     seed: i
                 });
             }
+            // Ensure Cat is visible
+            if (typeof decors !== 'undefined') {
+                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                if(cat) {
+                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
+                    else processDecor(cat);
+                }
+            }
+        }
+
+        // Draw Tacos on Ground
+        if (typeof tacosOnGround !== 'undefined') {
+            tacosOnGround.forEach(t => {
+                 const proj = project(t.x, t.y, 0); // Ground level
+                 if (proj) {
+                     const item = RenderEngine.Queue.add('taco', proj.depth, proj.x, proj.y, proj.scale);
+                     item.rotation = t.rotation;
+                 }
+            });
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
         if (hoopProj) {
-            const obj = getRenderItem();
-            obj.type = 'hoop';
-            obj.depth = hoopProj.depth;
-            obj.x = hoopProj.x; obj.y = hoopProj.y; obj.scale = hoopProj.scale;
-            g_renderList.push(obj);
+            RenderEngine.Queue.add('hoop', hoopProj.depth, hoopProj.x, hoopProj.y, hoopProj.scale);
         }
 
-        const playerProj = project(player3D.x, player3D.y, player3D.z);
+        const playerProj = project(pX, pY, pZ);
         if (playerProj) {
-            const obj = getRenderItem();
-            obj.type = 'player';
-            obj.depth = playerProj.depth;
-            obj.x = playerProj.x; obj.y = playerProj.y; obj.scale = playerProj.scale;
-            g_renderList.push(obj);
+            const item = RenderEngine.Queue.add('player', playerProj.depth, playerProj.x, playerProj.y, playerProj.scale);
+            item.alpha = alpha;
+            item.z = pZ;
         }
 
-        const shadowProj = project(player3D.x, player3D.y, 0);
+        const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
-            const obj = getRenderItem();
-            obj.type = 'player_shadow';
-            obj.depth = shadowProj.depth + 0.1;
-            obj.x = shadowProj.x; obj.y = shadowProj.y; obj.scale = shadowProj.scale;
-            g_renderList.push(obj);
+            RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
         }
 
         activeBalls.forEach(b => {
             if (b.active) {
-                const ballShadowProj = project(b.x, b.y, 0);
+                const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
+                const bY = (b.lastY !== undefined) ? lerp(b.lastY, b.y, alpha) : b.y;
+                const bZ = (b.lastZ !== undefined) ? lerp(b.lastZ, b.z, alpha) : b.z;
+
+                b.renderX = bX; b.renderY = bY; b.renderZ = bZ;
+                if(b.lastRotX !== undefined) b.renderRotX = lerp(b.lastRotX, b.rotationX, alpha);
+                else b.renderRotX = b.rotationX;
+
+                const ballShadowProj = project(bX, bY, 0);
                 if (ballShadowProj) {
-                    const obj = getRenderItem();
-                    obj.type = 'ball_shadow';
-                    obj.depth = ballShadowProj.depth + 0.1;
-                    obj.x = ballShadowProj.x; obj.y = ballShadowProj.y; obj.scale = ballShadowProj.scale;
-                    obj.ballRef = b;
-                    g_renderList.push(obj);
+                    const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
+                    item.ballRef = b;
                 }
 
-                const ballProj = project(b.x, b.y, b.z);
+                const ballProj = project(bX, bY, bZ);
                 if (ballProj) {
-                    const obj = getRenderItem();
-                    obj.type = 'ball';
-                    obj.depth = ballProj.depth;
-                    obj.x = ballProj.x; obj.y = ballProj.y; obj.scale = ballProj.scale;
-                    obj.ballRef = b;
-                    g_renderList.push(obj);
+                    const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
+                    item.ballRef = b;
                 }
             }
         });
@@ -6886,31 +10013,25 @@
         particles.forEach(p => {
              const proj = project(p.x, p.y, p.z);
              if(proj) {
-                 const obj = getRenderItem();
-                 obj.type = 'smoke';
-                 // Force streak fire particles behind the player (depth > 550)
-                 if (p.isFireParticle && p.customHue !== undefined) {
-                     obj.depth = Math.max(proj.depth, 580);
+                 if (p.type === 'text') {
+                     const item = RenderEngine.Queue.add('text', proj.depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
+                     item.text = p.text;
                  } else {
-                     obj.depth = proj.depth;
+                     // Force streak fire particles behind the player (depth > 550)
+                     let depth = proj.depth;
+                     if (p.isFireParticle && p.customHue !== undefined) {
+                         depth = Math.max(depth, 580);
+                     }
+                     const item = RenderEngine.Queue.add('smoke', depth, proj.x, proj.y, proj.scale);
+                     item.alpha = p.alpha;
+                     item.color = p.color;
                  }
-                 obj.x = proj.x; obj.y = proj.y; obj.scale = proj.scale;
-                 obj.alpha = p.alpha;
-                 obj.color = p.color;
-                 g_renderList.push(obj);
              }
         });
 
-        g_renderList.sort((a, b) => b.depth - a.depth);
-        g_renderList.forEach(obj => {
-            if (obj.type === 'decor') drawDecor(obj, obj.zoneType, obj.variant, obj.seed);
-            if (obj.type === 'hoop') drawHoop(obj);
-            if (obj.type === 'player_shadow') drawRealisticShadow(obj, 'player');
-            if (obj.type === 'ball_shadow') drawRealisticShadow(obj, 'ball');
-            if (obj.type === 'player') drawPlayer(obj);
-            if (obj.type === 'ball') drawBall(obj, obj.ballRef);
-            if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
-        });
+        RenderEngine.Queue.render(ctx);
 
         // Draw Weather overlay on top of 3D scene but behind UI
         weather.draw(project);
@@ -6924,13 +10045,15 @@
             ctx.restore();
         }
     }
-
     // Achievement Logic Helpers
     function drawSplitscreenHUD() {
-        const w = canvas.width;
-        const h = canvas.height;
+        const w = window.LOGICAL_WIDTH;
+        const h = window.LOGICAL_HEIGHT;
 
         ctx.save();
+        if (window.RESOLUTION_SCALE) {
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+        }
         ctx.shadowColor = "black";
         ctx.shadowBlur = 4;
 
@@ -6985,3 +10108,694 @@
                 ctx.fillText("TO RESTART", xCenter, h/2 + 55);
             }
         };
+
+        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
+        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
+
+        // Center Divider Line (Visual)
+        ctx.beginPath();
+        ctx.moveTo(w/2, 0);
+        ctx.lineTo(w/2, h);
+        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawEvolutionScreen(timer, maxTime) {
+        const w = window.LOGICAL_WIDTH;
+        const h = window.LOGICAL_HEIGHT;
+
+        // 1. Dark Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        // 2. Spotlight
+        const cx = w / 2;
+        const cy = h / 2;
+        const spotR = 200;
+        const grad = ctx.createRadialGradient(cx, cy, 50, cx, cy, spotR);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // 3. Logic
+        // Phase 1: Suspense (timer > 100) - Wiggle current form
+        // Phase 2: Flash (100 > timer > 60) - White screen fade
+        // Phase 3: Reveal (60 > timer) - New form small
+
+        // We need next skin ID to show silhouette?
+        // Actually, we can just draw the cat shape black.
+        // Current index is basketCatSkinIndex. Next is basketCatSkinIndex + 1.
+
+        let showIndex = playerData.basketCatSkinIndex;
+        let scale = 2.0; // Max size
+        let isSilhouette = true;
+        let shake = 0;
+        let flashAlpha = 0;
+
+        if (timer > 100) {
+            // Suspense
+            shake = Math.sin(timer * 0.5) * 5;
+            isSilhouette = true;
+        } else if (timer > 60) {
+            // Flash transition
+            const t = (100 - timer) / 40; // 0 to 1
+            flashAlpha = Math.sin(t * Math.PI); // Pulse
+            if (timer < 80) {
+                showIndex = playerData.basketCatSkinIndex + 1;
+                scale = 0.25;
+            }
+            isSilhouette = true;
+        } else {
+            // Reveal
+            showIndex = playerData.basketCatSkinIndex + 1;
+            scale = 0.25;
+            isSilhouette = false;
+        }
+
+        // Clamp index
+        if (typeof CAT_SKINS_DB !== 'undefined' && showIndex >= CAT_SKINS_DB.length) showIndex = 0;
+
+        // Draw Cat
+        ctx.save();
+        ctx.translate(cx + shake, cy + 50);
+
+        // Mock a 'p' object for drawDecor logic reuse?
+        // Or better, extract cat drawing logic.
+        // For now, I'll manually call drawDecor with a mock p, but force specific skin.
+        // But drawDecor pulls from global state for logic.
+        // I will implement a simplified cat drawer here or modify drawDecor to accept overrides.
+
+        // HACK: I will temporarily override playerData.currentCatSkin (locally) to draw the specific cat?
+        // No, that's dangerous.
+        // I will copy the cat drawing code into a helper 'drawCatSprite' inside drawDecor, or just duplicate relevant parts.
+        // Given the complexity of drawDecor, I'll use a simplified silhouette/cat for the evolution screen.
+
+        const catObj = (typeof CAT_SKINS_DB !== 'undefined') ? CAT_SKINS_DB[showIndex] : null;
+        let color = '#FFF';
+        if (catObj && !isSilhouette) color = catObj.furColor || '#D2B48C';
+        if (isSilhouette) color = '#111'; // Silhouette color
+
+        const s = scale * 2.0; // Zoom in for UI
+
+        // Simple Cat Shape for Evo Screen
+        ctx.fillStyle = color;
+        // Body
+        ctx.beginPath(); ctx.ellipse(0, 0, 25*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+        // Head
+        ctx.beginPath(); ctx.arc(0, -35*s, 18*s, 0, Math.PI*2); ctx.fill();
+        // Ears
+        ctx.beginPath(); ctx.moveTo(-10*s, -45*s); ctx.lineTo(-20*s, -65*s); ctx.lineTo(-2*s, -50*s); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10*s, -45*s); ctx.lineTo(20*s, -65*s); ctx.lineTo(2*s, -50*s); ctx.fill();
+
+        if (!isSilhouette && catObj) {
+            // Face
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-5*s, -40*s, 2*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5*s, -40*s, 2*s, 0, Math.PI*2); ctx.fill();
+            if (catObj.bellyColor) {
+                 ctx.fillStyle = catObj.bellyColor;
+                 ctx.beginPath(); ctx.ellipse(0, 0, 15*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // Radiating rays
+        if (!isSilhouette) {
+             ctx.globalCompositeOperation = 'destination-over';
+             ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+             const time = Date.now() * 0.002;
+             for(let i=0; i<12; i++) {
+                 const a = (i/12)*Math.PI*2 + time;
+                 ctx.beginPath(); ctx.moveTo(0, -20*s);
+                 ctx.arc(0, -20*s, 300, a, a+0.1);
+                 ctx.fill();
+             }
+             ctx.globalCompositeOperation = 'source-over';
+        }
+
+        ctx.restore();
+
+        // 4. Flash Overlay
+        if (flashAlpha > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        // 5. Text
+        ctx.fillStyle = '#FFF';
+        ctx.font = "bold 30px 'Russo One', sans-serif";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "#000"; ctx.shadowBlur = 4;
+
+        let text = "What? BASKET CAT is evolving!";
+        if (timer <= 60) {
+             const name = catObj ? catObj.name.toUpperCase() : "CAT";
+             text = `Congratulations! It evolved into ${name}!`;
+        }
+
+        ctx.fillText(text, cx, h - 100);
+        ctx.shadowBlur = 0;
+    }
+
+    // Expose
+    window.drawEvolutionScreen = drawEvolutionScreen;
+    function drawCatFace(ctx, x, y, r, color, isSleeping) {
+        // Eyes
+        if (isSleeping) {
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x - r*0.4, y - r*0.1); ctx.lineTo(x - r*0.2, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + r*0.4, y - r*0.1); ctx.lineTo(x + r*0.2, y); ctx.stroke();
+        } else {
+            ctx.fillStyle = '#FFD700'; // Yellow eyes
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.25, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.ellipse(x - r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + r*0.3, y - r*0.1, r*0.08, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Nose
+        ctx.fillStyle = '#FFC0CB';
+        ctx.beginPath(); ctx.moveTo(x - r*0.1, y + r*0.2); ctx.lineTo(x + r*0.1, y + r*0.2); ctx.lineTo(x, y + r*0.35); ctx.fill();
+
+        // Mouth
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x - r*0.1, y + r*0.45); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y + r*0.35); ctx.lineTo(x + r*0.1, y + r*0.45); ctx.stroke();
+
+        // Whiskers
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.25); ctx.lineTo(x - r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - r*0.2, y + r*0.3); ctx.lineTo(x - r*0.8, y + r*0.3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.25); ctx.lineTo(x + r*0.8, y + r*0.1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.3); ctx.lineTo(x + r*0.8, y + r*0.3); ctx.stroke();
+    }
+
+    function drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing) {
+        const furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
+        const bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
+        const earColor = skinData ? skinData.earColor : null;
+
+        let headY = p.y - 38*s;
+        let headR = 18*s;
+        let isSleeping = false;
+
+        // --- DRAWING BASED ON STANCE ---
+
+        if (stance === 0) { // SITTING
+            headY = p.y - 45*s;
+            // Hind Legs (Thighs)
+            ctx.fillStyle = furColor;
+            drawFuzzyCircle(p.x - 18*s, p.y - 5*s, 14*s, furColor, 1000, s, true, true);
+            drawFuzzyCircle(p.x + 18*s, p.y - 5*s, 14*s, furColor, 1001, s, true, true);
+
+            // Body (Upright)
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fillStyle = furColor; ctx.fill();
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 10*s, 18*s, 0, 0, Math.PI*2); ctx.fillStyle = bellyColor; ctx.fill();
+
+            // Front Legs (Columns)
+            drawFuzzyLimb(p.x - 8*s, p.y - 25*s, p.x - 8*s, p.y, 7*s, furColor, s, true, 1002);
+            drawFuzzyLimb(p.x + 8*s, p.y - 25*s, p.x + 8*s, p.y, 7*s, furColor, s, true, 1003);
+
+            // Paws
+            drawFuzzyCircle(p.x - 8*s, p.y, 5*s, '#FFF', 1004, s, true, true);
+            drawFuzzyCircle(p.x + 8*s, p.y, 5*s, '#FFF', 1005, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, '#FFF', 1006, s, true, true); // Hind paws peeking
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, '#FFF', 1007, s, true, true);
+
+            // Tail (Wrapped side - Wagging tip)
+            const s0Wag = Math.sin(Date.now()*0.005) * 5 * s;
+            ctx.strokeStyle = furColor; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(p.x + 20*s, p.y - 5*s); ctx.quadraticCurveTo(p.x + 35*s, p.y, p.x + 40*s + s0Wag, p.y - 15*s); ctx.stroke();
+
+        } else if (stance === 1) { // LOAF
+            headY = p.y - 25*s;
+            // Body (Boxy)
+            ctx.fillStyle = furColor;
+            // Main mass
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y);
+            ctx.quadraticCurveTo(p.x - 30*s, p.y - 20*s, p.x - 15*s, p.y - 25*s); // Rump
+            ctx.lineTo(p.x + 15*s, p.y - 25*s);
+            ctx.quadraticCurveTo(p.x + 30*s, p.y - 20*s, p.x + 25*s, p.y); // Chest
+            ctx.fill();
+
+            // Tucked Paws (Nubs)
+            drawFuzzyCircle(p.x + 20*s, p.y, 5*s, furColor, 1010, s, true, true);
+            drawFuzzyCircle(p.x - 20*s, p.y, 5*s, furColor, 1011, s, true, true); // Haunches visible
+
+            // Tail (Tucked along side)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 5*s); ctx.quadraticCurveTo(p.x - 35*s, p.y, p.x - 20*s, p.y + 5*s); ctx.stroke();
+
+        } else if (stance === 2) { // STANDING
+            headY = p.y - 40*s;
+            // Body (Horizontal)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 25*s, 15*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Legs (Jointed)
+            // Back Left
+            drawFuzzyLimb(p.x - 15*s, p.y - 25*s, p.x - 20*s, p.y - 10*s, 8*s, furColor, s, true, 1020);
+            drawFuzzyLimb(p.x - 20*s, p.y - 10*s, p.x - 20*s, p.y + 5*s, 6*s, furColor, s, true, 1021);
+            // Back Right
+            drawFuzzyLimb(p.x + 15*s, p.y - 25*s, p.x + 20*s, p.y - 10*s, 8*s, furColor, s, true, 1022);
+            drawFuzzyLimb(p.x + 20*s, p.y - 10*s, p.x + 20*s, p.y + 5*s, 6*s, furColor, s, true, 1023);
+            // Front Left
+            drawFuzzyLimb(p.x - 10*s, p.y - 25*s, p.x - 10*s, p.y + 5*s, 7*s, furColor, s, true, 1024);
+            // Front Right
+            drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 10*s, p.y + 5*s, 7*s, furColor, s, true, 1025);
+
+            // Tail (Up - Wagging)
+            const s2Wag = Math.sin(Date.now()*0.01) * 5 * s;
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 25*s, p.y - 30*s); ctx.quadraticCurveTo(p.x - 35*s, p.y - 50*s, p.x - 30*s + s2Wag, p.y - 60*s); ctx.stroke();
+
+        } else if (stance === 3) { // SPRAWLED (Sploot)
+            headY = p.y - 10*s;
+            // Body (Flat)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 5*s, 30*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs splayed out
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y + 10*s, 7*s, furColor, s, true, 1030); // BL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y + 10*s, 7*s, furColor, s, true, 1031); // BR
+            drawFuzzyLimb(p.x - 10*s, p.y - 5*s, p.x - 35*s, p.y - 20*s, 7*s, furColor, s, true, 1032); // FL
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 35*s, p.y - 20*s, 7*s, furColor, s, true, 1033); // FR
+
+            // Tail (Flat)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y + 40*s); ctx.stroke();
+
+        } else if (stance === 4) { // SLEEPING
+            isSleeping = true;
+            headY = p.y - 10*s;
+            headR = 14*s;
+            // Body (Circle)
+            drawFuzzyCircle(p.x, p.y, 22*s, furColor, 1040, s, true, true);
+            // Tail Wrapped around face
+            ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 8*s;
+            ctx.arc(p.x, p.y, 24*s, 0, Math.PI*1.8); ctx.stroke();
+
+        } else if (stance === 5) { // BEGGING
+            headY = p.y - 55*s;
+            // Body (Tall)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 12*s, 28*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = bellyColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 8*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+
+            // Hind Legs (Crouched base)
+            drawFuzzyCircle(p.x - 12*s, p.y, 8*s, furColor, 1050, s, true, true);
+            drawFuzzyCircle(p.x + 12*s, p.y, 8*s, furColor, 1051, s, true, true);
+            // Feet
+            drawFuzzyCircle(p.x - 15*s, p.y + 5*s, 4*s, '#FFF', 1052, s, true, true);
+            drawFuzzyCircle(p.x + 15*s, p.y + 5*s, 4*s, '#FFF', 1053, s, true, true);
+
+            // Front Paws (Dangling)
+            drawFuzzyLimb(p.x - 8*s, p.y - 45*s, p.x - 12*s, p.y - 35*s, 4*s, furColor, s, true, 1054);
+            drawFuzzyLimb(p.x + 8*s, p.y - 45*s, p.x + 12*s, p.y - 35*s, 4*s, furColor, s, true, 1055);
+
+            // Tail (Balancing - Wagging)
+            const s5Wag = Math.sin(Date.now()*0.005) * 5 * s;
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + 30*s, p.y + 5*s, p.x + 40*s + s5Wag, p.y - 5*s); ctx.stroke();
+
+        } else if (stance === 6) { // STRETCHING (Downward Dog)
+            headY = p.y; // Head low
+            // Body Slope
+            ctx.fillStyle = furColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - 30*s, p.y - 30*s); // Butt
+            ctx.lineTo(p.x + 20*s, p.y - 5*s); // Shoulders
+            ctx.lineTo(p.x + 20*s, p.y + 10*s);
+            ctx.lineTo(p.x - 30*s, p.y - 10*s); // Belly
+            ctx.fill();
+
+            // Hind Legs (Straightish)
+            drawFuzzyLimb(p.x - 30*s, p.y - 20*s, p.x - 35*s, p.y + 10*s, 6*s, furColor, s, true, 1060);
+            // Front Legs (Extended forward)
+            drawFuzzyLimb(p.x + 20*s, p.y, p.x + 40*s, p.y + 10*s, 6*s, furColor, s, true, 1061);
+
+            // Tail (Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 4*s;
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 30*s); ctx.lineTo(p.x - 35*s, p.y - 50*s); ctx.stroke();
+
+            headY = p.y - 5*s;
+            p.x += 25*s; // Shift head anchor
+
+        } else if (stance === 7) { // ARCHED (Scared)
+            headY = p.y - 30*s;
+            // Arched Back
+            ctx.strokeStyle = furColor; ctx.lineWidth = 25*s; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(p.x, p.y + 20*s, 40*s, Math.PI * 1.25, Math.PI * 1.75); ctx.stroke();
+
+            // Legs (Stiff)
+            drawFuzzyLimb(p.x - 15*s, p.y, p.x - 20*s, p.y + 20*s, 5*s, furColor, s, true, 1070);
+            drawFuzzyLimb(p.x + 15*s, p.y, p.x + 20*s, p.y + 20*s, 5*s, furColor, s, true, 1071);
+
+            // Tail (Puffed Up)
+            ctx.strokeStyle = furColor; ctx.lineWidth = 10*s; // Puffed
+            ctx.beginPath(); ctx.moveTo(p.x - 30*s, p.y - 10*s); ctx.lineTo(p.x - 30*s, p.y - 40*s); ctx.stroke();
+        }
+        else if (stance === 8) { // YOGA (Warrior)
+            headY = p.y - 45*s;
+            // Body (Upright)
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 15*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arms (Outstretched)
+            drawFuzzyLimb(p.x - 10*s, p.y - 40*s, p.x - 35*s, p.y - 40*s, 6*s, furColor, s, true, 1080);
+            drawFuzzyLimb(p.x + 10*s, p.y - 40*s, p.x + 35*s, p.y - 40*s, 6*s, furColor, s, true, 1081);
+            // Legs (Lunge)
+            drawFuzzyLimb(p.x - 5*s, p.y - 10*s, p.x - 20*s, p.y + 10*s, 8*s, furColor, s, true, 1082); // Straight
+            drawFuzzyLimb(p.x + 5*s, p.y - 10*s, p.x + 15*s, p.y + 5*s, 8*s, furColor, s, true, 1083); // Bent
+            drawFuzzyLimb(p.x + 15*s, p.y + 5*s, p.x + 15*s, p.y + 15*s, 6*s, furColor, s, true, 1084);
+        }
+        else if (stance === 9) { // DAB
+            headY = p.y - 35*s;
+            // Body (Leaning)
+            ctx.save(); ctx.translate(p.x, p.y - 20*s); ctx.rotate(0.2);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 18*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Arms
+            // Right Arm (Straight Out Up)
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 40*s, p.y - 50*s, 6*s, furColor, s, true, 1090);
+            // Left Arm (Bent over face)
+            drawFuzzyLimb(p.x - 10*s, p.y - 30*s, p.x + 5*s, p.y - 45*s, 6*s, furColor, s, true, 1091);
+            // Head tucked (Override headY slightly)
+            headY += 5*s;
+        }
+        else if (stance === 10) { // MEDITATE
+            headY = p.y - 35*s;
+            // Legs Crossed
+            drawFuzzyLimb(p.x - 15*s, p.y - 5*s, p.x, p.y + 5*s, 7*s, furColor, s, true, 1100);
+            drawFuzzyLimb(p.x + 15*s, p.y - 5*s, p.x, p.y + 5*s, 7*s, furColor, s, true, 1101);
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arms (Mudra)
+            drawFuzzyLimb(p.x - 10*s, p.y - 25*s, p.x - 25*s, p.y - 15*s, 5*s, furColor, s, true, 1102);
+            drawFuzzyLimb(p.x + 10*s, p.y - 25*s, p.x + 25*s, p.y - 15*s, 5*s, furColor, s, true, 1103);
+            drawFuzzyCircle(p.x - 25*s, p.y - 15*s, 4*s, furColor, 1104, s, true);
+            drawFuzzyCircle(p.x + 25*s, p.y - 15*s, 4*s, furColor, 1105, s, true);
+        }
+        else if (stance === 11) { // BOXING
+            headY = p.y - 45*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 16*s, 24*s, 0, 0, Math.PI*2); ctx.fill();
+            // Gloves (Red Paws)
+            const gloveColor = '#FF0000';
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x - 20*s, p.y - 25*s, 6*s, furColor, s, true, 1110);
+            drawFuzzyCircle(p.x - 20*s, p.y - 25*s, 8*s, gloveColor, 1111, s, true, true);
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 25*s, p.y - 30*s, 6*s, furColor, s, true, 1112);
+            drawFuzzyCircle(p.x + 25*s, p.y - 30*s, 8*s, gloveColor, 1113, s, true, true);
+            // Feet
+            drawFuzzyLimb(p.x - 8*s, p.y - 10*s, p.x - 12*s, p.y + 10*s, 7*s, furColor, s, true, 1114);
+            drawFuzzyLimb(p.x + 8*s, p.y - 10*s, p.x + 12*s, p.y + 10*s, 7*s, furColor, s, true, 1115);
+        }
+        else if (stance === 12) { // GROOMING
+            headY = p.y - 30*s;
+            // Body Sitting
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Leg up
+            drawFuzzyLimb(p.x + 10*s, p.y - 5*s, p.x + 15*s, p.y - 25*s, 6*s, furColor, s, true, 1120);
+            // Tongue (Licking leg)
+            ctx.fillStyle = '#FFC0CB';
+            ctx.beginPath(); ctx.ellipse(p.x + 12*s, p.y - 25*s, 3*s, 5*s, 0.5, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 13) { // UPSIDE DOWN
+            headY = p.y + 30*s; // Head at bottom
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs Hanging Up
+            drawFuzzyLimb(p.x - 10*s, p.y - 20*s, p.x - 10*s, p.y - 40*s, 6*s, furColor, s, true, 1130);
+            drawFuzzyLimb(p.x + 10*s, p.y - 20*s, p.x + 10*s, p.y - 40*s, 6*s, furColor, s, true, 1131);
+            // Tail Hanging Down
+            ctx.strokeStyle = furColor; ctx.lineWidth = 5*s;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x, p.y + 10*s); ctx.stroke();
+        }
+        else if (stance === 14) { // SUPERMAN
+            headY = p.y - 10*s;
+            // Body Horizontal Flying
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y, 25*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            // Cape
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.moveTo(p.x - 10*s, p.y - 5*s); ctx.lineTo(p.x - 40*s, p.y - 15*s); ctx.lineTo(p.x - 40*s, p.y + 15*s); ctx.fill();
+            // Arms Forward
+            drawFuzzyLimb(p.x + 15*s, p.y, p.x + 40*s, p.y, 6*s, furColor, s, true, 1140);
+        }
+        else if (stance === 15) { // BALL
+            headY = p.y - 10*s;
+            // Perfect Circle Body
+            drawFuzzyCircle(p.x, p.y, 20*s, furColor, 1150, s, true, true);
+            // Tail Wrapped
+            ctx.beginPath(); ctx.strokeStyle = furColor; ctx.lineWidth = 6*s;
+            ctx.arc(p.x, p.y, 22*s, 0, Math.PI*2); ctx.stroke();
+            headR = 15*s; // Smaller head tucked
+        }
+        else if (stance === 16) { // SCARED LEAP
+            headY = p.y - 50*s;
+            // Body High
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 35*s, 15*s, 20*s, 0.2, 0, Math.PI*2); ctx.fill();
+            // Limbs Splayed
+            drawFuzzyLimb(p.x - 10*s, p.y - 40*s, p.x - 25*s, p.y - 50*s, 5*s, furColor, s, true, 1160);
+            drawFuzzyLimb(p.x + 10*s, p.y - 40*s, p.x + 25*s, p.y - 50*s, 5*s, furColor, s, true, 1161);
+            drawFuzzyLimb(p.x - 10*s, p.y - 20*s, p.x - 20*s, p.y - 5*s, 5*s, furColor, s, true, 1162);
+            drawFuzzyLimb(p.x + 10*s, p.y - 20*s, p.x + 20*s, p.y - 5*s, 5*s, furColor, s, true, 1163);
+        }
+        else if (stance === 17) { // HIGH FIVE
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Right Arm Up
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 20*s, p.y - 60*s, 7*s, furColor, s, true, 1170);
+            // Paw Open (Pads)
+            drawFuzzyCircle(p.x + 20*s, p.y - 60*s, 6*s, '#FFC0CB', 1171, s, true);
+        }
+        else if (stance === 18) { // STALKING
+            headY = p.y - 15*s;
+            // Low elongated body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 10*s, 35*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            // Shoulders High
+            drawFuzzyCircle(p.x + 20*s, p.y - 15*s, 10*s, furColor, 1180, s, true);
+            // Haunches High
+            drawFuzzyCircle(p.x - 20*s, p.y - 15*s, 10*s, furColor, 1181, s, true);
+        }
+        else if (stance === 19) { // BELLY UP
+            headY = p.y - 10*s;
+            // Body on back
+            ctx.fillStyle = bellyColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 10*s, 25*s, 15*s, 0, 0, Math.PI*2); ctx.fill();
+            // Limbs up
+            drawFuzzyLimb(p.x - 15*s, p.y - 10*s, p.x - 20*s, p.y - 30*s, 6*s, furColor, s, true, 1190);
+            drawFuzzyLimb(p.x + 15*s, p.y - 10*s, p.x + 20*s, p.y - 30*s, 6*s, furColor, s, true, 1191);
+            drawFuzzyLimb(p.x - 15*s, p.y + 5*s, p.x - 25*s, p.y - 10*s, 6*s, furColor, s, true, 1192);
+            drawFuzzyLimb(p.x + 15*s, p.y + 5*s, p.x + 25*s, p.y - 10*s, 6*s, furColor, s, true, 1193);
+        }
+        else if (stance === 20) { // BUTT WIGGLE
+            const wag = Math.sin(Date.now()*0.02) * 5*s;
+            headY = p.y - 15*s;
+            // Front Low
+            drawFuzzyCircle(p.x + 20*s, p.y - 10*s, 10*s, furColor, 1200, s, true);
+            // Butt High & Wiggling
+            drawFuzzyCircle(p.x - 20*s, p.y - 25*s + wag, 14*s, furColor, 1201, s, true);
+            // Body Connect
+            ctx.fillStyle = furColor;
+            ctx.beginPath(); ctx.moveTo(p.x+20*s, p.y-10*s); ctx.lineTo(p.x-20*s, p.y-25*s+wag); ctx.lineTo(p.x-20*s, p.y-15*s+wag); ctx.lineTo(p.x+20*s, p.y); ctx.fill();
+        }
+        else if (stance === 21) { // FACEPALM
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Arm covering face
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x, headY, 6*s, furColor, s, true, 1210);
+        }
+        else if (stance === 22) { // THINKING
+            headY = p.y - 45*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Paw on chin
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 5*s, headY + 10*s, 6*s, furColor, s, true, 1220);
+        }
+        else if (stance === 23) { // SURPRISED
+            headY = p.y - 45*s;
+            // Standing Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 25*s, 15*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Paws on cheeks
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x - 12*s, headY + 5*s, 5*s, furColor, s, true, 1230);
+            drawFuzzyLimb(p.x + 10*s, p.y - 35*s, p.x + 12*s, headY + 5*s, 5*s, furColor, s, true, 1231);
+            // Wide Eyes Override? (Handled in face but headY is set)
+        }
+        else if (stance === 24) { // RUNNING
+            headY = p.y - 30*s;
+            // Body Leaning Forward
+            ctx.save(); ctx.translate(p.x, p.y-20*s); ctx.rotate(0.3);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 20*s, 12*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Legs Split
+            const runOffset = Math.sin(Date.now()*0.02) * 10*s;
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x - 20*s + runOffset, p.y, 6*s, furColor, s, true, 1240);
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x + 20*s - runOffset, p.y, 6*s, furColor, s, true, 1241);
+        }
+        else if (stance === 25) { // SITTING CHAIR (Human)
+            headY = p.y - 50*s;
+            // Body Upright
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 30*s, 18*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+            // Legs Dangling
+            drawFuzzyLimb(p.x - 10*s, p.y - 15*s, p.x - 10*s, p.y + 10*s, 7*s, furColor, s, true, 1250);
+            drawFuzzyLimb(p.x + 10*s, p.y - 15*s, p.x + 10*s, p.y + 10*s, 7*s, furColor, s, true, 1251);
+        }
+        else if (stance === 26) { // NINJA KICK
+            headY = p.y - 35*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 15*s, 20*s, -0.3, 0, Math.PI*2); ctx.fill();
+            // Kick Leg
+            drawFuzzyLimb(p.x, p.y - 20*s, p.x + 30*s, p.y - 30*s, 7*s, furColor, s, true, 1260);
+            // Headband? (Handled by accessory logic if equipped, but this is a stance)
+        }
+        else if (stance === 27) { // CRYING
+            headY = p.y - 30*s;
+            // Curled Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 15*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Tears
+            ctx.fillStyle = '#00FFFF';
+            ctx.beginPath(); ctx.arc(p.x - 15*s, p.y, 3*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 15*s, p.y, 3*s, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 28) { // SUNGLASSES COOL (Lean)
+            headY = p.y - 45*s;
+            // Leaning Body
+            ctx.save(); ctx.translate(p.x, p.y-25*s); ctx.rotate(-0.2);
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(0, 0, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+            // Arms Crossed
+            drawFuzzyLimb(p.x - 10*s, p.y - 35*s, p.x + 10*s, p.y - 35*s, 7*s, furColor, s, true, 1280);
+        }
+        else if (stance === 29) { // BOX
+            // Draw Box
+            ctx.fillStyle = '#CD853F';
+            ctx.fillRect(p.x - 25*s, p.y - 30*s, 50*s, 30*s);
+            ctx.strokeRect(p.x - 25*s, p.y - 30*s, 50*s, 30*s);
+            // Cat Peeking Out
+            headY = p.y - 45*s;
+            // Paws on edge
+            drawFuzzyCircle(p.x - 15*s, p.y - 30*s, 5*s, '#FFF', 1290, s, true);
+            drawFuzzyCircle(p.x + 15*s, p.y - 30*s, 5*s, '#FFF', 1291, s, true);
+        }
+        else if (stance === 30) { // YARN
+            headY = p.y - 35*s;
+            // Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+            // Yarn Lines
+            ctx.strokeStyle = '#FF69B4'; ctx.lineWidth = 3*s;
+            ctx.beginPath();
+            for(let i=0; i<5; i++) {
+                ctx.moveTo(p.x - 20*s, p.y - 30*s + i*5*s);
+                ctx.lineTo(p.x + 20*s, p.y - 20*s + i*5*s);
+            }
+            ctx.stroke();
+        }
+        else if (stance === 31) { // BREAD HEAD
+            headY = p.y - 35*s;
+            // Sitting Body
+            ctx.fillStyle = furColor; ctx.beginPath(); ctx.ellipse(p.x, p.y - 20*s, 18*s, 25*s, 0, 0, Math.PI*2); ctx.fill();
+            // Bread Slice (Behind/Around Head)
+            ctx.fillStyle = '#DEB887'; // Crust
+            ctx.beginPath();
+            ctx.moveTo(p.x - 25*s, headY - 10*s);
+            ctx.quadraticCurveTo(p.x, headY - 40*s, p.x + 25*s, headY - 10*s);
+            ctx.lineTo(p.x + 25*s, headY + 20*s);
+            ctx.lineTo(p.x - 25*s, headY + 20*s);
+            ctx.fill();
+            ctx.fillStyle = '#FFF8DC'; // Crumb
+            ctx.beginPath(); ctx.ellipse(p.x, headY, 20*s, 20*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (stance === 32) { // LIQUID
+            headY = p.y - 10*s;
+            // Puddle
+            ctx.fillStyle = furColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x - 30*s, p.y);
+            ctx.bezierCurveTo(p.x - 40*s, p.y - 20*s, p.x + 40*s, p.y - 20*s, p.x + 30*s, p.y);
+            ctx.fill();
+            // Head Melting
+            headR = 15*s;
+        }
+
+        // Draw Head
+        drawFuzzyCircle(p.x, headY, headR, furColor, 999, s, true, true);
+
+        // Face Details
+        drawCatFace(ctx, p.x, headY + 2*s, headR, '#000', isSleeping);
+
+        // Ears
+        ctx.fillStyle = earColor || furColor;
+        ctx.beginPath(); ctx.moveTo(p.x - 8*s, headY - 8*s); ctx.lineTo(p.x - 15*s, headY - 25*s); ctx.lineTo(p.x - 2*s, headY - 12*s); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(p.x + 8*s, headY - 8*s); ctx.lineTo(p.x + 15*s, headY - 25*s); ctx.lineTo(p.x + 2*s, headY - 12*s); ctx.fill();
+             // Whiskers
+             ctx.strokeStyle = '#333'; ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 2*s);
+             ctx.moveTo(p.x - 5*s, headY + 5*s); ctx.lineTo(p.x - 20*s, headY + 8*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 2*s);
+             ctx.moveTo(p.x + 5*s, headY + 5*s); ctx.lineTo(p.x + 20*s, headY + 8*s);
+             ctx.stroke();
+
+             // Accessories
+             if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
+                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 if (acc) {
+                     if (acc.type === 'glasses') {
+                         ctx.fillStyle = acc.color || '#000';
+                         ctx.fillRect(p.x - 10*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x + 2*s, headY - 5*s, 8*s, 4*s);
+                         ctx.fillRect(p.x - 2*s, headY - 4*s, 4*s, 1*s); // Bridge
+                     }
+                     else if (acc.type === 'neck') {
+                         if (acc.id === 'acc_bowtie') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x-6*s, p.y-28*s); ctx.lineTo(p.x-6*s, p.y-22*s); ctx.fill();
+                             ctx.beginPath(); ctx.moveTo(p.x, p.y - 25*s); ctx.lineTo(p.x+6*s, p.y-28*s); ctx.lineTo(p.x+6*s, p.y-22*s); ctx.fill();
+                         } else if (acc.id === 'acc_scarf') {
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 4*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 10*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.fillRect(p.x + 5*s, p.y - 25*s, 4*s, 15*s);
+                         } else { // Chain
+                             ctx.strokeStyle = acc.color; ctx.lineWidth = 2*s;
+                             ctx.beginPath(); ctx.arc(p.x, p.y - 25*s, 12*s, 0, Math.PI, false); ctx.stroke();
+                             ctx.fillStyle = acc.color; ctx.beginPath(); ctx.arc(p.x, p.y - 13*s, 3*s, 0, Math.PI*2); ctx.fill(); // Medallion
+                         }
+                     }
+                     else if (acc.type === 'hat') {
+                         if (acc.id === 'acc_crown') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.moveTo(p.x-8*s, headY-15*s); ctx.lineTo(p.x-4*s, headY-22*s); ctx.lineTo(p.x, headY-15*s);
+                             ctx.lineTo(p.x+4*s, headY-22*s); ctx.lineTo(p.x+8*s, headY-15*s); ctx.lineTo(p.x+8*s, headY-10*s); ctx.lineTo(p.x-8*s, headY-10*s); ctx.fill();
+                         } else if (acc.id === 'acc_cowboy') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.ellipse(p.x, headY - 12*s, 22*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+                             ctx.beginPath(); ctx.arc(p.x, headY - 15*s, 10*s, Math.PI, 0); ctx.fill();
+                         } else if (acc.id === 'acc_tophat') {
+                             ctx.fillStyle = acc.color;
+                             ctx.fillRect(p.x - 12*s, headY - 15*s, 24*s, 3*s); // Brim
+                             ctx.fillRect(p.x - 8*s, headY - 30*s, 16*s, 15*s); // Cylinder
+                         } else if (acc.id === 'acc_cap') {
+                             ctx.fillStyle = acc.color;
+                             ctx.beginPath(); ctx.arc(p.x, headY - 12*s, 10*s, Math.PI, 0); ctx.fill();
+                             ctx.fillStyle = '#111'; ctx.fillRect(p.x - 10*s, headY - 12*s, 20*s, 2*s); // Visor
+                         }
+                     }
+                     else if (acc.type === 'head') { // Flower
+                         ctx.fillStyle = acc.color;
+                         for(let k=0; k<5; k++) {
+                             const a = (k/5)*Math.PI*2;
+                             ctx.beginPath(); ctx.arc(p.x + 8*s + Math.cos(a)*3*s, headY - 12*s + Math.sin(a)*3*s, 2*s, 0, Math.PI*2); ctx.fill();
+                         }
+                         ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x + 8*s, headY - 12*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+                     }
+                 }
+             }
+
+    }
+
+// --- END renderer.js ---

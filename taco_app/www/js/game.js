@@ -1,4 +1,11 @@
-        switchLeaderboardTab(pendingHighScore.mode);
+// --- START game.js ---
+
+    const BASKET_CAT_EVO_DURATION = 300; // Frames (5s)
+    var evolutionData = { timer: 0, phase: 0 };
+
+    function getBasketCatMaxExp() {
+        // Base 50, increases by 50 per level (50, 100, 150...)
+        return 50 * ((playerData.basketCatSkinIndex || 0) + 1);
     }
 
     // --- HIGH SCORE LOGIC ---
@@ -97,46 +104,22 @@
             pendingHighScore = { mode: mode, score: score };
             highScoreUI.style.display = 'block';
             state = 'HIGHSCORE_INPUT';
+            updateMobileControlsUI();
             initHighScoreUI();
         } else {
-            openShop();
-        }
-    }
-
-    function checkDailyProgress(type, amount) {
-        const dc = playerData.dailyChallenge;
-        if (dc.claimed) return;
-
-        const challengeDef = DAILY_CHALLENGES.find(c => c.id === dc.id);
-        if (!challengeDef) return;
-
-        // If the active challenge type matches the event
-        if (challengeDef.type === type) {
-            if (type === 'streak') {
-                // Streak is "reach X", not cumulative
-                if (amount >= challengeDef.target) {
-                    completeDailyChallenge(challengeDef);
-                }
+            if (mode === 'contest' || mode === 'time_attack') {
+                openLeaderboard(); // Show results instead of shop for competitive modes
             } else {
-                // Cumulative
-                dc.progress += amount;
-                if (dc.progress >= challengeDef.target) {
-                    dc.progress = challengeDef.target;
-                    completeDailyChallenge(challengeDef);
-                } else {
-                    saveData();
-                }
+                openShop();
             }
         }
     }
 
-    function completeDailyChallenge(def) {
-        if(playerData.dailyChallenge.claimed) return;
-        playerData.dailyChallenge.claimed = true;
-        playerData.tacos += def.reward;
-        saveData();
-        showNotification("DÉFI COMPLÉTÉ !", def.reward);
-        // Visual flair could go here
+    // Wrapper for challenge updates
+    function checkDailyProgress(type, amount) {
+         if (window.processAllChallenges) {
+             window.processAllChallenges(type, amount);
+         }
     }
 
     function calculateShotThreshold() {
@@ -303,6 +286,7 @@
         // Pre-Jump (Gather/Crouch) for all characters
         state = 'PRE_JUMP';
         preJumpTimer = 0.10; // ~6 frames
+        lastPreJumpTimer = preJumpTimer;
         feedback = "";
 
         const style = getCurrentStyle();
@@ -392,12 +376,18 @@
         flightTime = Math.max(32, flightTime);
 
         newBall.vx = (dx / flightTime); newBall.vy = (dy / flightTime); newBall.vz = (HOOP_POS.z - newBall.z + 0.5 * GRAVITY * flightTime * (flightTime - 1)) / flightTime;
+        newBall.hasScored = false; // Flag to track scoring state
 
         let isMiss = Math.abs(timingError) > threshold;
 
         // "Sur La Ligne" Bonus: 28% forgiveness zone (0.32 / 0.25 = 1.28)
         if (isMiss && Math.abs(timingError) < threshold * 1.28) {
-            if(Math.random() > 0.5) { isMiss = false; feedback = "SUR LA LIGNE!"; feedbackTimer = 30; }
+            if(Math.random() > 0.5) {
+                isMiss = false;
+                feedback = "SUR LA LIGNE!";
+                feedbackTimer = 30;
+                checkDailyProgress('sur_la_ligne', 1);
+            }
         }
 
         if (isMiss) {
@@ -405,7 +395,12 @@
             let finalLuckChance = luckChance;
             if(mods.luckBonus) finalLuckChance *= mods.luckBonus;
 
-            if (Math.random() < finalLuckChance) { feedback = "CHANCEUX!"; feedbackTimer = 30; checkAchievements('lucky'); }
+            if (Math.random() < finalLuckChance) {
+                feedback = "CHANCEUX!";
+                feedbackTimer = 30;
+                checkAchievements('lucky');
+                checkDailyProgress('lucky', 1);
+            }
             else {
                 // Reconstruct accuracy magnitude for visuals
                 // accuracy = 0.25 * (timingError / threshold)
@@ -434,21 +429,105 @@
 
     function handleScore(b) {
         const targetBall = b || ball;
+        if(targetBall.hasScored) return; // Prevent double counting
+
         AudioSystem.playSwish();
-        targetBall.active = false; playerData.lifetimeStats.makes++; currentStreak++;
+        targetBall.hasScored = true; // Mark as scored but keep active for eating animation
+        g_catEatTimer = 20; // Trigger cat animation
+
+        // Basket Cat Growth
+        let evolutionTriggered = false;
+        if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
+
+        // Cat Nip Bonus: +20% growth per level
+        const nipLevel = playerData.stats.catNip || 0;
+        playerData.basketCatExp += (1 + nipLevel * 0.2);
+
+        const maxExp = getBasketCatMaxExp();
+
+        if (playerData.basketCatExp >= maxExp && state !== 'EVOLVING') {
+            // Check if there are more skins to unlock
+            if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
+                // Determine completion callback based on mode
+                let onComplete = null;
+                if (currentGameMode === 'CONTEST' || currentGameMode === 'CLASSIC') {
+                    onComplete = nextLevel;
+                }
+
+                triggerEvolutionSequence(onComplete);
+                evolutionTriggered = true;
+            } else {
+                // Max level reached
+                playerData.basketCatExp = maxExp;
+            }
+        }
+
+        playerData.lifetimeStats.makes++; currentStreak++;
 
         // Daily Challenge Hooks
         checkDailyProgress('makes', 1);
         checkDailyProgress('streak', currentStreak);
 
+        // --- NEW CHALLENGE TRIGGERS ---
+        checkDailyProgress('swish', 1); // Assume makes are swishes for now
+
+        // Difficulty Checks
+        if (playerData.difficulty >= 2) checkDailyProgress('makes_hard', 1);
+        if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
+
+        // Distance Checks (Classic/Calculated)
+        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        if (dist >= 100) checkDailyProgress('makes_long', 1);
+        if (dist >= 200) checkDailyProgress('makes_super', 1);
+
+        // Skin Checks
+        if (typeof SKINS_DB !== 'undefined') {
+            const currentSkinObj = SKINS_DB.find(s => s.id === playerData.currentSkin);
+            if (currentSkinObj) {
+                if (currentSkinObj.animal === 'human') checkDailyProgress('makes_human', 1);
+                else checkDailyProgress('makes_animal', 1);
+            }
+        }
+
+        // Streak Count Checks
+        if (currentStreak > 0) {
+            if (currentStreak % 10 === 0) checkDailyProgress('streak_10_count', 1);
+            if (currentStreak % 15 === 0) checkDailyProgress('streak_15_count', 1);
+        }
+
+        // Perfect Rack Check (Contest)
+        if (currentGameMode === 'CONTEST') {
+             if (typeof contestData.makesInRack === 'undefined') contestData.makesInRack = 0;
+             contestData.makesInRack++;
+        }
+
         checkAchievements('streak');
         crowdCheerTimer = 60;
+
+        // Spawn Taco between player and basket (Triggered on score)
+        const t = 0.5; // Midpoint
+        const midX = player3D.x + (HOOP_POS.x - player3D.x) * t;
+        const midY = player3D.y + (HOOP_POS.y - player3D.y) * t;
+
+        tacosOnGround.push({
+            x: midX + (Math.random() - 0.5) * 30,
+            y: midY + (Math.random() - 0.5) * 30,
+            rotation: Math.random() * Math.PI * 2,
+            scale: 1.0,
+            beingEaten: false,
+            spawnTime: Date.now()
+        });
+
         if(currentGameMode === 'CONTEST') {
             const isMoneyBall = (contestData.ballsInRack === 4);
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = isMoneyBall ? "MONEY BALL! (+2)" : "Swish (+1)"; }
-            feedbackTimer = 30; updateContestUI(); state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
+            feedbackTimer = 30; updateContestUI();
+
+            if (!evolutionTriggered) {
+                state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
+            }
         } else if (currentGameMode === 'TIME_ATTACK') {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
@@ -456,7 +535,11 @@
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
-            feedbackTimer = 60; state = 'RESETTING'; resetTimer = 60; nextAction = nextLevel;
+            feedbackTimer = 30;
+
+            if (!evolutionTriggered) {
+                state = 'RESETTING'; resetTimer = 15; nextAction = nextLevel; // Fast reset
+            }
         }
     }
 
@@ -466,6 +549,7 @@
         AudioSystem.playFloorHit();
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
+        checkDailyProgress('misses', 1);
         if(currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
@@ -475,6 +559,7 @@
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             if (consecutiveMisses >= maxMisses) {
                 feedback = "TERMINÉ !"; feedbackTimer = 60; state = 'GAMEOVER'; resetTimer = 90; nextAction = () => checkGameOverSequence('classic', 10 + (distanceLevel * 5));
+                checkDailyProgress('play_all_modes', 1);
             } else {
                 feedback = "DERNIÈRE CHANCE !"; feedbackTimer = 60; state = 'RESETTING'; resetTimer = 90; nextAction = retryShot;
             }
@@ -482,6 +567,11 @@
     }
 
     function updatePlayerAnimation(dt) {
+        // Save previous state for interpolation
+        if (typeof g_animStateLast !== 'undefined') {
+            g_animStateLast = Object.assign({}, g_animState);
+        }
+
         // dt is 1.0 at 60FPS.
         // Update Breathing
         g_breathingPhase += dt * 0.03; // ~3.5s per breath
@@ -575,7 +665,7 @@
 
         // SMOOTHING (Interpolate State -> Target)
         // Using a fast lerp factor for responsiveness but smooth enough to kill snap
-        const smoothFactor = Math.min(1.0, 0.25 * dt);
+        const smoothFactor = Math.min(1.0, 0.20 * dt);
 
         g_animState.la = lerpAngle(g_animState.la, g_animTarget.la, smoothFactor);
         g_animState.ra = lerpAngle(g_animState.ra, g_animTarget.ra, smoothFactor);
@@ -597,6 +687,179 @@
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    function updateCatLogic(dt) {
+        const cat = g_catState;
+        const speed = 4.0; // Movement speed
+
+        // Ensure catDecor syncs with logic position
+        if (typeof decors !== 'undefined') {
+            const catD = decors.find(d => d.zoneType === 'cat_hoop');
+            if (catD) {
+                catD.x = cat.x;
+                catD.y = cat.y;
+            }
+        }
+
+        if (cat.state === 'IDLE') {
+            // Add reaction delay
+            if (cat.reactionTimer > 0) {
+                cat.reactionTimer -= dt;
+                return;
+            }
+            // Check for tacos
+            if (tacosOnGround.length > 0) {
+                // Find nearest taco
+                let minDist = Infinity;
+                let targetIdx = -1;
+                for(let i=0; i<tacosOnGround.length; i++) {
+                    const t = tacosOnGround[i];
+                    if (t.beingEaten) continue; // Skip claimed tacos
+                    if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
+
+                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
+                    if (d < minDist) {
+                        minDist = d;
+                        targetIdx = i;
+                    }
+                }
+
+                if (targetIdx !== -1) {
+                    cat.targetTacoIndex = targetIdx;
+                    tacosOnGround[targetIdx].beingEaten = true; // Claim it
+                    cat.targetX = tacosOnGround[targetIdx].x;
+                    cat.targetY = tacosOnGround[targetIdx].y;
+
+                    const dx = cat.targetX - cat.x;
+                    const dy = cat.targetY - cat.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist > 60) {
+                        cat.state = 'POUNCING';
+                        // Deterministic Animation Setup
+                        cat.startX = cat.x;
+                        cat.startY = cat.y;
+                        cat.pounceTimer = 0;
+                        const pounceSpeed = 12.0;
+                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                    } else {
+                        cat.state = 'MOVING';
+                    }
+                } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
+                    // Return home if no valid targets
+                     cat.state = 'RETURNING';
+                     cat.targetX = HOOP_POS.x;
+                     cat.targetY = HOOP_POS.y + 10;
+                }
+            } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
+                // Return home if idle and away
+                cat.state = 'RETURNING';
+                cat.targetX = HOOP_POS.x;
+                cat.targetY = HOOP_POS.y + 10;
+            }
+        }
+        else if (cat.state === 'POUNCING') {
+            cat.pounceTimer += dt;
+            let t = cat.pounceTimer / cat.pounceDuration;
+
+            if (t >= 1.0) {
+                // Landed
+                t = 1.0;
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.z = 0;
+
+                cat.state = 'EATING';
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
+
+                // Impact dust
+                particles.push({
+                    x: cat.x, y: cat.y, z: 0,
+                    vx: 0, vy: 0, vz: 2,
+                    life: 20, maxLife: 20,
+                    scale: 1.0, alpha: 0.5,
+                    type: 'smoke'
+                });
+            } else {
+                // Interpolate
+                // Ease out? Linear is fine for horizontal, parabolic for Z
+                cat.x = cat.startX + (cat.targetX - cat.startX) * t;
+                cat.y = cat.startY + (cat.targetY - cat.startY) * t;
+
+                // Parabolic Arc: 4 * h * t * (1-t)
+                const peakHeight = 150;
+                cat.z = 4 * peakHeight * t * (1 - t);
+            }
+        }
+        else if (cat.state === 'MOVING') {
+            // Move towards target
+            const dx = cat.targetX - cat.x;
+            const dy = cat.targetY - cat.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < speed) {
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.state = 'EATING';
+                const nipLevel = playerData.stats.catNip || 0;
+                const eatTime = Math.max(30, 180 - (nipLevel * 25));
+                cat.eatTimer = eatTime;
+                g_catEatTimer = eatTime; // Sync render animation
+            } else {
+                cat.x += (dx / dist) * speed * dt;
+                cat.y += (dy / dist) * speed * dt;
+                cat.animFrame += dt * 0.2; // Walk cycle
+            }
+        }
+        else if (cat.state === 'EATING') {
+            cat.eatTimer -= dt;
+            if (cat.eatTimer <= 0) {
+                // Done eating, remove taco
+                if (cat.targetTacoIndex !== -1 && tacosOnGround[cat.targetTacoIndex]) {
+                     const tacoIdx = tacosOnGround.findIndex(t => Math.abs(t.x - cat.x) < 5 && Math.abs(t.y - cat.y) < 5);
+                     if (tacoIdx !== -1) {
+                         tacosOnGround.splice(tacoIdx, 1);
+
+                         // Reward Logic
+                         const multiplier = 1 + (playerData.stats.income - 1) * 0.5;
+                         const reward = Math.ceil(10 * playerData.difficulty * multiplier);
+                         playerData.tacos += reward;
+                         checkDailyProgress('earn_tacos', reward);
+
+                         // Floating Text Particle
+                         particles.push({
+                             x: cat.x, y: cat.y, z: 20,
+                             vx: 0, vy: 0, vz: 1.5,
+                             life: 60, maxLife: 60,
+                             scale: 1.0, alpha: 1.0,
+                             type: 'text', text: '+' + reward, color: '#FFD700'
+                         });
+                     }
+                }
+                cat.targetTacoIndex = -1;
+                cat.state = 'IDLE'; // Will trigger return or next taco next frame
+                cat.reactionTimer = 60; // 1 second delay before next action
+            }
+        }
+        else if (cat.state === 'RETURNING') {
+            const dx = cat.targetX - cat.x;
+            const dy = cat.targetY - cat.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist < speed) {
+                cat.x = cat.targetX;
+                cat.y = cat.targetY;
+                cat.state = 'IDLE';
+            } else {
+                cat.x += (dx / dist) * speed * dt;
+                cat.y += (dy / dist) * speed * dt;
+                cat.animFrame += dt * 0.2;
+            }
+        }
+    }
+
     function updateParticles(dt) {
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
@@ -611,16 +874,16 @@
                 const r = p.life / p.maxLife;
                 if (p.customHue !== undefined) {
                     // Dynamic Streak Fire: White -> Bright -> Base -> Dark
-                    if (r > 0.8) p.color = `hsla(${p.customHue}, 100%, 95%, ${p.alpha})`;
-                    else if (r > 0.5) p.color = `hsla(${p.customHue}, 100%, 75%, ${p.alpha})`;
-                    else if (r > 0.2) p.color = `hsla(${p.customHue}, 100%, 50%, ${p.alpha})`;
-                    else p.color = `hsla(${p.customHue}, 30%, 30%, ${p.alpha})`;
+                    if (r > 0.8) p.baseColor = `hsl(${p.customHue}, 100%, 95%)`;
+                    else if (r > 0.5) p.baseColor = `hsl(${p.customHue}, 100%, 75%)`;
+                    else if (r > 0.2) p.baseColor = `hsl(${p.customHue}, 100%, 50%)`;
+                    else p.baseColor = `hsl(${p.customHue}, 30%, 30%)`;
                 } else {
                     // Classic Fire: White -> Yellow -> Orange -> Dark Grey
-                    if (r > 0.8) p.color = `rgba(255, 255, 255, ${p.alpha})`;
-                    else if (r > 0.5) p.color = `rgba(255, 255, 0, ${p.alpha})`;
-                    else if (r > 0.2) p.color = `rgba(255, 69, 0, ${p.alpha})`;
-                    else p.color = `rgba(50, 50, 50, ${p.alpha})`;
+                    if (r > 0.8) p.baseColor = '#FFFFFF';
+                    else if (r > 0.5) p.baseColor = '#FFFF00';
+                    else if (r > 0.2) p.baseColor = '#FF4500';
+                    else p.baseColor = '#323232';
                 }
             }
 
@@ -632,6 +895,28 @@
     }
 
     function update(dt) {
+        // Interpolation History
+        if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
+        player3D.lastX = player3D.x;
+        player3D.lastY = player3D.y;
+        player3D.lastZ = player3D.z;
+        player3D.lastVz = player3D.vz;
+
+        // Save Timers
+        if (typeof lastGroundShotTimer === 'undefined') lastGroundShotTimer = groundShotTimer;
+        lastGroundShotTimer = groundShotTimer;
+
+        if (typeof lastPreJumpTimer === 'undefined') lastPreJumpTimer = preJumpTimer;
+        lastPreJumpTimer = preJumpTimer;
+
+        activeBalls.forEach(b => {
+            if (b.lastX === undefined) { b.lastX = b.x; b.lastY = b.y; b.lastZ = b.z; b.lastRotX = b.rotationX; }
+            b.lastX = b.x;
+            b.lastY = b.y;
+            b.lastZ = b.z;
+            b.lastRotX = b.rotationX;
+        });
+
         if (resetTimer > 0) {
             resetTimer -= dt;
             if (resetTimer <= 0) {
@@ -658,9 +943,21 @@
             }
         }
 
+        if (state === 'EVOLVING') {
+            updateEvolution(dt);
+            updateParticles(dt); // Keep particles active
+            return;
+        }
+
         updatePlayerAnimation(dt);
         updateParticles(dt);
         if (crowdCheerTimer > 0) crowdCheerTimer -= dt;
+        // g_catEatTimer managed by updateCatLogic now for eating state
+        if (g_catEatTimer > 0) g_catEatTimer -= dt;
+
+        // Update Cat AI
+        updateCatLogic(dt);
+
         weather.update(dt);
 
         // Character Streak Fire (Super Saiyan Effect)
@@ -803,7 +1100,8 @@
                 b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= GRAVITY * dt;
 
                 // Collision Logic
-                if (prevZ >= HOOP_POS.z && b.z <= HOOP_POS.z) {
+                // Only check collision if not already scored
+                if (!b.hasScored && prevZ >= HOOP_POS.z && b.z <= HOOP_POS.z) {
                     let t = 0;
                     if (prevZ !== b.z) {
                          t = (HOOP_POS.z - prevZ) / (b.z - prevZ);
@@ -824,7 +1122,22 @@
                 const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
 
                 if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
-                if (b.z <= 0) { b.z = 0; b.active = false; handleMiss(b); continue; }
+                if (b.z <= 0) {
+                    b.z = 0;
+                    if (!b.hasScored) { // Don't trigger miss if it scored and fell
+                        b.active = false;
+                        handleMiss(b);
+                    } else {
+                        // If scored and hit ground (or fell far enough), remove
+                        b.active = false;
+                    }
+                    continue;
+                }
+                // Cat Eat Logic: If scored and falls to mouth height (~40)
+                if (b.hasScored && b.z < 40 && b.z > 0) {
+                    b.active = false; // Eaten!
+                    continue;
+                }
             } else {
                 activeBalls.splice(i, 1);
             }
@@ -835,9 +1148,18 @@
     // --- HELPER FUNCTIONS ---
     function nextLevel() {
         if(currentGameMode === 'CONTEST') {
+            // Perfect Rack Check
+            if (contestData.makesInRack === 5) {
+                checkDailyProgress('perfect_rack', 1);
+                feedback = "RACK PARFAIT!";
+            }
+            // Reset for next
+            if (contestData.ballsInRack === 4) contestData.makesInRack = 0;
+
             contestData.ballsInRack++;
             if(contestData.ballsInRack >= 5) {
                 contestData.rack++; contestData.ballsInRack = 0;
+                contestData.makesInRack = 0; // Reset logic for rack change
                 if(contestData.rack > 5) { endContest(); return; }
                 else { setPlayerPositionForRack(contestData.rack); }
             }
@@ -861,8 +1183,14 @@
             // Hook Distance Challenge
             checkDailyProgress('distance', jump * 5);
 
+            checkDailyProgress('earn_tacos', reward);
+
             distanceLevel += jump;
             const currentDistanceVal = 10 + (distanceLevel * 5);
+
+            checkDailyProgress('distance_classic', currentDistanceVal);
+            if (distanceLevel === 10) checkDailyProgress('level_10_count', 1);
+
             if (currentDistanceVal > playerData.highScore) { playerData.highScore = currentDistanceVal; }
             saveData(); checkAchievements('score');
             player3D.x -= 15 * jump; player3D.y += 15 * jump; player3D.z = 0; player3D.vz = 0; state = 'IDLE'; updateUI();
@@ -878,7 +1206,10 @@
         playerData.tacos += reward;
 
         checkDailyProgress('contest_score', contestData.score);
+        checkDailyProgress('total_contest_score', contestData.score);
         checkDailyProgress('play_contest', 1);
+        checkDailyProgress('earn_tacos', reward);
+        checkDailyProgress('play_all_modes', 1);
 
         checkAchievements('contest'); saveData(); resetTimer = 120; nextAction = () => checkGameOverSequence('contest', contestData.score);
     }
@@ -909,7 +1240,10 @@
         playerData.tacos += reward;
 
         checkDailyProgress('time_attack_score', timeAttackData.score);
+        checkDailyProgress('total_time_score', timeAttackData.score);
         checkDailyProgress('play_time_attack', 1);
+        checkDailyProgress('earn_tacos', reward);
+        checkDailyProgress('play_all_modes', 1);
 
         // Save High Score
         let isRecord = false;
@@ -967,7 +1301,7 @@
     }
 
     function startContest() {
-        contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true };
+        contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: true, makesInRack: 0 };
         lastDisplayedContestTime = -1;
         currentStreak = 0;
 
@@ -983,6 +1317,7 @@
 
     function resetGame() {
         activeBalls = []; // Clear all balls on reset
+        tacosOnGround = []; // Clear tacos on reset
         particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
@@ -997,8 +1332,85 @@
         }
     }
 
+    function triggerEvolutionSequence(callback) {
+        state = 'EVOLVING';
+        evolutionData.timer = BASKET_CAT_EVO_DURATION;
+        evolutionData.phase = 0;
+        evolutionData.callback = callback;
+        // Stop balls
+        activeBalls = [];
+        feedback = "";
+    }
+
+    function updateEvolution(dt) {
+        evolutionData.timer -= dt;
+
+        if (evolutionData.timer <= 100 && evolutionData.phase === 0) {
+            evolutionData.phase = 1; // Flash start
+            AudioSystem.playSwish(); // Sound effect placeholder
+        }
+
+        if (evolutionData.timer <= 0) {
+            // Evolve
+            if (typeof playerData.basketCatSkinIndex === 'undefined') playerData.basketCatSkinIndex = 0;
+            playerData.basketCatSkinIndex++;
+            playerData.basketCatExp = 0;
+
+            // Unlock skin for player
+            const newSkin = CAT_SKINS_DB[playerData.basketCatSkinIndex];
+            if (newSkin && !playerData.unlockedCatSkins.includes(newSkin.id)) {
+                playerData.unlockedCatSkins.push(newSkin.id);
+                showNotification("NOUVEAU SKIN: " + newSkin.name, 0);
+            }
+
+            state = 'IDLE';
+            saveData();
+            // Force redraw of cat
+            if (typeof invalidateBackgroundCache === 'function') invalidateBackgroundCache();
+
+            if (evolutionData.callback && typeof evolutionData.callback === 'function') {
+                evolutionData.callback();
+                evolutionData.callback = null;
+            }
+        }
+    }
+
     // --- UI FUNCTIONS ---
     var g_shopTargetPlayer = 1; // 1 or 2
+    var currentShopTab = 'upgrades';
+
+    window.switchShopTab = function(tabName) {
+        currentShopTab = tabName;
+        // Update Tabs
+        const tabs = document.querySelectorAll('.shop-tab-btn');
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTabBtn = Array.from(tabs).find(t => t.getAttribute('onclick').includes(tabName));
+        if (activeTabBtn) activeTabBtn.classList.add('active');
+
+        // Update Sections
+        const sections = document.querySelectorAll('.shop-section');
+        sections.forEach(s => s.classList.remove('active'));
+        const activeSection = document.getElementById('tab-' + tabName);
+        if (activeSection) activeSection.classList.add('active');
+    }
+
+    window.toggleControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems) {
+            const isOpen = menuItems.classList.toggle('open');
+            if (btn) btn.innerText = isOpen ? "FERMER ✕" : "MENU ☰";
+        }
+    }
+
+    window.closeControlsMenu = function() {
+        const menuItems = document.getElementById('controls-items');
+        const btn = document.querySelector('.controls-menu-toggle span');
+        if (menuItems && menuItems.classList.contains('open')) {
+            menuItems.classList.remove('open');
+            if (btn) btn.innerText = "MENU ☰";
+        }
+    }
 
     function getShopContext() {
         if (!isSplitscreen) return game1;
@@ -1031,11 +1443,14 @@
     }
 
     window.openShop = function(force) {
+        window.closeControlsMenu();
         g_shopTargetPlayer = 1; // Default to P1
         loadContext(game1);
 
         // If force is true (e.g. from Game Over logic), ignore state check
         if (!force && state !== 'IDLE' && state !== 'GAMEOVER') return;
+
+        syncShopToEquipped();
 
         state = 'SHOP';
         if(isSplitscreen) {
@@ -1047,22 +1462,39 @@
             document.getElementById('shopPlayerToggle').style.display = 'none';
         }
 
+        // Save immediately so subsequent helper calls (like updateDifficulty)
+        // that use loadContext() will load the correct SHOP state.
+        saveContext(game1);
+
         shopUI.style.display = 'block'; achUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
+
+        // Reset to first tab
+        window.switchShopTab('upgrades');
+
         updateDifficulty(); updateShopUI();
+        updateMobileControlsUI();
         saveContext(game1);
     }
     window.openAchievements = function() {
+        window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
 
         state = 'ACHIEVEMENTS';
         if(isSplitscreen) { loadContext(game2); state = 'ACHIEVEMENTS'; saveContext(game2); loadContext(game1); }
 
-        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none'; renderAchievements();
+        achUI.style.display = 'block'; shopUI.style.display = 'none'; statsUI.style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
+        renderAchievements();
+        updateMobileControlsUI();
         saveContext(game1);
     }
     window.openStats = function() {
+        window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER' && state !== 'STATS') return;
 
@@ -1072,6 +1504,8 @@
         shopUI.style.display = 'none';
         achUI.style.display = 'none';
         statsUI.style.display = 'block';
+        document.getElementById('challengesUI').style.display = 'none';
+        document.getElementById('leaderboardUI').style.display = 'none';
         populateInputSelects();
         const ls = playerData.lifetimeStats;
         document.getElementById('statShots').innerText = ls.shots;
@@ -1084,27 +1518,7 @@
         if(ls.shots > 0) acc = ((ls.makes / ls.shots) * 100).toFixed(1);
         document.getElementById('statAccuracy').innerText = acc + "%";
 
-        // Daily Challenge UI Update
-        const dc = playerData.dailyChallenge;
-        if (dc && dc.id) {
-            const def = DAILY_CHALLENGES.find(c => c.id === dc.id);
-            if (def) {
-                document.getElementById('dailyDesc').innerText = def.desc;
-                let pct = (dc.progress / def.target) * 100;
-                if (pct > 100) pct = 100;
-                document.getElementById('dailyBar').style.width = pct + "%";
-
-                let statusText = dc.progress + " / " + def.target;
-                if (dc.claimed) {
-                    statusText = "COMPLÉTÉ !";
-                    document.getElementById('dailyBar').style.background = "#FFD700";
-                } else {
-                    document.getElementById('dailyBar').style.background = "#00FF00";
-                }
-                document.getElementById('dailyProgressText').innerText = statusText;
-                document.getElementById('dailyRewardText').innerText = "+" + def.reward + " Tacos";
-            }
-        }
+        // Daily Challenge UI Update - Removed (Now in dedicated menu)
 
         const btnMob = document.getElementById('btnToggleMobile');
         if(btnMob) btnMob.innerText = playerData.mobileControls ? "TOUCH: ON" : "TOUCH: OFF";
@@ -1123,6 +1537,13 @@
             sld.value = sc;
             document.getElementById('meterSizeLabel').innerText = Math.round(sc*100) + "%";
         }
+        const sldZoom = document.getElementById('cameraZoomSlider');
+        if(sldZoom) {
+            const zs = playerData.cameraZoomScale || 1.0;
+            sldZoom.value = zs;
+            document.getElementById('cameraZoomLabel').innerText = Math.round(zs*100) + "%";
+        }
+        updateMobileControlsUI();
     }
     window.toggleMeter = function() {
         playerData.meterEnabled = !playerData.meterEnabled;
@@ -1207,12 +1628,17 @@
     window.attemptReset = function() {
         const btn = document.getElementById('btnReset');
         if (resetStage === 0) { resetStage = 1; btn.innerText = "SÛR ? (CLIQUEZ ENCORE)"; btn.style.background = "#FF0000"; return; }
+
+        // Nuclear Reset
+        window.isResetting = true;
+        localStorage.removeItem('tacoSaveData');
+
         playerData = createDefaultData();
-        saveData();
         updateUI();
         closeStats();
         resetGame();
         resetStage = 0;
+
         btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000";
         feedback = "RESET!"; feedbackTimer = 60;
 
@@ -1238,16 +1664,31 @@
             return;
         }
         if(resetStage === 2) {
-            SKINS_DB.forEach(skin => {
-                if(!playerData.unlockedSkins.includes(skin.id)) {
-                    playerData.unlockedSkins.push(skin.id);
-                }
-            });
+            // Unlocks everything
+            SKINS_DB.forEach(skin => { if(!playerData.unlockedSkins.includes(skin.id)) playerData.unlockedSkins.push(skin.id); });
+            CLOTHING_DB.forEach(c => { if(!playerData.unlockedClothing.includes(c.id)) playerData.unlockedClothing.push(c.id); });
+            HATS_DB.forEach(h => { if(!playerData.unlockedHats.includes(h.id)) playerData.unlockedHats.push(h.id); });
+            PANTS_DB.forEach(p => { if(!playerData.unlockedPants.includes(p.id)) playerData.unlockedPants.push(p.id); });
+            SHOES_DB.forEach(s => { if(!playerData.unlockedShoes.includes(s.id)) playerData.unlockedShoes.push(s.id); });
+            BALLS_DB.forEach(b => { if(!playerData.unlockedBalls.includes(b.id)) playerData.unlockedBalls.push(b.id); });
+            SHOOTING_STYLES.forEach(s => { if(!playerData.unlockedStyles.includes(s.id)) playerData.unlockedStyles.push(s.id); });
+            HAIRSTYLES.forEach(h => { if(!playerData.unlockedHairstyles.includes(h.id)) playerData.unlockedHairstyles.push(h.id); });
+            CAT_SKINS_DB.forEach(c => { if(!playerData.unlockedCatSkins.includes(c.id)) playerData.unlockedCatSkins.push(c.id); });
+            CAT_ACCESSORIES_DB.forEach(a => { if(!playerData.unlockedCatAccessories.includes(a.id)) playerData.unlockedCatAccessories.push(a.id); });
+
+            // Max Stats
+            playerData.purchasedStats.income = 5; playerData.stats.income = 5;
+            playerData.purchasedStats.aim = 5; playerData.stats.aim = 5;
+            playerData.purchasedStats.luck = 10; playerData.stats.luck = 10;
+            playerData.purchasedStats.moonwalk = 5; playerData.stats.moonwalk = 5;
+            playerData.purchasedStats.extraLives = 5; playerData.stats.extraLives = 5;
+            playerData.purchasedStats.catNip = 5; playerData.stats.catNip = 5;
+
             checkAchievements('shop');
             saveData();
             updateShopUI();
             const btn = document.getElementById('btnUnlock');
-            btn.innerText = "TRICHEUR !";
+            btn.innerText = "TOUT DÉBLOQUÉ !";
             btn.disabled = true;
             resetStage = 0;
             showNotification("TRICHEUR !", 0);
@@ -1260,9 +1701,17 @@
         const btn = document.getElementById('btnReset');
         if(btn) { btn.innerText = "RÉINITIALISER PROGRESSION"; btn.style.background = "#8B0000"; }
 
+        // Close expandable HUD menu
+        const menuItems = document.getElementById('controls-items');
+        if (menuItems) {
+            menuItems.classList.remove('open');
+            const btnToggle = document.querySelector('.controls-menu-toggle span');
+            if(btnToggle) btnToggle.innerText = "MENU ☰";
+        }
+
         const resetState = (ctx) => {
             loadContext(ctx);
-            if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD'].includes(state)) {
+            if(['SHOP', 'ACHIEVEMENTS', 'STATS', 'LEADERBOARD', 'CHALLENGES'].includes(state)) {
                 state = 'IDLE';
                 // Only reset game if we are in a game over state that requires it
                 // Includes "RECORD" for Time Attack high scores
@@ -1279,9 +1728,11 @@
         achUI.style.display = 'none';
         statsUI.style.display = 'none';
         document.getElementById('leaderboardUI').style.display = 'none';
+        document.getElementById('challengesUI').style.display = 'none';
 
         // Restore P1 context for main loop
         loadContext(game1);
+        updateMobileControlsUI();
         if(callback) callback();
     }
 
@@ -1308,6 +1759,7 @@
         if (statName === 'luck') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'moonwalk') return Math.floor(150 * Math.pow(lvl, 2));
         if (statName === 'extraLives') return Math.floor(1000 * Math.pow(2, lvl));
+        if (statName === 'catNip') return Math.floor(250 * Math.pow(lvl + 1, 2));
         return 999;
     }
     window.buyUpgrade = function(stat) {
@@ -1343,29 +1795,102 @@
             saveContext(getShopContext());
         }
     }
+    // Helper to group skins
+    function getSkinGroups(animal) {
+        const skins = SKINS_DB.filter(s => s.animal === animal);
+        const groups = {};
+        const groupList = [];
+
+        skins.forEach(s => {
+            // Regex to find base: letters_letters/digits (e.g. human_lebron) ignoring _alt etc
+            // But human_kobe8 and human_kobe24 should be separate.
+            // Pattern: ^([a-z]+_[a-z0-9]+)
+            const match = s.id.match(/^([a-z]+_[a-z0-9]+)/);
+            const baseId = match ? match[1] : s.id;
+
+            if (!groups[baseId]) {
+                groups[baseId] = [];
+                groupList.push(groups[baseId]);
+            }
+            groups[baseId].push(s);
+        });
+        return groupList;
+    }
+
     window.changeAnimal = function(dir) {
         loadContext(getShopContext());
         viewingAnimalIndex += dir;
         if(viewingAnimalIndex < 0) viewingAnimalIndex = ANIMALS.length - 1;
         if(viewingAnimalIndex >= ANIMALS.length) viewingAnimalIndex = 0;
-        viewingSkinIndex = 0; updateShopUI();
+        viewingSkinIndex = 0;
+        viewingVariantIndex = 0;
+        updateShopUI();
         saveContext(getShopContext());
     }
     window.changeSkin = function(dir) {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const groups = getSkinGroups(currentAnimal);
+
         viewingSkinIndex += dir;
-        if(viewingSkinIndex < 0) viewingSkinIndex = animalSkins.length - 1;
-        if(viewingSkinIndex >= animalSkins.length) viewingSkinIndex = 0;
+        if(viewingSkinIndex < 0) viewingSkinIndex = groups.length - 1;
+        if(viewingSkinIndex >= groups.length) viewingSkinIndex = 0;
+
+        viewingVariantIndex = 0; // Reset variant when changing base skin
         updateShopUI();
         saveContext(getShopContext());
     }
+    window.cycleSkinVariant = function() {
+        loadContext(getShopContext());
+        const currentAnimal = ANIMALS[viewingAnimalIndex];
+        const groups = getSkinGroups(currentAnimal);
+        const group = groups[viewingSkinIndex];
+
+        if (group && group.length > 1) {
+            viewingVariantIndex = (viewingVariantIndex + 1) % group.length;
+            updateShopUI();
+        }
+        saveContext(getShopContext());
+    }
+
+    window.unequipAll = function() {
+        loadContext(getShopContext());
+
+        playerData.currentHat = 'hat_none';
+        playerData.currentClothing = 'clothes_none';
+        playerData.currentPants = 'pants_none';
+        playerData.currentShoes = 'shoe_none';
+        playerData.customHairstyle = 'default';
+
+        // Reset indices for UI to point to defaults
+        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
+        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
+        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
+        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
+        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+
+        // Safety fallback if index not found
+        if (viewingHatIndex < 0) viewingHatIndex = 0;
+        if (viewingClothingIndex < 0) viewingClothingIndex = 0;
+        if (viewingPantsIndex < 0) viewingPantsIndex = 0;
+        if (viewingShoeIndex < 0) viewingShoeIndex = 0;
+        if (viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+
+        saveData();
+        updateShopUI();
+        updateUI();
+        saveContext(getShopContext());
+
+        showNotification("TOUT ENLEVER !", 0);
+    }
+
     window.buyOrEquipSkin = function() {
         loadContext(getShopContext());
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
+        const groups = getSkinGroups(currentAnimal);
+        const group = groups[viewingSkinIndex];
+        const skin = group[viewingVariantIndex];
+
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
         if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); }
         else if (playerData.tacos >= skin.cost) {
@@ -1373,6 +1898,156 @@
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changePants = function(dir) {
+        loadContext(getShopContext());
+        viewingPantsIndex += dir;
+        if(viewingPantsIndex < 0) viewingPantsIndex = PANTS_DB.length - 1;
+        if(viewingPantsIndex >= PANTS_DB.length) viewingPantsIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipPants = function() {
+        loadContext(getShopContext());
+        const pants = PANTS_DB[viewingPantsIndex];
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+
+        const isUnlocked = playerData.unlockedPants.includes(pants.id);
+        if (isUnlocked) {
+            playerData.currentPants = pants.id;
+        } else if (playerData.tacos >= pants.cost) {
+            playerData.tacos -= pants.cost;
+            playerData.unlockedPants.push(pants.id);
+            playerData.currentPants = pants.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changeHairstyle = function(dir) {
+        loadContext(getShopContext());
+        viewingHairstyleIndex += dir;
+        if(viewingHairstyleIndex < 0) viewingHairstyleIndex = HAIRSTYLES.length - 1;
+        if(viewingHairstyleIndex >= HAIRSTYLES.length) viewingHairstyleIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipHairstyle = function() {
+        loadContext(getShopContext());
+        const hair = HAIRSTYLES[viewingHairstyleIndex];
+        if(!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default', 'bald'];
+
+        const isUnlocked = playerData.unlockedHairstyles.includes(hair.id);
+        if (isUnlocked) {
+            playerData.customHairstyle = hair.id;
+        } else if (playerData.tacos >= hair.cost) {
+            playerData.tacos -= hair.cost;
+            playerData.unlockedHairstyles.push(hair.id);
+            playerData.customHairstyle = hair.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changeClothing = function(dir) {
+        loadContext(getShopContext());
+        viewingClothingIndex += dir;
+        if(viewingClothingIndex < 0) viewingClothingIndex = CLOTHING_DB.length - 1;
+        if(viewingClothingIndex >= CLOTHING_DB.length) viewingClothingIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipClothing = function() {
+        loadContext(getShopContext());
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+
+        const isUnlocked = playerData.unlockedClothing.includes(clothing.id);
+        if (isUnlocked) {
+            playerData.currentClothing = clothing.id;
+        } else if (playerData.tacos >= clothing.cost) {
+            playerData.tacos -= clothing.cost;
+            playerData.unlockedClothing.push(clothing.id);
+            playerData.currentClothing = clothing.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changeHat = function(dir) {
+        loadContext(getShopContext());
+        viewingHatIndex += dir;
+        if(viewingHatIndex < 0) viewingHatIndex = HATS_DB.length - 1;
+        if(viewingHatIndex >= HATS_DB.length) viewingHatIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipHat = function() {
+        loadContext(getShopContext());
+        const hat = HATS_DB[viewingHatIndex];
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+
+        const isUnlocked = playerData.unlockedHats.includes(hat.id);
+        if (isUnlocked) {
+            playerData.currentHat = hat.id;
+        } else if (playerData.tacos >= hat.cost) {
+            playerData.tacos -= hat.cost;
+            playerData.unlockedHats.push(hat.id);
+            playerData.currentHat = hat.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        saveContext(getShopContext());
+    }
+    window.changeCatSkin = function(dir) {
+        loadContext(getShopContext());
+        viewingCatSkinIndex += dir;
+        if(viewingCatSkinIndex < 0) viewingCatSkinIndex = CAT_SKINS_DB.length - 1;
+        if(viewingCatSkinIndex >= CAT_SKINS_DB.length) viewingCatSkinIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatSkin = function() {
+        loadContext(getShopContext());
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlocked = playerData.unlockedCatSkins.includes(cat.id);
+        if (isUnlocked) {
+            playerData.currentCatSkin = cat.id;
+        }
+        // Purchasing removed - Evolution only
+
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache(); // Force redraw for cat update
+        saveContext(getShopContext());
+    }
+    window.changeCatAccessory = function(dir) {
+        loadContext(getShopContext());
+        viewingCatAccessoryIndex += dir;
+        if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.length - 1;
+        if(viewingCatAccessoryIndex >= CAT_ACCESSORIES_DB.length) viewingCatAccessoryIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipCatAccessory = function() {
+        loadContext(getShopContext());
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlocked = playerData.unlockedCatAccessories.includes(acc.id);
+        if (isUnlocked) {
+            playerData.currentCatAccessory = acc.id;
+        }
+        else if (playerData.tacos >= acc.cost) {
+            playerData.tacos -= acc.cost;
+            playerData.unlockedCatAccessories.push(acc.id);
+            playerData.currentCatAccessory = acc.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
+        invalidateBackgroundCache();
         saveContext(getShopContext());
     }
     window.changeBall = function(dir) {
@@ -1425,10 +2100,215 @@
         saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
+
+    function syncShopToEquipped() {
+        // Animal
+        const skinId = playerData.currentSkin;
+        const skinObj = SKINS_DB.find(s => s.id === skinId);
+        if (skinObj) {
+            const animal = skinObj.animal;
+            viewingAnimalIndex = ANIMALS.indexOf(animal);
+            if(viewingAnimalIndex < 0) viewingAnimalIndex = 0;
+
+            // Skin Index
+            const groups = getSkinGroups(animal);
+            for(let i=0; i<groups.length; i++) {
+                const group = groups[i];
+                const variantIdx = group.findIndex(s => s.id === skinId);
+                if(variantIdx !== -1) {
+                    viewingSkinIndex = i;
+                    viewingVariantIndex = variantIdx;
+                    break;
+                }
+            }
+        }
+
+        // Hair
+        if(playerData.customHairstyle) {
+            viewingHairstyleIndex = HAIRSTYLES.findIndex(h => h.id === playerData.customHairstyle);
+            if(viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+        }
+
+        // Clothes
+        if(playerData.currentClothing) {
+            viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
+            if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+        }
+
+        // Pants
+        if(playerData.currentPants) {
+            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
+            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
+        }
+
+        // Hat
+        if(playerData.currentHat) {
+            viewingHatIndex = HATS_DB.findIndex(h => h.id === playerData.currentHat);
+            if(viewingHatIndex < 0) viewingHatIndex = 0;
+        }
+
+        // Shoe
+        if(playerData.currentShoes) {
+            viewingShoeIndex = SHOES_DB.findIndex(s => s.id === playerData.currentShoes);
+            if(viewingShoeIndex < 0) viewingShoeIndex = 0;
+        }
+
+        // Ball
+        if(playerData.currentBall) {
+            viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
+            if(viewingBallIndex < 0) viewingBallIndex = 0;
+        }
+
+        // Cat
+        if(playerData.currentCatSkin) {
+            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
+            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
+        }
+
+        // Cat Accessory
+        if(playerData.currentCatAccessory) {
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
+            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+        }
+
+        // Style
+        if(playerData.currentStyle) {
+            viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
+            if(viewingStyleIndex < 0) viewingStyleIndex = 0;
+        }
+    }
+
+    window.updateCustomHeight = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomHeight').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.height = val;
+        document.getElementById('lblCustomHeight').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomWidth = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomWidth').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.width = val;
+        document.getElementById('lblCustomWidth').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomSkinTone = function() {
+        loadContext(getShopContext());
+        const val = parseInt(document.getElementById('sldCustomSkinTone').value);
+        if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+        playerData.customSkinSettings.skinToneIndex = val;
+        const color = SKIN_TONES[val];
+        document.getElementById('previewSkinTone').style.background = color;
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomHairColor = function() {
+        loadContext(getShopContext());
+        const val = parseInt(document.getElementById('sldCustomHairColor').value);
+        playerData.customHairColorIndex = val;
+        const color = HAIR_COLORS[val];
+        document.getElementById('previewHairColor').style.background = color;
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.updateCustomHairSize = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCustomHairSize').value);
+        playerData.customHairLength = val;
+        document.getElementById('lblCustomHairSize').innerText = Math.round(val * 100) + "%";
+        saveData();
+        saveContext(getShopContext());
+    }
+
+    window.resetCatSize = function() {
+        loadContext(getShopContext());
+
+        // Reset Cat Growth
+        if(playerData.lifetimeStats) {
+             const makes = playerData.lifetimeStats.makes || 0;
+             const misses = playerData.lifetimeStats.misses || 0;
+             const net = Math.max(0, makes - misses);
+             playerData.catScaleResetOffset = net;
+        }
+
+        saveData();
+        saveContext(getShopContext());
+
+        // Provide visual feedback
+        const btn = document.getElementById('btnResetCatSize');
+        if(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "TAILLE RÉINITIALISÉE !";
+            setTimeout(() => { btn.innerText = originalText; }, 2000);
+        }
+    }
+
+    window.changeCatStance = function() {
+        loadContext(getShopContext());
+        const val = document.getElementById('selCatStance').value;
+        playerData.catStanceOverride = val;
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.toggleCatSizeLock = function() {
+        loadContext(getShopContext());
+        const locked = document.getElementById('chkCatSizeLock').checked;
+        playerData.catSizeLocked = locked;
+        updateShopUI(); // Refresh UI to toggle slider visibility
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
+    window.updateCatSize = function() {
+        loadContext(getShopContext());
+        const val = parseFloat(document.getElementById('sldCatSize').value);
+        playerData.catSizeValue = val;
+        document.getElementById('lblCatSize').innerText = val.toFixed(1) + "x";
+        saveData();
+        invalidateBackgroundCache();
+        saveContext(getShopContext());
+    }
+
     window.toggleHandedness = function() {
         loadContext(getShopContext());
         playerData.isLefty = !playerData.isLefty;
         saveData(); updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.changeShoes = function(dir) {
+        loadContext(getShopContext());
+        viewingShoeIndex += dir;
+        if(viewingShoeIndex < 0) viewingShoeIndex = SHOES_DB.length - 1;
+        if(viewingShoeIndex >= SHOES_DB.length) viewingShoeIndex = 0;
+        updateShopUI();
+        saveContext(getShopContext());
+    }
+    window.buyOrEquipShoes = function() {
+        loadContext(getShopContext());
+        const shoe = SHOES_DB[viewingShoeIndex];
+        if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
+
+        const isUnlocked = playerData.unlockedShoes.includes(shoe.id);
+        if (isUnlocked) {
+            playerData.currentShoes = shoe.id;
+        } else if (playerData.tacos >= shoe.cost) {
+            playerData.tacos -= shoe.cost;
+            playerData.unlockedShoes.push(shoe.id);
+            playerData.currentShoes = shoe.id;
+            checkAchievements('shop');
+        }
+        saveData(); updateShopUI(); updateUI();
         saveContext(getShopContext());
     }
     window.toggleMobileControls = function() {
@@ -1450,7 +2330,8 @@
         const btn = document.getElementById('mobileShootBtn');
         const btn2 = document.getElementById('mobileShootBtn2');
 
-        if(playerData.mobileControls && state !== 'STARTUP') {
+        const menuStates = ['SHOP', 'STATS', 'ACHIEVEMENTS', 'LEADERBOARD', 'CHALLENGES', 'HIGHSCORE_INPUT', 'STARTUP'];
+        if(playerData.mobileControls && !menuStates.includes(state)) {
             btn.style.display = 'block';
             if (isSplitscreen && btn2) btn2.style.display = 'block';
             else if (btn2) btn2.style.display = 'none';
@@ -1468,46 +2349,6 @@
         }
     }
 
-    function checkOrientation() {
-        if (!playerData.mobileControls) return;
-        const overlay = document.getElementById('orientation-overlay');
-        const fsBtn = document.getElementById('btn-force-fullscreen');
-
-        if (window.innerHeight > window.innerWidth) {
-            overlay.style.display = 'flex';
-            fsBtn.style.display = 'none';
-        } else {
-            overlay.style.display = 'none';
-            checkFullscreenState();
-        }
-    }
-
-    function checkFullscreenState() {
-        if (!playerData.mobileControls) return;
-        const fsBtn = document.getElementById('btn-force-fullscreen');
-        const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-
-        if (!isFS) {
-            fsBtn.style.display = 'flex';
-        } else {
-            fsBtn.style.display = 'none';
-        }
-    }
-
-    window.forceFullscreen = function() {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(e => console.log(e));
-        } else if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-        }
-        checkFullscreenState();
-    }
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    document.addEventListener('fullscreenchange', checkFullscreenState);
-    document.addEventListener('webkitfullscreenchange', checkFullscreenState);
     window.addEventListener("gamepadconnected", populateInputSelects);
     window.addEventListener("gamepaddisconnected", populateInputSelects);
 
@@ -1523,14 +2364,9 @@
             if (fsPromise && fsPromise.catch) {
                 fsPromise.catch(e => {
                     console.log("Fullscreen failed or rejected:", e);
-                    checkFullscreenState(); // Show fallback button if failed
                 });
             }
 
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(e => console.log(e));
-            }
-            setTimeout(checkOrientation, 500);
         }
 
         saveData();
@@ -1538,6 +2374,15 @@
         saveContext(game1);
     }
     function checkStartup() {
+        // Safety: Ensure resolution variables are defined
+        if (typeof window.RESOLUTION_SCALE === 'undefined') {
+            window.RESOLUTION_SCALE = 1;
+            window.LOGICAL_WIDTH = 1066;
+            window.LOGICAL_HEIGHT = 600;
+            // Try to force resize calculation if possible
+            if (typeof resizeGame === 'function') resizeGame();
+        }
+
         if(!playerData.platformChosen) {
             state = 'STARTUP';
             document.getElementById('startup-ui').style.display = 'flex';
@@ -1550,10 +2395,20 @@
     function startGame() {
         state = 'IDLE';
         document.getElementById('startup-ui').style.display = 'none';
+        // Force hide High Score UI and other modals to be safe
+        document.getElementById('highScoreUI').style.display = 'none';
+        window.closeAllMenus(); // Ensures all other modals are closed and state is reset
+
         document.getElementById('scorebug-container').style.display = 'flex';
         document.getElementById('controls').style.display = 'flex';
         updateUI();
         updateMobileControlsUI();
+        // Double safety check for High Score UI persistence
+        setTimeout(() => {
+            if(state === 'IDLE') {
+                document.getElementById('highScoreUI').style.display = 'none';
+            }
+        }, 100);
     }
     function renderUpgradeControl(statName, containerId) {
         const active = playerData.stats[statName];
@@ -1591,6 +2446,22 @@
         if (lbl) lbl.innerText = active;
     }
 
+    window.toggleSkinVariant = function() {
+        if (!playerData.skinVariants) playerData.skinVariants = {};
+
+        const currentAnimal = ANIMALS[viewingAnimalIndex];
+        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
+        const skin = animalSkins[viewingSkinIndex];
+
+        if (!skin) return;
+
+        const currentVal = playerData.skinVariants[skin.id] || 0;
+        playerData.skinVariants[skin.id] = (currentVal === 0) ? 1 : 0;
+
+        saveData();
+        updateShopUI();
+    }
+
     window.updateShopUI = function() {
         document.getElementById('shopTacos').innerText = playerData.tacos;
 
@@ -1599,20 +2470,240 @@
         renderUpgradeControl('luck', 'ctrl_luck');
         renderUpgradeControl('moonwalk', 'ctrl_moonwalk');
         renderUpgradeControl('extraLives', 'ctrl_extraLives');
+        renderUpgradeControl('catNip', 'ctrl_catNip');
 
         // Skin UI
         const currentAnimal = ANIMALS[viewingAnimalIndex];
-        const animalSkins = SKINS_DB.filter(s => s.animal === currentAnimal);
-        const skin = animalSkins[viewingSkinIndex];
+        const groups = getSkinGroups(currentAnimal);
+        // Safety check if index out of bounds (e.g. after changing animal filter)
+        if (viewingSkinIndex >= groups.length) viewingSkinIndex = 0;
+
+        const group = groups[viewingSkinIndex];
+        if (viewingVariantIndex >= group.length) viewingVariantIndex = 0;
+        const skin = group[viewingVariantIndex];
+
+        // Customization UI Logic
+        const customControls = document.getElementById('customizationControls');
+        if (skin.id === 'human_custom') {
+            customControls.style.display = 'block';
+
+            if(!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+
+            document.getElementById('sldCustomHeight').value = playerData.customSkinSettings.height;
+            document.getElementById('lblCustomHeight').innerText = Math.round(playerData.customSkinSettings.height * 100) + "%";
+
+            document.getElementById('sldCustomWidth').value = playerData.customSkinSettings.width;
+            document.getElementById('lblCustomWidth').innerText = Math.round(playerData.customSkinSettings.width * 100) + "%";
+
+            document.getElementById('sldCustomSkinTone').value = playerData.customSkinSettings.skinToneIndex;
+            const color = SKIN_TONES[playerData.customSkinSettings.skinToneIndex];
+            document.getElementById('previewSkinTone').style.background = color;
+        } else {
+            customControls.style.display = 'none';
+        }
+
+        // Global Hair Controls (Outside if block)
+        if (typeof playerData.customHairColorIndex === 'undefined') playerData.customHairColorIndex = 0;
+        document.getElementById('sldCustomHairColor').value = playerData.customHairColorIndex;
+        const hairColor = HAIR_COLORS[playerData.customHairColorIndex];
+        document.getElementById('previewHairColor').style.background = hairColor;
+
+        if (typeof playerData.customHairLength === 'undefined') playerData.customHairLength = 1.0;
+        document.getElementById('sldCustomHairSize').value = playerData.customHairLength;
+        document.getElementById('lblCustomHairSize').innerText = Math.round(playerData.customHairLength * 100) + "%";
+
         document.getElementById('animalName').innerText = currentAnimal.toUpperCase();
         document.getElementById('skinName').innerText = skin.name;
         const btn = document.getElementById('btnEquipSkin');
         const status = document.getElementById('skinStatus');
+
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
         const isEquipped = playerData.currentSkin === skin.id;
+
         if (isEquipped) { status.innerText = "Équipé"; btn.style.display = 'none'; }
         else if (isUnlocked) { status.innerText = "Possédé"; btn.style.display = 'inline-block'; btn.innerText = "Équiper"; btn.disabled = false; }
         else { status.innerText = `Coût: ${skin.cost} Tacos`; btn.style.display = 'inline-block'; btn.innerText = "Acheter"; btn.disabled = playerData.tacos < skin.cost; }
+
+        // Variant Button (Cycle Skins)
+        let btnVar = document.getElementById('btnToggleVariant');
+        if (!btnVar) {
+            btnVar = document.createElement('button');
+            btnVar.id = 'btnToggleVariant';
+            btnVar.className = 'btn';
+            btnVar.style.width = '100%';
+            btnVar.style.marginTop = '5px';
+            btnVar.style.fontSize = '0.9em';
+            btnVar.style.background = '#444';
+            // Insert after equip button
+            btn.parentNode.insertBefore(btnVar, btn.nextSibling);
+        }
+
+        // Repurpose button for cycling skin variants
+        btnVar.onclick = window.cycleSkinVariant;
+
+        if (group.length > 1) {
+            btnVar.style.display = 'inline-block';
+            btnVar.innerText = `VERSION: ${viewingVariantIndex + 1} / ${group.length}`;
+            btnVar.style.background = '#0047AB'; // Blue for info/action
+        } else {
+            // Fallback for hair variants (Style 2) - KEEP legacy support if single skin has internal variant
+            if (skin.hairStyle2) {
+                btnVar.style.display = 'inline-block';
+                btnVar.onclick = window.toggleSkinVariant;
+                const isActive = (playerData.skinVariants && playerData.skinVariants[skin.id] === 1);
+                btnVar.innerText = isActive ? "COIFFURE: ALT" : "COIFFURE: ORIG";
+                btnVar.style.background = isActive ? '#4CAF50' : '#444';
+            } else {
+                btnVar.style.display = 'none';
+            }
+        }
+
+        // Hairstyle UI
+        if (typeof HAIRSTYLES !== 'undefined') {
+            const hair = HAIRSTYLES[viewingHairstyleIndex];
+            document.getElementById('hairName').innerText = hair.name;
+            const btnHair = document.getElementById('btnEquipHair');
+            const statusHair = document.getElementById('hairStatus');
+
+            if (!playerData.unlockedHairstyles) playerData.unlockedHairstyles = ['default'];
+            const isUnlockedHair = playerData.unlockedHairstyles.includes(hair.id);
+            const isEquippedHair = (playerData.customHairstyle === hair.id) || (hair.id === 'default' && (!playerData.customHairstyle || playerData.customHairstyle === 'default'));
+
+            if (isEquippedHair) {
+                statusHair.innerText = "Équipé";
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'none';
+            } else if (isUnlockedHair) {
+                statusHair.innerText = "Possédé";
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'inline-block';
+                btnHair.innerText = "Équiper";
+                btnHair.disabled = false;
+                btnHair.onclick = window.buyOrEquipHairstyle;
+            } else {
+                statusHair.innerText = `Coût: ${hair.cost} Tacos`;
+                statusHair.style.display = 'block';
+                btnHair.style.display = 'inline-block';
+                btnHair.innerText = "Acheter";
+                btnHair.disabled = playerData.tacos < hair.cost;
+                btnHair.onclick = window.buyOrEquipHairstyle;
+            }
+        }
+
+        // Clothing UI
+        const clothing = CLOTHING_DB[viewingClothingIndex];
+        document.getElementById('clothingName').innerText = clothing.name;
+        const btnClothing = document.getElementById('btnEquipClothing');
+        const statusClothing = document.getElementById('clothingStatus');
+        if(!playerData.unlockedClothing) playerData.unlockedClothing = ['clothes_none'];
+        const isUnlockedClothing = playerData.unlockedClothing.includes(clothing.id);
+        const isEquippedClothing = playerData.currentClothing === clothing.id;
+
+        if (isEquippedClothing) { statusClothing.innerText = "Équipé"; btnClothing.style.display = 'none'; }
+        else if (isUnlockedClothing) { statusClothing.innerText = "Possédé"; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Équiper"; btnClothing.disabled = false; }
+        else { statusClothing.innerText = `Coût: ${clothing.cost} Tacos`; btnClothing.style.display = 'inline-block'; btnClothing.innerText = "Acheter"; btnClothing.disabled = playerData.tacos < clothing.cost; }
+
+        // Pants UI
+        const pants = PANTS_DB[viewingPantsIndex];
+        document.getElementById('pantsName').innerText = pants.name;
+        const btnPants = document.getElementById('btnEquipPants');
+        const statusPants = document.getElementById('pantsStatus');
+        if(!playerData.unlockedPants) playerData.unlockedPants = ['pants_none'];
+        const isUnlockedPants = playerData.unlockedPants.includes(pants.id);
+        const isEquippedPants = playerData.currentPants === pants.id;
+
+        if (isEquippedPants) { statusPants.innerText = "Équipé"; btnPants.style.display = 'none'; }
+        else if (isUnlockedPants) { statusPants.innerText = "Possédé"; btnPants.style.display = 'inline-block'; btnPants.innerText = "Équiper"; btnPants.disabled = false; }
+        else { statusPants.innerText = `Coût: ${pants.cost} Tacos`; btnPants.style.display = 'inline-block'; btnPants.innerText = "Acheter"; btnPants.disabled = playerData.tacos < pants.cost; }
+
+        // Hat UI
+        const hat = HATS_DB[viewingHatIndex];
+        document.getElementById('hatName').innerText = hat.name;
+        const btnHat = document.getElementById('btnEquipHat');
+        const statusHat = document.getElementById('hatStatus');
+        if(!playerData.unlockedHats) playerData.unlockedHats = ['hat_none'];
+        const isUnlockedHat = playerData.unlockedHats.includes(hat.id);
+        const isEquippedHat = playerData.currentHat === hat.id;
+
+        if (isEquippedHat) { statusHat.innerText = "Équipé"; btnHat.style.display = 'none'; }
+        else if (isUnlockedHat) { statusHat.innerText = "Possédé"; btnHat.style.display = 'inline-block'; btnHat.innerText = "Équiper"; btnHat.disabled = false; }
+        else { statusHat.innerText = `Coût: ${hat.cost} Tacos`; btnHat.style.display = 'inline-block'; btnHat.innerText = "Acheter"; btnHat.disabled = playerData.tacos < hat.cost; }
+
+        // Shoes UI
+        const shoe = SHOES_DB[viewingShoeIndex];
+        document.getElementById('shoeName').innerText = shoe.name;
+        const btnShoe = document.getElementById('btnEquipShoe');
+        const statusShoe = document.getElementById('shoeStatus');
+        if(!playerData.unlockedShoes) playerData.unlockedShoes = ['shoe_none'];
+        const isUnlockedShoe = playerData.unlockedShoes.includes(shoe.id);
+        const isEquippedShoe = playerData.currentShoes === shoe.id;
+
+        if (isEquippedShoe) { statusShoe.innerText = "Équipé"; btnShoe.style.display = 'none'; }
+        else if (isUnlockedShoe) { statusShoe.innerText = "Possédé"; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Équiper"; btnShoe.disabled = false; }
+        else { statusShoe.innerText = `Coût: ${shoe.cost} Tacos`; btnShoe.style.display = 'inline-block'; btnShoe.innerText = "Acheter"; btnShoe.disabled = playerData.tacos < shoe.cost; }
+
+        // Cat Skin UI
+        const cat = CAT_SKINS_DB[viewingCatSkinIndex];
+        document.getElementById('catName').innerText = cat.name;
+        const btnCat = document.getElementById('btnEquipCat');
+        const statusCat = document.getElementById('catStatus');
+        if(!playerData.unlockedCatSkins) playerData.unlockedCatSkins = ['cat_default'];
+
+        const isUnlockedCat = playerData.unlockedCatSkins.includes(cat.id);
+        const isEquippedCat = playerData.currentCatSkin === cat.id;
+
+        if (isEquippedCat) { statusCat.innerText = "Équipé"; btnCat.style.display = 'none'; }
+        else if (isUnlockedCat) { statusCat.innerText = "Possédé"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Équiper"; btnCat.disabled = false; }
+        else { statusCat.innerText = "Débloquer via Évolution"; btnCat.style.display = 'inline-block'; btnCat.innerText = "Verrouillé"; btnCat.disabled = true; }
+
+        // Cat Stance & Size UI
+        const selStance = document.getElementById('selCatStance');
+        if (selStance && selStance.options.length <= 1) {
+            // Populate if empty (CAT_STANCES defined in data.js)
+            if (typeof CAT_STANCES !== 'undefined') {
+                for (const [key, val] of Object.entries(CAT_STANCES)) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    // Format name: 'sitting_chair' -> 'Sitting Chair'
+                    opt.textContent = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    selStance.appendChild(opt);
+                }
+            }
+        }
+        if (selStance) selStance.value = playerData.catStanceOverride || 'default';
+
+        const chkLock = document.getElementById('chkCatSizeLock');
+        const sldSize = document.getElementById('sldCatSize');
+        const lblSize = document.getElementById('lblCatSize');
+        const sizeCtrl = document.getElementById('catSizeControl');
+
+        if (chkLock) chkLock.checked = !!playerData.catSizeLocked;
+        if (sldSize) sldSize.value = playerData.catSizeValue || 1.0;
+        if (lblSize) lblSize.innerText = (playerData.catSizeValue || 1.0).toFixed(1) + "x";
+
+        if (sizeCtrl) {
+            if (playerData.catSizeLocked) {
+                sizeCtrl.style.opacity = '1.0';
+                sizeCtrl.style.pointerEvents = 'auto';
+            } else {
+                sizeCtrl.style.opacity = '0.5';
+                sizeCtrl.style.pointerEvents = 'none';
+            }
+        }
+
+        // Cat Accessory UI
+        const acc = CAT_ACCESSORIES_DB[viewingCatAccessoryIndex];
+        document.getElementById('catAccName').innerText = acc.name;
+        const btnAcc = document.getElementById('btnEquipCatAcc');
+        const statusAcc = document.getElementById('catAccStatus');
+        if(!playerData.unlockedCatAccessories) playerData.unlockedCatAccessories = ['acc_none'];
+
+        const isUnlockedAcc = playerData.unlockedCatAccessories.includes(acc.id);
+        const isEquippedAcc = playerData.currentCatAccessory === acc.id;
+
+        if (isEquippedAcc) { statusAcc.innerText = "Équipé"; btnAcc.style.display = 'none'; }
+        else if (isUnlockedAcc) { statusAcc.innerText = "Possédé"; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Équiper"; btnAcc.disabled = false; }
+        else { statusAcc.innerText = `Coût: ${acc.cost} Tacos`; btnAcc.style.display = 'inline-block'; btnAcc.innerText = "Acheter"; btnAcc.disabled = playerData.tacos < acc.cost; }
 
         // Ball UI
         const ball = BALLS_DB[viewingBallIndex];
@@ -1660,6 +2751,7 @@
     }
 
     window.toggleMode = function() {
+        window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         if(currentGameMode === 'CLASSIC') {
             currentGameMode = 'CONTEST';
@@ -1690,25 +2782,25 @@
 
     // --- GAME LOOP ---
     function drawStartupScene() {
-        // Dark Background
+        // Dark Background (Physical)
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Calculate positions for 2D Composition (Giant Cat + Hoop)
-        // We will mock project() returns manually or just draw directly using screen coordinates
-        // since we want a specific poster layout regardless of 3D camera.
+        ctx.save();
+        // Scale to Logical
+        ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
 
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const scale = 2.0; // Base scale
+        // Calculate positions for 2D Composition using LOGICAL units
+        const centerX = window.LOGICAL_WIDTH / 2;
+        const centerY = window.LOGICAL_HEIGHT / 2;
+        const scale = 2.0; // Base scale (Logical)
 
         // 1. Hoop (Right side of center)
         const hoopX = centerX + 150;
         const hoopY = centerY + 50;
         const hoopP = { x: hoopX, y: hoopY, scale: scale * 1.5 };
 
-        // Draw Hoop Manually (reuse drawHoop logic but simplified or just call it if it's robust)
-        // drawHoop depends on projection for the pole... let's mock it
+        // Draw Hoop Manually
         ctx.fillStyle = '#444'; ctx.fillRect(hoopX - 5, hoopY, 10, 300); // Pole
         // Backboard/Rim
         const bbW = 60 * hoopP.scale; const bbH = 40 * hoopP.scale; const bbX = hoopX - bbW/2; const bbY = hoopY - bbH - 10*hoopP.scale;
@@ -1729,11 +2821,25 @@
         // 3. Fire Ball (In the hoop)
         const ballP = { x: hoopX, y: hoopY + 20, scale: scale * 1.5 };
         drawBallSprite(ballP.x, ballP.y, ballP.scale, true, Date.now() / -500);
+
+        ctx.restore();
     }
 
-    function draw() {
+    function draw(alpha) {
         if (state === 'STARTUP') {
             drawStartupScene();
+            return;
+        }
+
+        if (state === 'EVOLVING') {
+            loadContext(game1);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT, alpha);
+            if (typeof drawEvolutionScreen === 'function') {
+                drawEvolutionScreen(evolutionData.timer, BASKET_CAT_EVO_DURATION);
+            }
+            ctx.restore();
             return;
         }
 
@@ -1742,9 +2848,6 @@
             const h = canvas.height;
             const halfW = w / 2;
 
-            // Clear full canvas first? drawBackground fills rect so maybe not needed, but safe.
-            // Actually drawBackground fills rect defined by args.
-
             // Draw P1 (Left)
             loadContext(game1);
             ctx.save();
@@ -1752,7 +2855,8 @@
             ctx.rect(0, 0, halfW, h);
             ctx.clip();
             // No translation needed for left side
-            drawBackground(0, 0, halfW, h);
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT, alpha);
             ctx.restore();
 
             // Draw P2 (Right)
@@ -1762,7 +2866,8 @@
             ctx.rect(halfW, 0, halfW, h);
             ctx.clip();
             ctx.translate(halfW, 0); // Move origin to middle
-            drawBackground(0, 0, halfW, h); // Draw as if at 0,0 with half width
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH / 2, window.LOGICAL_HEIGHT, alpha);
             ctx.restore();
 
             // Divider Line
@@ -1783,7 +2888,10 @@
 
         } else {
             loadContext(game1);
-            drawBackground(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(window.RESOLUTION_SCALE, window.RESOLUTION_SCALE);
+            drawBackground(0, 0, window.LOGICAL_WIDTH, window.LOGICAL_HEIGHT, alpha);
+            ctx.restore();
             drawBroadcastLowerThird();
         }
     }
@@ -1797,6 +2905,9 @@
              c.x += c.speed * dt;
              if(c.x > canvas.width + 200) c.x = -200;
         });
+        if (typeof boatSystem !== 'undefined') {
+            boatSystem.update(dt);
+        }
     }
 
     function loop(timestamp) {
@@ -1835,23 +2946,16 @@
             accumulator -= FIXED_STEP;
         }
 
-        draw();
+        const alpha = accumulator / FIXED_STEP;
+        draw(alpha);
     }
 
-    // --- GAMEPAD CONTROLLER ---
-        drawPlayerHUD(game1, w * 0.25, "PLAYER 1", "SPACE");
-        drawPlayerHUD(game2, w * 0.75, "PLAYER 2", "ENTER");
 
-        // Center Divider Line (Visual)
-        ctx.beginPath();
-        ctx.moveTo(w/2, 0);
-        ctx.lineTo(w/2, h);
-        ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.restore();
-    }
+    // Initial resize call
+    resizeGame();
+    checkStartup();
 
     // Start loop
     requestAnimationFrame(loop);
+
+// --- END game.js ---

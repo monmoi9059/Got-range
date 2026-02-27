@@ -55,6 +55,8 @@
             align-items: flex-start;
             pointer-events: none;
             z-index: 100;
+            transform-origin: top center;
+            transition: transform 0.2s;
         }
 
         .sb-panel {
@@ -120,7 +122,7 @@
         /* Controls (Bottom Overlay) */
         #controls {
             position: absolute;
-            bottom: 130px; /* Sits above the 120px canvas bar */
+            bottom: 70px;
             left: 0;
             width: 100%;
             text-align: center;
@@ -129,11 +131,13 @@
             display: flex;
             justify-content: center;
             gap: 10px;
+            transform-origin: bottom center;
+            transition: transform 0.2s;
         }
 
         .broadcast-btn {
-            background: rgba(10, 10, 10, 0.9);
-            border: 1px solid #444;
+            background: linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.98) 100%);
+            border: 1px solid #666;
             border-bottom: 3px solid var(--broadcast-accent);
             color: #fff;
             padding: 8px 30px;
@@ -144,7 +148,8 @@
             cursor: pointer;
             transition: all 0.2s;
             transform: skewX(-10deg);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+            text-shadow: 1px 1px 0 #000;
         }
 
         .broadcast-btn span {
@@ -153,12 +158,13 @@
         }
 
         .broadcast-btn:hover {
-            background: #333;
+            background: linear-gradient(180deg, rgba(50,50,50,0.95) 0%, rgba(30,30,30,0.98) 100%);
             border-color: #fff;
             border-bottom-color: #fff;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
         }
 
-        .broadcast-btn:active {
+        .broadcast-btn:active, .broadcast-btn.active-key {
             transform: skewX(-10deg) translateY(2px);
             box-shadow: none;
         }
@@ -180,17 +186,32 @@
             color: var(--broadcast-accent);
             background: #222;
         }
+        .broadcast-icon-btn:active, .broadcast-icon-btn.active-key {
+            transform: scale(0.95);
+            background: #444;
+        }
+
+        /* Audio Controls */
+        #audio-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 120;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
 
         /* Modals Remaster */
         .modal {
             display: none;
             position: absolute;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px;
+            right: 5%; /* Moved to right */
+            left: auto; /* Reset left */
+            transform: translateY(-50%); /* Only center vertically */
+            width: 400px; /* Reduced width to fit on side better */
             max-height: 85%;
-            overflow-y: auto;
             background: #111;
             border: 2px solid var(--broadcast-accent);
             padding: 0; /* Removing padding to use header fully */
@@ -199,15 +220,21 @@
             z-index: 100;
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
             border-radius: 0; /* Sharp corners */
+            flex-direction: column; /* Allow flex children */
+            overflow-y: auto; /* Ensure scroll if content overflows */
         }
 
         .modal-content-wrapper {
             padding: 25px;
+            overflow-y: auto; /* Scroll ONLY the content area */
+            flex-grow: 1; /* Take remaining height */
+            display: flex;
+            flex-direction: column;
         }
 
-        .modal::-webkit-scrollbar { width: 8px; }
-        .modal::-webkit-scrollbar-track { background: #222; }
-        .modal::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
+        .modal::-webkit-scrollbar, .lb-list::-webkit-scrollbar, .modal-content-wrapper::-webkit-scrollbar { width: 8px; }
+        .modal::-webkit-scrollbar-track, .lb-list::-webkit-scrollbar-track, .modal-content-wrapper::-webkit-scrollbar-track { background: #222; }
+        .modal::-webkit-scrollbar-thumb, .lb-list::-webkit-scrollbar-thumb, .modal-content-wrapper::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
 
         .modal-header {
             background: linear-gradient(90deg, #222, #111);
@@ -219,6 +246,7 @@
             border-bottom: 2px solid #333;
             margin: 0;
             text-align: center;
+            flex-shrink: 0; /* Don't shrink */
         }
 
         .upgrade-row {
@@ -305,14 +333,14 @@
 
         #notification {
             position: absolute;
-            bottom: 280px; /* Adjusted for new HUD */
+            bottom: 250px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.9);
-            border-left: 5px solid var(--broadcast-accent);
+            border-left: 4px solid var(--broadcast-accent);
             color: #fff;
-            padding: 15px 40px;
-            font-size: 1.4em;
+            padding: 10px 25px;
+            font-size: 1.0em;
             font-weight: bold;
             display: none;
             z-index: 200;
@@ -323,7 +351,7 @@
         }
         @keyframes slideUp {
             from { bottom: 200px; opacity: 0; }
-            to { bottom: 280px; opacity: 1; }
+            to { bottom: 250px; opacity: 1; }
         }
 
         /* Mobile Controls */
@@ -392,50 +420,6 @@
         .startup-btn:active { transform: translateY(5px); box-shadow: none; }
         .startup-btn:hover { background: #FFD700; color: #000; text-shadow: none; }
 
-        #orientation-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-        .rotate-icon {
-            font-size: 5em;
-            margin-bottom: 20px;
-            animation: rotatePhone 2s infinite ease-in-out;
-        }
-        @keyframes rotatePhone {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        #btn-force-fullscreen {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 50px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #FFD700;
-            border-radius: 8px;
-            color: #FFD700;
-            font-size: 30px;
-            display: none;
-            z-index: 99999;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
-            line-height: 50px;
-            text-align: center;
-        }
-
         .gamepad-focus {
             outline: 4px solid #FFD700 !important;
             box-shadow: 0 0 15px #FFD700 !important;
@@ -445,11 +429,11 @@
         }
 
         /* Leaderboard Styles */
-        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; }
+        .lb-tab-container { display: flex; justify-content: center; margin-bottom: 15px; gap: 10px; flex-shrink: 0; }
         .lb-tab { background: #333; color: #888; border: 1px solid #444; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-weight: bold; font-family: var(--broadcast-font-title); }
         .lb-tab.active { background: var(--broadcast-accent); color: #000; border-color: #FFF; }
 
-        .lb-list { height: 350px; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; }
+        .lb-list { flex-grow: 1; overflow-y: auto; background: #151515; border: 1px solid #333; padding: 10px; min-height: 200px; }
         .lb-list::-webkit-scrollbar { width: 8px; }
         .lb-list::-webkit-scrollbar-track { background: #222; }
         .lb-list::-webkit-scrollbar-thumb { background: var(--broadcast-accent); }
@@ -462,11 +446,222 @@
         .lb-score { color: #FFF; text-align: right; }
 
         /* High Score Input */
-        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+        .hs-input-container { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%; padding: 20px; overflow-y: auto; flex: 1; }
         .hs-input-display { background: #000; color: var(--broadcast-accent); border: 2px solid #555; font-size: 4em; width: 300px; text-align: center; letter-spacing: 10px; text-transform: uppercase; font-family: 'Courier New', monospace; margin: 10px 0 20px 0; padding: 10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; }
+        .keyboard-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; width: 100%; max-width: 600px; padding-bottom: 20px; }
         .key { background: #222; color: #FFF; border: 1px solid #444; font-size: 1.5em; padding: 15px 0; text-align: center; cursor: pointer; font-family: var(--broadcast-font-title); transition: all 0.1s; }
         .key.selected { background: var(--broadcast-accent); color: #000; border-color: #FFF; transform: scale(1.1); box-shadow: 0 0 15px var(--broadcast-accent); z-index: 10; }
         .key.action { background: #444; grid-column: span 2; }
         .key.action.confirm { background: #006400; grid-column: span 3; }
         .key.action.back { background: #8B0000; grid-column: span 2; }
+
+/* --- HUD OPTIMIZATION --- */
+
+/* Expandable Menu */
+.controls-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse; /* Menu button at bottom, items expand up */
+    align-items: center;
+    gap: 10px;
+    /* Ensure the menu doesn't overflow if too tall */
+    max-height: 80vh;
+}
+
+.controls-menu-toggle {
+    z-index: 21;
+    width: auto;
+    min-width: 120px;
+}
+
+.controls-menu-items {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+    animation: slideUpMenu 0.2s ease-out;
+}
+
+.controls-menu-items.open {
+    display: flex;
+}
+
+@keyframes slideUpMenu {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shop Tabs */
+.shop-tabs {
+    display: flex;
+    justify-content: space-around;
+    background: #111;
+    border-bottom: 2px solid #333;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.shop-tab-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 12px 5px;
+    font-family: var(--broadcast-font-title);
+    font-size: 1.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-grow: 1;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.shop-tab-btn:hover {
+    color: #fff;
+    background: #222;
+}
+
+.shop-tab-btn.active {
+    color: var(--broadcast-accent);
+    border-bottom: 3px solid var(--broadcast-accent);
+    background: linear-gradient(to top, rgba(255, 215, 0, 0.1), transparent);
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.shop-section {
+    display: none;
+    animation: fadeInTab 0.3s ease-out;
+    padding: 0 10px;
+    overflow-y: auto; /* Allow scrolling within tab content if needed */
+    max-height: 100%;
+}
+
+.shop-section.active {
+    display: block;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Modal Close Button (Top-Right X) */
+.modal-close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 35px;
+    height: 35px;
+    background: transparent;
+    border: none;
+    color: var(--broadcast-accent);
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 101;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    color: #fff;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+/* Challenge UI Styles */
+.challenge-row {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.challenge-progress-bg {
+    background: #000;
+    height: 10px;
+    width: 100%;
+    border: 1px solid #555;
+    margin: 5px 0;
+}
+
+.challenge-progress-bar {
+    background: #00FF00;
+    height: 100%;
+    transition: width 0.5s;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 255, 0, 0.7); }
+    50% { transform: scale(1.05); box-shadow: 0 0 10px rgba(0, 255, 0, 0.7); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 255, 0, 0.7); }
+}
+
+/* --- PORTRAIT / MOBILE OPTIMIZATIONS --- */
+@media (max-aspect-ratio: 13/9) {
+    /* Scale down HUD elements */
+    #scorebug-container {
+        transform: scale(0.8);
+        width: 125%; /* Compensate for scale to keep full width: 100/0.8 = 125% */
+        left: -12.5%; /* Center it: (125-100)/2 = 12.5% */
+        top: 10px;
+    }
+
+    #controls {
+        transform: scale(0.8);
+        width: 125%;
+        left: -12.5%;
+        bottom: 40px; /* Bring it lower */
+    }
+
+    /* Move Audio Controls to Top-Right to avoid overlap with Menu */
+    #audio-controls {
+        top: 80px; /* Below scorebug */
+        right: 10px;
+        bottom: auto; /* Unset bottom */
+        flex-direction: column; /* Stack vertically to save horizontal space? Or keep horizontal */
+        gap: 10px;
+    }
+
+    /* Adjust Mobile Shoot Button */
+    .mobile-shoot-btn {
+        bottom: 15%; /* Lower down */
+        right: 20px;
+        width: 80px; /* Smaller */
+        height: 80px;
+    }
+
+    /* Full-Screen Menus */
+    .modal {
+        width: 95% !important;
+        height: 90% !important;
+        max-height: 90% !important;
+        top: 5% !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        overflow-y: auto !important;
+    }
+
+    /* Only enforce flex layout when the modal is actually visible */
+    .modal[style*="display: block"] {
+        display: flex !important;
+    }
+
+    /* Optimization for Leaderboard & Lists */
+    .modal-content-wrapper {
+        padding: 15px; /* Less padding */
+    }
+
+    /* Leaderboard list expansion handled by flex-grow above */
+
+    /* Make buttons bigger/easier to tap inside lists if needed, or adjust font */
+    .lb-row {
+        padding: 10px; /* Slightly more touch padding */
+        font-size: 1.0em; /* Slightly smaller font to fit width */
+    }
+}
