@@ -4254,6 +4254,405 @@ let lastDisplayedContestTime = -1;
 
 // --- END main.js ---
 
+// --- START hair_logic.js ---
+// --- HAIR CREATOR LOGIC ---
+// Encapsulated logic for the hair creation UI
+
+var HairEditor = {
+    canvas: null,
+    ctx: null,
+    resolution: 32, // Pixel art resolution (32x32 grid)
+    scale: 1,
+    isDrawing: false,
+    view: 'back', // 'back' (hair) or 'front' (beard)
+    pixels: {
+        back: [], // Array of {x, y, color}
+        front: []
+    },
+    brushSize: 1,
+    brushColor: '#000000',
+    brushAlpha: 1.0,
+    isEraser: false,
+    history: [], // For undo
+
+    init: function() {
+        this.canvas = document.getElementById('hairEditorCanvas');
+        if (!this.canvas) return; // UI not loaded yet
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+
+        // Setup initial empty grid
+        this.clearData();
+
+        // Bind Events
+        this.canvas.addEventListener('mousedown', this.startDraw.bind(this));
+        this.canvas.addEventListener('mousemove', this.draw.bind(this));
+        this.canvas.addEventListener('mouseup', this.endDraw.bind(this));
+        this.canvas.addEventListener('mouseleave', this.endDraw.bind(this));
+
+        // Touch events
+        this.canvas.addEventListener('touchstart', (e) => { e.preventDefault(); this.startDraw(e.touches[0]); });
+        this.canvas.addEventListener('touchmove', (e) => { e.preventDefault(); this.draw(e.touches[0]); });
+        this.canvas.addEventListener('touchend', (e) => { e.preventDefault(); this.endDraw(); });
+
+        // Setup Colors
+        this.renderPalette();
+        this.renderCanvas();
+    },
+
+    clearData: function() {
+        this.pixels = { back: [], front: [] };
+        this.history = [];
+    },
+
+    setView: function(v) {
+        this.view = v;
+        // Update UI buttons
+        document.getElementById('btnHairViewBack').style.background = (v === 'back') ? '#444' : '#222';
+        document.getElementById('btnHairViewFront').style.background = (v === 'front') ? '#444' : '#222';
+        this.renderCanvas();
+    },
+
+    renderPalette: function() {
+        const container = document.getElementById('hairColorPalette');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Common hair colors
+        const colors = [
+            '#000000', '#1a1a1a', '#333333', // Blacks/Greys
+            '#5c3a21', '#4a3020', '#3e271a', // Dark Browns
+            '#6B4423', '#8B4513', '#A0522D', // Med Browns
+            '#dcb98a', '#e3c179', '#f0d5be', // Blondes
+            '#8B0000', '#A52A2A', '#CD5C5C', // Reds/Gingers
+            '#C0C0C0', '#FFFFFF', // Grey/White
+            '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF', '#00FFFF' // Fun
+        ];
+
+        colors.forEach(c => {
+            const div = document.createElement('div');
+            div.style.width = '20px';
+            div.style.height = '20px';
+            div.style.backgroundColor = c;
+            div.style.border = '1px solid #555';
+            div.style.cursor = 'pointer';
+            div.onclick = () => {
+                this.brushColor = c;
+                this.isEraser = false;
+                this.updateUI();
+            };
+            container.appendChild(div);
+        });
+    },
+
+    updateUI: function() {
+        const eraserBtn = document.getElementById('btnEraser');
+        if (eraserBtn) {
+            eraserBtn.innerText = this.isEraser ? "GOMME: ON" : "GOMME: OFF";
+            eraserBtn.style.background = this.isEraser ? "#8B0000" : "#444";
+        }
+    },
+
+    getMousePos: function(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    },
+
+    startDraw: function(e) {
+        this.isDrawing = true;
+        this.saveHistory(); // Save state before stroke
+        this.draw(e);
+    },
+
+    draw: function(e) {
+        if (!this.isDrawing) return;
+
+        const pos = this.getMousePos(e);
+
+        // Map to grid
+        // Canvas is 300x300, Grid is 32x32
+        const cellSize = this.canvas.width / this.resolution;
+        const gx = Math.floor(pos.x / cellSize);
+        const gy = Math.floor(pos.y / cellSize);
+
+        // Brush Size application
+        const r = Math.floor(this.brushSize / 2);
+
+        for (let x = -r; x <= r; x++) {
+            for (let y = -r; y <= r; y++) {
+                const tx = gx + x;
+                const ty = gy + y;
+
+                if (tx >= 0 && tx < this.resolution && ty >= 0 && ty < this.resolution) {
+                    // Check circular brush
+                    if (x*x + y*y <= r*r + 1) {
+                         this.setPixel(tx, ty);
+                    }
+                }
+            }
+        }
+
+        this.renderCanvas();
+    },
+
+    endDraw: function() {
+        this.isDrawing = false;
+    },
+
+    setPixel: function(x, y) {
+        const list = this.pixels[this.view];
+
+        // Remove existing pixel at this location
+        const existingIdx = list.findIndex(p => p.x === x && p.y === y);
+
+        if (this.isEraser) {
+            if (existingIdx !== -1) list.splice(existingIdx, 1);
+        } else {
+            const pixelData = {
+                x: x,
+                y: y,
+                color: this.brushColor,
+                alpha: this.brushAlpha // Future support for transparency
+            };
+
+            if (existingIdx !== -1) {
+                list[existingIdx] = pixelData;
+            } else {
+                list.push(pixelData);
+            }
+        }
+    },
+
+    saveHistory: function() {
+        // Deep copy pixels
+        const snapshot = JSON.stringify(this.pixels);
+        this.history.push(snapshot);
+        if (this.history.length > 10) this.history.shift(); // Max 10 steps
+    },
+
+    undo: function() {
+        if (this.history.length > 0) {
+            const prev = this.history.pop();
+            this.pixels = JSON.parse(prev);
+            this.renderCanvas();
+        }
+    },
+
+    clearLayer: function() {
+        this.saveHistory();
+        this.pixels[this.view] = [];
+        this.renderCanvas();
+    },
+
+    renderCanvas: function() {
+        if (!this.ctx) return;
+
+        // Clear
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Grid Background (Checkers)
+        const cellSize = this.canvas.width / this.resolution;
+
+        for(let x=0; x<this.resolution; x++) {
+            for(let y=0; y<this.resolution; y++) {
+                this.ctx.fillStyle = ((x+y)%2 === 0) ? '#ddd' : '#fff';
+                this.ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+            }
+        }
+
+        // Draw Head Template (Guide)
+        this.drawHeadTemplate(cellSize);
+
+        // Draw Pixels
+        const drawList = (list) => {
+            list.forEach(p => {
+                this.ctx.fillStyle = p.color;
+                // Add slight alpha if configured
+                // this.ctx.globalAlpha = p.alpha || 1.0;
+                this.ctx.fillRect(p.x * cellSize, p.y * cellSize, cellSize, cellSize);
+            });
+        };
+
+        // If viewing back, draw front dimmed behind? Or just current view?
+        // Let's draw current view.
+        drawList(this.pixels[this.view]);
+
+        // Draw Grid Lines
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        for(let i=0; i<=this.resolution; i++) {
+            this.ctx.moveTo(i*cellSize, 0); this.ctx.lineTo(i*cellSize, this.canvas.height);
+            this.ctx.moveTo(0, i*cellSize); this.ctx.lineTo(this.canvas.width, i*cellSize);
+        }
+        this.ctx.stroke();
+    },
+
+    drawHeadTemplate: function(s) {
+        // Draw a guide head
+        // Head is roughly centered, radius ~12 units (if 32x32)
+        const cx = this.resolution / 2;
+        const cy = this.resolution / 2;
+        const r = this.resolution * 0.35;
+
+        this.ctx.save();
+        this.ctx.scale(s, s);
+
+        this.ctx.fillStyle = 'rgba(139, 69, 19, 0.3)'; // Semi-transparent skin
+        this.ctx.beginPath();
+
+        if (this.view === 'back') {
+            // Circle + Neck
+            this.ctx.arc(cx, cy, r, 0, Math.PI*2);
+            this.ctx.rect(cx - r*0.4, cy + r*0.8, r*0.8, r*0.5);
+            this.ctx.fill();
+            // Ears hint
+            this.ctx.fillStyle = 'rgba(139, 69, 19, 0.2)';
+            this.ctx.beginPath(); this.ctx.ellipse(cx - r, cy, r*0.3, r*0.5, 0, 0, Math.PI*2); this.ctx.fill();
+            this.ctx.beginPath(); this.ctx.ellipse(cx + r, cy, r*0.3, r*0.5, 0, 0, Math.PI*2); this.ctx.fill();
+        } else {
+            // Front Face (Beard guide)
+            this.ctx.arc(cx, cy, r, 0, Math.PI*2);
+            this.ctx.fill();
+            // Mouth area hint
+            this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            this.ctx.beginPath(); this.ctx.arc(cx, cy + r*0.4, r*0.3, 0, Math.PI*2); this.ctx.fill();
+        }
+
+        this.ctx.restore();
+    },
+
+    export: function() {
+        return {
+            id: 'custom_' + Date.now(),
+            name: 'Custom ' + (playerData.customHairstyles ? playerData.customHairstyles.length + 1 : 1),
+            blobs: {
+                back: this.compress(this.pixels.back),
+                front: this.compress(this.pixels.front)
+            },
+            resolution: this.resolution
+        };
+    },
+
+    // Convert pixels to simplified rectangles/blobs for rendering
+    compress: function(pixelList) {
+        // Optimization: Just return the pixel list for now.
+        // A smarter compressor would merge adjacent same-colored pixels.
+        return pixelList;
+    },
+
+    load: function(data) {
+        if (data && data.blobs) {
+            this.pixels.back = data.blobs.back || [];
+            this.pixels.front = data.blobs.front || [];
+            this.renderCanvas();
+        }
+    }
+};
+
+// --- GLOBAL BINDINGS ---
+window.openHairCreator = function() {
+    if (typeof closeShop === 'function') closeShop(); // Close other menus
+    if (state !== 'IDLE' && state !== 'SHOP' && state !== 'GAMEOVER') return; // Safety
+
+    document.getElementById('hairCreatorUI').style.display = 'block';
+
+    // Init Editor
+    HairEditor.init();
+};
+
+window.closeHairCreator = function() {
+    document.getElementById('hairCreatorUI').style.display = 'none';
+    if(state === 'SHOP') window.openShop(true); // Return to shop if that's where we came from? Or just idle.
+};
+
+window.setHairEditorView = function(view) {
+    HairEditor.setView(view);
+};
+
+window.updateBrushSize = function() {
+    const val = parseInt(document.getElementById('brushSizeSlider').value);
+    HairEditor.brushSize = val;
+    document.getElementById('brushSizeVal').innerText = val;
+};
+
+window.updateBrushAlpha = function() {
+    const val = parseInt(document.getElementById('brushAlphaSlider').value);
+    HairEditor.brushAlpha = val / 100;
+    document.getElementById('brushAlphaVal').innerText = val + "%";
+};
+
+window.toggleEraser = function() {
+    HairEditor.isEraser = !HairEditor.isEraser;
+    HairEditor.updateUI();
+};
+
+window.clearHairLayer = function() {
+    HairEditor.clearLayer();
+};
+
+window.undoHairStroke = function() {
+    HairEditor.undo();
+};
+
+window.saveCustomHair = function() {
+    const slot = parseInt(document.getElementById('hairSaveSlot').value);
+    const data = HairEditor.export();
+
+    if (!playerData.customHairstyles) playerData.customHairstyles = [];
+
+    // Replace or Add
+    // Actually we store by ID, but we want slots for UI simplicity
+    // Let's just store up to 5 custom styles in the array
+    if (playerData.customHairstyles[slot]) {
+        playerData.customHairstyles[slot] = data;
+    } else {
+        playerData.customHairstyles[slot] = data;
+    }
+
+    // Register as unlockable/selectable
+    // Add to HAIRSTYLES global DB dynamically?
+    // No, renderer handles custom data from playerData.
+
+    // Auto-equip
+    playerData.customHairstyle = data.id;
+
+    saveData();
+    window.closeHairCreator();
+
+    // Show notification
+    showNotification("COIFFURE SAUVEGARDÉE !", 0);
+
+    // Update shop UI if open
+    if(typeof updateShopUI === 'function') updateShopUI();
+};
+
+// --- RENDERER HELPER FOR CUSTOM HAIR ---
+// This function is called by the main renderer to draw the pixel data
+function drawCustomBlobs(ctx, p, headY, headRadius, s, pixelList) {
+    if (!pixelList || pixelList.length === 0) return;
+
+    // Grid scaling
+    // Resolution 32 pixels covers approx 2.5 * headRadius width
+    const gridScale = (headRadius * 2.8) / 32;
+    const offsetX = p.x - (16 * gridScale);
+    const offsetY = headY - (16 * gridScale);
+
+    pixelList.forEach(px => {
+        ctx.fillStyle = px.color;
+        // ctx.globalAlpha = px.alpha || 1.0;
+        // Draw slightly larger to avoid gaps
+        ctx.fillRect(offsetX + px.x * gridScale, offsetY + px.y * gridScale, gridScale * 1.05, gridScale * 1.05);
+    });
+    // ctx.globalAlpha = 1.0;
+}
+
+// --- END hair_logic.js ---
+
 // --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
 
@@ -9696,6 +10095,45 @@ var BallRenderer = {
         const seedStr = (skinObj.id || 'default') + (style || '');
         for(let i=0; i<seedStr.length; i++) seed = (seed + seedStr.charCodeAt(i)) % 10000;
 
+        // Helper: Random with seed
+        const seededRandom = (s) => {
+            var x = Math.sin(s) * 10000;
+            return x - Math.floor(x);
+        };
+
+        // Helper: Adjust color brightness
+        const adjustColor = (color, amount) => {
+            let usePound = false;
+            if (color[0] == "#") {
+                color = color.slice(1);
+                usePound = true;
+            }
+            let num = parseInt(color, 16);
+            let r = (num >> 16) + amount;
+            let b = ((num >> 8) & 0x00FF) + amount;
+            let g = (num & 0x0000FF) + amount;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+        };
+
+        // --- CUSTOM HAIR (Pixel Art from Creator) ---
+        if (style.startsWith('custom_')) {
+            // Find in playerData
+            if (playerData.customHairstyles) {
+                const customData = playerData.customHairstyles.find(h => h && h.id === style);
+                if (customData) {
+                    if (customData.blobs && customData.blobs.back) {
+                        drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
+                    }
+                    return;
+                }
+            }
+            // Fallback
+            style = 'buzz_cut';
+        }
+
         // --- HELPER: SOLID BASE ---
         const drawSolidLayeredBase = (radiusMod, lengthMod, color, isBack = false, neckType = 'natural') => {
             const r = modRadius * radiusMod;
@@ -9717,17 +10155,6 @@ var BallRenderer = {
             ctx.lineTo(p.x - r, headY - 2*s);
             ctx.fill();
         };
-
-        // --- 0. CUSTOM ---
-        if (style.startsWith('custom_')) {
-             if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
-                 if (customData && customData.blobs && customData.blobs.back) {
-                     drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
-                 }
-             }
-             return;
-        }
 
         // --- 1. BALD / STUBBLE ---
         if (style === 'bald_clean') {
@@ -9753,12 +10180,17 @@ var BallRenderer = {
              ctx.globalAlpha = 0.4;
              ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius, 0, Math.PI*2); ctx.fill();
              ctx.globalAlpha = 1.0;
-             // Stipple dots
+             // Stipple dots (Fixed seed for stability)
              ctx.fillStyle = adjustColor(hairColor, -20);
+             const stubbleSeed = 12345;
              for(let i=0; i<30; i++) {
-                 const angle = seededRandom(seed + i) * Math.PI * 2;
-                 const r = seededRandom(seed + i + 100) * headRadius * 0.9;
-                 ctx.fillRect(p.x + Math.cos(angle)*r, headY - 2*s + Math.sin(angle)*r, 1.5*s, 1.5*s);
+                 // Simple Pseudo Random
+                 const r1 = Math.abs(Math.sin(stubbleSeed + i)) * Math.PI * 2;
+                 const r2 = Math.abs(Math.cos(stubbleSeed + i * 1.5)) * headRadius * 0.9;
+
+                 const angle = r1;
+                 const dist = r2;
+                 ctx.fillRect(p.x + Math.cos(angle)*dist, headY - 2*s + Math.sin(angle)*dist, 1.5*s, 1.5*s);
              }
              return;
         }
@@ -9786,16 +10218,20 @@ var BallRenderer = {
 
                  ctx.fillStyle = spotColor;
                  const numSpots = 5;
+                 const spotSeed = 54321; // Fixed
                  for(let i=0; i<numSpots; i++) {
                      // Spread points on surface
-                     const angle = (seededRandom(seed + i * 13) * Math.PI) - Math.PI/2;
-                     const dist = (seededRandom(seed + i * 7)) * modRadius * 0.8;
+                     const r1 = Math.abs(Math.sin(spotSeed + i * 13));
+                     const r2 = Math.abs(Math.cos(spotSeed + i * 7));
+
+                     const angle = (r1 * Math.PI) - Math.PI/2;
+                     const dist = r2 * modRadius * 0.8;
                      const sx = p.x + Math.sin(angle) * dist;
                      const sy = headY - 2*s - Math.cos(angle) * dist * 0.6;
 
                      // Irregular patches
                      ctx.beginPath();
-                     ctx.ellipse(sx, sy, 6*s, 4*s, seededRandom(seed+i)*3, 0, Math.PI*2);
+                     ctx.ellipse(sx, sy, 6*s, 4*s, r1*3, 0, Math.PI*2);
                      ctx.fill();
                  }
                  ctx.restore();
@@ -9825,7 +10261,11 @@ var BallRenderer = {
              if (style === 'curly_top_fade') topH = modRadius * 1.2;
 
              const topY = headY - topH;
-             ctx.fillStyle = hairColor;
+             const topGrad = ctx.createLinearGradient(p.x, topY, p.x, headY);
+             topGrad.addColorStop(0, adjustColor(hairColor, 30));
+             topGrad.addColorStop(1, hairColor);
+
+             ctx.fillStyle = topGrad;
              ctx.beginPath();
 
              if (style === 'fade_box') {
@@ -9841,905 +10281,279 @@ var BallRenderer = {
                  ctx.lineTo(p.x + w, headY + 2*s);
                  ctx.lineTo(p.x - w, headY + 2*s);
              } else if (style === 'fade_pompadour') {
-                 // Voluminous top (Luka) - Swept back
-                 ctx.moveTo(p.x - w, headY - 2*s);
-                 ctx.bezierCurveTo(p.x - w, topY, p.x + w, topY, p.x + w, headY - 2*s);
+                 // Forward swooping volume
+                 ctx.moveTo(p.x - w, headY - s);
+                 ctx.bezierCurveTo(p.x - w, topY - 5*s, p.x + w, topY - 5*s, p.x + w, headY - s);
+                 ctx.lineTo(p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
                  ctx.fill();
                  return; // Skip standard fill
              } else if (style === 'curly_top_fade') {
                  // Curly Top: Bumpy surface
-                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
-             } else if (style === 'fade_low') {
-                 // Low Fade: Rounded, shorter on sides, uniform top
-                 ctx.beginPath();
-                 ctx.ellipse(p.x, headY - 2*s, w, w * 0.8, 0, Math.PI, 0);
-                 ctx.lineTo(p.x + w, headY + s);
-                 ctx.lineTo(p.x - w, headY + s);
-             } else if (style === 'fade_retro') {
-                 // Retro 80s: Boxy but rounded corners (not sharp fade_box)
-                 ctx.moveTo(p.x - w*0.9, topY);
-                 ctx.lineTo(p.x + w*0.9, topY);
-                 ctx.quadraticCurveTo(p.x + w, headY, p.x + w, headY + 2*s);
+                 ctx.moveTo(p.x - w, headY - s);
+                 const bumps = 5;
+                 for(let i=0; i<=bumps; i++) {
+                     const a = Math.PI + (i/bumps)*Math.PI;
+                     const bx = p.x + Math.cos(a)*w;
+                     const by = headY + Math.sin(a)*topH;
+                     // Control point slightly higher/out
+                     const ca = Math.PI + ((i+0.5)/bumps)*Math.PI;
+                     const cx_c = p.x + Math.cos(ca)*(w*1.2);
+                     const cy_c = headY + Math.sin(ca)*(topH*1.2);
+                     if (i < bumps) ctx.quadraticCurveTo(cx_c, cy_c, p.x + Math.cos(a + Math.PI/bumps)*w, headY + Math.sin(a + Math.PI/bumps)*topH);
+                 }
+                 ctx.lineTo(p.x + w, headY + 2*s);
                  ctx.lineTo(p.x - w, headY + 2*s);
-                 ctx.quadraticCurveTo(p.x - w, headY, p.x - w*0.9, topY);
              } else {
-                 ctx.arc(p.x, headY - 2*s, w, Math.PI, 0);
-             }
-             ctx.fill();
-
-             // Curly Top Texture
-             if (style === 'curly_top_fade') {
-                 ctx.fillStyle = adjustColor(hairColor, 10);
-                 const dens = 10;
-                 for(let i=0; i<dens; i++) {
-                     const rx = (seededRandom(seed+i) - 0.5) * w * 1.5;
-                     const ry = (seededRandom(seed+i+20) - 0.5) * w * 0.8;
-                     ctx.beginPath(); ctx.arc(p.x + rx, headY - 4*s + ry, 3*s, 0, Math.PI*2); ctx.fill();
-                 }
-             }
-
-             // Texture details (Sponge Curls / Chef)
-             if (style === 'fade_chef') {
-                 // Dense, solid sponge texture - Overdraw the smooth top with a noisy edge
-                 ctx.fillStyle = hairColor;
-                 const spongeSteps = 24;
-                 const topCenterY = headY - 2*s;
-
-                 // Redraw top surface with bumpy edge
-                 ctx.beginPath();
-                 for(let i=0; i<=spongeSteps; i++) {
-                     const t = i/spongeSteps;
-                     const angle = Math.PI - (t * Math.PI); // Left to Right arc
-
-                     // Noise for sponge edge
-                     const noise = (seededRandom(seed + i * 13) - 0.5) * 4 * s;
-                     const r = w + noise * 0.5; // Slight radius var
-
-                     const px = p.x + Math.cos(angle) * r;
-                     const py = topCenterY - Math.sin(angle) * (topH*0.8) + noise; // Scaled height
-
-                     if (i===0) ctx.moveTo(px, py);
-                     else ctx.lineTo(px, py);
-                 }
-                 ctx.lineTo(p.x + w, headY);
-                 ctx.lineTo(p.x - w, headY);
-                 ctx.fill();
-
-                 // Internal Highlights (Pores)
-                 ctx.fillStyle = adjustColor(hairColor, 15);
-                 const poreDens = 25;
-                 for(let i=0; i<poreDens; i++) {
-                     const r = seededRandom(seed + i * 7) * w * 0.8;
-                     const a = seededRandom(seed + i * 3) * Math.PI - Math.PI/2;
-                     const tx = p.x + Math.cos(a) * r;
-                     const ty = topCenterY + Math.sin(a) * r * 0.5;
-
-                     if (ty < headY - 5*s) { // Keep away from fade line
-                         ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
-                     }
-                 }
-             }
-
-             return;
-        }
-
-        if (style === 'waves' || style === 'waves_360') {
-             drawSolidLayeredBase(1.01, 1*s, hairColor, false, 'shaved');
-             ctx.strokeStyle = adjustColor(hairColor, 20);
-             ctx.lineWidth = 2*s;
-             const numWaves = (style === 'waves_360') ? 5 : 3;
-             for(let i=0; i<numWaves; i++) {
-                 ctx.beginPath();
-                 ctx.arc(p.x, headY - 2*s, modRadius * (0.3 + i*(0.7/numWaves)), 0, Math.PI*2);
-                 ctx.stroke();
-             }
-             return;
-        }
-
-        if (style === 'buzz_line') {
-             drawSolidLayeredBase(1.02, 1*s, adjustColor(hairColor, -10), true, 'natural');
-             ctx.strokeStyle = '#333'; // Skin tone gap approx or dark line? usually skin exposed
-             // Draw line on side
-             ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x - modRadius*0.7, headY - 5*s);
-             ctx.lineTo(p.x - modRadius*0.9, headY + 5*s);
-             ctx.globalCompositeOperation = 'destination-out';
-             ctx.stroke();
-             ctx.globalCompositeOperation = 'source-over';
-             return;
-        }
-
-        if (style === 'caesar_cut') {
-             // Low cut with straight fringe
-             drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), true, 'square');
-             // Fringe
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 5*s, modRadius, Math.PI, 0);
-             ctx.lineTo(p.x + modRadius, headY);
-             ctx.lineTo(p.x - modRadius, headY);
-             ctx.fill();
-             return;
-        }
-
-        // --- 3. AFROS & CURLS ---
-        if (style.startsWith('afro_') || style === 'curls_textured') {
-             // Universal Afro logic with Shape differentiation
-             let sizeMult = 1.2;
-             // Base sizes (if no user override)
-             if (style === 'afro_classic') sizeMult = 1.4; // Medium-Large
-             if (style === 'afro_blowout') sizeMult = 1.6; // XL Wide
-             if (style === 'curls_textured') sizeMult = 1.15; // Tight
-             if (style === 'afro_taper') sizeMult = 1.25; // Tall but narrow bottom
-
-             // Apply Global or Skin-specific Scale override
-             if (skinObj.hairScale) sizeMult *= skinObj.hairScale;
-             if (skinObj.afroSize) sizeMult = skinObj.afroSize; // Legacy direct override
-
-             const r = modRadius * sizeMult;
-
-             // Shadow Halo
-             ctx.fillStyle = adjustColor(hairColor, -40);
-
-             // Shape Logic
-             if (style === 'afro_taper') {
-                 // High top, tapered sides (Trapezoid/Boxy)
-                 ctx.beginPath();
-                 ctx.moveTo(p.x - r*0.6, headY + 5*s); // Bottom left
-                 ctx.lineTo(p.x - r, headY - r*0.8); // Top left flare
-                 ctx.quadraticCurveTo(p.x, headY - r*1.2, p.x + r, headY - r*0.8); // Top dome
-                 ctx.lineTo(p.x + r*0.6, headY + 5*s); // Bottom right
-                 ctx.fill();
-             } else if (style === 'afro_blowout') {
-                 // Wide Oval
-                 ctx.beginPath(); ctx.ellipse(p.x, headY - 2*s, r*1.15, r*0.9, 0, 0, Math.PI*2); ctx.fill();
-             } else if (style === 'curls_textured') {
-                 // Tight Nappy Curls (KD/Tatum)
-                 // Use a full ellipse to ensure crown coverage
-                 ctx.beginPath();
-                 ctx.ellipse(p.x, headY - 2*s, r * 0.95, r * 0.95, 0, 0, Math.PI*2);
-                 ctx.fill();
-
-                 // Dense Noise Texture (Sponge effect)
-                 ctx.fillStyle = adjustColor(hairColor, 15);
-                 const dens = 40;
-                 const w = r * 0.95;
-                 const h = r * 0.95;
-
-                 for(let i=0; i<dens; i++) {
-                     // Random point inside circle
-                     const ang = seededRandom(seed + i) * Math.PI * 2;
-                     const rad = Math.sqrt(seededRandom(seed + i + 50)) * w * 0.9; // Bias outward slightly
-
-                     const tx = p.x + Math.cos(ang) * rad;
-                     const ty = (headY - 2*s) + Math.sin(ang) * rad * 0.9; // Flatten Y slightly
-
-                     ctx.beginPath(); ctx.arc(tx, ty, 1.5*s, 0, Math.PI*2); ctx.fill();
-                 }
-             } else {
-                 // Classic / Mini (Spherical)
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, r, 0, Math.PI*2); ctx.fill();
-             }
-
-             // Internal Texture (Noise for all types except textured which handles its own)
-             if (style !== 'curls_textured') {
-                 // Main Body Gradient
-                 const grad = ctx.createRadialGradient(p.x - r*0.3, headY - r*0.3, r*0.1, p.x, headY, r);
-                 grad.addColorStop(0, adjustColor(hairColor, 30));
-                 grad.addColorStop(0.6, hairColor);
-                 grad.addColorStop(1, adjustColor(hairColor, -30));
-                 ctx.fillStyle = grad;
-                 // Re-fill shape with gradient
-                 if (style === 'afro_blowout') { ctx.fill(); }
-                 else if (style === 'afro_taper') { ctx.fill(); }
-                 else { ctx.fill(); }
-
-                 // Detail Texture (No floating balls)
-                 ctx.fillStyle = adjustColor(hairColor, 15);
-                 const dens = 12;
-                 for(let i=0; i<dens; i++) {
-                     const rx = (seededRandom(seed + i) - 0.5) * r * 1.4;
-                     const ry = (seededRandom(seed + i + 50) - 0.5) * r * 0.8;
-                     // Clip to approx shape
-                     if ((rx*rx)/(r*r) + (ry*ry)/(r*r*0.6) < 0.8) {
-                         ctx.beginPath(); ctx.arc(p.x + rx, headY - 5*s + ry, 2.5*s, 0, Math.PI*2); ctx.fill();
-                     }
-                 }
-             }
-             return;
-        }
-
-        // --- 4. BRAIDS / CORNROWS ---
-        if (style.startsWith('cornrows_') || style === 'braids_box' || style === 'braids_zigzag') {
-             // Scalp Base
-             ctx.fillStyle = adjustColor(hairColor, -20);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-
-             const numRows = (style === 'cornrows_straight' || style === 'braids_zigzag') ? 9 : 7;
-             let rowW = 3.5 * s;
-             if (style === 'cornrows_braids') { rowW = 5 * s; }
-             if (style === 'braids_zigzag') { rowW = 3.5 * s; }
-             if (style === 'braids_box') { rowW = 6 * s; }
-
-             for(let i=0; i<numRows; i++) {
-                 // Spherical Distribution
-                 const t = (i / (numRows - 1)); // 0 to 1
-                 const angle = (t - 0.5) * 2.0; // -1 to 1 (Normalized angle)
-                 const theta = angle * 1.2; // Radians spread (approx -70 to 70 deg)
-
-                 // Start (Forehead/Top)
-                 // Curve start Y based on angle to simulate spherical hairline
-                 const sx = p.x + Math.sin(theta) * modRadius * 0.85;
-                 const sy = (headY - 2*s) - Math.cos(theta) * modRadius * 0.95;
-
-                 // End (Nape)
-                 // Pinch in slightly at neck
-                 const ex = p.x + Math.sin(theta) * modRadius * 0.6;
-                 const ey = (headY - 2*s) + modRadius * 0.9;
-
-                 // Control Points for spherical wrapping
-                 // Push out in X to simulate sphere volume
-                 const cpX = p.x + Math.sin(theta) * modRadius * 1.15;
-                 const cpY = (headY - 2*s); // Mid-height
-
-                 ctx.lineCap = 'round';
-                 const path = new Path2D();
-
-                 if (style === 'braids_box') {
-                     // Loose hanging braids (Travis/Asap)
-                     const hangX = p.x + Math.sin(theta) * modRadius * 1.1;
-                     const hangY = headY + 15*s;
-                     path.moveTo(sx, sy);
-                     // Messy dangle
-                     const r1 = (seededRandom(seed + i) - 0.5) * 10 * s;
-                     const r2 = (seededRandom(seed + i + 50) - 0.5) * 10 * s;
-                     path.bezierCurveTo(cpX + r1, cpY, hangX + r2, hangY - 10*s, hangX, hangY);
-                 } else if (style === 'braids_zigzag') {
-                     // Zig Zag Pattern (Cornrows style)
-                     path.moveTo(sx, sy);
-
-                     // Tighter control point to hug scalp
-                     const tightCpX = p.x + Math.sin(theta) * modRadius * 1.02;
-
-                     // Oscillate along the path
-                     const steps = 30; // Smoother
-                     const zigFreq = 10 * Math.PI; // Tighter frequency
-                     const zigAmp = 1.5 * s; // Reduced amplitude (less messy)
-
-                     for (let j = 1; j <= steps; j++) {
-                         const t = j / steps;
-                         // Quadratic Bezier Interpolation
-                         const invT = 1 - t;
-                         const bx = invT * invT * sx + 2 * invT * t * tightCpX + t * t * ex;
-                         const by = invT * invT * sy + 2 * invT * t * cpY + t * t * ey;
-
-                         // Zig Zag Offset
-                         // Alternating phase per row (i) to interlock
-                         const offset = Math.sin(t * zigFreq + (i * Math.PI)) * zigAmp;
-
-                         path.lineTo(bx + offset, by);
-                     }
-                 } else if (style === 'cornrows_braids') {
-                     // Thick Braids (Klaw) - Slightly looser/3D
-                     path.moveTo(sx, sy);
-                     path.quadraticCurveTo(cpX, cpY, ex, ey);
-                 } else {
-                     // Cornrows Straight (AI) - Tight to skull
-                     path.moveTo(sx, sy);
-                     path.quadraticCurveTo(cpX, cpY, ex, ey);
-                 }
-
-                 // Draw Shadow/Border
-                 ctx.strokeStyle = adjustColor(hairColor, -30);
-                 ctx.lineWidth = rowW + 1.5*s;
-                 ctx.stroke(path);
-
-                 // Draw Main Strand
-                 ctx.strokeStyle = hairColor;
-                 ctx.lineWidth = rowW;
-                 ctx.stroke(path);
-
-                 // Detail Pattern (Braided look)
-                 if (rowW > 3*s) {
-                     ctx.strokeStyle = adjustColor(hairColor, 20);
+                 // Standard High Top (Rounded box)
+                 ctx.moveTo(p.x - w, headY - s);
+                 ctx.quadraticCurveTo(p.x, topY, p.x + w, headY - s);
+                 ctx.lineTo(p.x + w, headY + 2*s);
+                 ctx.lineTo(p.x - w, headY + 2*s);
+                 // Add Texture Lines
+                 if (style === 'fade_chef') {
+                     // Curry texture
+                     ctx.fillStyle = hairColor;
+                     ctx.fill();
+                     ctx.strokeStyle = adjustColor(hairColor, -30);
                      ctx.lineWidth = 1*s;
-                     ctx.setLineDash([2*s, 2*s]);
-                     ctx.stroke(path);
-                     ctx.setLineDash([]);
+                     for(let k=0; k<5; k++) {
+                         ctx.beginPath();
+                         ctx.moveTo(p.x - w + k*4*s, topY + 2*s);
+                         ctx.quadraticCurveTo(p.x, topY - 2*s, p.x + w - k*4*s, topY + 2*s);
+                         ctx.stroke();
+                     }
+                     return;
                  }
              }
+             ctx.fill();
              return;
         }
 
-        // --- 5. DREADS ---
-        if (style.startsWith('dreads_')) {
-             if (style === 'dreads_tied') {
-                 // High Bun (Ja/Booker)
-                 drawSolidLayeredBase(1.0, 0, hairColor);
-                 // Bun
-                 ctx.fillStyle = adjustColor(hairColor, 10);
-                 ctx.beginPath(); ctx.arc(p.x, headY - modRadius, 10*s, 0, Math.PI*2); ctx.fill();
-                 // Tips
-                 ctx.strokeStyle = hairColor; ctx.lineWidth = 4*s;
-                 ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x - 15*s, headY - modRadius + 15*s); ctx.stroke();
-                 ctx.beginPath(); ctx.moveTo(p.x, headY - modRadius); ctx.lineTo(p.x + 15*s, headY - modRadius + 15*s); ctx.stroke();
-             } else if (style === 'dreads_short') {
-                 // Jimmy Butler / Short Dreads
-                 ctx.fillStyle = adjustColor(hairColor, -10);
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+        // --- 3. CURLS / AFROS / TEXTURE ---
+        if (style.includes('afro') || style.includes('curls') || style === 'shaggy_top') {
+             // Volumetric Cluster
+             const baseR = modRadius * (style === 'afro_mini' ? 1.1 : (style === 'afro_70s' ? 1.5 : 1.2));
+             const volumeY = (style === 'shaggy_top') ? headY - 5*s : headY - 5*s;
 
-                 const num = 12;
-                 const len = 10 * s;
-                 for(let i=0; i<num; i++) {
-                     const angle = (i/num)*Math.PI + Math.PI; // Top arc
-                     const sx = p.x + Math.cos(angle) * modRadius * 0.8;
-                     const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.8;
-                     ctx.strokeStyle = hairColor;
-                     ctx.lineWidth = 4*s;
-                     ctx.lineCap = 'round';
-                     ctx.beginPath();
-                     ctx.moveTo(sx, sy);
-                     const rx = (seededRandom(seed+i) - 0.5) * 5 * s;
-                     ctx.lineTo(sx + rx, sy + len);
-                     ctx.stroke();
-                 }
-             } else {
-                 // Loose (Long)
-                 ctx.fillStyle = adjustColor(hairColor, -20); // Base
-                 ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
+             // Base Sphere with Gradient
+             const grad = ctx.createRadialGradient(p.x - baseR*0.3, volumeY - baseR*0.3, baseR*0.2, p.x, volumeY, baseR);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(0.4, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -30));
 
-                 const num = 14;
-                 const len = 18 * s;
-                 for(let i=0; i<num; i++) {
-                     const t = i/(num-1);
-                     const angle = Math.PI * 0.8 + t * Math.PI * 1.4;
-                     const sx = p.x; const sy = headY - 10*s;
-
-                     ctx.strokeStyle = (i%2===0) ? hairColor : adjustColor(hairColor, -10);
-                     ctx.lineWidth = 5 * s;
-                     ctx.beginPath();
-                     ctx.moveTo(sx + Math.cos(angle)*10*s, sy + Math.sin(angle)*10*s);
-                     ctx.quadraticCurveTo(p.x + Math.cos(angle)*modRadius*1.5, headY + len*0.5, p.x + Math.cos(angle)*modRadius*1.2, headY + len);
-                     ctx.stroke();
-                 }
-             }
-             return;
-        }
-
-        // --- 6. LONG & LEGEND ---
-        if (style === 'mullet_80s') {
-             // Bird Style
-             const r = modRadius * 1.05;
-             const len = 18 * s;
-
-             // Back (Feathered)
-             ctx.fillStyle = adjustColor(hairColor, -10);
+             ctx.fillStyle = grad;
              ctx.beginPath();
-             ctx.moveTo(p.x - r, headY);
-             ctx.quadraticCurveTo(p.x - r*1.5, headY + len*0.5, p.x - r*0.8, headY + len);
-             ctx.lineTo(p.x + r*0.8, headY + len);
-             ctx.quadraticCurveTo(p.x + r*1.5, headY + len*0.5, p.x + r, headY);
+             ctx.arc(p.x, volumeY, baseR, 0, Math.PI*2);
              ctx.fill();
 
-             // Top (Short/Feathered)
-             drawSolidLayeredBase(1.0, 2*s, hairColor, false, 'natural');
-             return;
-        }
-
-        if (style === 'anchor_man_80s') {
-             // Ron Burgundy style: Voluminous, side-parted, thick back
-             const r = modRadius * 1.15; // Wide top
-             const len = 12 * s; // Moderate length, not full mullet
-
-             // Back/Sides (Thick block)
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.beginPath();
-             ctx.moveTo(p.x - r, headY - 5*s);
-             ctx.quadraticCurveTo(p.x - r*1.2, headY + len*0.5, p.x - r*0.9, headY + len);
-             ctx.lineTo(p.x + r*0.9, headY + len);
-             ctx.quadraticCurveTo(p.x + r*1.2, headY + len*0.5, p.x + r, headY - 5*s);
-             ctx.fill();
-
-             // Top (Voluminous Helmet)
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.moveTo(p.x - r, headY - 2*s);
-             // Big arc
-             ctx.bezierCurveTo(p.x - r, headY - modRadius*1.8, p.x + r, headY - modRadius*1.8, p.x + r, headY - 2*s);
-             // Bottom edge of hair cap
-             ctx.quadraticCurveTo(p.x, headY + 5*s, p.x - r, headY - 2*s);
-             ctx.fill();
-
-             // Parting line visual
+             // Texture: Loops or clumps
              ctx.strokeStyle = adjustColor(hairColor, -20);
-             ctx.lineWidth = 2*s;
-             ctx.beginPath(); ctx.moveTo(p.x - r*0.6, headY - modRadius*1.2); ctx.lineTo(p.x - r*0.4, headY); ctx.stroke();
-             return;
-        }
+             ctx.lineWidth = 1.5*s;
 
-        if (style === 'long_flow' || style === 'long_layered') {
-             // Dirk/Nash: Shaggy, layered, floppy
-             // Base Scalp (Darker)
-             ctx.fillStyle = adjustColor(hairColor, -20);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-
-             const len = 16 * s; // Shorter (Was 24)
-
-             // Draw Locks (Back to Front)
-             const numLocks = 32;
-             for(let i=0; i<numLocks; i++) {
-                 const t = i / numLocks; // 0 to 1
-                 const angle = (t - 0.5) * 4.0; // Spread around head (-2.0 to 2.0 rad)
-
-                 // Randomize slightly (Deterministic)
-                 const rLen = len + (seededRandom(seed + i) - 0.5) * 6 * s;
-                 const rAngle = angle + (seededRandom(seed + i + 50) - 0.5) * 0.2;
-                 const wavy = (seededRandom(seed + i + 100) - 0.5) * 8 * s;
-
-                 const sx = p.x + Math.sin(rAngle) * modRadius * 0.9;
-                 const sy = (headY - 5*s) - Math.cos(rAngle) * modRadius * 0.6;
-
-                 // Narrower bottom spread (Was modRadius + 15*s -> modRadius + 2*s)
-                 const ex = p.x + Math.sin(rAngle) * (modRadius + 2*s);
-                 const ey = headY + rLen;
-
-                 // Control point for waviness
-                 const cpX = sx + (ex - sx)*0.5 + wavy;
-                 const cpY = sy + (ey - sy)*0.5;
-
-                 // Draw Lock
-                 ctx.strokeStyle = (i % 3 === 0) ? adjustColor(hairColor, -15) : hairColor;
-                 ctx.lineWidth = 7 * s;
-                 ctx.lineCap = 'round';
-
-                 ctx.beginPath();
-                 ctx.moveTo(sx, sy);
-                 ctx.quadraticCurveTo(cpX, cpY, ex, ey);
-                 ctx.stroke();
-             }
-
-             // Top messy bit
-             for(let i=0; i<8; i++) {
-                 const angle = (i/8) * Math.PI * 2;
-                 const dist = (seededRandom(seed + i + 200)) * modRadius * 0.5;
-                 ctx.fillStyle = hairColor;
-                 ctx.beginPath();
-                 ctx.arc(p.x + Math.cos(angle)*dist, headY - modRadius*0.7 + Math.sin(angle)*dist, 6*s, 0, Math.PI*2);
-                 ctx.fill();
-             }
-             return;
-        }
-
-        if (style === 'slicked_back' || style === 'slick_side_part' || style === 'ivy_league' || style === 'undercut_slick') {
-             // The Anchor / Riley / Gentleman / Ivy / Undercut
-             const isUndercut = (style === 'undercut_slick');
-             const sideLen = isUndercut ? 0 : 4*s;
-             const sideType = isUndercut ? 'shaved' : 'tapered';
-             const baseColor = isUndercut ? adjustColor(hairColor, -40) : adjustColor(hairColor, -10);
-
-             drawSolidLayeredBase(1.0, sideLen, baseColor, false, sideType);
-
-             ctx.fillStyle = hairColor;
-             const w = modRadius * 0.9;
-             // Top Block
-             ctx.beginPath();
-             ctx.moveTo(p.x - w, headY);
-             ctx.bezierCurveTo(p.x - w, headY - modRadius*1.5, p.x + w, headY - modRadius*1.5, p.x + w, headY);
-             // Back taper
-             if (isUndercut) {
-                 ctx.lineTo(p.x + w*0.6, headY + 12*s); // Long back slick
-                 ctx.lineTo(p.x - w*0.6, headY + 12*s);
+             if (style.includes('curls') || style === 'shaggy_top') {
+                 // Loose curls
+                 for(let i=0; i<12; i++) {
+                     const a = (i/12)*Math.PI*2;
+                     const r = baseR * 0.8;
+                     const cx = p.x + Math.cos(a)*r;
+                     const cy = volumeY + Math.sin(a)*r;
+                     ctx.beginPath(); ctx.arc(cx, cy, 4*s, 0, Math.PI*2); ctx.stroke();
+                 }
              } else {
-                 ctx.lineTo(p.x + w*0.8, headY + 8*s);
-                 ctx.lineTo(p.x - w*0.8, headY + 8*s);
+                 // Tight Afro curls
+                 for(let i=0; i<20; i++) {
+                     const ang = (i * 137.5) * Math.PI/180; // Golden angle for even packing
+                     const r = Math.sqrt(i) * baseR * 0.2;
+                     const cx = p.x + Math.cos(ang)*r;
+                     const cy = volumeY + Math.sin(ang)*r;
+                     ctx.beginPath(); ctx.arc(cx, cy, 3*s, 0, Math.PI*2); ctx.stroke();
+                 }
+             }
+             return;
+        }
+
+        // --- 4. BRAIDS / DREADS / CORNROWS ---
+        if (style.includes('braids') || style.includes('cornrows') || style.includes('dreads')) {
+             // Base scalp
+             drawSolidLayeredBase(1.0, 1*s, adjustColor(hairColor, -10), true, 'natural');
+
+             // Strands
+             const isLong = style.includes('long') || style.includes('tied');
+             const numStrands = style.includes('cornrows') ? 6 : 10;
+             const width = headRadius * 1.8;
+             const startX = p.x - width/2;
+             const strandW = width / numStrands;
+
+             ctx.lineCap = 'round';
+             ctx.strokeStyle = hairColor;
+
+             for(let i=0; i<=numStrands; i++) {
+                 const x = startX + i*strandW;
+
+                 // Gradient for strand depth
+                 const strandGrad = ctx.createLinearGradient(x, headY - headRadius, x, headY + headRadius);
+                 strandGrad.addColorStop(0, adjustColor(hairColor, 20));
+                 strandGrad.addColorStop(0.5, hairColor);
+                 strandGrad.addColorStop(1, adjustColor(hairColor, -20));
+                 ctx.strokeStyle = strandGrad;
+                 ctx.lineWidth = strandW * 0.8;
+
+                 ctx.beginPath();
+                 if (style.includes('cornrows')) {
+                     // Tight to scalp
+                     ctx.moveTo(x, headY - headRadius * 0.8);
+                     ctx.lineTo(x, headY + headRadius * 0.8);
+                 } else if (style.includes('zigzag')) {
+                     // Wavy
+                     ctx.moveTo(x, headY - headRadius * 0.8);
+                     ctx.bezierCurveTo(x + 5*s, headY, x - 5*s, headY + 5*s, x, headY + headRadius);
+                 } else {
+                     // Dreads / Box Braids hanging
+                     ctx.moveTo(x, headY);
+                     const len = isLong ? headRadius * 2.5 : headRadius * 1.2;
+                     // Gravity + Flow
+                     const sway = Math.sin(seed + i) * 5*s;
+                     ctx.quadraticCurveTo(x + sway, headY + len*0.5, x, headY + len);
+                 }
+                 ctx.stroke();
+
+                 // Texture segments (Braiding)
+                 if (style.includes('braids') || style.includes('cornrows')) {
+                     ctx.strokeStyle = adjustColor(hairColor, -30);
+                     ctx.lineWidth = 1*s;
+                     const segLen = 4*s;
+                     const len = isLong ? headRadius*2.5 : headRadius*1.6;
+                     for(let y=0; y<len; y+=segLen) {
+                         const py = headY - headRadius*0.8 + y;
+                         ctx.beginPath(); ctx.moveTo(x - strandW*0.3, py); ctx.lineTo(x + strandW*0.3, py + 2*s); ctx.stroke();
+                     }
+                 }
+             }
+
+             if (style === 'dreads_tied') {
+                 // Tie at back
+                 ctx.fillStyle = skinObj.headbandColor || '#FFF';
+                 ctx.fillRect(p.x - 10*s, headY + headRadius, 20*s, 4*s);
+             }
+             return;
+        }
+
+        // --- 5. LONG / FLOW / BOB / MULLET ---
+        if (style === 'long_flow' || style === 'surfer_flow' || style === 'mullet_80s' || style.includes('shag') || style.includes('curtain')) {
+             const len = (style === 'mullet_80s' || style === 'long_flow') ? headRadius * 2.8 : headRadius * 2.0;
+             const isMullet = style === 'mullet_80s';
+
+             // Base Gradient
+             const grad = ctx.createLinearGradient(p.x, headY - headRadius, p.x, headY + len);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(0.3, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, -40));
+
+             ctx.fillStyle = grad;
+             ctx.beginPath();
+
+             if (isMullet) {
+                 // Short top, long back
+                 ctx.arc(p.x, headY - 5*s, headRadius * 1.05, Math.PI, 0); // Top
+                 ctx.lineTo(p.x + headRadius * 0.8, headY + len); // Back flow right
+                 ctx.lineTo(p.x - headRadius * 0.8, headY + len); // Back flow left
+                 ctx.lineTo(p.x - headRadius * 1.05, headY - 5*s);
+             } else {
+                 // Full flow
+                 ctx.arc(p.x, headY, headRadius * 1.1, Math.PI, 0);
+                 const spread = headRadius * 1.4;
+                 ctx.bezierCurveTo(p.x + spread, headY + len*0.3, p.x + spread, headY + len, p.x + spread*0.8, headY + len);
+                 ctx.lineTo(p.x - spread*0.8, headY + len);
+                 ctx.bezierCurveTo(p.x - spread, headY + len, p.x - spread, headY + len*0.3, p.x - headRadius * 1.1, headY);
              }
              ctx.fill();
-
-             // Texture Lines
-             ctx.strokeStyle = adjustColor(hairColor, 20);
-             ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             const lines = (style === 'ivy_league') ? 7 : 4;
-             for(let i=0; i<lines; i++) {
-                 // Fan out slightly
-                 const t = (i/lines);
-                 const x = p.x - w*0.6 + t * w * 1.2;
-                 ctx.moveTo(x, headY - modRadius * (0.8 + seededRandom(seed+i)*0.2));
-                 ctx.lineTo(x, headY + 6*s);
-             }
-             ctx.stroke();
-
-             if (style === 'slick_side_part' || style === 'ivy_league') {
-                 // Hard Part line
-                 ctx.strokeStyle = '#333';
-                 ctx.lineWidth = 2*s;
-                 ctx.beginPath();
-                 const partX = (style === 'ivy_league') ? p.x + w*0.5 : p.x - w*0.6;
-                 ctx.moveTo(partX, headY - modRadius*0.8);
-                 ctx.lineTo(partX, headY + s);
-                 ctx.stroke();
-             }
              return;
         }
 
-        if (style === 'shaggy_top' || style === 'side_swept_fringe' || style === 'surfer_flow') {
-            // Messy / Long Top styles
-            const isSurfer = (style === 'surfer_flow');
-            const isFringe = (style === 'side_swept_fringe');
+        // --- 6. SPIKY / MOHAWK / TOP KNOT ---
+        if (style === 'mohawk' || style === 'mohawk_short' || style === 'mohawk_fade') {
+             // Fade sides
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
 
-            // Base
-            const backLen = isSurfer ? 18*s : 5*s;
-            drawSolidLayeredBase(1.05, backLen, adjustColor(hairColor, -15), false, isSurfer ? 'natural' : 'tapered');
+             // Central strip
+             const h = (style === 'mohawk') ? headRadius * 2.0 : headRadius * 1.0;
+             const w = 12 * s;
 
-            // Top Layers
-            const numLocks = isSurfer ? 20 : 15;
-            const spread = isFringe ? 1.5 : 3.0; // Fringe swept to side
+             const grad = ctx.createLinearGradient(p.x, headY + 5*s, p.x, headY - h);
+             grad.addColorStop(0, hairColor);
+             grad.addColorStop(1, adjustColor(hairColor, 40)); // Lighter tip
 
-            for(let i=0; i<numLocks; i++) {
-                const t = i / numLocks;
-                const angle = (t - 0.5) * spread;
-
-                // Shift angle for side sweep
-                const finalAngle = isFringe ? angle + 0.5 : angle;
-
-                const rLen = (12 + seededRandom(seed+i)*8) * s;
-                const sx = p.x + Math.sin(finalAngle) * modRadius * 0.5;
-                const sy = headY - modRadius * 0.8;
-                const ex = p.x + Math.sin(finalAngle) * (modRadius + (isSurfer?10:5)*s);
-                const ey = headY + (isSurfer ? rLen + 10*s : rLen);
-
-                ctx.strokeStyle = hairColor;
-                ctx.lineWidth = (isSurfer ? 5 : 6) * s;
-                ctx.lineCap = 'round';
-
-                ctx.beginPath();
-                ctx.moveTo(sx, sy);
-                const cpX = sx + (ex-sx)*0.2 + (seededRandom(seed+i+50)-0.5)*10*s;
-                ctx.quadraticCurveTo(cpX, sy - 5*s, ex, ey);
-                ctx.stroke();
-            }
-            return;
-        }
-
-        if (style === 'mohawk_fade' || style === 'mohawk_burst' || style === 'mohawk_short') {
-             // Harden Style
-             let w = modRadius * 0.6;
-             if (style === 'mohawk_short') w = modRadius * 0.7;
-
-             const topY = headY - modRadius * 1.3;
-             const botY = headY + modRadius;
-
-             // Skin Fade Base
-             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -40), false, 'shaved');
-
-             // Hawk
-             ctx.fillStyle = hairColor;
+             ctx.fillStyle = grad;
              ctx.beginPath();
-             ctx.moveTo(p.x - w, topY);
-             ctx.quadraticCurveTo(p.x, topY - 5*s, p.x + w, topY);
-             ctx.lineTo(p.x + w, botY);
-             ctx.lineTo(p.x - w, botY);
+             ctx.moveTo(p.x - w/2, headY + 5*s);
+             ctx.quadraticCurveTo(p.x - w, headY - h/2, p.x, headY - h);
+             ctx.quadraticCurveTo(p.x + w, headY - h/2, p.x + w/2, headY + 5*s);
              ctx.fill();
              return;
         }
 
         if (style === 'top_knot') {
-            drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -20), false, 'shaved');
-            ctx.fillStyle = hairColor;
-            ctx.beginPath(); ctx.arc(p.x, headY - modRadius*1.2, 5*s, 0, Math.PI*2); ctx.fill();
-            return;
+             // Shaved sides base
+             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -30), false, 'shaved');
+             // Bun
+             const bunY = headY - headRadius * 0.8;
+             const bunR = 10 * s;
+             // Bun Gradient
+             const bGrad = ctx.createRadialGradient(p.x - 2*s, bunY - 2*s, 2*s, p.x, bunY, bunR);
+             bGrad.addColorStop(0, adjustColor(hairColor, 40));
+             bGrad.addColorStop(1, hairColor);
+
+             ctx.fillStyle = bGrad;
+             ctx.beginPath(); ctx.arc(p.x, bunY, bunR, 0, Math.PI*2); ctx.fill();
+             return;
         }
 
-        if (style === 'crew_messy') {
-            // Jokic: Short crew cut, slightly messy but not cartoony spikes
-            const w = modRadius * 0.95;
-            const topH = modRadius * 1.15;
+        if (style === 'spiky' || style === 'ivy_league' || style === 'slick_side_part' || style === 'caesar_cut' || style === 'crew_messy') {
+             // Standard textured top
+             const topH = headRadius * 1.1;
 
-            // Draw Sides (Short Fade)
-            drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), false, 'tapered');
+             // Gradient
+             const grad = ctx.createRadialGradient(p.x, headY - 5*s, 5*s, p.x, headY, headRadius * 1.2);
+             grad.addColorStop(0, adjustColor(hairColor, 30));
+             grad.addColorStop(1, hairColor);
 
-            // Draw Top (Solid textured mass)
-            ctx.fillStyle = hairColor;
-            ctx.beginPath();
-
-            // Top Curve with micro-noise
-            const steps = 12;
-            for(let i=0; i<=steps; i++) {
-                const t = i/steps;
-                const angle = Math.PI - (t * Math.PI); // Left to Right
-
-                // Subtle unevenness
-                const noise = (seededRandom(seed + i * 23) - 0.5) * 3 * s;
-
-                const px = p.x + Math.cos(angle) * w;
-                const py = (headY - 2*s) - Math.sin(angle) * (topH * 0.9) + noise;
-
-                if(i===0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-
-            // Close shape at sides
-            ctx.lineTo(p.x + w, headY + 2*s);
-            ctx.lineTo(p.x - w, headY + 2*s);
-            ctx.fill();
-
-            // Front/Top Texture (Simulate short strands)
-            ctx.fillStyle = adjustColor(hairColor, 15); // Lighter tips
-            for(let i=0; i<15; i++) {
-                const rx = (seededRandom(seed + i * 11) - 0.5) * w * 1.6;
-                const ry = (seededRandom(seed + i * 17) - 0.5) * topH * 0.6;
-                // Tiny vertical ticks
-                const tx = p.x + rx;
-                const ty = headY - topH*0.5 + ry;
-                ctx.fillRect(tx, ty, 1.5*s, 3*s);
-            }
-            return;
-        }
-
-        // --- 7. MEDIUM STYLES ---
-        if (style === 'med_bob') {
-             // Classic Bob: Shoulder length, rounded bottom, straight
-             const len = 16 * s;
-             ctx.fillStyle = hairColor;
+             ctx.fillStyle = grad;
              ctx.beginPath();
-             // Top
-             ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0);
-             // Sides down
-             ctx.lineTo(p.x + modRadius, headY + len);
-             // Rounded bottom inward
-             ctx.quadraticCurveTo(p.x, headY + len + 5*s, p.x - modRadius, headY + len);
-             ctx.lineTo(p.x - modRadius, headY - 2*s);
-             ctx.fill();
-             return;
-        }
 
-        if (style === 'med_shag') {
-             // The Shag: Layered, messy edges, longer
-             const len = 18 * s;
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.arc(p.x, headY - 2*s, modRadius, Math.PI, 0);
-
-             // Zigzag sides down
-             let cy = headY;
-             let cx = p.x + modRadius;
-             while(cy < headY + len) {
-                 cy += 4*s;
-                 cx += (seededRandom(seed + cy) - 0.5) * 4 * s;
-                 ctx.lineTo(cx, cy);
-             }
-             // Messy bottom
-             const bottomY = headY + len;
-             for(let x = cx; x > p.x - modRadius; x -= 5*s) {
-                 ctx.lineTo(x, bottomY + (seededRandom(seed + x) * 5 * s));
-             }
-             // Left side up
-             ctx.lineTo(p.x - modRadius, headY - 2*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'med_curtain') {
-             // Curtain Bangs: Center part, flows to sides, shoulder length
-             const len = 16 * s;
-             drawSolidLayeredBase(1.05, len, hairColor, false, 'natural');
-
-             // Parting line
-             ctx.strokeStyle = adjustColor(hairColor, -30);
-             ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x, headY - modRadius * 0.8);
-             ctx.lineTo(p.x, headY + 5*s);
-             ctx.stroke();
-             return;
-        }
-
-        if (style === 'med_wolf') {
-             // Wolf Cut: Volume on top, thinner bottom, long mullet-esque
-             // Top Volume
-             drawSolidLayeredBase(1.1, 4*s, hairColor, false, 'natural');
-             // Thinner bottom layers
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.beginPath();
-             const botLen = 20*s;
-             ctx.moveTo(p.x - modRadius*0.8, headY + 4*s);
-             ctx.quadraticCurveTo(p.x - modRadius, headY + botLen*0.5, p.x - modRadius*0.6, headY + botLen);
-             ctx.lineTo(p.x + modRadius*0.6, headY + botLen);
-             ctx.quadraticCurveTo(p.x + modRadius, headY + botLen*0.5, p.x + modRadius*0.8, headY + 4*s);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'med_wavy') {
-             // Wavy Shoulder
-             const len = 20*s;
-             ctx.strokeStyle = hairColor;
-             ctx.lineWidth = 6*s;
-             ctx.lineCap = 'round';
-             const numStrands = 20;
-             for(let i=0; i<numStrands; i++) {
-                 const t = i/numStrands;
-                 const angle = Math.PI + t * Math.PI; // Top arc
-                 const sx = p.x + Math.cos(angle) * modRadius * 0.8;
-                 const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.8;
-
-                 ctx.beginPath();
-                 ctx.moveTo(sx, sy);
-                 // S-Curve
-                 const mx = sx + (seededRandom(seed+i)-0.5)*10*s;
-                 ctx.bezierCurveTo(sx - 10*s, sy + len*0.3, sx + 10*s, sy + len*0.6, mx, sy + len);
-                 ctx.stroke();
-             }
-             return;
-        }
-
-        if (style === 'med_curly') {
-             // Curly Shoulder
-             ctx.fillStyle = hairColor;
-             // Base
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius, 0, Math.PI*2); ctx.fill();
-
-             // Curls
-             const len = 18*s;
-             const numCurls = 30;
-             for(let i=0; i<numCurls; i++) {
-                 const t = i/numCurls;
-                 const angle = (t - 0.5) * 3.5; // Wider spread
-                 const r = modRadius + (seededRandom(seed+i)*5*s);
-                 const cx = p.x + Math.sin(angle) * r;
-                 const cy = headY + (Math.abs(angle)*5*s); // Lower on sides
-
-                 const curlR = (3 + seededRandom(seed+i+50)*2)*s;
-
-                 // Draw rings down
-                 for(let j=0; j<4; j++) {
-                    ctx.beginPath();
-                    ctx.arc(cx, cy + j*curlR*1.5, curlR, 0, Math.PI*2);
-                    ctx.fill();
+             if (style === 'spiky') {
+                 // Spikes geometry (Cones)
+                 const spikes = 7;
+                 const rO = headRadius * 1.6;
+                 const rI = headRadius * 0.9;
+                 for(let i=0; i<=spikes; i++) {
+                     const a = Math.PI + (i/spikes)*Math.PI; // Top arc
+                     const bx = p.x + Math.cos(a)*rI;
+                     const by = headY + Math.sin(a)*rI;
+                     const tx = p.x + Math.cos(a)*rO;
+                     const ty = headY + Math.sin(a)*rO;
+                     if(i===0) ctx.moveTo(bx, by);
+                     ctx.lineTo(tx, ty);
+                     // Mid point
+                     if (i<spikes) {
+                         const ma = Math.PI + ((i+0.5)/spikes)*Math.PI;
+                         ctx.lineTo(p.x + Math.cos(ma)*rI, headY + Math.sin(ma)*rI);
+                     }
                  }
+                 ctx.lineTo(p.x + headRadius, headY + 5*s);
+                 ctx.lineTo(p.x - headRadius, headY + 5*s);
+             } else {
+                 // Smooth top
+                 ctx.arc(p.x, headY - 2*s, headRadius * 1.1, Math.PI, 0);
+                 ctx.lineTo(p.x + headRadius * 1.1, headY + 5*s);
+                 ctx.lineTo(p.x - headRadius * 1.1, headY + 5*s);
              }
-             return;
-        }
-
-        if (style === 'med_twist') {
-             // Twist Out (ID corrected)
-             ctx.strokeStyle = hairColor;
-             ctx.lineWidth = 4*s;
-             const num = 25;
-             const len = 16*s;
-
-             // Base
-             ctx.fillStyle = adjustColor(hairColor, -20);
-             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, modRadius*0.9, 0, Math.PI*2); ctx.fill();
-
-             for(let i=0; i<num; i++) {
-                 const angle = (i/num) * Math.PI * 2;
-                 const dist = seededRandom(seed+i) * modRadius;
-                 const sx = p.x + Math.cos(angle) * dist;
-                 const sy = headY - 2*s + Math.sin(angle) * dist;
-
-                 ctx.beginPath();
-                 ctx.moveTo(sx, sy);
-                 // Twist line
-                 ctx.lineTo(sx + (seededRandom(seed+i+9)*10*s - 5*s), sy + len);
-                 ctx.stroke();
-             }
-             return;
-        }
-
-        if (style === 'med_braids') {
-             // Medium Box Braids (Thick)
-             const num = 16;
-             const len = 20*s;
-             ctx.strokeStyle = hairColor;
-             ctx.lineWidth = 5*s;
-             ctx.setLineDash([2*s, 2*s]); // Braided texture
-
-             for(let i=0; i<num; i++) {
-                 const t = i/num;
-                 const angle = Math.PI + t * Math.PI; // Back of head arc
-                 const sx = p.x + Math.cos(angle) * modRadius * 0.9;
-                 const sy = headY - 2*s + Math.sin(angle) * modRadius * 0.5; // Start higher up
-
-                 ctx.beginPath();
-                 ctx.moveTo(sx, sy);
-                 ctx.quadraticCurveTo(sx + (seededRandom(seed+i)-0.5)*10*s, headY + len*0.5, sx, headY + len);
-                 ctx.stroke();
-             }
-             ctx.setLineDash([]);
-             return;
-        }
-
-        if (style === 'med_slick') {
-             // Medium Slick (Greaser / Wet look)
-             const len = 14*s;
-             drawSolidLayeredBase(1.0, len, hairColor, false, 'tapered');
-
-             // Shine lines
-             ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-             ctx.lineWidth = 2*s;
-             ctx.beginPath();
-             const lines = 6;
-             for(let i=0; i<lines; i++) {
-                 const x = p.x - modRadius*0.6 + i*(modRadius*1.2/lines);
-                 ctx.moveTo(x, headY - modRadius*0.8);
-                 ctx.lineTo(x, headY + len);
-             }
-             ctx.stroke();
-             return;
-        }
-
-        if (style === 'med_bedhead') {
-             // Bedhead (ID corrected)
-             const len = 14*s;
-             ctx.fillStyle = hairColor;
-
-             ctx.beginPath();
-             // Spiky outline
-             const numPts = 20;
-             for(let i=0; i<=numPts; i++) {
-                 const angle = Math.PI + (i/numPts) * Math.PI; // Top arc
-                 const r = modRadius + (seededRandom(seed+i) * 8 * s);
-                 const px = p.x + Math.cos(angle) * r;
-                 const py = headY - 2*s + Math.sin(angle) * r;
-                 if(i===0) ctx.moveTo(px, py);
-                 else ctx.lineTo(px, py);
-             }
-             // Bottom messy
-             ctx.lineTo(p.x + modRadius, headY + len);
-             for(let x=p.x+modRadius; x>p.x-modRadius; x-=5*s) {
-                 ctx.lineTo(x, headY + len + (seededRandom(seed+x)*5*s));
-             }
-             ctx.lineTo(p.x - modRadius, headY + len);
              ctx.fill();
              return;
         }
 
-        if (style === 'med_bun') {
-             // Half-up Bun (ID corrected)
-             const len = 16*s;
-             // Bottom hair flowing
-             ctx.fillStyle = hairColor;
-             ctx.beginPath();
-             ctx.moveTo(p.x - modRadius, headY);
-             ctx.lineTo(p.x - modRadius*1.1, headY + len);
-             ctx.lineTo(p.x + modRadius*1.1, headY + len);
-             ctx.lineTo(p.x + modRadius, headY);
-             ctx.fill();
-
-             // Top pulled back
-             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, 10));
-
-             // Bun (Larger and visible)
-             ctx.fillStyle = adjustColor(hairColor, -10);
-             ctx.beginPath();
-             // Draw bun slightly higher
-             ctx.arc(p.x, headY - modRadius*1.0, 10*s, 0, Math.PI*2);
-             ctx.fill();
-             return;
-        }
-
-        if (style === 'med_undercut') {
-             // Long Undercut (Shaved sides, long top falling back/side)
-             // Shaved Sides
-             drawSolidLayeredBase(1.0, 2*s, adjustColor(hairColor, -40), false, 'shaved');
-
-             // Long Top Overlay
-             ctx.fillStyle = hairColor;
-             const topW = modRadius * 0.8;
-             const len = 18*s;
-             ctx.beginPath();
-             ctx.moveTo(p.x - topW, headY - 2*s);
-             ctx.bezierCurveTo(p.x - topW, headY - modRadius*1.5, p.x + topW, headY - modRadius*1.5, p.x + topW, headY - 2*s);
-             ctx.lineTo(p.x + topW*0.8, headY + len); // Flowing back
-             ctx.lineTo(p.x - topW*0.8, headY + len);
-             ctx.fill();
-             return;
-        }
-
-        // Generic Fallback
-        drawSolidLayeredBase(1.0, 0, hairColor);
+        // --- 7. DEFAULT FALLBACK ---
+        drawSolidLayeredBase(1.1, 4*s, hairColor, true, 'natural');
     }
 
 
