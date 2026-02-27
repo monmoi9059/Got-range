@@ -2822,6 +2822,15 @@ var BallRenderer = {
                      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
                  }
              }
+             else if (pat === 'spots') {
+                 ctx.fillStyle = options.spotColor || '#000';
+                 for(let i=0; i<12; i++) {
+                     const sx = cx - w/2 + (Math.abs(Math.sin(seed * 11 + i * 37)) * w);
+                     const sy = topY + (Math.abs(Math.cos(seed * 5 + i * 23)) * h);
+                     const r = (3 + (Math.abs(Math.sin(i)) * 6)) * s;
+                     ctx.beginPath(); ctx.ellipse(sx, sy, r, r*0.8, 0, 0, Math.PI*2); ctx.fill();
+                 }
+             }
              else if (pat === 'stripes_side') {
                  const sc = options.sideStripesColor || options.chestStripeColor || '#FFF';
                  const lw = 1.5*s;
@@ -6054,6 +6063,47 @@ var BallRenderer = {
              return;
         }
 
+        if (style === 'classic_part') {
+             // John Stockton Style: Conservative, short, neat side part
+             drawSolidLayeredBase(1.02, 2*s, adjustColor(hairColor, -10), true, 'natural');
+
+             // Top Hair
+             ctx.fillStyle = hairColor;
+             const w = modRadius;
+             const partX = p.x - w * 0.4; // Part on left
+
+             // Main Swath (Right)
+             ctx.beginPath();
+             ctx.moveTo(partX, headY - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - w*0.9, p.x + w*0.95, headY - 5*s); // Smooth dome
+             ctx.lineTo(p.x + w*0.9, headY + 2*s);
+             ctx.lineTo(partX, headY);
+             ctx.fill();
+
+             // Small Side (Left)
+             ctx.beginPath();
+             ctx.moveTo(p.x - w*0.9, headY + 2*s);
+             ctx.lineTo(p.x - w*0.95, headY - 5*s);
+             ctx.lineTo(partX - 1*s, headY - 6*s);
+             ctx.lineTo(partX - 2*s, headY);
+             ctx.fill();
+
+             // Part Line (Scalp color visible?)
+             // Just a gap is usually enough, or draw a dark line if hair is light.
+             // Let's add comb lines for texture
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 1*s;
+             ctx.beginPath();
+             for(let i=0; i<6; i++) {
+                 // Parallel sweep lines
+                 const ox = i * 4*s;
+                 ctx.moveTo(partX + 2*s, headY - 5*s + ox);
+                 ctx.quadraticCurveTo(p.x + 10*s, headY - w*0.8 + ox, p.x + w*0.8, headY - 5*s + ox);
+             }
+             ctx.stroke();
+             return;
+        }
+
         if (style === 'slicked_back' || style === 'slick_side_part' || style === 'ivy_league' || style === 'undercut_slick') {
              // The Anchor / Riley / Gentleman / Ivy / Undercut
              const isUndercut = (style === 'undercut_slick');
@@ -6218,6 +6268,128 @@ var BallRenderer = {
                 ctx.fillRect(tx, ty, 1.5*s, 3*s);
             }
             return;
+        }
+
+        if (style === 'spiky_messy') {
+             // Spiky Messy (LaMelo style)
+             drawSolidLayeredBase(1.0, 0, adjustColor(hairColor, -10), true);
+             ctx.fillStyle = hairColor;
+
+             // Random Spikes sticking out everywhere
+             const seed = skinObj.id ? skinObj.id.length : 5;
+             const count = 25;
+             for(let i=0; i<count; i++) {
+                 const angle = (i/count) * Math.PI + Math.PI; // Top arc
+                 const rBase = headRadius * 0.9;
+                 const rTip = headRadius * (1.2 + (seededRandom(seed+i)*0.4)); // Random lengths
+
+                 const bx = p.x + Math.cos(angle) * rBase;
+                 const by = headY - 5*s + Math.sin(angle) * rBase;
+
+                 // Jitter angle
+                 const aTip = angle + (seededRandom(seed+i+100)-0.5)*0.3;
+                 const tx = p.x + Math.cos(aTip) * rTip;
+                 const ty = headY - 5*s + Math.sin(aTip) * rTip;
+
+                 ctx.beginPath();
+                 ctx.moveTo(bx - 3*s, by);
+                 ctx.lineTo(tx, ty);
+                 ctx.lineTo(bx + 3*s, by);
+                 ctx.fill();
+             }
+             return;
+        }
+
+        if (style === 'man_bun') {
+             // Shaved Sides / Undercut Base
+             const skinTone = skinObj.skinTone || '#8d5524';
+             const fadeColor = adjustColor(hairColor, 30); // Lighter for fade
+
+             // Draw Head shape with fade
+             drawSolidLayeredBase(1.0, 0, fadeColor, true, 'natural');
+
+             // Top Knot Bun
+             ctx.fillStyle = hairColor;
+             const bunY = headY - headRadius;
+             const bunR = 8 * s;
+
+             // The Bun itself
+             ctx.beginPath();
+             ctx.arc(p.x, bunY, bunR, 0, Math.PI*2);
+             ctx.fill();
+
+             // Texture/Detail on bun (Swirl)
+             ctx.strokeStyle = adjustColor(hairColor, 20);
+             ctx.lineWidth = 1.5*s;
+             ctx.beginPath();
+             ctx.arc(p.x, bunY, bunR*0.6, 0, Math.PI*2);
+             ctx.stroke();
+
+             return;
+        }
+
+        if (style === 'twist_sponge') {
+             // Afro Base with Texture
+             const r = headRadius * 1.2;
+             ctx.fillStyle = hairColor;
+
+             // Draw Base Mass
+             ctx.beginPath();
+             ctx.arc(p.x, headY - 5*s, r, Math.PI, 0); // Top half
+             ctx.lineTo(p.x + r, headY + 5*s);
+             ctx.lineTo(p.x - r, headY + 5*s);
+             ctx.fill();
+
+             // Draw "Twist" Texture (Circles)
+             ctx.fillStyle = adjustColor(hairColor, -15); // Darker pockets
+             const seed = 44;
+             for(let i=0; i<30; i++) {
+                 const rx = (seededRandom(seed+i) - 0.5) * r * 1.8;
+                 const ry = (seededRandom(seed+i+50) - 0.5) * r * 1.2 - 5*s;
+                 // Cull if outside radius
+                 if (rx*rx + ry*ry < r*r) {
+                     ctx.beginPath();
+                     ctx.arc(p.x + rx, headY + ry, 2.5*s, 0, Math.PI*2);
+                     ctx.fill();
+                 }
+             }
+             return;
+        }
+
+        if (style === 'braids_long_loose') {
+             // Jimmy Butler / Ja Morant loose braids
+             drawSolidLayeredBase(1.02, 0, hairColor, true);
+
+             ctx.strokeStyle = hairColor;
+             ctx.lineWidth = 3.5 * s;
+             ctx.lineCap = 'round';
+
+             const seed = 77;
+             const count = 12;
+
+             for(let i=0; i<count; i++) {
+                 // Start from scalp
+                 const angle = Math.PI + (i/count)*Math.PI;
+                 const sx = p.x + Math.cos(angle) * headRadius * 0.8;
+                 const sy = headY - 5*s + Math.sin(angle) * headRadius * 0.8;
+
+                 // Hang down loose
+                 const len = (25 + seededRandom(seed+i)*15) * s;
+                 const sway = (Math.sin(i)*10) * s;
+
+                 ctx.beginPath();
+                 ctx.moveTo(sx, sy);
+                 ctx.bezierCurveTo(sx + sway, sy + len*0.3, sx - sway, sy + len*0.6, sx + sway*0.5, sy + len);
+                 ctx.stroke();
+
+                 // Highlight
+                 ctx.save();
+                 ctx.lineWidth = 1*s;
+                 ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                 ctx.stroke();
+                 ctx.restore();
+             }
+             return;
         }
 
         // --- 7. MEDIUM STYLES ---
@@ -8319,17 +8491,19 @@ var BallRenderer = {
 
         // Define Body Shapes for Animals
         if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
-        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
+        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey', 'chicken'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'oval'; // Small animals
         }
-        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
+        else if (['dog', 'wolf', 'lion', 'tiger', 'zebra', 'dino'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
         }
-        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
+        else if (['pig', 'cow', 'moose', 'elephant'].includes(currentAnimal)) {
             bodyOptions.bodyShape = 'round'; // Chunky
             bodyOptions.waistScale = 1.1;
             bodyOptions.roundness = 0.2;
+            if (currentAnimal === 'elephant') bodyOptions.bodyShape = 'heavy';
         }
+        else if (currentAnimal === 'giraffe') { bodyOptions.bodyShape = 'giraffe'; }
 
         if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
 
@@ -8631,6 +8805,17 @@ var BallRenderer = {
                  ctx.fill();
              });
         }
+        else if (currentAnimal === 'zebra') {
+             drawEarPair(() => {
+                 // Horse Ears (Upright, pointed)
+                 ctx.beginPath();
+                 ctx.moveTo(-6*s, -10*s);
+                 ctx.lineTo(-8*s, -22*s);
+                 ctx.quadraticCurveTo(-5*s, -25*s, -2*s, -22*s);
+                 ctx.lineTo(-4*s, -10*s);
+                 ctx.fill();
+             });
+        }
         else if (currentAnimal === 'rabbit') {
              drawEarPair(() => {
                  // Elongated, correct width-to-height
@@ -8869,6 +9054,26 @@ var BallRenderer = {
         }
 
         // Head Details
+        if(skinObj.headDetail === 'comb') {
+             ctx.fillStyle = '#FF0000';
+             // Rooster Comb
+             ctx.beginPath();
+             ctx.moveTo(p.x - 5*s, headY - headRadius);
+             ctx.quadraticCurveTo(p.x - 8*s, headY - headRadius - 10*s, p.x - 2*s, headY - headRadius - 5*s);
+             ctx.quadraticCurveTo(p.x, headY - headRadius - 12*s, p.x + 2*s, headY - headRadius - 5*s);
+             ctx.quadraticCurveTo(p.x + 8*s, headY - headRadius - 10*s, p.x + 5*s, headY - headRadius);
+             ctx.fill();
+        }
+        if(skinObj.headDetail === 'trunk') {
+             // Elephant Trunk (Curled)
+             ctx.fillStyle = furColor;
+             ctx.beginPath();
+             ctx.moveTo(p.x - 4*s, headY + 5*s);
+             ctx.quadraticCurveTo(p.x - 5*s, headY + 25*s, p.x + 10*s, headY + 20*s); // Curl right
+             ctx.lineTo(p.x + 10*s, headY + 25*s);
+             ctx.quadraticCurveTo(p.x, headY + 30*s, p.x + 4*s, headY + 5*s);
+             ctx.fill();
+        }
         if(skinObj.headDetail === 'antenna') {
              ctx.strokeStyle = '#C0C0C0'; ctx.lineWidth = 2*s;
              ctx.beginPath(); ctx.moveTo(p.x, headY - headRadius); ctx.lineTo(p.x, headY - headRadius - 15*s); ctx.stroke();
