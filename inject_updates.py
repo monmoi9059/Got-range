@@ -7,6 +7,13 @@ JS_DIR = 'js'
 CSS_DIR = 'css'
 
 # Order matters for JS execution
+# geometry: Base types
+# data: Constants
+# audio: System
+# main: Environment/Globals (HOOP_POS)
+# renderer: Drawing
+# input: Controller
+# game: Logic/Loop/Entry
 JS_ORDER = [
     'geometry.js',
     'data.js',
@@ -14,7 +21,6 @@ JS_ORDER = [
     'main.js',
     'renderer.js',
     'input.js',
-    'hair_logic.js',
     'game.js'
 ]
 
@@ -65,6 +71,7 @@ def inject():
         if '<!-- INJECT_CSS_START -->' in html and '<!-- INJECT_CSS_END -->' in html:
             pattern = re.compile(r'<!-- INJECT_CSS_START -->.*?<!-- INJECT_CSS_END -->', re.DOTALL)
             replacement = f'<!-- INJECT_CSS_START -->\n<style>\n{css_content}\n</style>\n<!-- INJECT_CSS_END -->'
+            # Escape backslashes for re.sub
             replacement = replacement.replace('\\', '\\\\')
             html = pattern.sub(replacement, html)
         else:
@@ -74,6 +81,7 @@ def inject():
         if '<!-- INJECT_JS_START -->' in html and '<!-- INJECT_JS_END -->' in html:
             pattern = re.compile(r'<!-- INJECT_JS_START -->.*?<!-- INJECT_JS_END -->', re.DOTALL)
             replacement = f'<!-- INJECT_JS_START -->\n<script>\n{js_content}\n</script>\n<!-- INJECT_JS_END -->'
+            # Escape backslashes for re.sub
             replacement = replacement.replace('\\', '\\\\')
             html = pattern.sub(replacement, html)
         else:

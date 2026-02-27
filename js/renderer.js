@@ -9178,9 +9178,9 @@ var BallRenderer = {
         }
         else if (currentAnimal === 'human') {
             // Adjust Head Y for human to obscure face/top of head better in rear view
-            // Move it up more significantly to represent the crown/back of head
+            // Move it up significantly to represent the crown/back of head
             // and hide any face details that might peek through
-            headY -= 20 * s;
+            headY -= 40 * s;
 
             // Human Ears (Keep existing logic, simplified)
             ctx.fillStyle = furColor;
