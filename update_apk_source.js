@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const sourceFile = 'gotrange.html';
 const targetDir = 'taco_app/www';
@@ -20,19 +21,16 @@ window.addEventListener('load', function() {
 </script>
 `;
 
-function copyFolderSync(from, to) {
-    if (!fs.existsSync(to)) fs.mkdirSync(to, { recursive: true });
-    fs.readdirSync(from).forEach(element => {
-        if (fs.lstatSync(path.join(from, element)).isFile()) {
-            fs.copyFileSync(path.join(from, element), path.join(to, element));
-        } else {
-            copyFolderSync(path.join(from, element), path.join(to, element));
-        }
-    });
-}
-
 try {
+    // 0. Run Build Script to ensure gotrange.html is fresh
+    console.log('Running build.js...');
+    execSync('node build.js', { stdio: 'inherit' });
+
     // 1. Update Index HTML
+    if (!fs.existsSync(sourceFile)) {
+        throw new Error(`${sourceFile} not found. Build failed?`);
+    }
+
     let content = fs.readFileSync(sourceFile, 'utf8');
 
     if (content.includes('</body>')) {
@@ -49,13 +47,10 @@ try {
     fs.writeFileSync(targetFile, content, 'utf8');
     console.log(`Successfully updated ${targetFile} from ${sourceFile}`);
 
-    // 2. Copy JS Folder
-    console.log('Copying JS folder...');
-    copyFolderSync('js', path.join(targetDir, 'js'));
-
-    // 3. Copy CSS Folder
-    console.log('Copying CSS folder...');
-    copyFolderSync('css', path.join(targetDir, 'css'));
+    // Note: Since we are using the bundled single-file gotrange.html,
+    // we do NOT need to copy js/css folders anymore for the APK
+    // unless the app structure requires them for other reasons.
+    // The previous refactor copied them, but the single file is self-contained.
 
     console.log('APK source update complete.');
 

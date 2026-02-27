@@ -1,40 +1,44 @@
 const fs = require('fs');
 const path = require('path');
 
-const htmlFile = 'gotrange.html';
-const cssDir = 'css';
-const jsDir = 'js';
+const devFile = 'dev.html';
+const outFile = 'gotrange.html';
 
 try {
-    let html = fs.readFileSync(htmlFile, 'utf8');
+    console.log(`Building ${outFile} from ${devFile}...`);
+    let html = fs.readFileSync(devFile, 'utf8');
 
-    // Inline CSS
+    // 1. Inline CSS
+    // Matches <link rel="stylesheet" href="...">
     html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (match, href) => {
+        console.log(`Inlining CSS: ${href}`);
         const cssPath = path.join(__dirname, href);
         if (fs.existsSync(cssPath)) {
-            console.log(`Inlining CSS: ${href}`);
             const cssContent = fs.readFileSync(cssPath, 'utf8');
             return `<style>\n${cssContent}\n</style>`;
+        } else {
+            console.warn(`Warning: CSS file not found: ${href}`);
+            return match;
         }
-        return match;
     });
 
-    // Inline JS
+    // 2. Inline JS
+    // Matches <script src="..."></script>
     html = html.replace(/<script src="([^"]+)"><\/script>/g, (match, src) => {
+        console.log(`Inlining JS: ${src}`);
         const jsPath = path.join(__dirname, src);
         if (fs.existsSync(jsPath)) {
-            console.log(`Inlining JS: ${src}`);
             const jsContent = fs.readFileSync(jsPath, 'utf8');
-            return `<script>\n${jsContent}\n</script>`;
+            // Wrap in comments for structure if desired, or just raw
+            return `<script>\n// --- START ${path.basename(src)} ---\n${jsContent}\n// --- END ${path.basename(src)} ---\n</script>`;
+        } else {
+            console.warn(`Warning: JS file not found: ${src}`);
+            return match;
         }
-        return match;
     });
 
-    // Optimize: Merge adjacent script tags?
-    // The browser handles multiple script tags fine, keeping them separate might be safer for now to avoid syntax errors if missing semicolons at EOF.
-
-    fs.writeFileSync(htmlFile, html, 'utf8');
-    console.log('Build complete: gotrange.html is now monolithic.');
+    fs.writeFileSync(outFile, html, 'utf8');
+    console.log(`Successfully created ${outFile}`);
 
 } catch (err) {
     console.error('Build failed:', err);
