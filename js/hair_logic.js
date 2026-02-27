@@ -53,25 +53,32 @@ window.initHairCreator = function() {
     hairCanvas.addEventListener('touchend', (e) => { e.preventDefault(); endStroke(); }, {passive: false});
 
     // Initialize default values
-    document.getElementById('brushSizeSlider').value = hairEditorState.brushSize;
-    document.getElementById('brushAlphaSlider').value = hairEditorState.brushAlpha;
-    setBrushColor(HAIR_COLORS[0] || '#000000');
+    const sizeSlider = document.getElementById('brushSizeSlider');
+    if (sizeSlider) sizeSlider.value = hairEditorState.brushSize;
+
+    const alphaSlider = document.getElementById('brushAlphaSlider');
+    if (alphaSlider) alphaSlider.value = hairEditorState.brushAlpha;
+
+    setBrushColor(typeof HAIR_COLORS !== 'undefined' ? HAIR_COLORS[0] : '#000000');
 };
 
 window.openHairCreator = function() {
     // Validate State
-    if (state !== 'IDLE' && state !== 'SHOP' && state !== 'GAMEOVER') return;
+    if (typeof state !== 'undefined' && state !== 'IDLE' && state !== 'SHOP' && state !== 'GAMEOVER') return;
 
     if (window.closeAllMenus) window.closeAllMenus(); // Close Shop
 
-    state = 'HAIR_CREATOR';
+    if (typeof state !== 'undefined') state = 'HAIR_CREATOR';
     const ui = document.getElementById('hairCreatorUI');
     if (ui) ui.style.display = 'flex'; // It's a modal, usually flex centered
 
     initHairCreator();
 
     // Load current slot data or reset
-    loadHairSlot(0); // Default to slot 0 or user's last selected
+    // Default to slot 1 (index 1) since UI usually shows "Emplacement 1"
+    const slotSelect = document.getElementById('hairSaveSlot');
+    const slot = slotSelect ? parseInt(slotSelect.value) : 1;
+    loadHairSlot(slot);
 
     renderHairCanvas();
 };
@@ -82,45 +89,57 @@ window.closeHairCreator = function() {
 
     // Return to Shop or Idle
     if (typeof openShop === 'function') openShop();
-    else state = 'IDLE';
+    else if (typeof state !== 'undefined') state = 'IDLE';
 };
 
 window.setHairEditorView = function(view) {
     hairEditorState.view = view;
-    document.getElementById('btnHairViewBack').style.border = (view === 'back') ? '2px solid #FFD700' : '1px solid #555';
-    document.getElementById('btnHairViewFront').style.border = (view === 'front') ? '2px solid #FFD700' : '1px solid #555';
+    const btnBack = document.getElementById('btnHairViewBack');
+    const btnFront = document.getElementById('btnHairViewFront');
+    if (btnBack) btnBack.style.border = (view === 'back') ? '2px solid #FFD700' : '1px solid #555';
+    if (btnFront) btnFront.style.border = (view === 'front') ? '2px solid #FFD700' : '1px solid #555';
     renderHairCanvas();
 };
 
 window.updateBrushSize = function() {
-    const val = document.getElementById('brushSizeSlider').value;
+    const slider = document.getElementById('brushSizeSlider');
+    if (!slider) return;
+    const val = slider.value;
     hairEditorState.brushSize = parseInt(val);
-    document.getElementById('brushSizeVal').innerText = val;
+    const label = document.getElementById('brushSizeVal');
+    if (label) label.innerText = val;
 };
 
 window.updateBrushAlpha = function() {
-    const val = document.getElementById('brushAlphaSlider').value;
+    const slider = document.getElementById('brushAlphaSlider');
+    if (!slider) return;
+    const val = slider.value;
     hairEditorState.brushAlpha = parseInt(val);
-    document.getElementById('brushAlphaVal').innerText = val + '%';
+    const label = document.getElementById('brushAlphaVal');
+    if (label) label.innerText = val + '%';
 };
 
 function setBrushColor(color) {
     hairEditorState.brushColor = color;
     hairEditorState.isEraser = false;
-    document.getElementById('btnEraser').innerText = "GOMME: OFF";
-    document.getElementById('btnEraser').style.background = "#444";
-    // Highlight selected color?
+    const btn = document.getElementById('btnEraser');
+    if (btn) {
+        btn.innerText = "GOMME: OFF";
+        btn.style.background = "#444";
+    }
 }
 
 window.toggleEraser = function() {
     hairEditorState.isEraser = !hairEditorState.isEraser;
     const btn = document.getElementById('btnEraser');
-    if (hairEditorState.isEraser) {
-        btn.innerText = "GOMME: ON";
-        btn.style.background = "#D32F2F";
-    } else {
-        btn.innerText = "GOMME: OFF";
-        btn.style.background = "#444";
+    if (btn) {
+        if (hairEditorState.isEraser) {
+            btn.innerText = "GOMME: ON";
+            btn.style.background = "#D32F2F";
+        } else {
+            btn.innerText = "GOMME: OFF";
+            btn.style.background = "#444";
+        }
     }
 };
 
@@ -146,15 +165,39 @@ function saveHistory() {
 window.loadHairSlot = function(slotIndex) {
     // Find existing custom data in playerData
     const id = `custom_${slotIndex}`;
+    if (typeof playerData === 'undefined') return;
     if (!playerData.customHairstyles) playerData.customHairstyles = [];
 
     let data = playerData.customHairstyles.find(h => h.id === id);
+
     if (!data) {
         // Initialize empty
         hairEditorState.blobs = { front: [], back: [] };
     } else {
         // Deep copy to avoid editing live data until save
-        hairEditorState.blobs = JSON.parse(JSON.stringify(data.blobs || { front: [], back: [] }));
+        const rawBlobs = JSON.parse(JSON.stringify(data.blobs || { front: [], back: [] }));
+
+        // De-normalize Helper
+        const denormalize = (list) => {
+            if (!list || list.length === 0) return [];
+            // Check heuristic: if x is small (e.g., < 50), assume it's normalized relative coords
+            // Canvas is 300x300, center 150. Normalized is (val - 150)/100.
+            if (Math.abs(list[0].x) < 50) {
+                return list.map(b => ({
+                    x: b.x * 100 + 150,
+                    y: b.y * 100 + 150,
+                    r: (b.r || 0.1) * 100,
+                    c: b.c,
+                    a: b.a
+                }));
+            }
+            return list;
+        };
+
+        hairEditorState.blobs = {
+            front: denormalize(rawBlobs.front),
+            back: denormalize(rawBlobs.back)
+        };
     }
 
     // Reset view
@@ -163,16 +206,18 @@ window.loadHairSlot = function(slotIndex) {
 }
 
 window.saveCustomHair = function() {
-    const slotIndex = document.getElementById('hairSaveSlot').value;
+    const slotSelect = document.getElementById('hairSaveSlot');
+    const slotIndex = slotSelect ? slotSelect.value : 1;
     const id = `custom_${slotIndex}`;
 
+    if (typeof playerData === 'undefined') return;
     if (!playerData.customHairstyles) playerData.customHairstyles = [];
 
     // Remove existing
     const idx = playerData.customHairstyles.findIndex(h => h.id === id);
     if (idx !== -1) playerData.customHairstyles.splice(idx, 1);
 
-    // Normalize Data (Convert 300x300 canvas coords to relative -1.5 to 1.5 coords based on 100px head radius)
+    // Normalize Data (Convert 300x300 canvas coords to relative coords based on 100px head radius)
     // Center is 150, 150. Scale reference is 100.
     const normalizeBlobs = (list) => {
         return list.map(b => ({
@@ -197,6 +242,7 @@ window.saveCustomHair = function() {
 
     // Auto-equip?
     playerData.customHairstyle = id;
+    playerData.hair = id; // Also set the main hair property
 
     // Save to local storage
     if (typeof saveData === 'function') saveData();
@@ -209,25 +255,43 @@ window.saveCustomHair = function() {
 // --- Drawing Logic ---
 
 function getCanvasCoords(e) {
+    if (!hairCanvas) return {x:0, y:0};
     const rect = hairCanvas.getBoundingClientRect();
     const scaleX = hairCanvas.width / rect.width;
     const scaleY = hairCanvas.height / rect.height;
+
+    // Handle Touch vs Mouse
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+
+    // If it's a touch object (or similar structure), use it
+    if (e.touches && e.touches.length > 0) {
+         clientX = e.touches[0].clientX;
+         clientY = e.touches[0].clientY;
+    } else if (e.clientX === undefined && e.x !== undefined) {
+         // Fallback for some event types
+         clientX = e.x;
+         clientY = e.y;
+    }
+
     return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
     };
 }
 
 function startStroke(e) {
     hairEditorState.isDrawing = true;
     saveHistory();
+    // Normalize event logic handled in getCanvasCoords or passed object
+    // If e is a Touch event, it has changedTouches. If it's a touch point, it has clientX/Y.
+    // The listener passes `e.touches[0]` for touch events.
     addBlob(getCanvasCoords(e));
     renderHairCanvas();
 }
 
 function moveStroke(e) {
     if (!hairEditorState.isDrawing) return;
-    // Interpolate? For now just add blobs
     addBlob(getCanvasCoords(e));
     renderHairCanvas();
 }
@@ -264,7 +328,7 @@ function addBlob(pos) {
 
 // Render Function
 function renderHairCanvas() {
-    if (!hairCtx) return;
+    if (!hairCtx || !hairCanvas) return;
     const w = hairCanvas.width;
     const h = hairCanvas.height;
 
@@ -285,10 +349,6 @@ function renderHairCanvas() {
     drawHeadTemplate(hairCtx, cx, cy, 100); // 100 radius approx
 
     // Draw Blobs
-    // We need to draw BACK blobs first if viewing FRONT?
-    // Actually, we only edit one view at a time.
-    // If viewing 'front', we might want to see 'back' hair behind head?
-
     if (hairEditorState.view === 'front') {
         // Draw back hair dimly behind?
         drawBlobs(hairEditorState.blobs.back, 0.3); // Ghost
@@ -303,6 +363,7 @@ function renderHairCanvas() {
 }
 
 function drawBlobs(list, globalAlphaMult) {
+    if (!list) return;
     list.forEach(b => {
         hairCtx.globalAlpha = b.a * globalAlphaMult;
         hairCtx.fillStyle = b.c;
@@ -339,5 +400,3 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         ctx.fillRect(cx - r*0.4, cy + r*0.8, r*0.8, r*0.5);
     }
 }
-
-// --- END hair_logic.js ---

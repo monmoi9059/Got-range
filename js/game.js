@@ -1471,8 +1471,9 @@
         document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
-        // Reset to first tab
-        window.switchShopTab('upgrades');
+        // Reset to first tab only if not already open (preserves state)
+        if (!currentShopTab) window.switchShopTab('upgrades');
+        else window.switchShopTab(currentShopTab);
 
         updateDifficulty(); updateShopUI();
         updateMobileControlsUI();
