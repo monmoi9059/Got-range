@@ -17559,9 +17559,30 @@ window.saveCustomHair = saveCustomHair;
         const skin = group[viewingVariantIndex];
 
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); }
+
+        const applySkin = () => {
+            // Check for animal change
+            const oldSkinId = playerData.currentSkin;
+            const oldSkinObj = SKINS_DB.find(s => s.id === oldSkinId);
+            if (oldSkinObj && skin.animal !== oldSkinObj.animal) {
+                // Reset items
+                playerData.currentHat = 'hat_none';
+                playerData.currentClothing = 'clothes_none';
+                playerData.currentPants = 'pants_none';
+                playerData.currentShoes = 'shoe_none';
+                playerData.customHairstyle = 'default';
+            }
+            playerData.currentSkin = skin.id;
+        };
+
+        if (isUnlocked) {
+            applySkin();
+            checkAchievements('skin');
+        }
         else if (playerData.tacos >= skin.cost) {
-            playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
+            playerData.tacos -= skin.cost;
+            playerData.unlockedSkins.push(skin.id);
+            applySkin();
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();

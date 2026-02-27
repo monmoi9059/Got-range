@@ -79,29 +79,37 @@ function initHairCreator() {
     // Prevent Context Menu on Canvas
     canvas.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
-    window.addEventListener('mouseup', function() {
-        isHairDragging = false;
-        isDrawing = false;
-    });
-
-    window.addEventListener('mousemove', function(e) {
-        if (state !== 'HAIR_CREATOR') return;
-
-        if (isHairDragging) {
-            const dx = e.clientX - lastDragX;
-            const dy = e.clientY - lastDragY;
-            g_hairPanX += dx;
-            g_hairPanY += dy;
-            lastDragX = e.clientX;
-            lastDragY = e.clientY;
-            updateHairZoom();
-        } else if (isDrawing) {
-            handleHairDraw(e);
-        }
-    });
-
     // Initial Render
     renderHairCanvas();
+}
+
+// Global listeners (run once on script load)
+window.addEventListener('mouseup', function() {
+    isHairDragging = false;
+    isDrawing = false;
+});
+
+window.addEventListener('mousemove', function(e) {
+    if (state !== 'HAIR_CREATOR') return;
+
+    if (isHairDragging) {
+        const dx = e.clientX - lastDragX;
+        const dy = e.clientY - lastDragY;
+        g_hairPanX += dx;
+        g_hairPanY += dy;
+        lastDragX = e.clientX;
+        lastDragY = e.clientY;
+        updateHairZoom();
+    } else if (isDrawing) {
+        handleHairDraw(e);
+    }
+});
+
+function resetHairView() {
+    g_hairZoom = 1.0;
+    g_hairPanX = 0;
+    g_hairPanY = 0;
+    updateHairZoom();
 }
 
 function updateHairZoom() {
@@ -230,3 +238,4 @@ function saveCustomHair() {
 window.openHairCreator = openHairCreator;
 window.closeHairCreator = closeHairCreator;
 window.saveCustomHair = saveCustomHair;
+window.resetHairView = resetHairView;

@@ -1066,7 +1066,7 @@
                 <canvas id="hairEditorCanvas" width="300" height="300" style="width: 100%; height: 100%; border: none; box-shadow: none;"></canvas>
             </div>
             <div style="font-size: 0.8em; color: #888; margin-bottom: 10px;">Clic Droit pour glisser, Roulette pour zoomer</div>
-            <button class="btn" onclick="initHairCreator()" style="margin-bottom: 15px; background: #333;">RÉINITIALISER LA VUE</button>
+            <button class="btn" onclick="resetHairView()" style="margin-bottom: 15px; background: #333;">RÉINITIALISER LA VUE</button>
 
             <!-- Controls -->
             <div style="width:100%; text-align:left;">
@@ -17588,9 +17588,30 @@ window.saveCustomHair = saveCustomHair;
         const skin = group[viewingVariantIndex];
 
         const isUnlocked = playerData.unlockedSkins.includes(skin.id);
-        if (isUnlocked) { playerData.currentSkin = skin.id; checkAchievements('skin'); }
+
+        const applySkin = () => {
+            // Check for animal change
+            const oldSkinId = playerData.currentSkin;
+            const oldSkinObj = SKINS_DB.find(s => s.id === oldSkinId);
+            if (oldSkinObj && skin.animal !== oldSkinObj.animal) {
+                // Reset items
+                playerData.currentHat = 'hat_none';
+                playerData.currentClothing = 'clothes_none';
+                playerData.currentPants = 'pants_none';
+                playerData.currentShoes = 'shoe_none';
+                playerData.customHairstyle = 'default';
+            }
+            playerData.currentSkin = skin.id;
+        };
+
+        if (isUnlocked) {
+            applySkin();
+            checkAchievements('skin');
+        }
         else if (playerData.tacos >= skin.cost) {
-            playerData.tacos -= skin.cost; playerData.unlockedSkins.push(skin.id); playerData.currentSkin = skin.id;
+            playerData.tacos -= skin.cost;
+            playerData.unlockedSkins.push(skin.id);
+            applySkin();
             checkAchievements('shop'); checkAchievements('skin');
         }
         saveData(); updateShopUI(); updateUI();
