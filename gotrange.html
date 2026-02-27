@@ -1090,7 +1090,7 @@
                 <hr style="border-color:#333; margin:15px 0;">
 
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <select id="hairSaveSlot" style="background:#222; color:#FFF; padding:8px; border:1px solid #555; flex-grow:1; margin-right:10px;">
+                    <select id="hairSaveSlot" style="background:#222; color:#FFF; padding:8px; border:1px solid #555; flex-grow:1; margin-right:10px;" onchange="loadHairSlot(this.value)">
                         <option value="0">Emplacement 1</option>
                         <option value="1">Emplacement 2</option>
                         <option value="2">Emplacement 3</option>
@@ -2819,7 +2819,7 @@ function saveHistory() {
     hairEditorState.history.push(JSON.stringify(hairEditorState.blobs));
 }
 
-function loadHairSlot(slotIndex) {
+window.loadHairSlot = function(slotIndex) {
     // Find existing custom data in playerData
     const id = `custom_${slotIndex}`;
     if (!playerData.customHairstyles) playerData.customHairstyles = [];
@@ -2835,6 +2835,7 @@ function loadHairSlot(slotIndex) {
 
     // Reset view
     setHairEditorView('back');
+    renderHairCanvas();
 }
 
 window.saveCustomHair = function() {
@@ -2847,10 +2848,27 @@ window.saveCustomHair = function() {
     const idx = playerData.customHairstyles.findIndex(h => h.id === id);
     if (idx !== -1) playerData.customHairstyles.splice(idx, 1);
 
+    // Normalize Data (Convert 300x300 canvas coords to relative -1.5 to 1.5 coords based on 100px head radius)
+    // Center is 150, 150. Scale reference is 100.
+    const normalizeBlobs = (list) => {
+        return list.map(b => ({
+            x: (b.x - 150) / 100,
+            y: (b.y - 150) / 100,
+            r: b.r / 100,
+            c: b.c, // Hex color string
+            a: b.a
+        }));
+    };
+
+    const savedData = {
+        front: normalizeBlobs(hairEditorState.blobs.front),
+        back: normalizeBlobs(hairEditorState.blobs.back)
+    };
+
     // Add new
     playerData.customHairstyles.push({
         id: id,
-        blobs: JSON.parse(JSON.stringify(hairEditorState.blobs)) // Deep copy
+        blobs: savedData
     });
 
     // Auto-equip?
@@ -9953,13 +9971,24 @@ var BallRenderer = {
     function drawCustomBlobs(ctx, p, headY, headRadius, s, blobs) {
         if (!blobs || !blobs.length) return;
         blobs.forEach(b => {
-             const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
+             let col = b.c;
+             // Check if it is an index (legacy)
+             if (typeof col === 'number' || (typeof col === 'string' && !col.startsWith('#') && !col.startsWith('rgb'))) {
+                 if (typeof HAIR_COLORS !== 'undefined') {
+                     col = HAIR_COLORS[col] || '#000';
+                 } else {
+                     col = '#000';
+                 }
+             }
              ctx.fillStyle = col;
 
              const alpha = (b.a !== undefined) ? b.a : 1.0;
              const oldAlpha = ctx.globalAlpha;
              ctx.globalAlpha = oldAlpha * alpha;
 
+             // Coordinates are normalized relative to head center and radius
+             // b.x = (pixelX - center) / radius
+             // So: pixelX = center + b.x * radius
              const bx = p.x + b.x * headRadius;
              const by = headY + b.y * headRadius;
              const br = b.r * headRadius;

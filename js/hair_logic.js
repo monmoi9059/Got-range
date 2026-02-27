@@ -143,7 +143,7 @@ function saveHistory() {
     hairEditorState.history.push(JSON.stringify(hairEditorState.blobs));
 }
 
-function loadHairSlot(slotIndex) {
+window.loadHairSlot = function(slotIndex) {
     // Find existing custom data in playerData
     const id = `custom_${slotIndex}`;
     if (!playerData.customHairstyles) playerData.customHairstyles = [];
@@ -159,6 +159,7 @@ function loadHairSlot(slotIndex) {
 
     // Reset view
     setHairEditorView('back');
+    renderHairCanvas();
 }
 
 window.saveCustomHair = function() {
@@ -171,10 +172,27 @@ window.saveCustomHair = function() {
     const idx = playerData.customHairstyles.findIndex(h => h.id === id);
     if (idx !== -1) playerData.customHairstyles.splice(idx, 1);
 
+    // Normalize Data (Convert 300x300 canvas coords to relative -1.5 to 1.5 coords based on 100px head radius)
+    // Center is 150, 150. Scale reference is 100.
+    const normalizeBlobs = (list) => {
+        return list.map(b => ({
+            x: (b.x - 150) / 100,
+            y: (b.y - 150) / 100,
+            r: b.r / 100,
+            c: b.c, // Hex color string
+            a: b.a
+        }));
+    };
+
+    const savedData = {
+        front: normalizeBlobs(hairEditorState.blobs.front),
+        back: normalizeBlobs(hairEditorState.blobs.back)
+    };
+
     // Add new
     playerData.customHairstyles.push({
         id: id,
-        blobs: JSON.parse(JSON.stringify(hairEditorState.blobs)) // Deep copy
+        blobs: savedData
     });
 
     // Auto-equip?
