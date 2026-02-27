@@ -1,2 +1,0 @@
-        if (style.startsWith('fade_')) {
-             // Skin fade base (Shaved sides)
