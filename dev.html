@@ -386,9 +386,15 @@
                 <button id="btnHairViewFront" class="btn" style="background:#222;" onclick="setHairEditorView('front')">AVANT (BARBE)</button>
             </div>
 
+            <div style="display:flex; gap:10px; margin-bottom:10px; align-items: center;">
+                <button class="btn" style="background:#333; padding: 5px 10px;" onclick="zoomHairCanvas(0.1)">ZOOM +</button>
+                <button class="btn" style="background:#333; padding: 5px 10px;" onclick="zoomHairCanvas(-0.1)">ZOOM -</button>
+                <span id="hairZoomDisplay" style="color: #FFD700; font-weight: bold;">100%</span>
+            </div>
+
             <!-- Canvas Container -->
-            <div style="position:relative; width:300px; height:300px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none;">
-                <canvas id="hairEditorCanvas" width="300" height="300"></canvas>
+            <div style="position:relative; width:300px; height:300px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <canvas id="hairEditorCanvas" width="300" height="300" style="transition: transform 0.2s ease;"></canvas>
             </div>
 
             <!-- Controls -->

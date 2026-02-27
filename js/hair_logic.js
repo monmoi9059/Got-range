@@ -60,6 +60,10 @@ window.initHairCreator = function() {
     if (alphaSlider) alphaSlider.value = hairEditorState.brushAlpha;
 
     setBrushColor(typeof HAIR_COLORS !== 'undefined' ? HAIR_COLORS[0] : '#000000');
+
+    // Initialize zoom
+    hairZoom = 1.0;
+    updateHairZoom();
 };
 
 window.openHairCreator = function() {
@@ -71,6 +75,12 @@ window.openHairCreator = function() {
     if (typeof state !== 'undefined') state = 'HAIR_CREATOR';
     const ui = document.getElementById('hairCreatorUI');
     if (ui) ui.style.display = 'flex'; // It's a modal, usually flex centered
+
+    // Explicitly hide mobile controls when entering Hair Creator
+    const btnMobile = document.getElementById('mobileShootBtn');
+    if (btnMobile) btnMobile.style.display = 'none';
+    const btnMobile2 = document.getElementById('mobileShootBtn2');
+    if (btnMobile2) btnMobile2.style.display = 'none';
 
     initHairCreator();
 
@@ -86,6 +96,11 @@ window.openHairCreator = function() {
 window.closeHairCreator = function() {
     const ui = document.getElementById('hairCreatorUI');
     if (ui) ui.style.display = 'none';
+
+    // Restore mobile controls if enabled
+    if (typeof updateMobileControlsUI === 'function') {
+        updateMobileControlsUI();
+    }
 
     // Return to Shop or Idle
     if (typeof openShop === 'function') openShop();
@@ -252,11 +267,40 @@ window.saveCustomHair = function() {
     closeHairCreator();
 };
 
+// --- Zoom Logic ---
+
+window.zoomHairCanvas = function(delta) {
+    hairZoom += delta;
+    if (hairZoom < 1.0) hairZoom = 1.0;
+    if (hairZoom > 3.0) hairZoom = 3.0;
+    updateHairZoom();
+};
+
+function updateHairZoom() {
+    if (!hairCanvas) hairCanvas = document.getElementById('hairEditorCanvas');
+    if (hairCanvas) {
+        hairCanvas.style.transform = `scale(${hairZoom})`;
+    }
+    const display = document.getElementById('hairZoomDisplay');
+    if (display) {
+        display.innerText = Math.round(hairZoom * 100) + '%';
+    }
+}
+
+
 // --- Drawing Logic ---
 
 function getCanvasCoords(e) {
     if (!hairCanvas) return {x:0, y:0};
+
+    // We need to account for the CSS transform (scale) on the canvas
     const rect = hairCanvas.getBoundingClientRect();
+
+    // The rect width/height includes the scale transform.
+    // However, the canvas internal resolution is fixed (300x300).
+    // So scaleX/scaleY calculation based on rect will naturally handle the zoom
+    // IF the click coordinates are relative to the zoomed element's top-left.
+
     const scaleX = hairCanvas.width / rect.width;
     const scaleY = hairCanvas.height / rect.height;
 
@@ -302,6 +346,10 @@ function endStroke() {
 
 function addBlob(pos) {
     const list = hairEditorState.blobs[hairEditorState.view];
+    // Scale brush size inversely if needed?
+    // Actually no, if we zoom in, we want more precision, so the brush should stay same size in pixels (smaller on screen)
+    // But currently brushSize is in canvas pixels.
+    // If we zoom, the canvas pixels are bigger on screen.
     const r = hairEditorState.brushSize;
 
     if (hairEditorState.isEraser) {
