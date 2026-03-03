@@ -4347,7 +4347,7 @@ var BallRenderer = {
         ctx.restore();
     }
 
-        function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s) {
+        function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s, pattern) {
         type = type || 'sneakers';
         const soleColor = '#EEE';
         const laceColor = detailColor || 'rgba(0,0,0,0.3)';
@@ -4419,7 +4419,7 @@ var BallRenderer = {
             ctx.beginPath(); ctx.ellipse(0, 0, w*0.9, h*0.5, 0, Math.PI, 0); ctx.fill();
 
             // Checkerboard Pattern
-            if (color === '#FFF') { // Hack for checkerboard ID
+            if (pattern === 'check') {
                 ctx.fillStyle = '#000';
                 const size = 4*s;
                 for(let i=-2; i<=2; i++) {
@@ -6867,7 +6867,7 @@ var BallRenderer = {
             );
             // Left Shoe (On top)
             if(skinObj.shoesColor) {
-                drawRealisticShoe(lFootX, lFootY, 5.5*s, 5.5*s, skinObj.shoesColor, false, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                drawRealisticShoe(lFootX, lFootY, 5.5*s, 5.5*s, skinObj.shoesColor, false, skinObj.shoeType, skinObj.shoeDetailColor, s, skinObj.shoePattern);
             }
 
             // Right Leg
@@ -6881,7 +6881,7 @@ var BallRenderer = {
             );
             // Right Shoe (On top)
             if(skinObj.shoesColor) {
-                drawRealisticShoe(rFootX, rFootY, 5.5*s, 5.5*s, skinObj.shoesColor, true, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                drawRealisticShoe(rFootX, rFootY, 5.5*s, 5.5*s, skinObj.shoesColor, true, skinObj.shoeType, skinObj.shoeDetailColor, s, skinObj.shoePattern);
             }
 
         } else {
@@ -7085,7 +7085,7 @@ var BallRenderer = {
                  }
                  // 3. Shoes
                  if(shoesColor) {
-                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                     drawRealisticShoe(xBot, yBot, 5.5*s, 5.5*s, shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s, skinObj.shoePattern);
                  }
              }
         };
@@ -7594,6 +7594,7 @@ var BallRenderer = {
                  skinObj.shoesColor = shoe.color;
                  skinObj.shoeType = shoe.type;
                  skinObj.shoeDetailColor = shoe.detailColor || shoe.color2;
+                 skinObj.shoePattern = shoe.pattern;
              }
         }
 
@@ -8167,7 +8168,7 @@ var BallRenderer = {
                 // Feet / Shoes
                 if (skinObj.shoesColor) {
                      // Shoe covers ankle
-                     drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s);
+                     drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s, skinObj.shoePattern);
                 } else if (legFurry) {
                      // Paw
                      const pawColor = furColor;
