@@ -7090,6 +7090,7 @@ var BallRenderer = {
 
     // Cache for hat lookup (Memoization) to avoid Array.find every frame
     const g_hatCache = new Map();
+    const g_pantsCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
@@ -12333,7 +12334,11 @@ var BallRenderer = {
                 // Apply Pants Overrides
         if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             let pants = g_pantsCache.get(playerData.currentPants);
+             if (!pants) {
+                 pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+                 if (pants) g_pantsCache.set(playerData.currentPants, pants);
+             }
              if (pants) {
                  skinObj.shortsColor = pants.color;
                  if (pants.type === 'long') {
