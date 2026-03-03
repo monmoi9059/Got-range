@@ -13674,7 +13674,11 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             let hat = g_hatCache.get(playerData.currentHat);
+             if (!hat) {
+                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
+                 if (hat) g_hatCache.set(playerData.currentHat, hat);
+             }
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
