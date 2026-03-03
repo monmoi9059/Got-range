@@ -476,7 +476,9 @@
         if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
 
         // Distance Checks (Classic/Calculated)
-        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const dist = Math.sqrt(pdx * pdx + pdy * pdy) / PIXELS_PER_FOOT;
         if (dist >= 100) checkDailyProgress('makes_long', 1);
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
@@ -716,7 +718,9 @@
                     if (t.beingEaten) continue; // Skip claimed tacos
                     if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
-                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
+                    const dx = t.x - cat.x;
+                    const dy = t.y - cat.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
                     if (d < minDist) {
                         minDist = d;
                         targetIdx = i;
@@ -1109,7 +1113,9 @@
                     const crossX = prevX + (b.x - prevX) * t;
                     const crossY = prevY + (b.y - prevY) * t;
 
-                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
+                    const hoopDX = crossX - HOOP_POS.x;
+                    const hoopDY = crossY - HOOP_POS.y;
+                    const distToHoopCenter = Math.sqrt(hoopDX * hoopDX + hoopDY * hoopDY);
                     if (distToHoopCenter < 25) { handleScore(b); continue; }
 
                     if (b.isWindow) {
@@ -1118,8 +1124,12 @@
                         AudioSystem.playBrick();
                     }
                 }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+                const pDX = HOOP_POS.x - player3D.x;
+                const pDY = HOOP_POS.y - player3D.y;
+                const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
+                const bDX = b.x - player3D.x;
+                const bDY = b.y - player3D.y;
+                const currentDist = Math.sqrt(bDX * bDX + bDY * bDY);
 
                 if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
