@@ -3710,12 +3710,20 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const sum = dX + dY;
         if (sum > 540 && sum < 810) continue;
 
-        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
+        const dx = dX - HOOP_POS.x;
+        const dy = dY - HOOP_POS.y;
+        const dDist = Math.sqrt(dx * dx + dy * dy);
 
         // Convert Pixel Distance to Game Feet for Zone Lookup
         const feetDist = dDist / PIXELS_PER_FOOT;
 
-        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        let decorZone = COURT_ZONES[COURT_ZONES.length-1];
+        for (let j = 0; j < COURT_ZONES.length; j++) {
+            if (feetDist < COURT_ZONES[j].limit) {
+                decorZone = COURT_ZONES[j];
+                break;
+            }
+        }
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
@@ -7091,6 +7099,7 @@ var BallRenderer = {
     // Cache for hat lookup (Memoization) to avoid Array.find every frame
     const g_hatCache = new Map();
     const g_pantsCache = new Map();
+    const g_clothingCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
@@ -11263,7 +11272,11 @@ var BallRenderer = {
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let cItem = g_clothingCache.get(playerData.currentClothing);
+             if (!cItem) {
+                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+             }
              if (cItem) {
                  skinObj.clothing = cItem;
                  skinObj.clothingType = cItem.type;
@@ -11509,7 +11522,11 @@ var BallRenderer = {
             // Prioritize passed object, fallback to global state if needed
             let cItem = skinObj.clothing;
             if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 cItem = g_clothingCache.get(playerData.currentClothing);
+                 if (!cItem) {
+                     cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                     if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+                 }
             }
 
             if (cItem) {
@@ -12280,7 +12297,11 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
 
              // Force re-lookup to guarantee data integrity
-             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let clothing = g_clothingCache.get(playerData.currentClothing);
+             if (!clothing) {
+                 clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
+             }
 
              if (clothing) {
                  skinObj.clothing = clothing; // Tag for later use
@@ -14641,7 +14662,9 @@ var BallRenderer = {
         // OPTIMIZATION: Cull objects far beyond the player
         // Player moves away from hoop. d.dist approximates distance from hoop (in pixels).
         // Objects with d.dist >> playerDistFromHoop are behind the camera.
-        const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const playerDistFromHoop = Math.sqrt(pdx * pdx + pdy * pdy);
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
         // OPTIMIZATION: Start iteration from visible range
@@ -16441,7 +16464,9 @@ var BallRenderer = {
         if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
 
         // Distance Checks (Classic/Calculated)
-        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const dist = Math.sqrt(pdx * pdx + pdy * pdy) / PIXELS_PER_FOOT;
         if (dist >= 100) checkDailyProgress('makes_long', 1);
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
@@ -16681,7 +16706,9 @@ var BallRenderer = {
                     if (t.beingEaten) continue; // Skip claimed tacos
                     if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
-                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
+                    const dx = t.x - cat.x;
+                    const dy = t.y - cat.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
                     if (d < minDist) {
                         minDist = d;
                         targetIdx = i;
@@ -17074,7 +17101,9 @@ var BallRenderer = {
                     const crossX = prevX + (b.x - prevX) * t;
                     const crossY = prevY + (b.y - prevY) * t;
 
-                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
+                    const hoopDX = crossX - HOOP_POS.x;
+                    const hoopDY = crossY - HOOP_POS.y;
+                    const distToHoopCenter = Math.sqrt(hoopDX * hoopDX + hoopDY * hoopDY);
                     if (distToHoopCenter < 25) { handleScore(b); continue; }
 
                     if (b.isWindow) {
@@ -17083,8 +17112,12 @@ var BallRenderer = {
                         AudioSystem.playBrick();
                     }
                 }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+                const pDX = HOOP_POS.x - player3D.x;
+                const pDY = HOOP_POS.y - player3D.y;
+                const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
+                const bDX = b.x - player3D.x;
+                const bDY = b.y - player3D.y;
+                const currentDist = Math.sqrt(bDX * bDX + bDY * bDY);
 
                 if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {

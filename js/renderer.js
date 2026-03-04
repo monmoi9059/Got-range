@@ -2330,6 +2330,7 @@ var BallRenderer = {
     // Cache for hat lookup (Memoization) to avoid Array.find every frame
     const g_hatCache = new Map();
     const g_pantsCache = new Map();
+    const g_clothingCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
@@ -6502,7 +6503,11 @@ var BallRenderer = {
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let cItem = g_clothingCache.get(playerData.currentClothing);
+             if (!cItem) {
+                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+             }
              if (cItem) {
                  skinObj.clothing = cItem;
                  skinObj.clothingType = cItem.type;
@@ -6748,7 +6753,11 @@ var BallRenderer = {
             // Prioritize passed object, fallback to global state if needed
             let cItem = skinObj.clothing;
             if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 cItem = g_clothingCache.get(playerData.currentClothing);
+                 if (!cItem) {
+                     cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                     if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+                 }
             }
 
             if (cItem) {
@@ -7519,7 +7528,11 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
 
              // Force re-lookup to guarantee data integrity
-             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let clothing = g_clothingCache.get(playerData.currentClothing);
+             if (!clothing) {
+                 clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
+             }
 
              if (clothing) {
                  skinObj.clothing = clothing; // Tag for later use
