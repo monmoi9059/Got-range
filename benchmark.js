@@ -1,45 +1,45 @@
 const fs = require('fs');
 
-// Simple mockup of the data
-const CLOTHING_DB = [];
-for (let i = 0; i < 1000; i++) {
-  CLOTHING_DB.push({ id: `clothing_${i}`, type: 'test', color: 'red' });
+// Create mock data arrays (100 items each to simulate worst-case lookup)
+const mockDB = [];
+for (let i = 0; i < 100; i++) {
+    mockDB.push({ id: `item_${i}`, value: i });
 }
 
-const g_clothingCache = new Map();
-const ITERATIONS = 100000;
-
-function benchFind() {
-  const start = process.hrtime.bigint();
-  let count = 0;
-  for (let i = 0; i < ITERATIONS; i++) {
-    const idToFind = `clothing_${Math.floor(Math.random() * 1000)}`;
-    const clothing = CLOTHING_DB.find(c => c.id === idToFind);
-    if (clothing) count++;
-  }
-  const end = process.hrtime.bigint();
-  return Number(end - start) / 1000000; // ms
+// 1. Array.find() benchmark
+console.time('Array.find()');
+for (let i = 0; i < 100000; i++) {
+    const item = mockDB.find(x => x.id === 'item_99');
 }
+console.timeEnd('Array.find()');
 
-function benchMap() {
-  const start = process.hrtime.bigint();
-  let count = 0;
-  for (let i = 0; i < ITERATIONS; i++) {
-    const idToFind = `clothing_${Math.floor(Math.random() * 1000)}`;
-    let clothing = g_clothingCache.get(idToFind);
-    if (!clothing) {
-      clothing = CLOTHING_DB.find(c => c.id === idToFind);
-      if (clothing) g_clothingCache.set(idToFind, clothing);
+// 2. Map cache benchmark (First miss, then hit)
+const cache = new Map();
+console.time('Map Cache');
+for (let i = 0; i < 100000; i++) {
+    let item = cache.get('item_99');
+    if (!item) {
+        // First lookup using standard for-loop to populate cache instead of find()
+        for (let j = 0; j < mockDB.length; j++) {
+            if (mockDB[j].id === 'item_99') {
+                item = mockDB[j];
+                break;
+            }
+        }
+        cache.set('item_99', item);
     }
-    if (clothing) count++;
-  }
-  const end = process.hrtime.bigint();
-  return Number(end - start) / 1000000; // ms
 }
+console.timeEnd('Map Cache');
 
-// Warmup
-benchFind();
-benchMap();
-
-console.log(`Array.find: ${benchFind().toFixed(2)} ms`);
-console.log(`Map.get:    ${benchMap().toFixed(2)} ms`);
+// 3. For loop benchmark (No cache, replacing Array.find())
+console.time('For Loop (No Cache)');
+for (let i = 0; i < 100000; i++) {
+    let item = null;
+    for (let j = 0; j < mockDB.length; j++) {
+        if (mockDB[j].id === 'item_99') {
+            item = mockDB[j];
+            break;
+        }
+    }
+}
+console.timeEnd('For Loop (No Cache)');
