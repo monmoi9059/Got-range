@@ -1076,7 +1076,15 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+
+        let found = null;
+        for (let i = 0; i < SCALE_OBJECTS.length; i++) {
+            if (dist < SCALE_OBJECTS[i].limit) {
+                found = SCALE_OBJECTS[i];
+                break;
+            }
+        }
+        _lastScaleObj = found || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
         return _lastScaleObj;
     }
 
@@ -1085,7 +1093,15 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+
+        let found = null;
+        for (let i = 0; i < COURT_ZONES.length; i++) {
+            if (dist < COURT_ZONES[i].limit) {
+                found = COURT_ZONES[i];
+                break;
+            }
+        }
+        _lastCourtObj = found || COURT_ZONES[COURT_ZONES.length-1];
         return _lastCourtObj;
     }
 
@@ -1690,12 +1706,24 @@ var BallRenderer = {
 
         // Determine Ball Object
         var ballObj = null;
+        var searchBallId = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+            searchBallId = 'ball_money';
         } else {
-            var ballId = playerData.currentBall || 'ball_classic';
-            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
+            searchBallId = playerData.currentBall || 'ball_classic';
         }
+
+        ballObj = g_ballCache.get(searchBallId);
+        if (!ballObj) {
+            for (let i = 0; i < BALLS_DB.length; i++) {
+                if (BALLS_DB[i].id === searchBallId) {
+                    ballObj = BALLS_DB[i];
+                    break;
+                }
+            }
+            if (ballObj) g_ballCache.set(searchBallId, ballObj);
+        }
+
         if (!ballObj) ballObj = BALLS_DB[0];
 
         // Draw High Quality Ball (Scale adjusted: The old function used 8*scale radius, BallRenderer uses 25*scale.
@@ -2331,6 +2359,10 @@ var BallRenderer = {
     const g_hatCache = new Map();
     const g_pantsCache = new Map();
     const g_clothingCache = new Map();
+    const g_shoeCache = new Map();
+    const g_skinCache = new Map();
+    const g_ballCache = new Map();
+    const g_catAccessoryCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
@@ -5365,7 +5397,13 @@ var BallRenderer = {
     function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
          if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
          if (!playerData.customHairstyles) return;
-         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         let customData = null;
+         for (let i = 0; i < playerData.customHairstyles.length; i++) {
+             if (playerData.customHairstyles[i].id === skinObj.hairStyle) {
+                 customData = playerData.customHairstyles[i];
+                 break;
+             }
+         }
          if (customData && customData.blobs && customData.blobs.front) {
              drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
          }
@@ -5478,7 +5516,13 @@ var BallRenderer = {
         // --- 0. CUSTOM ---
         if (style.startsWith('custom_')) {
              if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 let customData = null;
+                 for (let i = 0; i < playerData.customHairstyles.length; i++) {
+                     if (playerData.customHairstyles[i].id === style) {
+                         customData = playerData.customHairstyles[i];
+                         break;
+                     }
+                 }
                  if (customData && customData.blobs && customData.blobs.back) {
                      drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
                  }
@@ -6505,7 +6549,12 @@ var BallRenderer = {
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
              let cItem = g_clothingCache.get(playerData.currentClothing);
              if (!cItem) {
-                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 for (let i = 0; i < CLOTHING_DB.length; i++) {
+                     if (CLOTHING_DB[i].id === playerData.currentClothing) {
+                         cItem = CLOTHING_DB[i];
+                         break;
+                     }
+                 }
                  if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
              }
              if (cItem) {
@@ -6755,7 +6804,12 @@ var BallRenderer = {
             if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
                  cItem = g_clothingCache.get(playerData.currentClothing);
                  if (!cItem) {
-                     cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                     for (let i = 0; i < CLOTHING_DB.length; i++) {
+                         if (CLOTHING_DB[i].id === playerData.currentClothing) {
+                             cItem = CLOTHING_DB[i];
+                             break;
+                         }
+                     }
                      if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
                  }
             }
@@ -7142,7 +7196,12 @@ var BallRenderer = {
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
              let hat = g_hatCache.get(playerData.currentHat);
              if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
+                 for (let i = 0; i < HATS_DB.length; i++) {
+                     if (HATS_DB[i].id === playerData.currentHat) {
+                         hat = HATS_DB[i];
+                         break;
+                     }
+                 }
                  if (hat) g_hatCache.set(playerData.currentHat, hat);
              }
              if (hat) {
@@ -7454,7 +7513,16 @@ var BallRenderer = {
         if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
-            skinObj = SKINS_DB.find(x => x.id === skin);
+            skinObj = g_skinCache.get(skin);
+            if (!skinObj) {
+                for (let i = 0; i < SKINS_DB.length; i++) {
+                    if (SKINS_DB[i].id === skin) {
+                        skinObj = SKINS_DB[i];
+                        break;
+                    }
+                }
+                if (skinObj) g_skinCache.set(skin, skinObj);
+            }
             if(!skinObj) skinObj = SKINS_DB[0];
 
             if (state !== 'SHOP') {
@@ -7530,7 +7598,12 @@ var BallRenderer = {
              // Force re-lookup to guarantee data integrity
              let clothing = g_clothingCache.get(playerData.currentClothing);
              if (!clothing) {
-                 clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 for (let i = 0; i < CLOTHING_DB.length; i++) {
+                     if (CLOTHING_DB[i].id === playerData.currentClothing) {
+                         clothing = CLOTHING_DB[i];
+                         break;
+                     }
+                 }
                  if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
              }
 
@@ -7588,7 +7661,12 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
              let pants = g_pantsCache.get(playerData.currentPants);
              if (!pants) {
-                 pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+                 for (let i = 0; i < PANTS_DB.length; i++) {
+                     if (PANTS_DB[i].id === playerData.currentPants) {
+                         pants = PANTS_DB[i];
+                         break;
+                     }
+                 }
                  if (pants) g_pantsCache.set(playerData.currentPants, pants);
              }
              if (pants) {
@@ -7607,7 +7685,16 @@ var BallRenderer = {
         // Apply Shoes Overrides
         if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const shoe = SHOES_DB.find(s => s.id === playerData.currentShoes);
+             let shoe = g_shoeCache.get(playerData.currentShoes);
+             if (!shoe) {
+                 for (let i = 0; i < SHOES_DB.length; i++) {
+                     if (SHOES_DB[i].id === playerData.currentShoes) {
+                         shoe = SHOES_DB[i];
+                         break;
+                     }
+                 }
+                 if (shoe) g_shoeCache.set(playerData.currentShoes, shoe);
+             }
              if (shoe) {
                  skinObj.shoesColor = shoe.color;
                  skinObj.shoeType = shoe.type;
@@ -8934,7 +9021,12 @@ var BallRenderer = {
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
              let hat = g_hatCache.get(playerData.currentHat);
              if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
+                 for (let i = 0; i < HATS_DB.length; i++) {
+                     if (HATS_DB[i].id === playerData.currentHat) {
+                         hat = HATS_DB[i];
+                         break;
+                     }
+                 }
                  if (hat) g_hatCache.set(playerData.currentHat, hat);
              }
              if (hat) {
@@ -9965,7 +10057,13 @@ var BallRenderer = {
             }
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                let cat = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        cat = decors[i];
+                        break;
+                    }
+                }
                 if(cat) {
                     if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
@@ -9986,7 +10084,13 @@ var BallRenderer = {
             }
             // Ensure Cat is visible
             if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
+                let cat = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        cat = decors[i];
+                        break;
+                    }
+                }
                 if(cat) {
                     if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
                     else processDecor(cat);
@@ -10779,7 +10883,16 @@ var BallRenderer = {
 
              // Accessories
              if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
-                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 let acc = g_catAccessoryCache.get(playerData.currentCatAccessory);
+                 if (!acc) {
+                     for (let i = 0; i < CAT_ACCESSORIES_DB.length; i++) {
+                         if (CAT_ACCESSORIES_DB[i].id === playerData.currentCatAccessory) {
+                             acc = CAT_ACCESSORIES_DB[i];
+                             break;
+                         }
+                     }
+                     if (acc) g_catAccessoryCache.set(playerData.currentCatAccessory, acc);
+                 }
                  if (acc) {
                      if (acc.type === 'glasses') {
                          ctx.fillStyle = acc.color || '#000';
