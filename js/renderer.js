@@ -9880,7 +9880,9 @@ var BallRenderer = {
         // OPTIMIZATION: Cull objects far beyond the player
         // Player moves away from hoop. d.dist approximates distance from hoop (in pixels).
         // Objects with d.dist >> playerDistFromHoop are behind the camera.
-        const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const playerDistFromHoop = Math.sqrt(pdx * pdx + pdy * pdy);
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
         // OPTIMIZATION: Start iteration from visible range

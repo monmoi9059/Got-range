@@ -47,12 +47,20 @@
         const sum = dX + dY;
         if (sum > 540 && sum < 810) continue;
 
-        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
+        const dx = dX - HOOP_POS.x;
+        const dy = dY - HOOP_POS.y;
+        const dDist = Math.sqrt(dx * dx + dy * dy);
 
         // Convert Pixel Distance to Game Feet for Zone Lookup
         const feetDist = dDist / PIXELS_PER_FOOT;
 
-        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        let decorZone = COURT_ZONES[COURT_ZONES.length-1];
+        for (let j = 0; j < COURT_ZONES.length; j++) {
+            if (feetDist < COURT_ZONES[j].limit) {
+                decorZone = COURT_ZONES[j];
+                break;
+            }
+        }
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
