@@ -1420,4 +1420,7 @@
         { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
 
+    var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
+    var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
+
 // --- END data.js ---

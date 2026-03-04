@@ -2674,6 +2674,9 @@ for(var k=0; k<12; k++) {
         { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
 
+    var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
+    var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
+
 // --- END data.js ---
 
 // --- END data.js ---
@@ -3710,12 +3713,20 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const sum = dX + dY;
         if (sum > 540 && sum < 810) continue;
 
-        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
+        const dx = dX - HOOP_POS.x;
+        const dy = dY - HOOP_POS.y;
+        const dDist = Math.sqrt(dx * dx + dy * dy);
 
         // Convert Pixel Distance to Game Feet for Zone Lookup
         const feetDist = dDist / PIXELS_PER_FOOT;
 
-        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        let decorZone = COURT_ZONES[COURT_ZONES.length-1];
+        for (let j = 0; j < COURT_ZONES.length; j++) {
+            if (feetDist < COURT_ZONES[j].limit) {
+                decorZone = COURT_ZONES[j];
+                break;
+            }
+        }
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
@@ -4317,13 +4328,13 @@ let lastDisplayedContestTime = -1;
     window.processAllChallenges = processAllChallenges;
 
     function processAllChallenges(type, amount) {
-        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
-        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES_MAP));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES_MAP));
     }
 
-    function updateChallenge(userC, type, amount, db) {
+    function updateChallenge(userC, type, amount, dbMap) {
         if(userC.claimed) return;
-        const def = db.find(d => d.id === userC.id);
+        const def = dbMap.get(userC.id);
         if(!def) return;
 
         if(def.type === type) {
@@ -4362,9 +4373,9 @@ let lastDisplayedContestTime = -1;
     window.claimChallenge = function(index, isWeekly) {
         loadContext(game1);
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const c = list[index];
-        const def = db.find(d => d.id === c.id);
+        const def = dbMap.get(c.id);
 
         if(c && !c.claimed && c.progress >= def.target) {
             c.claimed = true;
@@ -4554,7 +4565,7 @@ let lastDisplayedContestTime = -1;
     window.renderChallenges = function(tab) {
         const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const container = document.getElementById('challengeList');
         container.innerHTML = '';
 
@@ -4564,7 +4575,7 @@ let lastDisplayedContestTime = -1;
         }
 
         list.forEach((c, idx) => {
-            const def = db.find(d => d.id === c.id);
+            const def = dbMap.get(c.id);
             if(!def) return;
             const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
             const isDone = c.progress >= def.target;
@@ -14641,7 +14652,9 @@ var BallRenderer = {
         // OPTIMIZATION: Cull objects far beyond the player
         // Player moves away from hoop. d.dist approximates distance from hoop (in pixels).
         // Objects with d.dist >> playerDistFromHoop are behind the camera.
-        const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const playerDistFromHoop = Math.sqrt(pdx * pdx + pdy * pdy);
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
         // OPTIMIZATION: Start iteration from visible range
@@ -16441,7 +16454,9 @@ var BallRenderer = {
         if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
 
         // Distance Checks (Classic/Calculated)
-        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const dist = Math.sqrt(pdx * pdx + pdy * pdy) / PIXELS_PER_FOOT;
         if (dist >= 100) checkDailyProgress('makes_long', 1);
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
@@ -16681,7 +16696,9 @@ var BallRenderer = {
                     if (t.beingEaten) continue; // Skip claimed tacos
                     if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
-                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
+                    const dx = t.x - cat.x;
+                    const dy = t.y - cat.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
                     if (d < minDist) {
                         minDist = d;
                         targetIdx = i;
@@ -17074,7 +17091,9 @@ var BallRenderer = {
                     const crossX = prevX + (b.x - prevX) * t;
                     const crossY = prevY + (b.y - prevY) * t;
 
-                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
+                    const hoopDX = crossX - HOOP_POS.x;
+                    const hoopDY = crossY - HOOP_POS.y;
+                    const distToHoopCenter = Math.sqrt(hoopDX * hoopDX + hoopDY * hoopDY);
                     if (distToHoopCenter < 25) { handleScore(b); continue; }
 
                     if (b.isWindow) {
@@ -17083,8 +17102,12 @@ var BallRenderer = {
                         AudioSystem.playBrick();
                     }
                 }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+                const pDX = HOOP_POS.x - player3D.x;
+                const pDY = HOOP_POS.y - player3D.y;
+                const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
+                const bDX = b.x - player3D.x;
+                const bDY = b.y - player3D.y;
+                const currentDist = Math.sqrt(bDX * bDX + bDY * bDY);
 
                 if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
