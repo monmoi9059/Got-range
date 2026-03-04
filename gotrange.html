@@ -2674,6 +2674,9 @@ for(var k=0; k<12; k++) {
         { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
 
+    var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
+    var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
+
 // --- END data.js ---
 
 // --- END data.js ---
@@ -4325,13 +4328,13 @@ let lastDisplayedContestTime = -1;
     window.processAllChallenges = processAllChallenges;
 
     function processAllChallenges(type, amount) {
-        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
-        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES_MAP));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES_MAP));
     }
 
-    function updateChallenge(userC, type, amount, db) {
+    function updateChallenge(userC, type, amount, dbMap) {
         if(userC.claimed) return;
-        const def = db.find(d => d.id === userC.id);
+        const def = dbMap.get(userC.id);
         if(!def) return;
 
         if(def.type === type) {
@@ -4370,9 +4373,9 @@ let lastDisplayedContestTime = -1;
     window.claimChallenge = function(index, isWeekly) {
         loadContext(game1);
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const c = list[index];
-        const def = db.find(d => d.id === c.id);
+        const def = dbMap.get(c.id);
 
         if(c && !c.claimed && c.progress >= def.target) {
             c.claimed = true;
@@ -4562,7 +4565,7 @@ let lastDisplayedContestTime = -1;
     window.renderChallenges = function(tab) {
         const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const container = document.getElementById('challengeList');
         container.innerHTML = '';
 
@@ -4572,7 +4575,7 @@ let lastDisplayedContestTime = -1;
         }
 
         list.forEach((c, idx) => {
-            const def = db.find(d => d.id === c.id);
+            const def = dbMap.get(c.id);
             if(!def) return;
             const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
             const isDone = c.progress >= def.target;
