@@ -658,6 +658,18 @@ let lastDisplayedContestTime = -1;
         switchLeaderboardTab(pendingHighScore.mode);
     }
 
+    // --- OPTIMIZATION: Challenge Lookups ---
+    let g_challengeCache = null;
+
+    function getChallengeDef(id, db) {
+        if (!g_challengeCache) {
+            g_challengeCache = {};
+            if (typeof DAILY_CHALLENGES !== 'undefined') DAILY_CHALLENGES.forEach(d => g_challengeCache[d.id] = d);
+            if (typeof WEEKLY_CHALLENGES !== 'undefined') WEEKLY_CHALLENGES.forEach(d => g_challengeCache[d.id] = d);
+        }
+        return g_challengeCache[id] || db.find(d => d.id === id); // Fallback if dynamically added
+    }
+
     // Expose for game.js to call
     window.processAllChallenges = processAllChallenges;
 
@@ -668,7 +680,7 @@ let lastDisplayedContestTime = -1;
 
     function updateChallenge(userC, type, amount, db) {
         if(userC.claimed) return;
-        const def = db.find(d => d.id === userC.id);
+        const def = getChallengeDef(userC.id, db);
         if(!def) return;
 
         if(def.type === type) {
@@ -709,7 +721,7 @@ let lastDisplayedContestTime = -1;
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
         const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
         const c = list[index];
-        const def = db.find(d => d.id === c.id);
+        const def = getChallengeDef(c.id, db);
 
         if(c && !c.claimed && c.progress >= def.target) {
             c.claimed = true;
@@ -909,7 +921,7 @@ let lastDisplayedContestTime = -1;
         }
 
         list.forEach((c, idx) => {
-            const def = db.find(d => d.id === c.id);
+            const def = getChallengeDef(c.id, db);
             if(!def) return;
             const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
             const isDone = c.progress >= def.target;
