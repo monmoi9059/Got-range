@@ -1424,5 +1424,23 @@
     var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
     var CLOTHING_DB_MAP = new Map(CLOTHING_DB.map(c => [c.id, c]));
     var HATS_DB_MAP = new Map(HATS_DB.map(c => [c.id, c]));
+    var SKINS_DB_MAP = new Map(SKINS_DB.map(s => [s.id, s]));
+    var PANTS_DB_MAP = new Map(PANTS_DB.map(p => [p.id, p]));
+    var SHOES_DB_MAP = new Map(SHOES_DB.map(s => [s.id, s]));
+    var BALLS_DB_MAP = new Map(BALLS_DB.map(b => [b.id, b]));
+    var CAT_SKINS_DB_MAP = new Map(CAT_SKINS_DB.map(c => [c.id, c]));
+    var CAT_ACCESSORIES_DB_MAP = new Map(CAT_ACCESSORIES_DB.map(a => [a.id, a]));
+    var SHOOTING_STYLES_MAP = new Map(SHOOTING_STYLES.map(s => [s.id, s]));
+    var ACHIEVEMENTS_MAP = new Map(ACHIEVEMENTS.map(a => [a.id, a]));
+
+    var HATS_INDEX_MAP = new Map(HATS_DB.map((h, i) => [h.id, i]));
+    var CLOTHING_INDEX_MAP = new Map(CLOTHING_DB.map((c, i) => [c.id, i]));
+    var PANTS_INDEX_MAP = new Map(PANTS_DB.map((p, i) => [p.id, i]));
+    var SHOES_INDEX_MAP = new Map(SHOES_DB.map((s, i) => [s.id, i]));
+    var HAIRSTYLES_INDEX_MAP = new Map(HAIRSTYLES.map((h, i) => [h.id, i]));
+    var BALLS_INDEX_MAP = new Map(BALLS_DB.map((b, i) => [b.id, i]));
+    var CAT_SKINS_INDEX_MAP = new Map(CAT_SKINS_DB.map((c, i) => [c.id, i]));
+    var CAT_ACCESSORIES_INDEX_MAP = new Map(CAT_ACCESSORIES_DB.map((a, i) => [a.id, i]));
+    var SHOOTING_STYLES_INDEX_MAP = new Map(SHOOTING_STYLES.map((s, i) => [s.id, i]));
 
 // --- END data.js ---

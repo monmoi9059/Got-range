@@ -1076,7 +1076,7 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; // Small array, keep find
         return _lastScaleObj;
     }
 
@@ -1085,7 +1085,7 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; // Small array, keep find
         return _lastCourtObj;
     }
 
@@ -1691,10 +1691,10 @@ var BallRenderer = {
         // Determine Ball Object
         var ballObj = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+            ballObj = BALLS_DB_MAP.get('ball_money');
         } else {
             var ballId = playerData.currentBall || 'ball_classic';
-            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
+            ballObj = BALLS_DB_MAP.get(ballId);
         }
         if (!ballObj) ballObj = BALLS_DB[0];
 
@@ -7449,7 +7449,7 @@ var BallRenderer = {
         if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
-            skinObj = SKINS_DB.find(x => x.id === skin);
+            skinObj = SKINS_DB_MAP.get(skin);
             if(!skinObj) skinObj = SKINS_DB[0];
 
             if (state !== 'SHOP') {
@@ -7583,7 +7583,7 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
              let pants = g_pantsCache.get(playerData.currentPants);
              if (!pants) {
-                 pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+                 pants = PANTS_DB_MAP.get(playerData.currentPants);
                  if (pants) g_pantsCache.set(playerData.currentPants, pants);
              }
              if (pants) {
@@ -7602,7 +7602,7 @@ var BallRenderer = {
         // Apply Shoes Overrides
         if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const shoe = SHOES_DB.find(s => s.id === playerData.currentShoes);
+             const shoe = SHOES_DB_MAP.get(playerData.currentShoes);
              if (shoe) {
                  skinObj.shoesColor = shoe.color;
                  skinObj.shoeType = shoe.type;
@@ -10770,7 +10770,7 @@ var BallRenderer = {
 
              // Accessories
              if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
-                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 const acc = CAT_ACCESSORIES_DB_MAP.get(playerData.currentCatAccessory);
                  if (acc) {
                      if (acc.type === 'glasses') {
                          ctx.fillStyle = acc.color || '#000';
