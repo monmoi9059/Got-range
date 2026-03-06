@@ -1122,8 +1122,8 @@
 
                     const hoopDX = crossX - HOOP_POS.x;
                     const hoopDY = crossY - HOOP_POS.y;
-                    const distToHoopCenter = Math.sqrt(hoopDX * hoopDX + hoopDY * hoopDY);
-                    if (distToHoopCenter < 25) { handleScore(b); continue; }
+                    const distToHoopCenterSq = hoopDX * hoopDX + hoopDY * hoopDY;
+                    if (distToHoopCenterSq < 625) { handleScore(b); continue; } // 25 * 25
 
                     if (b.isWindow) {
                         AudioSystem.playWindowBreak();
@@ -1134,11 +1134,12 @@
                 const pDX = HOOP_POS.x - player3D.x;
                 const pDY = HOOP_POS.y - player3D.y;
                 const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
+                const distToHoopPlus5000 = distToHoop + 5000;
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
-                const currentDist = Math.sqrt(bDX * bDX + bDY * bDY);
+                const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
+                if (b.z < -50 || currentDistSq > distToHoopPlus5000 * distToHoopPlus5000) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell
