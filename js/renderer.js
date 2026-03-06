@@ -6505,7 +6505,7 @@ var BallRenderer = {
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
              let cItem = g_clothingCache.get(playerData.currentClothing);
              if (!cItem) {
-                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 cItem = CLOTHING_DB_MAP.get(playerData.currentClothing);
                  if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
              }
              if (cItem) {
@@ -6755,7 +6755,7 @@ var BallRenderer = {
             if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
                  cItem = g_clothingCache.get(playerData.currentClothing);
                  if (!cItem) {
-                     cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                     cItem = CLOTHING_DB_MAP.get(playerData.currentClothing);
                      if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
                  }
             }
@@ -7530,7 +7530,7 @@ var BallRenderer = {
              // Force re-lookup to guarantee data integrity
              let clothing = g_clothingCache.get(playerData.currentClothing);
              if (!clothing) {
-                 clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 clothing = CLOTHING_DB_MAP.get(playerData.currentClothing);
                  if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
              }
 
