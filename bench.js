@@ -1,6 +1,11 @@
 const fs = require('fs');
+const vm = require('vm');
 
-eval(fs.readFileSync('js/data.js', 'utf8'));
+const sandbox = {};
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('js/data.js', 'utf8'), sandbox);
+
+const SKINS_DB = sandbox.SKINS_DB;
 
 // Set up data for benchmark
 let mockPlayerData = { unlockedSkins: [] };
@@ -15,7 +20,8 @@ function checkOriginal() {
     return animalsOwned.size;
 }
 
-const SKINS_DB_MAP = new Map(SKINS_DB.map(s => [s.id, s]));
+// Ensure SKINS_DB_MAP uses let/const cleanly or use sandbox version
+const SKINS_DB_MAP = sandbox.SKINS_DB_MAP || new Map(SKINS_DB.map(s => [s.id, s]));
 
 // Function after optimization
 function checkOptimized() {
