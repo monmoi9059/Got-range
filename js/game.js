@@ -696,16 +696,25 @@
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    let g_catDecorCache = null;
     function updateCatLogic(dt) {
         const cat = g_catState;
         const speed = 4.0; // Movement speed
 
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
-            const catD = decors.find(d => d.zoneType === 'cat_hoop');
-            if (catD) {
-                catD.x = cat.x;
-                catD.y = cat.y;
+            if (!g_catDecorCache || g_catDecorCache.zoneType !== 'cat_hoop') {
+                g_catDecorCache = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        g_catDecorCache = decors[i];
+                        break;
+                    }
+                }
+            }
+            if (g_catDecorCache) {
+                g_catDecorCache.x = cat.x;
+                g_catDecorCache.y = cat.y;
             }
         }
 
@@ -718,7 +727,7 @@
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
-                let minDist = Infinity;
+                let minDistSq = Infinity;
                 let targetIdx = -1;
                 for(let i=0; i<tacosOnGround.length; i++) {
                     const t = tacosOnGround[i];
@@ -727,9 +736,9 @@
 
                     const dx = t.x - cat.x;
                     const dy = t.y - cat.y;
-                    const d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < minDist) {
-                        minDist = d;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq < minDistSq) {
+                        minDistSq = dSq;
                         targetIdx = i;
                     }
                 }
@@ -742,16 +751,16 @@
 
                     const dx = cat.targetX - cat.x;
                     const dy = cat.targetY - cat.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const distSq = dx*dx + dy*dy;
 
-                    if (dist > 60) {
+                    if (distSq > 3600) { // dist > 60 -> distSq > 3600
                         cat.state = 'POUNCING';
                         // Deterministic Animation Setup
                         cat.startX = cat.x;
                         cat.startY = cat.y;
                         cat.pounceTimer = 0;
                         const pounceSpeed = 12.0;
-                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                        cat.pounceDuration = Math.max(30, Math.sqrt(distSq) / pounceSpeed);
                     } else {
                         cat.state = 'MOVING';
                     }
@@ -808,9 +817,9 @@
             // Move towards target
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
@@ -819,6 +828,7 @@
                 cat.eatTimer = eatTime;
                 g_catEatTimer = eatTime; // Sync render animation
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2; // Walk cycle
@@ -857,13 +867,14 @@
         else if (cat.state === 'RETURNING') {
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'IDLE';
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2;
