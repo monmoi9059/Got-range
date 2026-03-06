@@ -1,5 +1,6 @@
 // --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
+window.RenderEngine = RenderEngine;
 
 RenderEngine.Camera = {
     // State
@@ -1967,6 +1968,7 @@ var BallRenderer = {
         points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
         return {minX, minY, maxX, maxY};
     }
+    RenderEngine.getBounds = getBounds;
 
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
