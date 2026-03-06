@@ -617,9 +617,22 @@ let lastDisplayedContestTime = -1;
         list.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'lb-row';
-            // Highlight pending score? Not easy to track unique ID without adding one.
-            // Just basic render.
-            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+
+            const rankSpan = document.createElement('span');
+            rankSpan.className = 'lb-rank';
+            rankSpan.textContent = (index + 1) + '.';
+            div.appendChild(rankSpan);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'lb-name';
+            nameSpan.textContent = entry.name;
+            div.appendChild(nameSpan);
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'lb-score';
+            scoreSpan.textContent = entry.score;
+            div.appendChild(scoreSpan);
+
             container.appendChild(div);
         });
     }

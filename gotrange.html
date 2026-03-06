@@ -4303,9 +4303,22 @@ let lastDisplayedContestTime = -1;
         list.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'lb-row';
-            // Highlight pending score? Not easy to track unique ID without adding one.
-            // Just basic render.
-            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+
+            const rankSpan = document.createElement('span');
+            rankSpan.className = 'lb-rank';
+            rankSpan.textContent = (index + 1) + '.';
+            div.appendChild(rankSpan);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'lb-name';
+            nameSpan.textContent = entry.name;
+            div.appendChild(nameSpan);
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'lb-score';
+            scoreSpan.textContent = entry.score;
+            div.appendChild(scoreSpan);
+
             container.appendChild(div);
         });
     }
@@ -16057,12 +16070,19 @@ var BallRenderer = {
     function updateHighScoreDisplay() {
         const display = document.getElementById('hsNameDisplay');
         if(!display) return;
-        let html = '';
+        display.innerHTML = ''; // Clear existing
         for(let i=0; i<3; i++) {
-            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
-            else html += `${highScoreName[i]} `;
+            const span = document.createElement('span');
+            span.textContent = highScoreName[i];
+            if (i === highScoreCursor) {
+                span.style.color = '#FFD700';
+                span.style.textDecoration = 'underline';
+            }
+            display.appendChild(span);
+            if (i < 2) {
+                display.appendChild(document.createTextNode(' '));
+            }
         }
-        display.innerHTML = html.trim();
     }
 
     function handleHighScoreInput(action) {
