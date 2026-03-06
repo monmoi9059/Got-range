@@ -1422,5 +1422,6 @@
 
     var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
     var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
+    var CLOTHING_DB_MAP = new Map(CLOTHING_DB.map(c => [c.id, c]));
 
 // --- END data.js ---
