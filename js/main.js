@@ -929,22 +929,72 @@ let lastDisplayedContestTime = -1;
 
             const div = document.createElement('div');
             div.className = 'challenge-row';
-            div.innerHTML = `
-                <div style="flex-grow:1; text-align:left;">
-                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
-                    <div class="challenge-progress-bg">
-                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
-                    </div>
-                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
-                </div>
-                <div style="text-align:right; margin-left:10px; min-width:80px;">
-                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
-                    ${c.claimed ?
-                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
-                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
-                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
-                </div>
-            `;
+
+            const leftDiv = document.createElement('div');
+            leftDiv.style.flexGrow = '1';
+            leftDiv.style.textAlign = 'left';
+
+            const descDiv = document.createElement('div');
+            descDiv.style.color = '#FFD700';
+            descDiv.style.fontWeight = 'bold';
+            descDiv.style.fontSize = '0.9em';
+            descDiv.textContent = def.desc;
+            leftDiv.appendChild(descDiv);
+
+            const progressBgDiv = document.createElement('div');
+            progressBgDiv.className = 'challenge-progress-bg';
+
+            const progressBarDiv = document.createElement('div');
+            progressBarDiv.className = 'challenge-progress-bar';
+            progressBarDiv.style.width = pct + '%';
+            progressBgDiv.appendChild(progressBarDiv);
+            leftDiv.appendChild(progressBgDiv);
+
+            const progressTextDiv = document.createElement('div');
+            progressTextDiv.style.fontSize = '0.8em';
+            progressTextDiv.style.color = '#AAA';
+            progressTextDiv.textContent = c.progress + ' / ' + def.target;
+            leftDiv.appendChild(progressTextDiv);
+
+            div.appendChild(leftDiv);
+
+            const rightDiv = document.createElement('div');
+            rightDiv.style.textAlign = 'right';
+            rightDiv.style.marginLeft = '10px';
+            rightDiv.style.minWidth = '80px';
+
+            const rewardDiv = document.createElement('div');
+            rewardDiv.style.color = '#FFFF00';
+            rewardDiv.style.fontWeight = 'bold';
+            rewardDiv.style.marginBottom = '5px';
+            rewardDiv.textContent = '+' + def.reward;
+            rightDiv.appendChild(rewardDiv);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+
+            if (c.claimed) {
+                btn.disabled = true;
+                btn.style.background = '#333';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'REÇU';
+            } else if (isDone) {
+                btn.onclick = () => claimChallenge(idx, isWeekly);
+                btn.style.background = '#008000';
+                btn.style.borderColor = '#00FF00';
+                btn.style.fontSize = '0.7em';
+                btn.style.animation = 'pulse 1s infinite';
+                btn.textContent = 'RÉCUP';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.3';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'EN COURS';
+            }
+            rightDiv.appendChild(btn);
+
+            div.appendChild(rightDiv);
+
             container.appendChild(div);
         });
     }

@@ -4615,22 +4615,72 @@ let lastDisplayedContestTime = -1;
 
             const div = document.createElement('div');
             div.className = 'challenge-row';
-            div.innerHTML = `
-                <div style="flex-grow:1; text-align:left;">
-                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
-                    <div class="challenge-progress-bg">
-                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
-                    </div>
-                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
-                </div>
-                <div style="text-align:right; margin-left:10px; min-width:80px;">
-                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
-                    ${c.claimed ?
-                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
-                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
-                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
-                </div>
-            `;
+
+            const leftDiv = document.createElement('div');
+            leftDiv.style.flexGrow = '1';
+            leftDiv.style.textAlign = 'left';
+
+            const descDiv = document.createElement('div');
+            descDiv.style.color = '#FFD700';
+            descDiv.style.fontWeight = 'bold';
+            descDiv.style.fontSize = '0.9em';
+            descDiv.textContent = def.desc;
+            leftDiv.appendChild(descDiv);
+
+            const progressBgDiv = document.createElement('div');
+            progressBgDiv.className = 'challenge-progress-bg';
+
+            const progressBarDiv = document.createElement('div');
+            progressBarDiv.className = 'challenge-progress-bar';
+            progressBarDiv.style.width = pct + '%';
+            progressBgDiv.appendChild(progressBarDiv);
+            leftDiv.appendChild(progressBgDiv);
+
+            const progressTextDiv = document.createElement('div');
+            progressTextDiv.style.fontSize = '0.8em';
+            progressTextDiv.style.color = '#AAA';
+            progressTextDiv.textContent = c.progress + ' / ' + def.target;
+            leftDiv.appendChild(progressTextDiv);
+
+            div.appendChild(leftDiv);
+
+            const rightDiv = document.createElement('div');
+            rightDiv.style.textAlign = 'right';
+            rightDiv.style.marginLeft = '10px';
+            rightDiv.style.minWidth = '80px';
+
+            const rewardDiv = document.createElement('div');
+            rewardDiv.style.color = '#FFFF00';
+            rewardDiv.style.fontWeight = 'bold';
+            rewardDiv.style.marginBottom = '5px';
+            rewardDiv.textContent = '+' + def.reward;
+            rightDiv.appendChild(rewardDiv);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+
+            if (c.claimed) {
+                btn.disabled = true;
+                btn.style.background = '#333';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'REÇU';
+            } else if (isDone) {
+                btn.onclick = () => claimChallenge(idx, isWeekly);
+                btn.style.background = '#008000';
+                btn.style.borderColor = '#00FF00';
+                btn.style.fontSize = '0.7em';
+                btn.style.animation = 'pulse 1s infinite';
+                btn.textContent = 'RÉCUP';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.3';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'EN COURS';
+            }
+            rightDiv.appendChild(btn);
+
+            div.appendChild(rightDiv);
+
             container.appendChild(div);
         });
     }
@@ -16121,7 +16171,37 @@ var BallRenderer = {
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
+
+            const flexDiv = document.createElement('div');
+            flexDiv.style.display = 'flex';
+            flexDiv.style.alignItems = 'center';
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'ach-icon';
+            iconDiv.textContent = unlocked ? '🏆' : '🔒';
+            flexDiv.appendChild(iconDiv);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'ach-info';
+
+            const h4 = document.createElement('h4');
+            h4.textContent = ach.name;
+            infoDiv.appendChild(h4);
+
+            const descSpan = document.createElement('span');
+            descSpan.textContent = ach.desc;
+            infoDiv.appendChild(descSpan);
+
+            flexDiv.appendChild(infoDiv);
+            div.appendChild(flexDiv);
+
+            if (unlocked) {
+                const checkmark = document.createElement('div');
+                checkmark.style.color = '#00FF00';
+                checkmark.textContent = '✓';
+                div.appendChild(checkmark);
+            }
+
             list.appendChild(div);
         });
     }
@@ -18278,29 +18358,48 @@ var BallRenderer = {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        let html = '';
+        container.innerHTML = '';
 
         // Down Arrow ([-]) - Visible if active level > 0
         if (active > 0) {
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', -1)" style="padding: 8px 12px; margin-right:5px;">⬇️</button>`;
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn';
+            downBtn.onclick = () => changeStatLevel(statName, -1);
+            downBtn.style.padding = '8px 12px';
+            downBtn.style.marginRight = '5px';
+            downBtn.textContent = '⬇️';
+            container.appendChild(downBtn);
         }
 
         // Up Arrow ([+]) or Buy Button
         if (active < purchased) {
             // Navigate up through owned levels
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', 1)" style="padding: 8px 12px;">⬆️</button>`;
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn';
+            upBtn.onclick = () => changeStatLevel(statName, 1);
+            upBtn.style.padding = '8px 12px';
+            upBtn.textContent = '⬆️';
+            container.appendChild(upBtn);
         } else {
             // Buy next level
             if (statName === 'luck' && purchased >= 10) {
-                html += `<button class="btn" disabled>MAX</button>`;
+                const maxBtn = document.createElement('button');
+                maxBtn.className = 'btn';
+                maxBtn.disabled = true;
+                maxBtn.textContent = 'MAX';
+                container.appendChild(maxBtn);
             } else {
                 const cost = getUpgradeCost(statName);
-                const disabled = playerData.tacos < cost ? 'disabled' : '';
-                html += `<button class="btn" ${disabled} onclick="buyUpgrade('${statName}')">Acheter (${cost})</button>`;
+                const disabled = playerData.tacos < cost;
+
+                const buyBtn = document.createElement('button');
+                buyBtn.className = 'btn';
+                if (disabled) buyBtn.disabled = true;
+                buyBtn.onclick = () => buyUpgrade(statName);
+                buyBtn.textContent = `Acheter (${cost})`;
+                container.appendChild(buyBtn);
             }
         }
-
-        container.innerHTML = html;
 
         // Update Label Level
         const lblId = 'lvl' + statName.charAt(0).toUpperCase() + statName.slice(1);

@@ -280,7 +280,37 @@
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
+
+            const flexDiv = document.createElement('div');
+            flexDiv.style.display = 'flex';
+            flexDiv.style.alignItems = 'center';
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'ach-icon';
+            iconDiv.textContent = unlocked ? '🏆' : '🔒';
+            flexDiv.appendChild(iconDiv);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'ach-info';
+
+            const h4 = document.createElement('h4');
+            h4.textContent = ach.name;
+            infoDiv.appendChild(h4);
+
+            const descSpan = document.createElement('span');
+            descSpan.textContent = ach.desc;
+            infoDiv.appendChild(descSpan);
+
+            flexDiv.appendChild(infoDiv);
+            div.appendChild(flexDiv);
+
+            if (unlocked) {
+                const checkmark = document.createElement('div');
+                checkmark.style.color = '#00FF00';
+                checkmark.textContent = '✓';
+                div.appendChild(checkmark);
+            }
+
             list.appendChild(div);
         });
     }
@@ -2437,29 +2467,48 @@
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        let html = '';
+        container.innerHTML = '';
 
         // Down Arrow ([-]) - Visible if active level > 0
         if (active > 0) {
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', -1)" style="padding: 8px 12px; margin-right:5px;">⬇️</button>`;
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn';
+            downBtn.onclick = () => changeStatLevel(statName, -1);
+            downBtn.style.padding = '8px 12px';
+            downBtn.style.marginRight = '5px';
+            downBtn.textContent = '⬇️';
+            container.appendChild(downBtn);
         }
 
         // Up Arrow ([+]) or Buy Button
         if (active < purchased) {
             // Navigate up through owned levels
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', 1)" style="padding: 8px 12px;">⬆️</button>`;
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn';
+            upBtn.onclick = () => changeStatLevel(statName, 1);
+            upBtn.style.padding = '8px 12px';
+            upBtn.textContent = '⬆️';
+            container.appendChild(upBtn);
         } else {
             // Buy next level
             if (statName === 'luck' && purchased >= 10) {
-                html += `<button class="btn" disabled>MAX</button>`;
+                const maxBtn = document.createElement('button');
+                maxBtn.className = 'btn';
+                maxBtn.disabled = true;
+                maxBtn.textContent = 'MAX';
+                container.appendChild(maxBtn);
             } else {
                 const cost = getUpgradeCost(statName);
-                const disabled = playerData.tacos < cost ? 'disabled' : '';
-                html += `<button class="btn" ${disabled} onclick="buyUpgrade('${statName}')">Acheter (${cost})</button>`;
+                const disabled = playerData.tacos < cost;
+
+                const buyBtn = document.createElement('button');
+                buyBtn.className = 'btn';
+                if (disabled) buyBtn.disabled = true;
+                buyBtn.onclick = () => buyUpgrade(statName);
+                buyBtn.textContent = `Acheter (${cost})`;
+                container.appendChild(buyBtn);
             }
         }
-
-        container.innerHTML = html;
 
         // Update Label Level
         const lblId = 'lvl' + statName.charAt(0).toUpperCase() + statName.slice(1);
