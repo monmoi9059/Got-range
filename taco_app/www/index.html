@@ -4303,9 +4303,22 @@ let lastDisplayedContestTime = -1;
         list.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'lb-row';
-            // Highlight pending score? Not easy to track unique ID without adding one.
-            // Just basic render.
-            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+
+            const rankSpan = document.createElement('span');
+            rankSpan.className = 'lb-rank';
+            rankSpan.textContent = (index + 1) + '.';
+            div.appendChild(rankSpan);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'lb-name';
+            nameSpan.textContent = entry.name;
+            div.appendChild(nameSpan);
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'lb-score';
+            scoreSpan.textContent = entry.score;
+            div.appendChild(scoreSpan);
+
             container.appendChild(div);
         });
     }
@@ -4792,6 +4805,7 @@ let lastDisplayedContestTime = -1;
 // --- START renderer.js ---
 // --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
+window.RenderEngine = RenderEngine;
 
 RenderEngine.Camera = {
     // State
@@ -6759,6 +6773,7 @@ var BallRenderer = {
         points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
         return {minX, minY, maxX, maxY};
     }
+    RenderEngine.getBounds = getBounds;
 
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
@@ -16057,12 +16072,19 @@ var BallRenderer = {
     function updateHighScoreDisplay() {
         const display = document.getElementById('hsNameDisplay');
         if(!display) return;
-        let html = '';
+        display.innerHTML = ''; // Clear existing
         for(let i=0; i<3; i++) {
-            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
-            else html += `${highScoreName[i]} `;
+            const span = document.createElement('span');
+            span.textContent = highScoreName[i];
+            if (i === highScoreCursor) {
+                span.style.color = '#FFD700';
+                span.style.textDecoration = 'underline';
+            }
+            display.appendChild(span);
+            if (i < 2) {
+                display.appendChild(document.createTextNode(' '));
+            }
         }
-        display.innerHTML = html.trim();
     }
 
     function handleHighScoreInput(action) {
@@ -16696,16 +16718,25 @@ var BallRenderer = {
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    let g_catDecorCache = null;
     function updateCatLogic(dt) {
         const cat = g_catState;
         const speed = 4.0; // Movement speed
 
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
-            const catD = decors.find(d => d.zoneType === 'cat_hoop');
-            if (catD) {
-                catD.x = cat.x;
-                catD.y = cat.y;
+            if (!g_catDecorCache || g_catDecorCache.zoneType !== 'cat_hoop') {
+                g_catDecorCache = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        g_catDecorCache = decors[i];
+                        break;
+                    }
+                }
+            }
+            if (g_catDecorCache) {
+                g_catDecorCache.x = cat.x;
+                g_catDecorCache.y = cat.y;
             }
         }
 
@@ -16718,7 +16749,7 @@ var BallRenderer = {
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
-                let minDist = Infinity;
+                let minDistSq = Infinity;
                 let targetIdx = -1;
                 for(let i=0; i<tacosOnGround.length; i++) {
                     const t = tacosOnGround[i];
@@ -16727,9 +16758,9 @@ var BallRenderer = {
 
                     const dx = t.x - cat.x;
                     const dy = t.y - cat.y;
-                    const d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < minDist) {
-                        minDist = d;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq < minDistSq) {
+                        minDistSq = dSq;
                         targetIdx = i;
                     }
                 }
@@ -16742,16 +16773,16 @@ var BallRenderer = {
 
                     const dx = cat.targetX - cat.x;
                     const dy = cat.targetY - cat.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const distSq = dx*dx + dy*dy;
 
-                    if (dist > 60) {
+                    if (distSq > 3600) { // dist > 60 -> distSq > 3600
                         cat.state = 'POUNCING';
                         // Deterministic Animation Setup
                         cat.startX = cat.x;
                         cat.startY = cat.y;
                         cat.pounceTimer = 0;
                         const pounceSpeed = 12.0;
-                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                        cat.pounceDuration = Math.max(30, Math.sqrt(distSq) / pounceSpeed);
                     } else {
                         cat.state = 'MOVING';
                     }
@@ -16808,9 +16839,9 @@ var BallRenderer = {
             // Move towards target
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
@@ -16819,6 +16850,7 @@ var BallRenderer = {
                 cat.eatTimer = eatTime;
                 g_catEatTimer = eatTime; // Sync render animation
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2; // Walk cycle
@@ -16857,13 +16889,14 @@ var BallRenderer = {
         else if (cat.state === 'RETURNING') {
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'IDLE';
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2;
@@ -17122,8 +17155,8 @@ var BallRenderer = {
 
                     const hoopDX = crossX - HOOP_POS.x;
                     const hoopDY = crossY - HOOP_POS.y;
-                    const distToHoopCenter = Math.sqrt(hoopDX * hoopDX + hoopDY * hoopDY);
-                    if (distToHoopCenter < 25) { handleScore(b); continue; }
+                    const distToHoopCenterSq = hoopDX * hoopDX + hoopDY * hoopDY;
+                    if (distToHoopCenterSq < 625) { handleScore(b); continue; } // 25 * 25
 
                     if (b.isWindow) {
                         AudioSystem.playWindowBreak();
@@ -17134,11 +17167,12 @@ var BallRenderer = {
                 const pDX = HOOP_POS.x - player3D.x;
                 const pDY = HOOP_POS.y - player3D.y;
                 const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
+                const distToHoopPlus5000 = distToHoop + 5000;
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
-                const currentDist = Math.sqrt(bDX * bDX + bDY * bDY);
+                const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
+                if (b.z < -50 || currentDistSq > distToHoopPlus5000 * distToHoopPlus5000) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell
