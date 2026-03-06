@@ -50,12 +50,19 @@
     function updateHighScoreDisplay() {
         const display = document.getElementById('hsNameDisplay');
         if(!display) return;
-        let html = '';
+        display.innerHTML = ''; // Clear existing
         for(let i=0; i<3; i++) {
-            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
-            else html += `${highScoreName[i]} `;
+            const span = document.createElement('span');
+            span.textContent = highScoreName[i];
+            if (i === highScoreCursor) {
+                span.style.color = '#FFD700';
+                span.style.textDecoration = 'underline';
+            }
+            display.appendChild(span);
+            if (i < 2) {
+                display.appendChild(document.createTextNode(' '));
+            }
         }
-        display.innerHTML = html.trim();
     }
 
     function handleHighScoreInput(action) {
