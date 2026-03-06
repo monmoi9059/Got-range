@@ -2677,6 +2677,25 @@ for(var k=0; k<12; k++) {
     var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
     var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
     var CLOTHING_DB_MAP = new Map(CLOTHING_DB.map(c => [c.id, c]));
+    var HATS_DB_MAP = new Map(HATS_DB.map(c => [c.id, c]));
+    var SKINS_DB_MAP = new Map(SKINS_DB.map(s => [s.id, s]));
+    var PANTS_DB_MAP = new Map(PANTS_DB.map(p => [p.id, p]));
+    var SHOES_DB_MAP = new Map(SHOES_DB.map(s => [s.id, s]));
+    var BALLS_DB_MAP = new Map(BALLS_DB.map(b => [b.id, b]));
+    var CAT_SKINS_DB_MAP = new Map(CAT_SKINS_DB.map(c => [c.id, c]));
+    var CAT_ACCESSORIES_DB_MAP = new Map(CAT_ACCESSORIES_DB.map(a => [a.id, a]));
+    var SHOOTING_STYLES_MAP = new Map(SHOOTING_STYLES.map(s => [s.id, s]));
+    var ACHIEVEMENTS_MAP = new Map(ACHIEVEMENTS.map(a => [a.id, a]));
+
+    var HATS_INDEX_MAP = new Map(HATS_DB.map((h, i) => [h.id, i]));
+    var CLOTHING_INDEX_MAP = new Map(CLOTHING_DB.map((c, i) => [c.id, i]));
+    var PANTS_INDEX_MAP = new Map(PANTS_DB.map((p, i) => [p.id, i]));
+    var SHOES_INDEX_MAP = new Map(SHOES_DB.map((s, i) => [s.id, i]));
+    var HAIRSTYLES_INDEX_MAP = new Map(HAIRSTYLES.map((h, i) => [h.id, i]));
+    var BALLS_INDEX_MAP = new Map(BALLS_DB.map((b, i) => [b.id, i]));
+    var CAT_SKINS_INDEX_MAP = new Map(CAT_SKINS_DB.map((c, i) => [c.id, i]));
+    var CAT_ACCESSORIES_INDEX_MAP = new Map(CAT_ACCESSORIES_DB.map((a, i) => [a.id, i]));
+    var SHOOTING_STYLES_INDEX_MAP = new Map(SHOOTING_STYLES.map((s, i) => [s.id, i]));
 
 // --- END data.js ---
 
@@ -5849,7 +5868,7 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; // Small array, keep find
         return _lastScaleObj;
     }
 
@@ -5858,7 +5877,7 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; // Small array, keep find
         return _lastCourtObj;
     }
 
@@ -6464,10 +6483,10 @@ var BallRenderer = {
         // Determine Ball Object
         var ballObj = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+            ballObj = BALLS_DB_MAP.get('ball_money');
         } else {
             var ballId = playerData.currentBall || 'ball_classic';
-            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
+            ballObj = BALLS_DB_MAP.get(ballId);
         }
         if (!ballObj) ballObj = BALLS_DB[0];
 
@@ -7100,8 +7119,7 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    // Cache for hat lookup (Memoization) to avoid Array.find every frame
-    const g_hatCache = new Map();
+    // Caches to avoid Array.find every frame
     const g_pantsCache = new Map();
     const g_clothingCache = new Map();
 
@@ -11913,11 +11931,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             let hat = g_hatCache.get(playerData.currentHat);
-             if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
-                 if (hat) g_hatCache.set(playerData.currentHat, hat);
-             }
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
@@ -12227,7 +12241,7 @@ var BallRenderer = {
         if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
-            skinObj = SKINS_DB.find(x => x.id === skin);
+            skinObj = SKINS_DB_MAP.get(skin);
             if(!skinObj) skinObj = SKINS_DB[0];
 
             if (state !== 'SHOP') {
@@ -12361,7 +12375,7 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
              let pants = g_pantsCache.get(playerData.currentPants);
              if (!pants) {
-                 pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+                 pants = PANTS_DB_MAP.get(playerData.currentPants);
                  if (pants) g_pantsCache.set(playerData.currentPants, pants);
              }
              if (pants) {
@@ -12380,7 +12394,7 @@ var BallRenderer = {
         // Apply Shoes Overrides
         if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const shoe = SHOES_DB.find(s => s.id === playerData.currentShoes);
+             const shoe = SHOES_DB_MAP.get(playerData.currentShoes);
              if (shoe) {
                  skinObj.shoesColor = shoe.color;
                  skinObj.shoeType = shoe.type;
@@ -13705,11 +13719,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             let hat = g_hatCache.get(playerData.currentHat);
-             if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
-                 if (hat) g_hatCache.set(playerData.currentHat, hat);
-             }
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
@@ -15552,7 +15562,7 @@ var BallRenderer = {
 
              // Accessories
              if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
-                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 const acc = CAT_ACCESSORIES_DB_MAP.get(playerData.currentCatAccessory);
                  if (acc) {
                      if (acc.type === 'glasses') {
                          ctx.fillStyle = acc.color || '#000';
@@ -16179,7 +16189,7 @@ var BallRenderer = {
     function unlockAchievement(id) {
         if (!playerData.unlockedAchievements.includes(id)) {
             playerData.unlockedAchievements.push(id);
-            const ach = ACHIEVEMENTS.find(a => a.id === id);
+            const ach = ACHIEVEMENTS_MAP.get(id);
             if(ach) {
                 playerData.tacos += ach.reward;
                 saveData();
@@ -16236,7 +16246,7 @@ var BallRenderer = {
             if (playerData.stats.luck >= 5) unlockAchievement('leprechaun');
             if (playerData.stats.moonwalk >= 5) unlockAchievement('moonwalker_pro');
             const animalsOwned = new Set();
-            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB.find(x => x.id === skinId); if(s) animalsOwned.add(s.animal); });
+            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB_MAP.get(skinId); if(s) animalsOwned.add(s.animal); });
             if(animalsOwned.size >= 3) unlockAchievement('zoo');
         }
         if (context === 'lucky') unlockAchievement('lucky');
@@ -16475,8 +16485,8 @@ var BallRenderer = {
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
         // Skin Checks
-        if (typeof SKINS_DB !== 'undefined') {
-            const currentSkinObj = SKINS_DB.find(s => s.id === playerData.currentSkin);
+        if (typeof SKINS_DB_MAP !== 'undefined') {
+            const currentSkinObj = SKINS_DB_MAP.get(playerData.currentSkin);
             if (currentSkinObj) {
                 if (currentSkinObj.animal === 'human') checkDailyProgress('makes_human', 1);
                 else checkDailyProgress('makes_animal', 1);
@@ -17866,11 +17876,11 @@ var BallRenderer = {
         playerData.customHairstyle = 'default';
 
         // Reset indices for UI to point to defaults
-        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
-        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
-        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
-        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
-        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+        if (typeof HATS_INDEX_MAP !== 'undefined') viewingHatIndex = HATS_INDEX_MAP.get('hat_none') ?? 0;
+        if (typeof CLOTHING_INDEX_MAP !== 'undefined') viewingClothingIndex = CLOTHING_INDEX_MAP.get('clothes_none') ?? 0;
+        if (typeof PANTS_INDEX_MAP !== 'undefined') viewingPantsIndex = PANTS_INDEX_MAP.get('pants_none') ?? 0;
+        if (typeof SHOES_INDEX_MAP !== 'undefined') viewingShoeIndex = SHOES_INDEX_MAP.get('shoe_none') ?? 0;
+        if (typeof HAIRSTYLES_INDEX_MAP !== 'undefined') viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get('default') ?? 0;
 
         // Safety fallback if index not found
         if (viewingHatIndex < 0) viewingHatIndex = 0;
@@ -18107,7 +18117,7 @@ var BallRenderer = {
     function syncShopToEquipped() {
         // Animal
         const skinId = playerData.currentSkin;
-        const skinObj = SKINS_DB.find(s => s.id === skinId);
+        const skinObj = SKINS_DB_MAP.get(skinId);
         if (skinObj) {
             const animal = skinObj.animal;
             viewingAnimalIndex = ANIMALS.indexOf(animal);
@@ -18128,56 +18138,47 @@ var BallRenderer = {
 
         // Hair
         if(playerData.customHairstyle) {
-            viewingHairstyleIndex = HAIRSTYLES.findIndex(h => h.id === playerData.customHairstyle);
-            if(viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+            viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get(playerData.customHairstyle) ?? 0;
         }
 
         // Clothes
         if(playerData.currentClothing) {
-            viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
-            if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+            viewingClothingIndex = CLOTHING_INDEX_MAP.get(playerData.currentClothing) ?? 0;
         }
 
         // Pants
         if(playerData.currentPants) {
-            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
-            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
+            viewingPantsIndex = PANTS_INDEX_MAP.get(playerData.currentPants) ?? 0;
         }
 
         // Hat
         if(playerData.currentHat) {
-            viewingHatIndex = HATS_DB.findIndex(h => h.id === playerData.currentHat);
-            if(viewingHatIndex < 0) viewingHatIndex = 0;
+            viewingHatIndex = HATS_INDEX_MAP.get(playerData.currentHat) ?? 0;
         }
 
         // Shoe
         if(playerData.currentShoes) {
-            viewingShoeIndex = SHOES_DB.findIndex(s => s.id === playerData.currentShoes);
-            if(viewingShoeIndex < 0) viewingShoeIndex = 0;
+            viewingShoeIndex = SHOES_INDEX_MAP.get(playerData.currentShoes) ?? 0;
         }
 
         // Ball
         if(playerData.currentBall) {
-            viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
-            if(viewingBallIndex < 0) viewingBallIndex = 0;
+            viewingBallIndex = BALLS_INDEX_MAP.get(playerData.currentBall) ?? 0;
         }
 
         // Cat
         if(playerData.currentCatSkin) {
-            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
-            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
+            viewingCatSkinIndex = CAT_SKINS_INDEX_MAP.get(playerData.currentCatSkin) ?? 0;
         }
 
         // Cat Accessory
         if(playerData.currentCatAccessory) {
-            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
-            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_INDEX_MAP.get(playerData.currentCatAccessory) ?? 0;
         }
 
         // Style
         if(playerData.currentStyle) {
-            viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
-            if(viewingStyleIndex < 0) viewingStyleIndex = 0;
+            viewingStyleIndex = SHOOTING_STYLES_INDEX_MAP.get(playerData.currentStyle) ?? 0;
         }
     }
 
@@ -18538,7 +18539,7 @@ var BallRenderer = {
             btnVar.style.fontSize = '0.9em';
             btnVar.style.background = '#444';
             // Insert after equip button
-            btn.parentNode.insertBefore(btnVar, btn.nextSibling);
+            if(btn.parentNode) btn.parentNode.insertBefore(btnVar, btn.nextSibling);
         }
 
         // Repurpose button for cycling skin variants
@@ -18564,7 +18565,7 @@ var BallRenderer = {
         // Hairstyle UI
         if (typeof HAIRSTYLES !== 'undefined') {
             const hair = HAIRSTYLES[viewingHairstyleIndex];
-            document.getElementById('hairName').innerText = hair.name;
+            if (document.getElementById('hairName')) document.getElementById('hairName').innerText = hair.name;
             const btnHair = document.getElementById('btnEquipHair');
             const statusHair = document.getElementById('hairStatus');
 
