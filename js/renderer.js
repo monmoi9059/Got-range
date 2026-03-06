@@ -2327,8 +2327,7 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    // Cache for hat lookup (Memoization) to avoid Array.find every frame
-    const g_hatCache = new Map();
+    // Caches to avoid Array.find every frame
     const g_pantsCache = new Map();
     const g_clothingCache = new Map();
 
@@ -7140,11 +7139,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             let hat = g_hatCache.get(playerData.currentHat);
-             if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
-                 if (hat) g_hatCache.set(playerData.currentHat, hat);
-             }
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
@@ -8932,11 +8927,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             let hat = g_hatCache.get(playerData.currentHat);
-             if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
-                 if (hat) g_hatCache.set(playerData.currentHat, hat);
-             }
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
