@@ -571,7 +571,7 @@ let lastDisplayedContestTime = -1;
         saveData();
     }
 
-    function openLeaderboard() {
+    window.openLeaderboard = function() {
         if (window.closeControlsMenu) window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
@@ -589,7 +589,7 @@ let lastDisplayedContestTime = -1;
         saveContext(game1);
     }
 
-    function closeLeaderboard() {
+    window.closeLeaderboard = function() {
         // If coming from Game Over flow?
         // Note: feedback is context-specific. closeAllMenus resets it.
         // We capture it before closing.
@@ -600,7 +600,7 @@ let lastDisplayedContestTime = -1;
         });
     }
 
-    function switchLeaderboardTab(mode) {
+    window.switchLeaderboardTab = function(mode) {
         document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
         document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
         document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
@@ -1064,7 +1064,7 @@ let lastDisplayedContestTime = -1;
     game2.playerData.tacos = 0; // Session score for competition? Or keep tacos?
     // Let's keep it separate.
 
-    function toggleSplitscreen() {
+    window.toggleSplitscreen = function() {
         if (window.closeControlsMenu) window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         isSplitscreen = !isSplitscreen;
