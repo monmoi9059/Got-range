@@ -9919,6 +9919,17 @@ var BallRenderer = {
             item.seed = d.seed;
         };
 
+        // Optimization: Cache cat_hoop decor reference to avoid O(N) array search every frame
+        if (typeof decors !== 'undefined') {
+            if (window._cachedDecorsRef !== decors || window._cachedCatDecor === undefined) {
+                window._cachedCatDecor = decors.find(d => d.zoneType === 'cat_hoop');
+                window._cachedDecorsRef = decors;
+            }
+        } else {
+            window._cachedCatDecor = undefined;
+            window._cachedDecorsRef = undefined;
+        }
+
         if (currentGameMode === 'CLASSIC') {
             const startDist = Math.max(0, playerDistFromHoop - 15000);
             let startIndex = 0;
@@ -9954,13 +9965,10 @@ var BallRenderer = {
                     seed: i
                 });
             }
-            // Ensure Cat is visible
-            if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
-                    else processDecor(cat);
-                }
+            // Ensure Cat is visible (using cached reference)
+            if (window._cachedCatDecor) {
+                if (typeof g_catState !== 'undefined') processDecor(window._cachedCatDecor, g_catState.x, g_catState.y, g_catState.z);
+                else processDecor(window._cachedCatDecor);
             }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
@@ -9975,13 +9983,10 @@ var BallRenderer = {
                     seed: i
                 });
             }
-            // Ensure Cat is visible
-            if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
-                    else processDecor(cat);
-                }
+            // Ensure Cat is visible (using cached reference)
+            if (window._cachedCatDecor) {
+                if (typeof g_catState !== 'undefined') processDecor(window._cachedCatDecor, g_catState.x, g_catState.y, g_catState.z);
+                else processDecor(window._cachedCatDecor);
             }
         }
 
