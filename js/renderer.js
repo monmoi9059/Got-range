@@ -1077,7 +1077,13 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1]; // Small array, keep find
+        for (let i = 0; i < SCALE_OBJECTS.length; i++) {
+            if (dist < SCALE_OBJECTS[i].limit) {
+                _lastScaleObj = SCALE_OBJECTS[i];
+                return _lastScaleObj;
+            }
+        }
+        _lastScaleObj = SCALE_OBJECTS[SCALE_OBJECTS.length-1];
         return _lastScaleObj;
     }
 
@@ -1086,7 +1092,13 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1]; // Small array, keep find
+        for (let i = 0; i < COURT_ZONES.length; i++) {
+            if (dist < COURT_ZONES[i].limit) {
+                _lastCourtObj = COURT_ZONES[i];
+                return _lastCourtObj;
+            }
+        }
+        _lastCourtObj = COURT_ZONES[COURT_ZONES.length-1];
         return _lastCourtObj;
     }
 
@@ -9451,105 +9463,12 @@ var BallRenderer = {
     }
 
     function drawZonePattern(ctx, y, h, width, zone, horizonY) {
-        // Base Gradient
+        // Base Gradient (Textures Removed for Performance)
         const grad = ctx.createLinearGradient(0, y, 0, y + h);
         grad.addColorStop(0, zone.ground1);
         grad.addColorStop(1, zone.ground2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, y, width, h);
-
-        // Texture Overlay
-        // Clip to zone area
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, y, width, h);
-        ctx.clip();
-
-        const type = zone.type;
-        const cx = width / 2;
-        // Deterministic Seed based on zone index/name to prevent jitter if we used random
-        // Using simple modulo logic on coordinates for noise is stable.
-
-        if (type === 'arena') {
-            // Wood Planks (Perspective Lines)
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-            ctx.lineWidth = 2;
-            const rayCount = 40;
-            // Draw rays from vanishing point (cx, horizonY)
-            // We only draw the segment within y -> y+h
-            for(let i = -rayCount; i <= rayCount; i++) {
-                const bottomX = cx + (i * width * 0.05); // Fan out
-                ctx.beginPath();
-                ctx.moveTo(cx, horizonY);
-                ctx.lineTo(bottomX, y + h + 100);
-                ctx.stroke();
-            }
-        }
-        else if (type === 'carnival') {
-            // Checkerboard
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            // Vertical Lines
-            for(let i = -10; i <= 10; i++) {
-                const bottomX = cx + (i * width * 0.15);
-                ctx.beginPath(); ctx.moveTo(cx, horizonY); ctx.lineTo(bottomX, y+h+100); ctx.stroke();
-            }
-            // Horizontal lines (Perspective spacing)
-            let ly = horizonY + 20;
-            let step = 5;
-            while(ly < y + h) {
-                if(ly > y) ctx.fillRect(0, ly, width, 2);
-                ly += step;
-                step *= 1.1; // Exponential growth
-            }
-        }
-        else if (type === 'grass' || type === 'tree') {
-            // Grass Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
-            const density = (width * h) / 1000;
-            // Simple stable noise
-            for(let i=0; i<density; i++) {
-                const nx = (i * 157) % width;
-                const ny = y + (i * 83) % h;
-                ctx.fillRect(nx, ny, 2, 2);
-            }
-        }
-        else if (type === 'water') {
-            // Waves
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = 1;
-            const density = h / 8;
-            for(let i=0; i<density; i++) {
-                const ly = y + (i * 8 + (Date.now()*0.01 + i)%8);
-                const lx = (i * 123) % width;
-                const len = 20 + (i*17)%40;
-                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+len, ly); ctx.stroke();
-                // Mirrored for density
-                ctx.beginPath(); ctx.moveTo(width - lx, ly); ctx.lineTo(width - lx - len, ly); ctx.stroke();
-            }
-        }
-        else if (type === 'space') {
-            // Stars Reflection / Craters
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            const density = 20;
-            for(let i=0; i<density; i++) {
-                const rx = (i * 211) % width;
-                const ry = y + (i * 103) % h;
-                const r = 1 + (i % 3);
-                ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI*2); ctx.fill();
-            }
-        }
-        else if (type === 'castle' || type === 'street') {
-            // Cobblestone/Asphalt Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            const density = (width * h) / 500;
-            for(let i=0; i<density; i++) {
-                const nx = (i * 97) % width;
-                const ny = y + (i * 47) % h;
-                ctx.fillRect(nx, ny, 3, 2);
-            }
-        }
-
-        ctx.restore();
     }
 
     // Optimization: Cache mountain layers to offscreen canvas
@@ -9661,109 +9580,9 @@ var BallRenderer = {
             bgCache.sky = skyGrad;
 
             // Current Floor
-            if (playerData.graphics === 'HIGH') {
-                 // Bake texture for high graphics
-                 const fCv = document.createElement('canvas');
-                 fCv.width = vpW;
-                 fCv.height = Math.ceil(vpH - horizonY);
-                 const fCtx = fCv.getContext('2d');
-
-                 // Base Gradient
-                 const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
-                 grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
-                 fCtx.fillStyle = grad;
-                 fCtx.fillRect(0, 0, fCv.width, fCv.height);
-
-                 // Procedural Textures based on Type
-                 const cx = fCv.width / 2;
-                 if (court.type === 'arena') {
-                     // Wood Planks (Perspective Lines)
-                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     fCtx.lineWidth = 2;
-                     const rayCount = 40;
-                     // Draw rays from vanishing point (cx, 0) relative to this canvas which starts at horizonY
-                     // Actually, this canvas IS the floor from horizonY downwards.
-                     // So vanishing point Y is 0 (top of this canvas).
-                     for(let i = -rayCount; i <= rayCount; i++) {
-                         const bottomX = cx + (i * fCv.width * 0.05);
-                         fCtx.beginPath();
-                         fCtx.moveTo(cx, 0); // Top center
-                         fCtx.lineTo(bottomX, fCv.height + 100);
-                         fCtx.stroke();
-                     }
-                 }
-                 else if (court.type === 'carnival') {
-                     // Carnival Checkerboard
-                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
-                     // Vertical Lines
-                     for(let i = -10; i <= 10; i++) {
-                         const bottomX = cx + (i * fCv.width * 0.15);
-                         fCtx.beginPath(); fCtx.moveTo(cx, 0); fCtx.lineTo(bottomX, fCv.height+100); fCtx.stroke();
-                     }
-                     // Horizontal lines (Perspective spacing)
-                     let ly = 20;
-                     let step = 5;
-                     while(ly < fCv.height) {
-                         fCtx.fillRect(0, ly, fCv.width, 2);
-                         ly += step;
-                         step *= 1.1;
-                     }
-                 }
-                 else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Noise
-                     fCtx.fillStyle = 'rgba(0,0,0,0.08)';
-                     const density = (fCv.width * fCv.height) / 1000;
-                     for(let i=0; i<density; i++) {
-                         fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 2, 2);
-                     }
-                 }
-                 else if (court.type === 'castle') {
-                    // Clean asphalt/cobblestone noise
-                    fCtx.fillStyle = 'rgba(0,0,0,0.15)';
-                    const density = (fCv.width * fCv.height) / 500;
-                    for(let i=0; i<density; i++) {
-                        fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 3, 2);
-                    }
-                 }
-                 else if (court.type === 'mountain') {
-                     // Ice / Snow Gloss
-                     const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
-                     gradRef.addColorStop(0, 'rgba(255,255,255,0)');
-                     gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                     gradRef.addColorStop(1, 'rgba(255,255,255,0)');
-                     fCtx.fillStyle = gradRef;
-                     fCtx.fillRect(0, 0, fCv.width, fCv.height);
-                 }
-                 else if (court.type === 'water') {
-                    // Waves
-                    fCtx.strokeStyle = 'rgba(255,255,255,0.15)';
-                    fCtx.lineWidth = 1;
-                    const density = fCv.height / 8;
-                    for(let i=0; i<density; i++) {
-                        const ly = i * 8 + (Math.random()*4);
-                        const lx = Math.random() * fCv.width;
-                        const len = 20 + Math.random()*20;
-                        fCtx.beginPath(); fCtx.moveTo(lx, ly); fCtx.lineTo(lx+len, ly); fCtx.stroke();
-                        // Mirror
-                        fCtx.beginPath(); fCtx.moveTo(fCv.width - lx, ly); fCtx.lineTo(fCv.width - lx - len, ly); fCtx.stroke();
-                    }
-                 }
-                 else if (court.type === 'space') {
-                     // Craters / Dust
-                     fCtx.fillStyle = 'rgba(255,255,255,0.2)';
-                     for(let i=0; i<50; i++) {
-                         fCtx.beginPath();
-                         fCtx.arc(Math.random() * fCv.width, Math.random() * fCv.height, 1 + Math.random() * 2, 0, Math.PI*2);
-                         fCtx.fill();
-                     }
-                 }
-
-                 bgCache.floorImage = fCv;
-            } else {
-                 const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
-                 currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-                 bgCache.currentFloor = currentZoneGrad;
-            }
+        const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+        currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
+        bgCache.currentFloor = currentZoneGrad;
         }
 
         // DRAW FROM CACHE
