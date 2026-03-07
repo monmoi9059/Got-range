@@ -9777,7 +9777,12 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
-            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
+            // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
+            // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
+            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            const startDist = Math.max(0, playerDistFromHoop - backCullDist);
+
             let startIndex = 0;
             if (startDist > 1000) {
                  startIndex = binarySearchLowerBound(decors, startDist);
