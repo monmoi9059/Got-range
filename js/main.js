@@ -30,6 +30,9 @@
     var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
     decors.push(catDecor);
 
+    const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
+    let placedHouses = [];
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -41,15 +44,10 @@
         const dX = pathX + scatter;
         const dY = pathY + scatter;
 
-        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
-        // Player Width ~30 units. Safety = 1.5x (~45).
-        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
-        const sum = dX + dY;
-        if (sum > 540 && sum < 810) continue;
-
         const dx = dX - HOOP_POS.x;
         const dy = dY - HOOP_POS.y;
-        const dDist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
+        const dDist = Math.sqrt(distSq);
 
         // Convert Pixel Distance to Game Feet for Zone Lookup
         const feetDist = dDist / PIXELS_PER_FOOT;
@@ -61,11 +59,36 @@
                 break;
             }
         }
+
+        const isHouse = decorZone.type === 'castle'; // Residential Houses
+
+        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
+        // Houses are scaled up ~4x, so we need a much wider safety corridor to avoid blocking the lane.
+        const sum = dX + dY;
+        if (isHouse) {
+            if (sum > 200 && sum < 1150) continue;
+
+            // House minimum distance check
+            let tooClose = false;
+            for (let h = 0; h < placedHouses.length; h++) {
+                const hx = placedHouses[h].x - dX;
+                const hy = placedHouses[h].y - dY;
+                if ((hx * hx + hy * hy) < MIN_HOUSE_DIST_SQ) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+        } else {
+            if (sum > 540 && sum < 810) continue;
+        }
+
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
         }
         decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
+        if (isHouse) placedHouses.push({ x: dX, y: dY });
     }
 
     // Crowd Generation (Stands along the side)

@@ -1174,13 +1174,20 @@
                 }
                 const pDX = HOOP_POS.x - player3D.x;
                 const pDY = HOOP_POS.y - player3D.y;
-                const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
-                const distToHoopPlus5000 = distToHoop + 5000;
+                // Optimization: Calculate player's distance to hoop once per frame to avoid recalculating per ball
+                // We do still need Math.sqrt to correctly calculate the expanded binomial (distToHoop + 5000)^2
+                // which is distToHoopSq + 10000 * distToHoop + 25000000
+                const distToHoopSq = pDX * pDX + pDY * pDY;
+                const distToHoop = Math.sqrt(distToHoopSq);
+
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
                 const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDistSq > distToHoopPlus5000 * distToHoopPlus5000) { b.active = false; handleMiss(b); continue; }
+                // Exact math for (distToHoop + 5000)^2 without calling sqrt per ball frame loop
+                const isWayPastHoop = currentDistSq > (distToHoopSq + 10000 * distToHoop + 25000000);
+
+                if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell

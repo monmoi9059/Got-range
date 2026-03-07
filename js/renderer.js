@@ -3525,8 +3525,10 @@ var BallRenderer = {
             const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
             const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
 
-            const w = 50 * s;
-            const h = 50 * s;
+            // Scale up houses by 4x to make them "real house sized"
+            const houseScale = 4.0;
+            const w = 50 * s * houseScale;
+            const h = 50 * s * houseScale;
 
             // Body
             ctx.fillStyle = wallColor;
@@ -3535,33 +3537,33 @@ var BallRenderer = {
             // Roof (Pitched)
             ctx.fillStyle = roofColor;
             ctx.beginPath();
-            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
-            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
-            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.moveTo(p.x - w/2 - 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s*houseScale);
             ctx.fill();
 
             // Door
             ctx.fillStyle = '#4E342E';
-            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            ctx.fillRect(p.x - 8*s*houseScale, p.y - 20*s*houseScale, 16*s*houseScale, 20*s*houseScale);
             // Knob
             ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 4*s*houseScale, p.y - 10*s*houseScale, 1.5*s*houseScale, 0, Math.PI*2); ctx.fill();
 
             // Windows
             ctx.fillStyle = '#87CEEB';
             // Window 1
-            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x - w/2 + 5*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
             // Window 2
-            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x + w/2 - 17*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
 
             // Window Frames
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s*houseScale;
             // Cross 1
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x - w/2 + 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x - w/2 + 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
             // Cross 2
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x + w/2 - 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x + w/2 - 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -5373,7 +5375,13 @@ var BallRenderer = {
     function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
          if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
          if (!playerData.customHairstyles) return;
-         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         let customData = undefined;
+         for (let i = 0; i < playerData.customHairstyles.length; i++) {
+             if (playerData.customHairstyles[i].id === skinObj.hairStyle) {
+                 customData = playerData.customHairstyles[i];
+                 break;
+             }
+         }
          if (customData && customData.blobs && customData.blobs.front) {
              drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
          }
@@ -5486,7 +5494,13 @@ var BallRenderer = {
         // --- 0. CUSTOM ---
         if (style.startsWith('custom_')) {
              if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 let customData = undefined;
+                 for (let i = 0; i < playerData.customHairstyles.length; i++) {
+                     if (playerData.customHairstyles[i].id === style) {
+                         customData = playerData.customHairstyles[i];
+                         break;
+                     }
+                 }
                  if (customData && customData.blobs && customData.blobs.back) {
                      drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
                  }
@@ -9738,7 +9752,13 @@ var BallRenderer = {
         // Optimization: Cache cat_hoop decor reference to avoid O(N) array search every frame
         if (typeof decors !== 'undefined') {
             if (window._cachedDecorsRef !== decors || window._cachedCatDecor === undefined) {
-                window._cachedCatDecor = decors.find(d => d.zoneType === 'cat_hoop');
+                window._cachedCatDecor = undefined;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        window._cachedCatDecor = decors[i];
+                        break;
+                    }
+                }
                 window._cachedDecorsRef = decors;
             }
         } else {
