@@ -35,9 +35,20 @@ RenderEngine.Camera = {
         }
 
         // Smooth Interpolation
-        const lerp = 0.1;
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+        // Default follow speed when shooting or panning
+        let lerpSpeed = 0.1;
+
+        // Dynamic Lerp: if the camera needs to pan BACK down the court (away from hoop towards the player)
+        // This happens instantly after a shot when targetY snaps back to the player's Y position.
+        // HOOP_POS.y is 150. A larger Y means further away down the court.
+        // If targetY is significantly larger than current camera Y, we are returning to player.
+        if (targetY > this.smoothPos.y + 50) {
+            // Speed up the return trip significantly
+            lerpSpeed = 0.3;
+        }
+
+        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
