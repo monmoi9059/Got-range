@@ -14609,16 +14609,26 @@ var BallRenderer = {
             // Fast Z-Check
             const dx = dX - camX;
             const dy = dY - camY;
-            // ry calculation: dx * sin + dy * cos
+
+            // Optimization: Frustum culling check
+            // If the object is too far to the left or right of the camera vector, skip it early
+            // This prevents adding off-screen objects to the RenderEngine.Queue, which saves sorting time later
+            const rx = dx * camCos - dy * camSin;
             const ry = dx * camSin + dy * camCos;
+
             // cameraOffset is 550 in project()
             const depth = 550 - ry;
             if (depth <= 0) return;
 
-            // Inline projection
-            const rx = dx * camCos - dy * camSin;
+            // Calculate screen X early to check horizontal bounds
             const scale = camZoom / depth;
             const screenX = vpW / 2 + (rx * scale);
+
+            // If the object is far off the sides of the screen, cull it
+            // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
+            // that might have their center off-screen but still bleed into the viewport.
+            if (screenX < -vpW || screenX > vpW * 2) return;
+
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
