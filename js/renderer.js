@@ -595,6 +595,26 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        var size = 25 * proj.scale * 0.3;
+                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+                    }
+                }
+            }
             else if (type === 'baseball' || type === 'tennis') {
                 ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -677,6 +697,7 @@ var BallRenderer = {
             else if (type === 'donut') color = '#D2691E';
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
+            else if (type === 'disco') color = '#A9A9A9';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -943,6 +964,25 @@ var BallRenderer = {
                         ctx.fill();
                     }
                  });
+            }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    transform(p);
+                    if (self._projResult.z > 0) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+                    }
+                }
             }
         },
 
@@ -4166,6 +4206,8 @@ var BallRenderer = {
         const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
 
         // --- Draw Functions ---
+        const isOnFire = currentStreak >= 5;
+
         const drawPole = () => {
             if(projPoleTop && projPoleBot) {
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
@@ -4189,6 +4231,16 @@ var BallRenderer = {
             for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
             ctx.closePath();
             ctx.stroke();
+
+            // Streak Fire Outline around Backboard
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 4 * projBB[0].scale;
+                ctx.stroke();
+            }
         };
 
         const drawRimAndNet = () => {
@@ -4217,6 +4269,13 @@ var BallRenderer = {
             first = true;
             projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
             ctx.closePath(); ctx.stroke();
+
+            // Glow Rim if on fire
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                ctx.lineWidth = 12 * s;
+                ctx.stroke();
+            }
         };
 
         // Render Order (Painter's Algorithm)
@@ -9172,6 +9231,19 @@ var BallRenderer = {
              ctx.fillStyle = '#FF0000';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
         }
+        else if (accessoryType === 'headphones') {
+             ctx.strokeStyle = accessoryColor || '#333'; ctx.lineWidth = 4*s;
+             // Headband
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius + 2*s, Math.PI, 0); ctx.stroke();
+             // Ear cups
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             // Inner glow/detail
+             ctx.fillStyle = '#00FFFF';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+        }
 
         // Head Details that act like accessories
         if(skinObj.headDetail === 'mohawk') {
@@ -9760,9 +9832,15 @@ var BallRenderer = {
             // If the object is far off the sides of the screen, cull it
             // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
             // that might have their center off-screen but still bleed into the viewport.
-            if (screenX < -vpW || screenX > vpW * 2) return;
+            // Make horizontal culling tighter to save render cycles
+            const cullingMargin = (d.zoneType === 'castle') ? vpW * 1.5 : vpW * 0.5;
+            if (screenX < -cullingMargin || screenX > vpW + cullingMargin) return;
 
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            // Vertical Culling
+            // If it's way below the screen (and it's not something huge like a mountain), cull it
+            if (screenY > vpH + 500) return;
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
             item.zoneType = d.zoneType;
@@ -9791,16 +9869,30 @@ var BallRenderer = {
             // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
             // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
             // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
-            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            // Dynamic back-culling based on camera height/zoom to prevent drawing thousands of offscreen objects
+            // When zoomed out, we see more. The distance is relative to game units.
+            // playerDistFromHoop is in pixels. 15000 pixels is ~3500 feet.
+            let backCullDist = 12000;
+            // Narrow the front cull dist as well
+            let frontCullDist = playerDistFromHoop + 3000;
+
+            // Adjust based on graphics setting
+            if (playerData.graphics === 'LOW') {
+                backCullDist = 6000;
+                frontCullDist = playerDistFromHoop + 2000;
+            }
+
             const startDist = Math.max(0, playerDistFromHoop - backCullDist);
 
+            // Use binary search to quickly find the start index in the sorted array
             let startIndex = 0;
-            if (startDist > 1000) {
+            if (startDist > 0) {
                  startIndex = binarySearchLowerBound(decors, startDist);
             }
+
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
-                if (d.dist > cullDist) break;
+                if (d.dist > frontCullDist) break; // Array is sorted by distance, so we can break early
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
                     processDecor(d, g_catState.x, g_catState.y, g_catState.z);
