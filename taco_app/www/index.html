@@ -1062,7 +1062,7 @@
             </div>
 
             <!-- Canvas Container -->
-            <div style="position:relative; width:500px; height:500px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <div style="position:relative; width:500px; height:500px; border:2px solid #555; background:#FFF; margin-bottom:15px; cursor:crosshair; touch-action:none; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                 <canvas id="hairEditorCanvas" width="500" height="500" style="transition: transform 0.2s ease;"></canvas>
             </div>
 
@@ -3716,6 +3716,9 @@ function drawHeadTemplate(ctx, cx, cy, r) {
     var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
     decors.push(catDecor);
 
+    const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
+    let placedHouses = [];
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -3727,15 +3730,10 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const dX = pathX + scatter;
         const dY = pathY + scatter;
 
-        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
-        // Player Width ~30 units. Safety = 1.5x (~45).
-        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
-        const sum = dX + dY;
-        if (sum > 540 && sum < 810) continue;
-
         const dx = dX - HOOP_POS.x;
         const dy = dY - HOOP_POS.y;
-        const dDist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
+        const dDist = Math.sqrt(distSq);
 
         // Convert Pixel Distance to Game Feet for Zone Lookup
         const feetDist = dDist / PIXELS_PER_FOOT;
@@ -3747,11 +3745,36 @@ function drawHeadTemplate(ctx, cx, cy, r) {
                 break;
             }
         }
+
+        const isHouse = decorZone.type === 'castle'; // Residential Houses
+
+        // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
+        // Houses are scaled up ~4x, so we need a much wider safety corridor to avoid blocking the lane.
+        const sum = dX + dY;
+        if (isHouse) {
+            if (sum > 200 && sum < 1150) continue;
+
+            // House minimum distance check
+            let tooClose = false;
+            for (let h = 0; h < placedHouses.length; h++) {
+                const hx = placedHouses[h].x - dX;
+                const hy = placedHouses[h].y - dY;
+                if ((hx * hx + hy * hy) < MIN_HOUSE_DIST_SQ) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+        } else {
+            if (sum > 540 && sum < 810) continue;
+        }
+
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
         }
         decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
+        if (isHouse) placedHouses.push({ x: dX, y: dY });
     }
 
     // Crowd Generation (Stands along the side)
@@ -4890,9 +4913,20 @@ RenderEngine.Camera = {
         }
 
         // Smooth Interpolation
-        const lerp = 0.1;
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+        // Default follow speed when shooting or panning
+        let lerpSpeed = 0.1;
+
+        // Dynamic Lerp: if the camera needs to pan BACK down the court (away from hoop towards the player)
+        // This happens instantly after a shot when targetY snaps back to the player's Y position.
+        // HOOP_POS.y is 150. A larger Y means further away down the court.
+        // If targetY is significantly larger than current camera Y, we are returning to player.
+        if (targetY > this.smoothPos.y + 50) {
+            // Speed up the return trip significantly
+            lerpSpeed = 0.3;
+        }
+
+        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -8380,8 +8414,10 @@ var BallRenderer = {
             const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
             const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
 
-            const w = 50 * s;
-            const h = 50 * s;
+            // Scale up houses by 4x to make them "real house sized"
+            const houseScale = 4.0;
+            const w = 50 * s * houseScale;
+            const h = 50 * s * houseScale;
 
             // Body
             ctx.fillStyle = wallColor;
@@ -8390,33 +8426,33 @@ var BallRenderer = {
             // Roof (Pitched)
             ctx.fillStyle = roofColor;
             ctx.beginPath();
-            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
-            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
-            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.moveTo(p.x - w/2 - 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s*houseScale);
             ctx.fill();
 
             // Door
             ctx.fillStyle = '#4E342E';
-            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            ctx.fillRect(p.x - 8*s*houseScale, p.y - 20*s*houseScale, 16*s*houseScale, 20*s*houseScale);
             // Knob
             ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 4*s*houseScale, p.y - 10*s*houseScale, 1.5*s*houseScale, 0, Math.PI*2); ctx.fill();
 
             // Windows
             ctx.fillStyle = '#87CEEB';
             // Window 1
-            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x - w/2 + 5*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
             // Window 2
-            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x + w/2 - 17*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
 
             // Window Frames
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s*houseScale;
             // Cross 1
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x - w/2 + 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x - w/2 + 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
             // Cross 2
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x + w/2 - 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x + w/2 - 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -8736,30 +8772,25 @@ var BallRenderer = {
     }
 
     var ShadowCache = {
-        entries: {},
-        keys: [],
+        cache: new Map(),
         MAX_ENTRIES: 128,
         get: function(key) {
-            var entry = this.entries[key];
-            if (entry) {
-                // Move to end of keys for LRU-ish behavior
-                var idx = this.keys.indexOf(key);
-                if (idx > -1) {
-                    this.keys.splice(idx, 1);
-                    this.keys.push(key);
-                }
+            if (this.cache.has(key)) {
+                var entry = this.cache.get(key);
+                // Move to end of map for LRU-ish behavior
+                this.cache.delete(key);
+                this.cache.set(key, entry);
                 return entry;
             }
             return null;
         },
         set: function(key, canvas) {
-            if (this.entries[key]) return;
-            if (this.keys.length >= this.MAX_ENTRIES) {
-                var oldKey = this.keys.shift();
-                delete this.entries[oldKey];
+            if (this.cache.has(key)) return;
+            if (this.cache.size >= this.MAX_ENTRIES) {
+                var oldKey = this.cache.keys().next().value;
+                this.cache.delete(oldKey);
             }
-            this.entries[key] = canvas;
-            this.keys.push(key);
+            this.cache.set(key, canvas);
         }
     };
 
@@ -10233,7 +10264,13 @@ var BallRenderer = {
     function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
          if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
          if (!playerData.customHairstyles) return;
-         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         let customData = undefined;
+         for (let i = 0; i < playerData.customHairstyles.length; i++) {
+             if (playerData.customHairstyles[i].id === skinObj.hairStyle) {
+                 customData = playerData.customHairstyles[i];
+                 break;
+             }
+         }
          if (customData && customData.blobs && customData.blobs.front) {
              drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
          }
@@ -10346,7 +10383,13 @@ var BallRenderer = {
         // --- 0. CUSTOM ---
         if (style.startsWith('custom_')) {
              if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 let customData = undefined;
+                 for (let i = 0; i < playerData.customHairstyles.length; i++) {
+                     if (playerData.customHairstyles[i].id === style) {
+                         customData = playerData.customHairstyles[i];
+                         break;
+                     }
+                 }
                  if (customData && customData.blobs && customData.blobs.back) {
                      drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
                  }
@@ -14577,16 +14620,26 @@ var BallRenderer = {
             // Fast Z-Check
             const dx = dX - camX;
             const dy = dY - camY;
-            // ry calculation: dx * sin + dy * cos
+
+            // Optimization: Frustum culling check
+            // If the object is too far to the left or right of the camera vector, skip it early
+            // This prevents adding off-screen objects to the RenderEngine.Queue, which saves sorting time later
+            const rx = dx * camCos - dy * camSin;
             const ry = dx * camSin + dy * camCos;
+
             // cameraOffset is 550 in project()
             const depth = 550 - ry;
             if (depth <= 0) return;
 
-            // Inline projection
-            const rx = dx * camCos - dy * camSin;
+            // Calculate screen X early to check horizontal bounds
             const scale = camZoom / depth;
             const screenX = vpW / 2 + (rx * scale);
+
+            // If the object is far off the sides of the screen, cull it
+            // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
+            // that might have their center off-screen but still bleed into the viewport.
+            if (screenX < -vpW || screenX > vpW * 2) return;
+
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
@@ -14598,7 +14651,13 @@ var BallRenderer = {
         // Optimization: Cache cat_hoop decor reference to avoid O(N) array search every frame
         if (typeof decors !== 'undefined') {
             if (window._cachedDecorsRef !== decors || window._cachedCatDecor === undefined) {
-                window._cachedCatDecor = decors.find(d => d.zoneType === 'cat_hoop');
+                window._cachedCatDecor = undefined;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        window._cachedCatDecor = decors[i];
+                        break;
+                    }
+                }
                 window._cachedDecorsRef = decors;
             }
         } else {
@@ -14607,7 +14666,12 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
-            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
+            // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
+            // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
+            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            const startDist = Math.max(0, playerDistFromHoop - backCullDist);
+
             let startIndex = 0;
             if (startDist > 1000) {
                  startIndex = binarySearchLowerBound(decors, startDist);
@@ -17065,13 +17129,20 @@ var BallRenderer = {
                 }
                 const pDX = HOOP_POS.x - player3D.x;
                 const pDY = HOOP_POS.y - player3D.y;
-                const distToHoop = Math.sqrt(pDX * pDX + pDY * pDY);
-                const distToHoopPlus5000 = distToHoop + 5000;
+                // Optimization: Calculate player's distance to hoop once per frame to avoid recalculating per ball
+                // We do still need Math.sqrt to correctly calculate the expanded binomial (distToHoop + 5000)^2
+                // which is distToHoopSq + 10000 * distToHoop + 25000000
+                const distToHoopSq = pDX * pDX + pDY * pDY;
+                const distToHoop = Math.sqrt(distToHoopSq);
+
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
                 const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDistSq > distToHoopPlus5000 * distToHoopPlus5000) { b.active = false; handleMiss(b); continue; }
+                // Exact math for (distToHoop + 5000)^2 without calling sqrt per ball frame loop
+                const isWayPastHoop = currentDistSq > (distToHoopSq + 10000 * distToHoop + 25000000);
+
+                if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell

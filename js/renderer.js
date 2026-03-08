@@ -35,9 +35,20 @@ RenderEngine.Camera = {
         }
 
         // Smooth Interpolation
-        const lerp = 0.1;
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+        // Default follow speed when shooting or panning
+        let lerpSpeed = 0.1;
+
+        // Dynamic Lerp: if the camera needs to pan BACK down the court (away from hoop towards the player)
+        // This happens instantly after a shot when targetY snaps back to the player's Y position.
+        // HOOP_POS.y is 150. A larger Y means further away down the court.
+        // If targetY is significantly larger than current camera Y, we are returning to player.
+        if (targetY > this.smoothPos.y + 50) {
+            // Speed up the return trip significantly
+            lerpSpeed = 0.3;
+        }
+
+        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -3525,8 +3536,10 @@ var BallRenderer = {
             const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
             const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
 
-            const w = 50 * s;
-            const h = 50 * s;
+            // Scale up houses by 4x to make them "real house sized"
+            const houseScale = 4.0;
+            const w = 50 * s * houseScale;
+            const h = 50 * s * houseScale;
 
             // Body
             ctx.fillStyle = wallColor;
@@ -3535,33 +3548,33 @@ var BallRenderer = {
             // Roof (Pitched)
             ctx.fillStyle = roofColor;
             ctx.beginPath();
-            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
-            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
-            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.moveTo(p.x - w/2 - 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s*houseScale);
             ctx.fill();
 
             // Door
             ctx.fillStyle = '#4E342E';
-            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            ctx.fillRect(p.x - 8*s*houseScale, p.y - 20*s*houseScale, 16*s*houseScale, 20*s*houseScale);
             // Knob
             ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 4*s*houseScale, p.y - 10*s*houseScale, 1.5*s*houseScale, 0, Math.PI*2); ctx.fill();
 
             // Windows
             ctx.fillStyle = '#87CEEB';
             // Window 1
-            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x - w/2 + 5*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
             // Window 2
-            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x + w/2 - 17*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
 
             // Window Frames
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s*houseScale;
             // Cross 1
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x - w/2 + 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x - w/2 + 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
             // Cross 2
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x + w/2 - 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x + w/2 - 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -5373,7 +5386,13 @@ var BallRenderer = {
     function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
          if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
          if (!playerData.customHairstyles) return;
-         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         let customData = undefined;
+         for (let i = 0; i < playerData.customHairstyles.length; i++) {
+             if (playerData.customHairstyles[i].id === skinObj.hairStyle) {
+                 customData = playerData.customHairstyles[i];
+                 break;
+             }
+         }
          if (customData && customData.blobs && customData.blobs.front) {
              drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
          }
@@ -5486,7 +5505,13 @@ var BallRenderer = {
         // --- 0. CUSTOM ---
         if (style.startsWith('custom_')) {
              if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 let customData = undefined;
+                 for (let i = 0; i < playerData.customHairstyles.length; i++) {
+                     if (playerData.customHairstyles[i].id === style) {
+                         customData = playerData.customHairstyles[i];
+                         break;
+                     }
+                 }
                  if (customData && customData.blobs && customData.blobs.back) {
                      drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
                  }
@@ -9717,16 +9742,26 @@ var BallRenderer = {
             // Fast Z-Check
             const dx = dX - camX;
             const dy = dY - camY;
-            // ry calculation: dx * sin + dy * cos
+
+            // Optimization: Frustum culling check
+            // If the object is too far to the left or right of the camera vector, skip it early
+            // This prevents adding off-screen objects to the RenderEngine.Queue, which saves sorting time later
+            const rx = dx * camCos - dy * camSin;
             const ry = dx * camSin + dy * camCos;
+
             // cameraOffset is 550 in project()
             const depth = 550 - ry;
             if (depth <= 0) return;
 
-            // Inline projection
-            const rx = dx * camCos - dy * camSin;
+            // Calculate screen X early to check horizontal bounds
             const scale = camZoom / depth;
             const screenX = vpW / 2 + (rx * scale);
+
+            // If the object is far off the sides of the screen, cull it
+            // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
+            // that might have their center off-screen but still bleed into the viewport.
+            if (screenX < -vpW || screenX > vpW * 2) return;
+
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
@@ -9738,7 +9773,13 @@ var BallRenderer = {
         // Optimization: Cache cat_hoop decor reference to avoid O(N) array search every frame
         if (typeof decors !== 'undefined') {
             if (window._cachedDecorsRef !== decors || window._cachedCatDecor === undefined) {
-                window._cachedCatDecor = decors.find(d => d.zoneType === 'cat_hoop');
+                window._cachedCatDecor = undefined;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        window._cachedCatDecor = decors[i];
+                        break;
+                    }
+                }
                 window._cachedDecorsRef = decors;
             }
         } else {
@@ -9747,7 +9788,12 @@ var BallRenderer = {
         }
 
         if (currentGameMode === 'CLASSIC') {
-            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
+            // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
+            // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
+            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            const startDist = Math.max(0, playerDistFromHoop - backCullDist);
+
             let startIndex = 0;
             if (startDist > 1000) {
                  startIndex = binarySearchLowerBound(decors, startDist);
