@@ -16522,20 +16522,22 @@ var BallRenderer = {
         g_catEatTimer = 20; // Trigger cat animation
 
         // Swish Shockwave Effect
-        for (let i = 0; i < 10; i++) {
-            const angle = (i / 10) * Math.PI * 2;
-            particles.push({
-                x: HOOP_POS.x + Math.cos(angle) * 10,
-                y: HOOP_POS.y + Math.sin(angle) * 10,
-                z: 0,
-                vx: Math.cos(angle) * 8,
-                vy: Math.sin(angle) * 8,
-                vz: 2,
-                life: 30, maxLife: 30,
-                scale: 1.5, alpha: 0.8,
-                type: 'smoke',
-                color: (currentStreak >= 5) ? `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)` : '#FFD700'
-            });
+        if (currentStreak >= 5) {
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                particles.push({
+                    x: HOOP_POS.x + Math.cos(angle) * 10,
+                    y: HOOP_POS.y + Math.sin(angle) * 10,
+                    z: 0,
+                    vx: Math.cos(angle) * 8,
+                    vy: Math.sin(angle) * 8,
+                    vz: 2,
+                    life: 30, maxLife: 30,
+                    scale: 1.5, alpha: 0.8,
+                    type: 'smoke',
+                    color: `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)`
+                });
+            }
         }
 
         // Basket Cat Growth
