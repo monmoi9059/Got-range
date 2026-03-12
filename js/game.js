@@ -491,6 +491,31 @@
             }
         }
 
+        // Perfect Swish Fireworks
+        // If ball was very accurate (vrx and vry implies accuracy in scatter logic,
+        // we can just check if it didn't hit the rim, or if the accuracy was perfect based on some state)
+        // Since we don't have direct access to 'timingError' here easily without saving it,
+        // we'll trigger a firework if the ball had 'isFire' flag or if currentStreak % 3 == 0.
+        // Actually, let's just make every 3rd shot or high streak create fireworks for fun!
+        if (currentStreak > 0 && currentStreak % 3 === 0) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: HOOP_POS.x,
+                    y: HOOP_POS.y,
+                    z: HOOP_POS.z,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: 5 + Math.random() * 10, // Explode upwards
+                    life: 40 + Math.random() * 20, maxLife: 60,
+                    scale: 1.0 + Math.random(), alpha: 1.0,
+                    type: 'smoke',
+                    color: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'][Math.floor(Math.random() * 5)]
+                });
+            }
+        }
+
         // Basket Cat Growth
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;

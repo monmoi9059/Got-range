@@ -489,6 +489,9 @@ var BallRenderer = {
                     }
                 }
             }
+            else if (type === 'balloon') {
+                 // Nothing special for 3D projection, drawn in 2D part
+            }
             else if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -698,6 +701,7 @@ var BallRenderer = {
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
             else if (type === 'disco') color = '#A9A9A9';
+            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -983,6 +987,18 @@ var BallRenderer = {
                         ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
                     }
                 }
+            }
+            else if (type === 'balloon') {
+                 // Tie knot at bottom
+                 transform({x:0, y:-1.0, z:0});
+                 if (self._projResult.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+                     // Highlight
+                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+                     transform({x:-0.5, y:0.5, z:0.7});
+                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+                 }
             }
         },
 
@@ -4443,7 +4459,38 @@ var BallRenderer = {
         // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
         const sideMult = isRight ? 1 : -1;
 
-        if (type === 'foam') {
+        if (type === 'clown') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = detailColor || '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'rollerblades') {
+            ctx.fillStyle = color;
+            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+            ctx.fillStyle = '#AAA';
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+            ctx.fillStyle = detailColor || '#00FFFF';
+            // Wheels
+            for (let i = -0.6; i <= 0.6; i += 0.4) {
+                ctx.beginPath();
+                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (type === 'flipflops') {
+            ctx.fillStyle = color; // Sole
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+            ctx.strokeStyle = detailColor || '#000'; // Strap
+            ctx.lineWidth = 2 * s;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.5, h * 0.3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(w * 0.5, h * 0.3);
+            ctx.stroke();
+        } else if (type === 'foam') {
             // Yeezy Foam Runner (Blobby, porous)
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -9212,6 +9259,37 @@ var BallRenderer = {
              ctx.beginPath(); ctx.ellipse(p.x, headY - 5*s, headRadius * 1.5, 3*s, 0, 0, Math.PI*2); ctx.fill();
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
+        }
+        else if (accessoryType === 'dunce') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x, headY - 40*s);
+             ctx.fill();
+             ctx.fillStyle = '#000';
+             ctx.font = `bold ${8*s}px Arial`;
+             ctx.textAlign = 'center';
+             ctx.fillText('D', p.x, headY - 20*s);
+        }
+        else if (accessoryType === 'samurai_helmet') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             // Base helmet
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 2*s, Math.PI, 0); ctx.fill();
+             // Crest
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - headRadius - 10*s);
+             ctx.lineTo(p.x - 10*s, headY - headRadius);
+             ctx.lineTo(p.x + 10*s, headY - headRadius);
+             ctx.fill();
+             // Neck guard (shikoro)
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             for(let i=0; i<3; i++) {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY + 5*s + (i*4*s), headRadius + 5*s + (i*s), 3*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+             }
         }
         else if (accessoryType === 'headband') {
              ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
