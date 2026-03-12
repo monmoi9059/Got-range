@@ -489,6 +489,9 @@ var BallRenderer = {
                     }
                 }
             }
+            else if (type === 'balloon') {
+                 // Nothing special for 3D projection, drawn in 2D part
+            }
             else if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -595,6 +598,26 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        var size = 25 * proj.scale * 0.3;
+                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+                    }
+                }
+            }
             else if (type === 'baseball' || type === 'tennis') {
                 ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -677,6 +700,8 @@ var BallRenderer = {
             else if (type === 'donut') color = '#D2691E';
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
+            else if (type === 'disco') color = '#A9A9A9';
+            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -943,6 +968,37 @@ var BallRenderer = {
                         ctx.fill();
                     }
                  });
+            }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    transform(p);
+                    if (self._projResult.z > 0) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+                    }
+                }
+            }
+            else if (type === 'balloon') {
+                 // Tie knot at bottom
+                 transform({x:0, y:-1.0, z:0});
+                 if (self._projResult.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+                     // Highlight
+                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+                     transform({x:-0.5, y:0.5, z:0.7});
+                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+                 }
             }
         },
 
@@ -4166,6 +4222,8 @@ var BallRenderer = {
         const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
 
         // --- Draw Functions ---
+        const isOnFire = currentStreak >= 5;
+
         const drawPole = () => {
             if(projPoleTop && projPoleBot) {
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
@@ -4189,6 +4247,16 @@ var BallRenderer = {
             for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
             ctx.closePath();
             ctx.stroke();
+
+            // Streak Fire Outline around Backboard
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 4 * projBB[0].scale;
+                ctx.stroke();
+            }
         };
 
         const drawRimAndNet = () => {
@@ -4217,6 +4285,13 @@ var BallRenderer = {
             first = true;
             projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
             ctx.closePath(); ctx.stroke();
+
+            // Glow Rim if on fire
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                ctx.lineWidth = 12 * s;
+                ctx.stroke();
+            }
         };
 
         // Render Order (Painter's Algorithm)
@@ -4384,7 +4459,38 @@ var BallRenderer = {
         // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
         const sideMult = isRight ? 1 : -1;
 
-        if (type === 'foam') {
+        if (type === 'clown') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = detailColor || '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'rollerblades') {
+            ctx.fillStyle = color;
+            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+            ctx.fillStyle = '#AAA';
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+            ctx.fillStyle = detailColor || '#00FFFF';
+            // Wheels
+            for (let i = -0.6; i <= 0.6; i += 0.4) {
+                ctx.beginPath();
+                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (type === 'flipflops') {
+            ctx.fillStyle = color; // Sole
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+            ctx.strokeStyle = detailColor || '#000'; // Strap
+            ctx.lineWidth = 2 * s;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.5, h * 0.3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(w * 0.5, h * 0.3);
+            ctx.stroke();
+        } else if (type === 'foam') {
             // Yeezy Foam Runner (Blobby, porous)
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -9154,6 +9260,37 @@ var BallRenderer = {
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
+        else if (accessoryType === 'dunce') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x, headY - 40*s);
+             ctx.fill();
+             ctx.fillStyle = '#000';
+             ctx.font = `bold ${8*s}px Arial`;
+             ctx.textAlign = 'center';
+             ctx.fillText('D', p.x, headY - 20*s);
+        }
+        else if (accessoryType === 'samurai_helmet') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             // Base helmet
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 2*s, Math.PI, 0); ctx.fill();
+             // Crest
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - headRadius - 10*s);
+             ctx.lineTo(p.x - 10*s, headY - headRadius);
+             ctx.lineTo(p.x + 10*s, headY - headRadius);
+             ctx.fill();
+             // Neck guard (shikoro)
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             for(let i=0; i<3; i++) {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY + 5*s + (i*4*s), headRadius + 5*s + (i*s), 3*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+             }
+        }
         else if (accessoryType === 'headband') {
              ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
              if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
@@ -9171,6 +9308,19 @@ var BallRenderer = {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
              ctx.fillStyle = '#FF0000';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'headphones') {
+             ctx.strokeStyle = accessoryColor || '#333'; ctx.lineWidth = 4*s;
+             // Headband
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius + 2*s, Math.PI, 0); ctx.stroke();
+             // Ear cups
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             // Inner glow/detail
+             ctx.fillStyle = '#00FFFF';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
         }
 
         // Head Details that act like accessories
@@ -9760,9 +9910,15 @@ var BallRenderer = {
             // If the object is far off the sides of the screen, cull it
             // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
             // that might have their center off-screen but still bleed into the viewport.
-            if (screenX < -vpW || screenX > vpW * 2) return;
+            // Make horizontal culling tighter to save render cycles
+            const cullingMargin = (d.zoneType === 'castle') ? vpW * 1.5 : vpW * 0.5;
+            if (screenX < -cullingMargin || screenX > vpW + cullingMargin) return;
 
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            // Vertical Culling
+            // If it's way below the screen (and it's not something huge like a mountain), cull it
+            if (screenY > vpH + 500) return;
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
             item.zoneType = d.zoneType;
@@ -9791,16 +9947,30 @@ var BallRenderer = {
             // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
             // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
             // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
-            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            // Dynamic back-culling based on camera height/zoom to prevent drawing thousands of offscreen objects
+            // When zoomed out, we see more. The distance is relative to game units.
+            // playerDistFromHoop is in pixels. 15000 pixels is ~3500 feet.
+            let backCullDist = 12000;
+            // Narrow the front cull dist as well
+            let frontCullDist = playerDistFromHoop + 3000;
+
+            // Adjust based on graphics setting
+            if (playerData.graphics === 'LOW') {
+                backCullDist = 6000;
+                frontCullDist = playerDistFromHoop + 2000;
+            }
+
             const startDist = Math.max(0, playerDistFromHoop - backCullDist);
 
+            // Use binary search to quickly find the start index in the sorted array
             let startIndex = 0;
-            if (startDist > 1000) {
+            if (startDist > 0) {
                  startIndex = binarySearchLowerBound(decors, startDist);
             }
+
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
-                if (d.dist > cullDist) break;
+                if (d.dist > frontCullDist) break; // Array is sorted by distance, so we can break early
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
                     processDecor(d, g_catState.x, g_catState.y, g_catState.z);
