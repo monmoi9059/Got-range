@@ -43,12 +43,13 @@ RenderEngine.Camera = {
         // HOOP_POS.y is 150. A larger Y means further away down the court.
         // If targetY is significantly larger than current camera Y, we are returning to player.
         if (targetY > this.smoothPos.y + 50) {
-            // Speed up the return trip significantly
-            lerpSpeed = 0.3;
+            // Instant snap to prevent framerate stutter from rapidly rendering intermediate background objects
+            this.smoothPos.x = targetX;
+            this.smoothPos.y = targetY;
+        } else {
+            this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+            this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
         }
-
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -1441,7 +1442,15 @@ var BallRenderer = {
             sorted.forEach(function(b) {
                 const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
-                const scale = 0.3 + b.v * 0.7;
+
+                // Base 2D perspective scale
+                let scale = 0.3 + b.v * 0.7;
+
+                // Multiply by camera zoom so they shrink when zoomed out
+                // Base zoom is typically around 698
+                const currentZoom = (g_camCache && g_camCache.cameraZoom) ? g_camCache.cameraZoom : 698;
+                scale *= currentZoom / 698;
+
                 let size = 30 * scale; // Base size unit
 
                 // Vertical Offset calculation
