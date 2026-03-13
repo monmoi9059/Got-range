@@ -3761,6 +3761,10 @@ function drawHeadTemplate(ctx, cx, cy, r) {
     const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
     let placedHouses = [];
 
+    // OPTIMIZATION: Pre-calculate squared limits for zone lookup to avoid Math.sqrt in the loop
+    const zoneLimitsSq = COURT_ZONES.map(z => z.limit * z.limit);
+    const PIXELS_PER_FOOT_SQ = PIXELS_PER_FOOT * PIXELS_PER_FOOT;
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -3775,14 +3779,13 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const dx = dX - HOOP_POS.x;
         const dy = dY - HOOP_POS.y;
         const distSq = dx * dx + dy * dy;
-        const dDist = Math.sqrt(distSq);
 
-        // Convert Pixel Distance to Game Feet for Zone Lookup
-        const feetDist = dDist / PIXELS_PER_FOOT;
+        // Convert Pixel Distance to Game Feet for Zone Lookup (Squared for performance)
+        const feetDistSq = distSq / PIXELS_PER_FOOT_SQ;
 
         let decorZone = COURT_ZONES[COURT_ZONES.length-1];
         for (let j = 0; j < COURT_ZONES.length; j++) {
-            if (feetDist < COURT_ZONES[j].limit) {
+            if (feetDistSq < zoneLimitsSq[j]) {
                 decorZone = COURT_ZONES[j];
                 break;
             }
