@@ -17316,13 +17316,32 @@ var BallRenderer = {
             }
         }
 
+        // Optimization: Calculate player's distance to hoop once per frame
+        let distToHoopSq = 0;
+        let isWayPastHoopThresholdSq = 0;
+        let cachedFireHue = undefined;
+        let showHighGraphics = (playerData.graphics === 'HIGH');
+        let streakThresholdMet = (currentStreak >= 10);
+        if (streakThresholdMet) {
+            cachedFireHue = getStreakFireHue(currentStreak);
+        }
+
+        if (activeBalls.length > 0) {
+            const pDX = HOOP_POS.x - player3D.x;
+            const pDY = HOOP_POS.y - player3D.y;
+            distToHoopSq = pDX * pDX + pDY * pDY;
+            const distToHoop = Math.sqrt(distToHoopSq);
+            const limit = distToHoop + 5000;
+            isWayPastHoopThresholdSq = limit * limit;
+        }
+
         // Process Active Balls
         for (let i = activeBalls.length - 1; i >= 0; i--) {
             let b = activeBalls[i];
             if (b.active) {
                 if (b.isFire) {
                      // Update Trail
-                     if (playerData.graphics === 'HIGH') {
+                     if (showHighGraphics) {
                          if (!b.trail) b.trail = [];
                          b.trail.push({ x: b.x, y: b.y, z: b.z });
                          if (b.trail.length > 20) b.trail.shift();
@@ -17331,10 +17350,6 @@ var BallRenderer = {
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
-                         let customHue = undefined;
-                         if (currentStreak >= 10) {
-                             customHue = getStreakFireHue(currentStreak);
-                         }
                          particles.push({
                              x: b.x + (Math.random()-0.5)*15,
                              y: b.y + (Math.random()-0.5)*15,
@@ -17345,7 +17360,7 @@ var BallRenderer = {
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
                              isFireParticle: true,
-                             customHue: customHue
+                             customHue: cachedFireHue
                          });
                     }
                 } else {
@@ -17383,20 +17398,11 @@ var BallRenderer = {
                         AudioSystem.playBrick();
                     }
                 }
-                const pDX = HOOP_POS.x - player3D.x;
-                const pDY = HOOP_POS.y - player3D.y;
-                // Optimization: Calculate player's distance to hoop once per frame to avoid recalculating per ball
-                // We do still need Math.sqrt to correctly calculate the expanded binomial (distToHoop + 5000)^2
-                // which is distToHoopSq + 10000 * distToHoop + 25000000
-                const distToHoopSq = pDX * pDX + pDY * pDY;
-                const distToHoop = Math.sqrt(distToHoopSq);
-
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
                 const currentDistSq = bDX * bDX + bDY * bDY;
 
-                // Exact math for (distToHoop + 5000)^2 without calling sqrt per ball frame loop
-                const isWayPastHoop = currentDistSq > (distToHoopSq + 10000 * distToHoop + 25000000);
+                const isWayPastHoop = currentDistSq > isWayPastHoopThresholdSq;
 
                 if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
