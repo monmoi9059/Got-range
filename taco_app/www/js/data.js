@@ -201,6 +201,8 @@
         { limit: 4000, name: "BASE LUNAIRE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
         { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
         { limit: 8000, name: "LE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
+        { limit: 12000, name: "CITÉ ENGLOUTIE", type: 'water', ground1: '#000080', ground2: '#008B8B', sky1: '#0000CD', sky2: '#00008B' },
+        { limit: 18000, name: "VOLCAN EN ÉRUPTION", type: 'mountain', ground1: '#800000', ground2: '#B22222', sky1: '#FF4500', sky2: '#8B0000' },
         { limit: 9999999, name: "DIMENSION TACO", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
     ];
 
@@ -266,6 +268,7 @@
         { id: 'rat_miner', animal: 'rat', name: 'Mineur', cost: 3000, jerseyColor: '#555', shortsColor: '#333', headAccessory: 'helmet', hatColor: '#FFA500' },
         { id: 'rat_rapper', animal: 'rat', name: 'Rappeur', cost: 3500, jerseyColor: '#FFF', shortsColor: '#000', headAccessory: 'beanie', hatColor: '#000', backAccessory: 'backpack' },
         { id: 'rat_detective', animal: 'rat', name: 'Détective', cost: 4000, jerseyColor: '#D2B48C', shortsColor: '#8B4513', legType: 'pants', headAccessory: 'hat', hatColor: '#8B4513' },
+        { id: 'rat_raccoon', animal: 'rat', name: 'Raton Laveur', cost: 4500, furColor: '#808080', pattern: 'tiger_stripes', headAccessory: 'beanie', hatColor: '#000' },
 
         // CATS
         { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250, bodyShape: 'oval' },
@@ -520,6 +523,16 @@
         { id: 'human_peach', animal: 'human', name: 'Princesse Rose', cost: 15000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#FFC0CB', shortsColor: '#FF69B4', legType: 'tights', headAccessory: 'crown', hatColor: '#FFD700', skinTone: '#ffe0bd', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#FF1493' },
         { id: 'human_link', animal: 'human', name: 'Héros du Temps', cost: 15000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#008000', shortsColor: '#F5F5DC', legType: 'tights', headAccessory: 'hat', hatColor: '#008000', skinTone: '#ffe0bd', backProp: 'sword', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#8B4513' },
 
+        // NEW HUMANS (POP CULTURE)
+        { id: 'human_action_hero', animal: 'human', name: 'Action Hero', cost: 10000, heightScale: 1.1, widthScale: 1.2, jerseyColor: '#556B2F', shortsColor: '#556B2F', legType: 'pants', headAccessory: 'bandana_blue', hatColor: '#FF0000', skinTone: '#dcb98a', hairStyle: 'buzz_cut', hairColor: '#000', shoesColor: '#111' },
+        { id: 'human_wizard', animal: 'human', name: 'Wizard', cost: 10000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#4B0082', shortsColor: '#4B0082', legType: 'pants', headAccessory: 'wizard_hat', hatColor: '#4B0082', skinTone: '#f0d5be', backProp: 'staff', hairStyle: 'long_flow', hairColor: '#FFF', shoesColor: '#333' },
+        { id: 'human_spy', animal: 'human', name: 'Secret Agent', cost: 10000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', headAccessory: 'fedora', hatColor: '#111', skinTone: '#e0ac69', hairStyle: 'slicked_back', hairColor: '#000', shoesColor: '#000', pattern: 'suit' },
+
+        // NEW ANIMALS
+        { id: 'panda_classic', animal: 'panda', name: 'Panda', cost: 3000, furColor: '#FFF', hasBlackEars: true, bodyShape: 'round', widthScale: 1.3 },
+        { id: 'koala_classic', animal: 'koala', name: 'Koala', cost: 3000, furColor: '#A9A9A9', bodyShape: 'oval', heightScale: 0.7, widthScale: 1.1, earColor: '#FFF' },
+        { id: 'rhino_classic', animal: 'rhino', name: 'Rhino', cost: 3000, furColor: '#808080', bodyShape: 'heavy', heightScale: 1.2, widthScale: 1.4 }
+
     ];
 
     var CLOTHING_DB = [
@@ -705,7 +718,10 @@
 
         // NEW HOODIES
         { id: 'hoodie_offwhite', name: 'Streetwear', cost: 8000, type: 'hoodie', color: '#FFF', pattern: 'stripes_sleeve_diag' },
-        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' }
+        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' },
+        { id: 'tuxedo_black', name: 'Tuxedo Noir', cost: 15000, type: 'shirt', color: '#000', pattern: 'suit' },
+        { id: 'armor_knight', name: 'Armure Chevalier', cost: 25000, type: 'jacket', color: '#C0C0C0', pattern: 'armor' },
+        { id: 'cape_hero', name: 'Cape Héros', cost: 12000, type: 'jersey', color: '#0000FF', trimColor: '#FF0000' }
     ];
 
     var HATS_DB = [
@@ -753,7 +769,9 @@
         { id: 'hat_headphones', name: 'Écouteurs', cost: 2000, type: 'headphones', color: '#333' },
         { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
         { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
-        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' },
+        { id: 'hat_dunce', name: 'Dunce Cap', cost: 1000, type: 'dunce', color: '#FFF' },
+        { id: 'hat_samurai', name: 'Samouraï', cost: 6000, type: 'samurai_helmet', color: '#8B0000' }
     ];
 
     var PANTS_DB = [
@@ -907,10 +925,13 @@
         { id: 'shoe_timbs', name: 'Timbs', cost: 2500, type: 'boots_work', color: '#D2B48C', detailColor: '#5D4037' },
         { id: 'shoe_jordan4_cement', name: 'Retro 4 Cement', cost: 5000, type: 'retro_bulky', color: '#FFF', detailColor: '#000', color3: '#808080' },
         { id: 'shoe_jordan4_bred', name: 'Retro 4 Bred', cost: 5000, type: 'retro_bulky', color: '#111', detailColor: '#CC0000', color3: '#808080' },
-        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true }
+        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true },
+        { id: 'shoe_clown', name: 'Souliers de Clown', cost: 1500, type: 'clown', color: '#FF0000', detailColor: '#FFFF00' },
+        { id: 'shoe_rollerblades', name: 'Patins à Roues', cost: 3000, type: 'rollerblades', color: '#111', detailColor: '#00FFFF' },
+        { id: 'shoe_flipflops', name: 'Gougounes', cost: 500, type: 'flipflops', color: '#8B4513' }
     ];
 
-    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];
+    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'panda', 'koala', 'rhino'];
 
     var SKIN_TONES = [
         '#f0d5be', // Light
@@ -1093,7 +1114,10 @@
         { id: 'ball_rainbow', name: 'Arc-en-ciel', cost: 5000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'rainbow' },
         { id: 'ball_camo', name: 'Camouflage', cost: 2500, type: 'camo', color1: '#556B2F', color2: '#8B4513' },
         { id: 'ball_beach', name: 'Plage', cost: 1500, type: 'beach', color1: '#FFFF00', color2: '#0000FF' },
-        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' }
+        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' },
+        { id: 'ball_disco', name: 'Disco', cost: 4500, type: 'disco', color1: '#C0C0C0', color2: '#FFF', shininess: 1.0 },
+        { id: 'ball_balloon', name: 'Ballon', cost: 1000, type: 'balloon', color1: '#FF69B4', color2: '#FF1493' },
+        { id: 'ball_fireball', name: 'Boule de Feu', cost: 15000, type: 'fireball', color1: '#FF4500', color2: '#FF0000' }
     ];
 
     var SHOOTING_STYLES = [
@@ -1141,7 +1165,10 @@
         { id: 'dab', name: 'Le Dab', cost: 0, desc: 'Style swag.', modifiers: { speed: 1.0 } },
         { id: 'helicopter', name: 'Hélico', cost: 0, desc: 'Rotation rapide.', modifiers: { speed: 1.2 } },
         { id: 'prayer', name: 'Prière', cost: 0, desc: 'Espoir divin.', modifiers: { speed: 0.8, jumpVelocity: 4.5 } },
-        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } }
+        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
+        { id: 'hook_shot', name: 'Hook Shot', cost: 0, desc: 'Lancer sur le côté.', modifiers: { jumpVelocity: 6.0, speed: 1.0, timingWindow: 0.9 } },
+        { id: 'underhand_toss', name: 'Underhand', cost: 0, desc: 'Toss doux vers le haut.', modifiers: { jumpVelocity: 0, speed: 0.8, timingWindow: 1.2 } },
+        { id: 'one_handed_push', name: 'Push', cost: 0, desc: 'Poussée à une main.', modifiers: { jumpVelocity: 5.0, speed: 1.1, timingWindow: 0.85 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -1354,6 +1381,21 @@
             ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Hands high V shape
             set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Charge
             release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Throw down
+        },
+        hook_shot: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.5, lfa: 1.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Right arm out side
+            release: { la: 0.0, ra: -3.0, lfa: 1.0, rfa: -3.1, w: 0.5, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 } // Flick wrist
+        },
+        underhand_toss: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 1.2, ra: 1.5, lfa: 2.2, rfa: 2.2, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 }, // Drop down
+            release: { la: -1.2, ra: -1.2, lfa: 0.5, rfa: 0.5, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Swoop up
+        },
+        one_handed_push: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.0, lfa: 0.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Bring to chest
+            release: { la: 0.0, ra: -1.5, lfa: 0.0, rfa: -0.5, w: 0, la_z: 0.5, ra_z: 1.5, lfa_z: 0.5, rfa_z: 1.5 } // Push straight forward
         }
     };
 
@@ -1419,5 +1461,28 @@
         { id: 'custom_3', name: 'Custom 4', cost: 0, isCustom: true },
         { id: 'custom_4', name: 'Custom 5', cost: 0, isCustom: true }
     ];
+
+    var DAILY_CHALLENGES_MAP = new Map(DAILY_CHALLENGES.map(c => [c.id, c]));
+    var WEEKLY_CHALLENGES_MAP = new Map(WEEKLY_CHALLENGES.map(c => [c.id, c]));
+    var CLOTHING_DB_MAP = new Map(CLOTHING_DB.map(c => [c.id, c]));
+    var HATS_DB_MAP = new Map(HATS_DB.map(c => [c.id, c]));
+    var SKINS_DB_MAP = new Map(SKINS_DB.map(s => [s.id, s]));
+    var PANTS_DB_MAP = new Map(PANTS_DB.map(p => [p.id, p]));
+    var SHOES_DB_MAP = new Map(SHOES_DB.map(s => [s.id, s]));
+    var BALLS_DB_MAP = new Map(BALLS_DB.map(b => [b.id, b]));
+    var CAT_SKINS_DB_MAP = new Map(CAT_SKINS_DB.map(c => [c.id, c]));
+    var CAT_ACCESSORIES_DB_MAP = new Map(CAT_ACCESSORIES_DB.map(a => [a.id, a]));
+    var SHOOTING_STYLES_MAP = new Map(SHOOTING_STYLES.map(s => [s.id, s]));
+    var ACHIEVEMENTS_MAP = new Map(ACHIEVEMENTS.map(a => [a.id, a]));
+
+    var HATS_INDEX_MAP = new Map(HATS_DB.map((h, i) => [h.id, i]));
+    var CLOTHING_INDEX_MAP = new Map(CLOTHING_DB.map((c, i) => [c.id, i]));
+    var PANTS_INDEX_MAP = new Map(PANTS_DB.map((p, i) => [p.id, i]));
+    var SHOES_INDEX_MAP = new Map(SHOES_DB.map((s, i) => [s.id, i]));
+    var HAIRSTYLES_INDEX_MAP = new Map(HAIRSTYLES.map((h, i) => [h.id, i]));
+    var BALLS_INDEX_MAP = new Map(BALLS_DB.map((b, i) => [b.id, i]));
+    var CAT_SKINS_INDEX_MAP = new Map(CAT_SKINS_DB.map((c, i) => [c.id, i]));
+    var CAT_ACCESSORIES_INDEX_MAP = new Map(CAT_ACCESSORIES_DB.map((a, i) => [a.id, i]));
+    var SHOOTING_STYLES_INDEX_MAP = new Map(SHOOTING_STYLES.map((s, i) => [s.id, i]));
 
 // --- END data.js ---

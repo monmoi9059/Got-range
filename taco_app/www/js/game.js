@@ -50,12 +50,19 @@
     function updateHighScoreDisplay() {
         const display = document.getElementById('hsNameDisplay');
         if(!display) return;
-        let html = '';
+        display.innerHTML = ''; // Clear existing
         for(let i=0; i<3; i++) {
-            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
-            else html += `${highScoreName[i]} `;
+            const span = document.createElement('span');
+            span.textContent = highScoreName[i];
+            if (i === highScoreCursor) {
+                span.style.color = '#FFD700';
+                span.style.textDecoration = 'underline';
+            }
+            display.appendChild(span);
+            if (i < 2) {
+                display.appendChild(document.createTextNode(' '));
+            }
         }
-        display.innerHTML = html.trim();
     }
 
     function handleHighScoreInput(action) {
@@ -187,7 +194,7 @@
     function unlockAchievement(id) {
         if (!playerData.unlockedAchievements.includes(id)) {
             playerData.unlockedAchievements.push(id);
-            const ach = ACHIEVEMENTS.find(a => a.id === id);
+            const ach = ACHIEVEMENTS_MAP.get(id);
             if(ach) {
                 playerData.tacos += ach.reward;
                 saveData();
@@ -244,7 +251,7 @@
             if (playerData.stats.luck >= 5) unlockAchievement('leprechaun');
             if (playerData.stats.moonwalk >= 5) unlockAchievement('moonwalker_pro');
             const animalsOwned = new Set();
-            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB.find(x => x.id === skinId); if(s) animalsOwned.add(s.animal); });
+            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB_MAP.get(skinId); if(s) animalsOwned.add(s.animal); });
             if(animalsOwned.size >= 3) unlockAchievement('zoo');
         }
         if (context === 'lucky') unlockAchievement('lucky');
@@ -273,7 +280,37 @@
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
+
+            const flexDiv = document.createElement('div');
+            flexDiv.style.display = 'flex';
+            flexDiv.style.alignItems = 'center';
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'ach-icon';
+            iconDiv.textContent = unlocked ? '🏆' : '🔒';
+            flexDiv.appendChild(iconDiv);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'ach-info';
+
+            const h4 = document.createElement('h4');
+            h4.textContent = ach.name;
+            infoDiv.appendChild(h4);
+
+            const descSpan = document.createElement('span');
+            descSpan.textContent = ach.desc;
+            infoDiv.appendChild(descSpan);
+
+            flexDiv.appendChild(infoDiv);
+            div.appendChild(flexDiv);
+
+            if (unlocked) {
+                const checkmark = document.createElement('div');
+                checkmark.style.color = '#00FF00';
+                checkmark.textContent = '✓';
+                div.appendChild(checkmark);
+            }
+
             list.appendChild(div);
         });
     }
@@ -435,6 +472,50 @@
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
 
+        // Swish Shockwave Effect
+        if (currentStreak >= 5) {
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                particles.push({
+                    x: HOOP_POS.x + Math.cos(angle) * 10,
+                    y: HOOP_POS.y + Math.sin(angle) * 10,
+                    z: 0,
+                    vx: Math.cos(angle) * 8,
+                    vy: Math.sin(angle) * 8,
+                    vz: 2,
+                    life: 30, maxLife: 30,
+                    scale: 1.5, alpha: 0.8,
+                    type: 'smoke',
+                    color: `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)`
+                });
+            }
+        }
+
+        // Perfect Swish Fireworks
+        // If ball was very accurate (vrx and vry implies accuracy in scatter logic,
+        // we can just check if it didn't hit the rim, or if the accuracy was perfect based on some state)
+        // Since we don't have direct access to 'timingError' here easily without saving it,
+        // we'll trigger a firework if the ball had 'isFire' flag or if currentStreak % 3 == 0.
+        // Actually, let's just make every 3rd shot or high streak create fireworks for fun!
+        if (currentStreak > 0 && currentStreak % 3 === 0) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: HOOP_POS.x,
+                    y: HOOP_POS.y,
+                    z: HOOP_POS.z,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: 5 + Math.random() * 10, // Explode upwards
+                    life: 40 + Math.random() * 20, maxLife: 60,
+                    scale: 1.0 + Math.random(), alpha: 1.0,
+                    type: 'smoke',
+                    color: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'][Math.floor(Math.random() * 5)]
+                });
+            }
+        }
+
         // Basket Cat Growth
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
@@ -476,13 +557,15 @@
         if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
 
         // Distance Checks (Classic/Calculated)
-        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const dist = Math.sqrt(pdx * pdx + pdy * pdy) / PIXELS_PER_FOOT;
         if (dist >= 100) checkDailyProgress('makes_long', 1);
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
         // Skin Checks
-        if (typeof SKINS_DB !== 'undefined') {
-            const currentSkinObj = SKINS_DB.find(s => s.id === playerData.currentSkin);
+        if (typeof SKINS_DB_MAP !== 'undefined') {
+            const currentSkinObj = SKINS_DB_MAP.get(playerData.currentSkin);
             if (currentSkinObj) {
                 if (currentSkinObj.animal === 'human') checkDailyProgress('makes_human', 1);
                 else checkDailyProgress('makes_animal', 1);
@@ -586,45 +669,62 @@
             return a + (b - a) * t;
         };
         const lerp = (a, b, t) => a + (b - a) * t;
+        const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
         if (state === 'SHOOTING') {
             // Target is Release
-            g_animTarget.la = anim.release.la;
-            g_animTarget.ra = anim.release.ra;
-            g_animTarget.lfa = anim.release.lfa;
-            g_animTarget.rfa = anim.release.rfa;
-            g_animTarget.w = anim.release.w;
+            // Add a small follow-through timing
+            let shootProgress = 1.0;
+            if (activeBalls.length > 0) {
+                const b = activeBalls[activeBalls.length-1];
+                if (b.active && b.vy !== 0) {
+                    const timeSinceShot = Date.now() - (b.shotTime || Date.now());
+                    shootProgress = Math.min(1.0, timeSinceShot / 300.0); // 300ms follow through snap
+                }
+            }
+
+            // Apply ease function to snap to release
+            const easeP = easeInOutCubic(shootProgress);
+
+            g_animTarget.la = lerpAngle(anim.set.la, anim.release.la, easeP);
+            g_animTarget.ra = lerpAngle(anim.set.ra, anim.release.ra, easeP);
+            g_animTarget.lfa = lerpAngle(anim.set.lfa, anim.release.lfa, easeP);
+            g_animTarget.rfa = lerpAngle(anim.set.rfa, anim.release.rfa, easeP);
+            g_animTarget.w = lerp(anim.set.w, anim.release.w, easeP);
             // Z-Angles (Default to 0 if missing)
-            g_animTarget.la_z = anim.release.la_z || 0;
-            g_animTarget.ra_z = anim.release.ra_z || 0;
-            g_animTarget.lfa_z = anim.release.lfa_z || 0;
-            g_animTarget.rfa_z = anim.release.rfa_z || 0;
-            g_animTarget.guide_u = anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7;
-            g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
+            g_animTarget.la_z = lerp(anim.set.la_z||0, anim.release.la_z || 0, easeP);
+            g_animTarget.ra_z = lerp(anim.set.ra_z||0, anim.release.ra_z || 0, easeP);
+            g_animTarget.lfa_z = lerp(anim.set.lfa_z||0, anim.release.lfa_z || 0, easeP);
+            g_animTarget.rfa_z = lerp(anim.set.rfa_z||0, anim.release.rfa_z || 0, easeP);
+            g_animTarget.guide_u = lerp(anim.set.guide_u||-1.7, anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7, easeP);
+            g_animTarget.guide_u_z = lerp(anim.set.guide_u_z||1.3, anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3, easeP);
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
-            let lift = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
-            lift = Math.min(1.0, lift);
+            let liftRaw = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
+            let lift = Math.min(1.0, liftRaw);
+
+            // Ease the lift to make the gather feel weighty
+            const easeLift = easeInOutCubic(lift);
 
             const startPose = anim.ready || idle;
-            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, lift);
-            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            g_animTarget.w = lerp(startPose.w, anim.set.w, lift);
+            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, easeLift);
+            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, easeLift);
+            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, easeLift);
+            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, easeLift);
+            g_animTarget.w = lerp(startPose.w, anim.set.w, easeLift);
 
             // Z-Angles Interpolation
-            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, lift);
-            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, lift);
-            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, lift);
-            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, lift);
+            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, easeLift);
+            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, easeLift);
+            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, easeLift);
+            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, easeLift);
 
             // Guide Hand Interpolation
             // Default Start: 0.5 (Side), Default Set: -1.7 (Up/Forward)
             const startGuideU = startPose.guide_u !== undefined ? startPose.guide_u : 0.5;
             const setGuideU = anim.set.guide_u !== undefined ? anim.set.guide_u : -1.7;
-            g_animTarget.guide_u = lerp(startGuideU, setGuideU, lift);
+            g_animTarget.guide_u = lerp(startGuideU, setGuideU, easeLift);
 
             const startGuideUZ = startPose.guide_u_z !== undefined ? startPose.guide_u_z : 0.2;
             const setGuideUZ = anim.set.guide_u_z !== undefined ? anim.set.guide_u_z : 1.3;
@@ -687,16 +787,25 @@
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    let g_catDecorCache = null;
     function updateCatLogic(dt) {
         const cat = g_catState;
         const speed = 4.0; // Movement speed
 
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
-            const catD = decors.find(d => d.zoneType === 'cat_hoop');
-            if (catD) {
-                catD.x = cat.x;
-                catD.y = cat.y;
+            if (!g_catDecorCache || g_catDecorCache.zoneType !== 'cat_hoop') {
+                g_catDecorCache = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        g_catDecorCache = decors[i];
+                        break;
+                    }
+                }
+            }
+            if (g_catDecorCache) {
+                g_catDecorCache.x = cat.x;
+                g_catDecorCache.y = cat.y;
             }
         }
 
@@ -709,16 +818,18 @@
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
-                let minDist = Infinity;
+                let minDistSq = Infinity;
                 let targetIdx = -1;
                 for(let i=0; i<tacosOnGround.length; i++) {
                     const t = tacosOnGround[i];
                     if (t.beingEaten) continue; // Skip claimed tacos
                     if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
-                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
-                    if (d < minDist) {
-                        minDist = d;
+                    const dx = t.x - cat.x;
+                    const dy = t.y - cat.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq < minDistSq) {
+                        minDistSq = dSq;
                         targetIdx = i;
                     }
                 }
@@ -731,16 +842,16 @@
 
                     const dx = cat.targetX - cat.x;
                     const dy = cat.targetY - cat.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const distSq = dx*dx + dy*dy;
 
-                    if (dist > 60) {
+                    if (distSq > 3600) { // dist > 60 -> distSq > 3600
                         cat.state = 'POUNCING';
                         // Deterministic Animation Setup
                         cat.startX = cat.x;
                         cat.startY = cat.y;
                         cat.pounceTimer = 0;
                         const pounceSpeed = 12.0;
-                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                        cat.pounceDuration = Math.max(30, Math.sqrt(distSq) / pounceSpeed);
                     } else {
                         cat.state = 'MOVING';
                     }
@@ -797,9 +908,9 @@
             // Move towards target
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
@@ -808,6 +919,7 @@
                 cat.eatTimer = eatTime;
                 g_catEatTimer = eatTime; // Sync render animation
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2; // Walk cycle
@@ -846,13 +958,14 @@
         else if (cat.state === 'RETURNING') {
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'IDLE';
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2;
@@ -1053,13 +1166,32 @@
             }
         }
 
+        // Optimization: Calculate player's distance to hoop once per frame
+        let distToHoopSq = 0;
+        let isWayPastHoopThresholdSq = 0;
+        let cachedFireHue = undefined;
+        let showHighGraphics = (playerData.graphics === 'HIGH');
+        let streakThresholdMet = (currentStreak >= 10);
+        if (streakThresholdMet) {
+            cachedFireHue = getStreakFireHue(currentStreak);
+        }
+
+        if (activeBalls.length > 0) {
+            const pDX = HOOP_POS.x - player3D.x;
+            const pDY = HOOP_POS.y - player3D.y;
+            distToHoopSq = pDX * pDX + pDY * pDY;
+            const distToHoop = Math.sqrt(distToHoopSq);
+            const limit = distToHoop + 5000;
+            isWayPastHoopThresholdSq = limit * limit;
+        }
+
         // Process Active Balls
         for (let i = activeBalls.length - 1; i >= 0; i--) {
             let b = activeBalls[i];
             if (b.active) {
                 if (b.isFire) {
                      // Update Trail
-                     if (playerData.graphics === 'HIGH') {
+                     if (showHighGraphics) {
                          if (!b.trail) b.trail = [];
                          b.trail.push({ x: b.x, y: b.y, z: b.z });
                          if (b.trail.length > 20) b.trail.shift();
@@ -1068,10 +1200,6 @@
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
-                         let customHue = undefined;
-                         if (currentStreak >= 10) {
-                             customHue = getStreakFireHue(currentStreak);
-                         }
                          particles.push({
                              x: b.x + (Math.random()-0.5)*15,
                              y: b.y + (Math.random()-0.5)*15,
@@ -1082,7 +1210,7 @@
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
                              isFireParticle: true,
-                             customHue: customHue
+                             customHue: cachedFireHue
                          });
                     }
                 } else {
@@ -1109,8 +1237,10 @@
                     const crossX = prevX + (b.x - prevX) * t;
                     const crossY = prevY + (b.y - prevY) * t;
 
-                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
-                    if (distToHoopCenter < 25) { handleScore(b); continue; }
+                    const hoopDX = crossX - HOOP_POS.x;
+                    const hoopDY = crossY - HOOP_POS.y;
+                    const distToHoopCenterSq = hoopDX * hoopDX + hoopDY * hoopDY;
+                    if (distToHoopCenterSq < 625) { handleScore(b); continue; } // 25 * 25
 
                     if (b.isWindow) {
                         AudioSystem.playWindowBreak();
@@ -1118,10 +1248,13 @@
                         AudioSystem.playBrick();
                     }
                 }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+                const bDX = b.x - player3D.x;
+                const bDY = b.y - player3D.y;
+                const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
+                const isWayPastHoop = currentDistSq > isWayPastHoopThresholdSq;
+
+                if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell
@@ -1471,8 +1604,9 @@
         document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
-        // Reset to first tab
-        window.switchShopTab('upgrades');
+        // Reset to first tab only if not already open (preserves state)
+        if (!currentShopTab) window.switchShopTab('upgrades');
+        else window.switchShopTab(currentShopTab);
 
         updateDifficulty(); updateShopUI();
         updateMobileControlsUI();
@@ -1863,11 +1997,11 @@
         playerData.customHairstyle = 'default';
 
         // Reset indices for UI to point to defaults
-        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
-        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
-        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
-        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
-        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+        if (typeof HATS_INDEX_MAP !== 'undefined') viewingHatIndex = HATS_INDEX_MAP.get('hat_none') ?? 0;
+        if (typeof CLOTHING_INDEX_MAP !== 'undefined') viewingClothingIndex = CLOTHING_INDEX_MAP.get('clothes_none') ?? 0;
+        if (typeof PANTS_INDEX_MAP !== 'undefined') viewingPantsIndex = PANTS_INDEX_MAP.get('pants_none') ?? 0;
+        if (typeof SHOES_INDEX_MAP !== 'undefined') viewingShoeIndex = SHOES_INDEX_MAP.get('shoe_none') ?? 0;
+        if (typeof HAIRSTYLES_INDEX_MAP !== 'undefined') viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get('default') ?? 0;
 
         // Safety fallback if index not found
         if (viewingHatIndex < 0) viewingHatIndex = 0;
@@ -2104,7 +2238,7 @@
     function syncShopToEquipped() {
         // Animal
         const skinId = playerData.currentSkin;
-        const skinObj = SKINS_DB.find(s => s.id === skinId);
+        const skinObj = SKINS_DB_MAP.get(skinId);
         if (skinObj) {
             const animal = skinObj.animal;
             viewingAnimalIndex = ANIMALS.indexOf(animal);
@@ -2125,56 +2259,47 @@
 
         // Hair
         if(playerData.customHairstyle) {
-            viewingHairstyleIndex = HAIRSTYLES.findIndex(h => h.id === playerData.customHairstyle);
-            if(viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+            viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get(playerData.customHairstyle) ?? 0;
         }
 
         // Clothes
         if(playerData.currentClothing) {
-            viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
-            if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+            viewingClothingIndex = CLOTHING_INDEX_MAP.get(playerData.currentClothing) ?? 0;
         }
 
         // Pants
         if(playerData.currentPants) {
-            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
-            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
+            viewingPantsIndex = PANTS_INDEX_MAP.get(playerData.currentPants) ?? 0;
         }
 
         // Hat
         if(playerData.currentHat) {
-            viewingHatIndex = HATS_DB.findIndex(h => h.id === playerData.currentHat);
-            if(viewingHatIndex < 0) viewingHatIndex = 0;
+            viewingHatIndex = HATS_INDEX_MAP.get(playerData.currentHat) ?? 0;
         }
 
         // Shoe
         if(playerData.currentShoes) {
-            viewingShoeIndex = SHOES_DB.findIndex(s => s.id === playerData.currentShoes);
-            if(viewingShoeIndex < 0) viewingShoeIndex = 0;
+            viewingShoeIndex = SHOES_INDEX_MAP.get(playerData.currentShoes) ?? 0;
         }
 
         // Ball
         if(playerData.currentBall) {
-            viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
-            if(viewingBallIndex < 0) viewingBallIndex = 0;
+            viewingBallIndex = BALLS_INDEX_MAP.get(playerData.currentBall) ?? 0;
         }
 
         // Cat
         if(playerData.currentCatSkin) {
-            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
-            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
+            viewingCatSkinIndex = CAT_SKINS_INDEX_MAP.get(playerData.currentCatSkin) ?? 0;
         }
 
         // Cat Accessory
         if(playerData.currentCatAccessory) {
-            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
-            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_INDEX_MAP.get(playerData.currentCatAccessory) ?? 0;
         }
 
         // Style
         if(playerData.currentStyle) {
-            viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
-            if(viewingStyleIndex < 0) viewingStyleIndex = 0;
+            viewingStyleIndex = SHOOTING_STYLES_INDEX_MAP.get(playerData.currentStyle) ?? 0;
         }
     }
 
@@ -2416,29 +2541,48 @@
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        let html = '';
+        container.innerHTML = '';
 
         // Down Arrow ([-]) - Visible if active level > 0
         if (active > 0) {
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', -1)" style="padding: 8px 12px; margin-right:5px;">⬇️</button>`;
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn';
+            downBtn.onclick = () => changeStatLevel(statName, -1);
+            downBtn.style.padding = '8px 12px';
+            downBtn.style.marginRight = '5px';
+            downBtn.textContent = '⬇️';
+            container.appendChild(downBtn);
         }
 
         // Up Arrow ([+]) or Buy Button
         if (active < purchased) {
             // Navigate up through owned levels
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', 1)" style="padding: 8px 12px;">⬆️</button>`;
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn';
+            upBtn.onclick = () => changeStatLevel(statName, 1);
+            upBtn.style.padding = '8px 12px';
+            upBtn.textContent = '⬆️';
+            container.appendChild(upBtn);
         } else {
             // Buy next level
             if (statName === 'luck' && purchased >= 10) {
-                html += `<button class="btn" disabled>MAX</button>`;
+                const maxBtn = document.createElement('button');
+                maxBtn.className = 'btn';
+                maxBtn.disabled = true;
+                maxBtn.textContent = 'MAX';
+                container.appendChild(maxBtn);
             } else {
                 const cost = getUpgradeCost(statName);
-                const disabled = playerData.tacos < cost ? 'disabled' : '';
-                html += `<button class="btn" ${disabled} onclick="buyUpgrade('${statName}')">Acheter (${cost})</button>`;
+                const disabled = playerData.tacos < cost;
+
+                const buyBtn = document.createElement('button');
+                buyBtn.className = 'btn';
+                if (disabled) buyBtn.disabled = true;
+                buyBtn.onclick = () => buyUpgrade(statName);
+                buyBtn.textContent = `Acheter (${cost})`;
+                container.appendChild(buyBtn);
             }
         }
-
-        container.innerHTML = html;
 
         // Update Label Level
         const lblId = 'lvl' + statName.charAt(0).toUpperCase() + statName.slice(1);
@@ -2535,7 +2679,7 @@
             btnVar.style.fontSize = '0.9em';
             btnVar.style.background = '#444';
             // Insert after equip button
-            btn.parentNode.insertBefore(btnVar, btn.nextSibling);
+            if(btn.parentNode) btn.parentNode.insertBefore(btnVar, btn.nextSibling);
         }
 
         // Repurpose button for cycling skin variants
@@ -2561,7 +2705,7 @@
         // Hairstyle UI
         if (typeof HAIRSTYLES !== 'undefined') {
             const hair = HAIRSTYLES[viewingHairstyleIndex];
-            document.getElementById('hairName').innerText = hair.name;
+            if (document.getElementById('hairName')) document.getElementById('hairName').innerText = hair.name;
             const btnHair = document.getElementById('btnEquipHair');
             const statusHair = document.getElementById('hairStatus');
 

@@ -1455,6 +1455,8 @@ for(var k=0; k<12; k++) {
         { limit: 4000, name: "BASE LUNAIRE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
         { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
         { limit: 8000, name: "LE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
+        { limit: 12000, name: "CITÉ ENGLOUTIE", type: 'water', ground1: '#000080', ground2: '#008B8B', sky1: '#0000CD', sky2: '#00008B' },
+        { limit: 18000, name: "VOLCAN EN ÉRUPTION", type: 'mountain', ground1: '#800000', ground2: '#B22222', sky1: '#FF4500', sky2: '#8B0000' },
         { limit: 9999999, name: "DIMENSION TACO", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
     ];
 
@@ -1520,6 +1522,7 @@ for(var k=0; k<12; k++) {
         { id: 'rat_miner', animal: 'rat', name: 'Mineur', cost: 3000, jerseyColor: '#555', shortsColor: '#333', headAccessory: 'helmet', hatColor: '#FFA500' },
         { id: 'rat_rapper', animal: 'rat', name: 'Rappeur', cost: 3500, jerseyColor: '#FFF', shortsColor: '#000', headAccessory: 'beanie', hatColor: '#000', backAccessory: 'backpack' },
         { id: 'rat_detective', animal: 'rat', name: 'Détective', cost: 4000, jerseyColor: '#D2B48C', shortsColor: '#8B4513', legType: 'pants', headAccessory: 'hat', hatColor: '#8B4513' },
+        { id: 'rat_raccoon', animal: 'rat', name: 'Raton Laveur', cost: 4500, furColor: '#808080', pattern: 'tiger_stripes', headAccessory: 'beanie', hatColor: '#000' },
 
         // CATS
         { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250, bodyShape: 'oval' },
@@ -1774,6 +1777,16 @@ for(var k=0; k<12; k++) {
         { id: 'human_peach', animal: 'human', name: 'Princesse Rose', cost: 15000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#FFC0CB', shortsColor: '#FF69B4', legType: 'tights', headAccessory: 'crown', hatColor: '#FFD700', skinTone: '#ffe0bd', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#FF1493' },
         { id: 'human_link', animal: 'human', name: 'Héros du Temps', cost: 15000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#008000', shortsColor: '#F5F5DC', legType: 'tights', headAccessory: 'hat', hatColor: '#008000', skinTone: '#ffe0bd', backProp: 'sword', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#8B4513' },
 
+        // NEW HUMANS (POP CULTURE)
+        { id: 'human_action_hero', animal: 'human', name: 'Action Hero', cost: 10000, heightScale: 1.1, widthScale: 1.2, jerseyColor: '#556B2F', shortsColor: '#556B2F', legType: 'pants', headAccessory: 'bandana_blue', hatColor: '#FF0000', skinTone: '#dcb98a', hairStyle: 'buzz_cut', hairColor: '#000', shoesColor: '#111' },
+        { id: 'human_wizard', animal: 'human', name: 'Wizard', cost: 10000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#4B0082', shortsColor: '#4B0082', legType: 'pants', headAccessory: 'wizard_hat', hatColor: '#4B0082', skinTone: '#f0d5be', backProp: 'staff', hairStyle: 'long_flow', hairColor: '#FFF', shoesColor: '#333' },
+        { id: 'human_spy', animal: 'human', name: 'Secret Agent', cost: 10000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', headAccessory: 'fedora', hatColor: '#111', skinTone: '#e0ac69', hairStyle: 'slicked_back', hairColor: '#000', shoesColor: '#000', pattern: 'suit' },
+
+        // NEW ANIMALS
+        { id: 'panda_classic', animal: 'panda', name: 'Panda', cost: 3000, furColor: '#FFF', hasBlackEars: true, bodyShape: 'round', widthScale: 1.3 },
+        { id: 'koala_classic', animal: 'koala', name: 'Koala', cost: 3000, furColor: '#A9A9A9', bodyShape: 'oval', heightScale: 0.7, widthScale: 1.1, earColor: '#FFF' },
+        { id: 'rhino_classic', animal: 'rhino', name: 'Rhino', cost: 3000, furColor: '#808080', bodyShape: 'heavy', heightScale: 1.2, widthScale: 1.4 }
+
     ];
 
     var CLOTHING_DB = [
@@ -1959,7 +1972,10 @@ for(var k=0; k<12; k++) {
 
         // NEW HOODIES
         { id: 'hoodie_offwhite', name: 'Streetwear', cost: 8000, type: 'hoodie', color: '#FFF', pattern: 'stripes_sleeve_diag' },
-        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' }
+        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' },
+        { id: 'tuxedo_black', name: 'Tuxedo Noir', cost: 15000, type: 'shirt', color: '#000', pattern: 'suit' },
+        { id: 'armor_knight', name: 'Armure Chevalier', cost: 25000, type: 'jacket', color: '#C0C0C0', pattern: 'armor' },
+        { id: 'cape_hero', name: 'Cape Héros', cost: 12000, type: 'jersey', color: '#0000FF', trimColor: '#FF0000' }
     ];
 
     var HATS_DB = [
@@ -2007,7 +2023,9 @@ for(var k=0; k<12; k++) {
         { id: 'hat_headphones', name: 'Écouteurs', cost: 2000, type: 'headphones', color: '#333' },
         { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
         { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
-        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' },
+        { id: 'hat_dunce', name: 'Dunce Cap', cost: 1000, type: 'dunce', color: '#FFF' },
+        { id: 'hat_samurai', name: 'Samouraï', cost: 6000, type: 'samurai_helmet', color: '#8B0000' }
     ];
 
     var PANTS_DB = [
@@ -2161,10 +2179,13 @@ for(var k=0; k<12; k++) {
         { id: 'shoe_timbs', name: 'Timbs', cost: 2500, type: 'boots_work', color: '#D2B48C', detailColor: '#5D4037' },
         { id: 'shoe_jordan4_cement', name: 'Retro 4 Cement', cost: 5000, type: 'retro_bulky', color: '#FFF', detailColor: '#000', color3: '#808080' },
         { id: 'shoe_jordan4_bred', name: 'Retro 4 Bred', cost: 5000, type: 'retro_bulky', color: '#111', detailColor: '#CC0000', color3: '#808080' },
-        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true }
+        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true },
+        { id: 'shoe_clown', name: 'Souliers de Clown', cost: 1500, type: 'clown', color: '#FF0000', detailColor: '#FFFF00' },
+        { id: 'shoe_rollerblades', name: 'Patins à Roues', cost: 3000, type: 'rollerblades', color: '#111', detailColor: '#00FFFF' },
+        { id: 'shoe_flipflops', name: 'Gougounes', cost: 500, type: 'flipflops', color: '#8B4513' }
     ];
 
-    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];
+    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'panda', 'koala', 'rhino'];
 
     var SKIN_TONES = [
         '#f0d5be', // Light
@@ -2347,7 +2368,10 @@ for(var k=0; k<12; k++) {
         { id: 'ball_rainbow', name: 'Arc-en-ciel', cost: 5000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'rainbow' },
         { id: 'ball_camo', name: 'Camouflage', cost: 2500, type: 'camo', color1: '#556B2F', color2: '#8B4513' },
         { id: 'ball_beach', name: 'Plage', cost: 1500, type: 'beach', color1: '#FFFF00', color2: '#0000FF' },
-        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' }
+        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' },
+        { id: 'ball_disco', name: 'Disco', cost: 4500, type: 'disco', color1: '#C0C0C0', color2: '#FFF', shininess: 1.0 },
+        { id: 'ball_balloon', name: 'Ballon', cost: 1000, type: 'balloon', color1: '#FF69B4', color2: '#FF1493' },
+        { id: 'ball_fireball', name: 'Boule de Feu', cost: 15000, type: 'fireball', color1: '#FF4500', color2: '#FF0000' }
     ];
 
     var SHOOTING_STYLES = [
@@ -2395,7 +2419,10 @@ for(var k=0; k<12; k++) {
         { id: 'dab', name: 'Le Dab', cost: 0, desc: 'Style swag.', modifiers: { speed: 1.0 } },
         { id: 'helicopter', name: 'Hélico', cost: 0, desc: 'Rotation rapide.', modifiers: { speed: 1.2 } },
         { id: 'prayer', name: 'Prière', cost: 0, desc: 'Espoir divin.', modifiers: { speed: 0.8, jumpVelocity: 4.5 } },
-        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } }
+        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
+        { id: 'hook_shot', name: 'Hook Shot', cost: 0, desc: 'Lancer sur le côté.', modifiers: { jumpVelocity: 6.0, speed: 1.0, timingWindow: 0.9 } },
+        { id: 'underhand_toss', name: 'Underhand', cost: 0, desc: 'Toss doux vers le haut.', modifiers: { jumpVelocity: 0, speed: 0.8, timingWindow: 1.2 } },
+        { id: 'one_handed_push', name: 'Push', cost: 0, desc: 'Poussée à une main.', modifiers: { jumpVelocity: 5.0, speed: 1.1, timingWindow: 0.85 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -2608,6 +2635,21 @@ for(var k=0; k<12; k++) {
             ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Hands high V shape
             set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Charge
             release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Throw down
+        },
+        hook_shot: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.5, lfa: 1.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Right arm out side
+            release: { la: 0.0, ra: -3.0, lfa: 1.0, rfa: -3.1, w: 0.5, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 } // Flick wrist
+        },
+        underhand_toss: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 1.2, ra: 1.5, lfa: 2.2, rfa: 2.2, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 }, // Drop down
+            release: { la: -1.2, ra: -1.2, lfa: 0.5, rfa: 0.5, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Swoop up
+        },
+        one_handed_push: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.0, lfa: 0.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Bring to chest
+            release: { la: 0.0, ra: -1.5, lfa: 0.0, rfa: -0.5, w: 0, la_z: 0.5, ra_z: 1.5, lfa_z: 0.5, rfa_z: 1.5 } // Push straight forward
         }
     };
 
@@ -3719,6 +3761,10 @@ function drawHeadTemplate(ctx, cx, cy, r) {
     const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
     let placedHouses = [];
 
+    // OPTIMIZATION: Pre-calculate squared limits for zone lookup to avoid Math.sqrt in the loop
+    const zoneLimitsSq = COURT_ZONES.map(z => z.limit * z.limit);
+    const PIXELS_PER_FOOT_SQ = PIXELS_PER_FOOT * PIXELS_PER_FOOT;
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -3733,14 +3779,13 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const dx = dX - HOOP_POS.x;
         const dy = dY - HOOP_POS.y;
         const distSq = dx * dx + dy * dy;
-        const dDist = Math.sqrt(distSq);
 
-        // Convert Pixel Distance to Game Feet for Zone Lookup
-        const feetDist = dDist / PIXELS_PER_FOOT;
+        // Convert Pixel Distance to Game Feet for Zone Lookup (Squared for performance)
+        const feetDistSq = distSq / PIXELS_PER_FOOT_SQ;
 
         let decorZone = COURT_ZONES[COURT_ZONES.length-1];
         for (let j = 0; j < COURT_ZONES.length; j++) {
-            if (feetDist < COURT_ZONES[j].limit) {
+            if (feetDistSq < zoneLimitsSq[j]) {
                 decorZone = COURT_ZONES[j];
                 break;
             }
@@ -4921,12 +4966,13 @@ RenderEngine.Camera = {
         // HOOP_POS.y is 150. A larger Y means further away down the court.
         // If targetY is significantly larger than current camera Y, we are returning to player.
         if (targetY > this.smoothPos.y + 50) {
-            // Speed up the return trip significantly
-            lerpSpeed = 0.3;
+            // Instant snap to prevent framerate stutter from rapidly rendering intermediate background objects
+            this.smoothPos.x = targetX;
+            this.smoothPos.y = targetY;
+        } else {
+            this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+            this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
         }
-
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -5367,6 +5413,9 @@ var BallRenderer = {
                     }
                 }
             }
+            else if (type === 'balloon') {
+                 // Nothing special for 3D projection, drawn in 2D part
+            }
             else if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -5473,6 +5522,26 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        var size = 25 * proj.scale * 0.3;
+                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+                    }
+                }
+            }
             else if (type === 'baseball' || type === 'tennis') {
                 ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -5555,6 +5624,8 @@ var BallRenderer = {
             else if (type === 'donut') color = '#D2691E';
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
+            else if (type === 'disco') color = '#A9A9A9';
+            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -5822,6 +5893,37 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    transform(p);
+                    if (self._projResult.z > 0) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+                    }
+                }
+            }
+            else if (type === 'balloon') {
+                 // Tie knot at bottom
+                 transform({x:0, y:-1.0, z:0});
+                 if (self._projResult.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+                     // Highlight
+                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+                     transform({x:-0.5, y:0.5, z:0.7});
+                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+                 }
+            }
         },
 
         drawLighting: function(ctx, r, ball) {
@@ -5865,8 +5967,12 @@ var BallRenderer = {
         if (greenEnd === undefined) greenEnd = 1.0;
         ctx.lineCap = 'round';
         let color = '#FF4500';
-        if (progress >= greenStart && progress <= greenEnd) color = '#00FF00';
-        else if (progress > 0.6) color = '#FFFF00';
+        let glowColor = 'rgba(255, 69, 0, 0.5)';
+        if (progress >= greenStart && progress <= greenEnd) { color = '#00FF00'; glowColor = 'rgba(0, 255, 0, 0.8)'; }
+        else if (progress > 0.6) { color = '#FFFF00'; glowColor = 'rgba(255, 255, 0, 0.5)'; }
+
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = glowColor;
 
         if (shape === 'vertical') {
             const h = radius * 3;
@@ -6263,7 +6369,15 @@ var BallRenderer = {
             sorted.forEach(function(b) {
                 const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
-                const scale = 0.3 + b.v * 0.7;
+
+                // Base 2D perspective scale
+                let scale = 0.3 + b.v * 0.7;
+
+                // Multiply by camera zoom so they shrink when zoomed out
+                // Base zoom is typically around 698
+                const currentZoom = (g_camCache && g_camCache.cameraZoom) ? g_camCache.cameraZoom : 698;
+                scale *= currentZoom / 698;
+
                 let size = 30 * scale; // Base size unit
 
                 // Vertical Offset calculation
@@ -6430,15 +6544,25 @@ var BallRenderer = {
 
         // 1. Background Bar (Glossy Dark)
         const bgGrad = ctx.createLinearGradient(0, y, 0, canvas.height);
-        bgGrad.addColorStop(0, '#2a2a2a');
-        bgGrad.addColorStop(0.5, '#151515');
-        bgGrad.addColorStop(1, '#0a0a0a');
+        bgGrad.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
+        bgGrad.addColorStop(0.3, 'rgba(20, 20, 20, 0.95)');
+        bgGrad.addColorStop(1, 'rgba(5, 5, 5, 0.98)');
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, y, w, h);
 
-        // Top Border (Gold)
+        const highlightGrad = ctx.createLinearGradient(0, y, w, y);
+        highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        highlightGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
+        highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGrad;
+        ctx.fillRect(0, y, w, 2 * s);
+
+        // Top Border (Gold with glow)
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, w, 4 * s);
+        ctx.fillRect(0, y + 2*s, w, 3 * s);
+        ctx.shadowBlur = 0;
 
         // NBA Logo (Bottom Left Corner) - Scaled down
         const lX = 20 * s; const lY = canvas.height - 30 * s;
@@ -6889,20 +7013,21 @@ var BallRenderer = {
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
             if (applyShading) {
-                // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.3, c);
-                grad.addColorStop(1, '#000000'); // Shadow
-                // Blend with base color to avoid white/black takeover
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+                grad.addColorStop(0, '#FFFFFF'); // Hot highlight
+                grad.addColorStop(0.2, 'rgba(255,255,255,0.4)');
+                grad.addColorStop(0.6, c); // Base
+                grad.addColorStop(0.9, 'rgba(0,0,0,0.6)'); // Core shadow
+                grad.addColorStop(1, 'rgba(0,0,0,0.8)'); // Edge shadow
 
-                // Overlay gradient
-                const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.4)');
-                gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.5)');
-                ctx.fillStyle = gradOverlay; ctx.fill();
+                const bounceGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+                bounceGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                bounceGrad.addColorStop(0.7, 'rgba(0,0,0,0)');
+                bounceGrad.addColorStop(0.95, 'rgba(150,200,255,0.4)'); // Rim
+                bounceGrad.addColorStop(1, 'rgba(255,255,255,0.6)');
+
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = grad; ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = bounceGrad; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
             }
@@ -6910,7 +7035,6 @@ var BallRenderer = {
         }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
-            // Use precomputed lookup (faster than Math.cos/sin)
             const p = g_circlePoints[i];
             p.x = cx + g_circleCos[i]*r;
             p.y = cy + g_circleSin[i]*r;
@@ -6918,22 +7042,25 @@ var BallRenderer = {
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
         if (applyShading) {
-            // Radial Shading Overlay
-            const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.25)'); // Stronger Highlight
-            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.6)'); // Deeper Shadow edge
+            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0.4)');
+            grad.addColorStop(0.4, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.4)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.8)');
 
             ctx.save();
             ctx.beginPath();
-            // Re-trace fuzzy path to clip the shadow
             ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
             for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
             ctx.closePath();
             ctx.clip();
+            ctx.fillStyle = grad; ctx.fill();
 
-            ctx.fillStyle = grad;
-            ctx.fill();
+            const rim = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+            rim.addColorStop(0, 'rgba(0,0,0,0)');
+            rim.addColorStop(0.8, 'rgba(0,0,0,0)');
+            rim.addColorStop(1, 'rgba(150,200,255,0.5)');
+            ctx.fillStyle = rim; ctx.fill();
             ctx.restore();
         }
     };
@@ -9044,6 +9171,8 @@ var BallRenderer = {
         const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
 
         // --- Draw Functions ---
+        const isOnFire = currentStreak >= 5;
+
         const drawPole = () => {
             if(projPoleTop && projPoleBot) {
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
@@ -9067,6 +9196,16 @@ var BallRenderer = {
             for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
             ctx.closePath();
             ctx.stroke();
+
+            // Streak Fire Outline around Backboard
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 4 * projBB[0].scale;
+                ctx.stroke();
+            }
         };
 
         const drawRimAndNet = () => {
@@ -9095,6 +9234,13 @@ var BallRenderer = {
             first = true;
             projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
             ctx.closePath(); ctx.stroke();
+
+            // Glow Rim if on fire
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                ctx.lineWidth = 12 * s;
+                ctx.stroke();
+            }
         };
 
         // Render Order (Painter's Algorithm)
@@ -9262,7 +9408,38 @@ var BallRenderer = {
         // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
         const sideMult = isRight ? 1 : -1;
 
-        if (type === 'foam') {
+        if (type === 'clown') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = detailColor || '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'rollerblades') {
+            ctx.fillStyle = color;
+            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+            ctx.fillStyle = '#AAA';
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+            ctx.fillStyle = detailColor || '#00FFFF';
+            // Wheels
+            for (let i = -0.6; i <= 0.6; i += 0.4) {
+                ctx.beginPath();
+                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (type === 'flipflops') {
+            ctx.fillStyle = color; // Sole
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+            ctx.strokeStyle = detailColor || '#000'; // Strap
+            ctx.lineWidth = 2 * s;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.5, h * 0.3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(w * 0.5, h * 0.3);
+            ctx.stroke();
+        } else if (type === 'foam') {
             // Yeezy Foam Runner (Blobby, porous)
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -14032,6 +14209,37 @@ var BallRenderer = {
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
+        else if (accessoryType === 'dunce') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x, headY - 40*s);
+             ctx.fill();
+             ctx.fillStyle = '#000';
+             ctx.font = `bold ${8*s}px Arial`;
+             ctx.textAlign = 'center';
+             ctx.fillText('D', p.x, headY - 20*s);
+        }
+        else if (accessoryType === 'samurai_helmet') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             // Base helmet
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 2*s, Math.PI, 0); ctx.fill();
+             // Crest
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - headRadius - 10*s);
+             ctx.lineTo(p.x - 10*s, headY - headRadius);
+             ctx.lineTo(p.x + 10*s, headY - headRadius);
+             ctx.fill();
+             // Neck guard (shikoro)
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             for(let i=0; i<3; i++) {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY + 5*s + (i*4*s), headRadius + 5*s + (i*s), 3*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+             }
+        }
         else if (accessoryType === 'headband') {
              ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
              if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
@@ -14049,6 +14257,19 @@ var BallRenderer = {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
              ctx.fillStyle = '#FF0000';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'headphones') {
+             ctx.strokeStyle = accessoryColor || '#333'; ctx.lineWidth = 4*s;
+             // Headband
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius + 2*s, Math.PI, 0); ctx.stroke();
+             // Ear cups
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             // Inner glow/detail
+             ctx.fillStyle = '#00FFFF';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
         }
 
         // Head Details that act like accessories
@@ -14367,6 +14588,32 @@ var BallRenderer = {
         grad.addColorStop(1, zone.ground2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, y, width, h);
+
+        // Procedural Details Restored for HIGH graphics
+        if (playerData && playerData.graphics === 'HIGH') {
+            ctx.save();
+            ctx.globalCompositeOperation = 'overlay';
+            // Volumetric lighting shadow
+            const shadowGrad = ctx.createLinearGradient(0, y, 0, y + h);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+            shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(1, 'rgba(255,255,255,0.1)');
+            ctx.fillStyle = shadowGrad;
+            ctx.fillRect(0, y, width, h);
+            ctx.restore();
+
+            // Court Lines
+            if (zone.name === "COUR ARRIÈRE" || zone.type === 'arena') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(width/2 - 100, y);
+                ctx.lineTo(width/2 - 200, y+h);
+                ctx.moveTo(width/2 + 100, y);
+                ctx.lineTo(width/2 + 200, y+h);
+                ctx.stroke();
+            }
+        }
     }
 
     // Optimization: Cache mountain layers to offscreen canvas
@@ -14638,9 +14885,15 @@ var BallRenderer = {
             // If the object is far off the sides of the screen, cull it
             // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
             // that might have their center off-screen but still bleed into the viewport.
-            if (screenX < -vpW || screenX > vpW * 2) return;
+            // Make horizontal culling tighter to save render cycles
+            const cullingMargin = (d.zoneType === 'castle') ? vpW * 1.5 : vpW * 0.5;
+            if (screenX < -cullingMargin || screenX > vpW + cullingMargin) return;
 
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            // Vertical Culling
+            // If it's way below the screen (and it's not something huge like a mountain), cull it
+            if (screenY > vpH + 500) return;
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
             item.zoneType = d.zoneType;
@@ -14669,16 +14922,30 @@ var BallRenderer = {
             // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
             // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
             // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
-            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            // Dynamic back-culling based on camera height/zoom to prevent drawing thousands of offscreen objects
+            // When zoomed out, we see more. The distance is relative to game units.
+            // playerDistFromHoop is in pixels. 15000 pixels is ~3500 feet.
+            let backCullDist = 12000;
+            // Narrow the front cull dist as well
+            let frontCullDist = playerDistFromHoop + 3000;
+
+            // Adjust based on graphics setting
+            if (playerData.graphics === 'LOW') {
+                backCullDist = 6000;
+                frontCullDist = playerDistFromHoop + 2000;
+            }
+
             const startDist = Math.max(0, playerDistFromHoop - backCullDist);
 
+            // Use binary search to quickly find the start index in the sorted array
             let startIndex = 0;
-            if (startDist > 1000) {
+            if (startDist > 0) {
                  startIndex = binarySearchLowerBound(decors, startDist);
             }
+
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
-                if (d.dist > cullDist) break;
+                if (d.dist > frontCullDist) break; // Array is sorted by distance, so we can break early
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
                     processDecor(d, g_catState.x, g_catState.y, g_catState.z);
@@ -16427,6 +16694,50 @@ var BallRenderer = {
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
 
+        // Swish Shockwave Effect
+        if (currentStreak >= 5) {
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                particles.push({
+                    x: HOOP_POS.x + Math.cos(angle) * 10,
+                    y: HOOP_POS.y + Math.sin(angle) * 10,
+                    z: 0,
+                    vx: Math.cos(angle) * 8,
+                    vy: Math.sin(angle) * 8,
+                    vz: 2,
+                    life: 30, maxLife: 30,
+                    scale: 1.5, alpha: 0.8,
+                    type: 'smoke',
+                    color: `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)`
+                });
+            }
+        }
+
+        // Perfect Swish Fireworks
+        // If ball was very accurate (vrx and vry implies accuracy in scatter logic,
+        // we can just check if it didn't hit the rim, or if the accuracy was perfect based on some state)
+        // Since we don't have direct access to 'timingError' here easily without saving it,
+        // we'll trigger a firework if the ball had 'isFire' flag or if currentStreak % 3 == 0.
+        // Actually, let's just make every 3rd shot or high streak create fireworks for fun!
+        if (currentStreak > 0 && currentStreak % 3 === 0) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: HOOP_POS.x,
+                    y: HOOP_POS.y,
+                    z: HOOP_POS.z,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: 5 + Math.random() * 10, // Explode upwards
+                    life: 40 + Math.random() * 20, maxLife: 60,
+                    scale: 1.0 + Math.random(), alpha: 1.0,
+                    type: 'smoke',
+                    color: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'][Math.floor(Math.random() * 5)]
+                });
+            }
+        }
+
         // Basket Cat Growth
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
@@ -16580,45 +16891,62 @@ var BallRenderer = {
             return a + (b - a) * t;
         };
         const lerp = (a, b, t) => a + (b - a) * t;
+        const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
         if (state === 'SHOOTING') {
             // Target is Release
-            g_animTarget.la = anim.release.la;
-            g_animTarget.ra = anim.release.ra;
-            g_animTarget.lfa = anim.release.lfa;
-            g_animTarget.rfa = anim.release.rfa;
-            g_animTarget.w = anim.release.w;
+            // Add a small follow-through timing
+            let shootProgress = 1.0;
+            if (activeBalls.length > 0) {
+                const b = activeBalls[activeBalls.length-1];
+                if (b.active && b.vy !== 0) {
+                    const timeSinceShot = Date.now() - (b.shotTime || Date.now());
+                    shootProgress = Math.min(1.0, timeSinceShot / 300.0); // 300ms follow through snap
+                }
+            }
+
+            // Apply ease function to snap to release
+            const easeP = easeInOutCubic(shootProgress);
+
+            g_animTarget.la = lerpAngle(anim.set.la, anim.release.la, easeP);
+            g_animTarget.ra = lerpAngle(anim.set.ra, anim.release.ra, easeP);
+            g_animTarget.lfa = lerpAngle(anim.set.lfa, anim.release.lfa, easeP);
+            g_animTarget.rfa = lerpAngle(anim.set.rfa, anim.release.rfa, easeP);
+            g_animTarget.w = lerp(anim.set.w, anim.release.w, easeP);
             // Z-Angles (Default to 0 if missing)
-            g_animTarget.la_z = anim.release.la_z || 0;
-            g_animTarget.ra_z = anim.release.ra_z || 0;
-            g_animTarget.lfa_z = anim.release.lfa_z || 0;
-            g_animTarget.rfa_z = anim.release.rfa_z || 0;
-            g_animTarget.guide_u = anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7;
-            g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
+            g_animTarget.la_z = lerp(anim.set.la_z||0, anim.release.la_z || 0, easeP);
+            g_animTarget.ra_z = lerp(anim.set.ra_z||0, anim.release.ra_z || 0, easeP);
+            g_animTarget.lfa_z = lerp(anim.set.lfa_z||0, anim.release.lfa_z || 0, easeP);
+            g_animTarget.rfa_z = lerp(anim.set.rfa_z||0, anim.release.rfa_z || 0, easeP);
+            g_animTarget.guide_u = lerp(anim.set.guide_u||-1.7, anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7, easeP);
+            g_animTarget.guide_u_z = lerp(anim.set.guide_u_z||1.3, anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3, easeP);
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
-            let lift = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
-            lift = Math.min(1.0, lift);
+            let liftRaw = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
+            let lift = Math.min(1.0, liftRaw);
+
+            // Ease the lift to make the gather feel weighty
+            const easeLift = easeInOutCubic(lift);
 
             const startPose = anim.ready || idle;
-            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, lift);
-            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            g_animTarget.w = lerp(startPose.w, anim.set.w, lift);
+            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, easeLift);
+            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, easeLift);
+            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, easeLift);
+            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, easeLift);
+            g_animTarget.w = lerp(startPose.w, anim.set.w, easeLift);
 
             // Z-Angles Interpolation
-            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, lift);
-            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, lift);
-            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, lift);
-            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, lift);
+            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, easeLift);
+            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, easeLift);
+            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, easeLift);
+            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, easeLift);
 
             // Guide Hand Interpolation
             // Default Start: 0.5 (Side), Default Set: -1.7 (Up/Forward)
             const startGuideU = startPose.guide_u !== undefined ? startPose.guide_u : 0.5;
             const setGuideU = anim.set.guide_u !== undefined ? anim.set.guide_u : -1.7;
-            g_animTarget.guide_u = lerp(startGuideU, setGuideU, lift);
+            g_animTarget.guide_u = lerp(startGuideU, setGuideU, easeLift);
 
             const startGuideUZ = startPose.guide_u_z !== undefined ? startPose.guide_u_z : 0.2;
             const setGuideUZ = anim.set.guide_u_z !== undefined ? anim.set.guide_u_z : 1.3;
@@ -17060,13 +17388,32 @@ var BallRenderer = {
             }
         }
 
+        // Optimization: Calculate player's distance to hoop once per frame
+        let distToHoopSq = 0;
+        let isWayPastHoopThresholdSq = 0;
+        let cachedFireHue = undefined;
+        let showHighGraphics = (playerData.graphics === 'HIGH');
+        let streakThresholdMet = (currentStreak >= 10);
+        if (streakThresholdMet) {
+            cachedFireHue = getStreakFireHue(currentStreak);
+        }
+
+        if (activeBalls.length > 0) {
+            const pDX = HOOP_POS.x - player3D.x;
+            const pDY = HOOP_POS.y - player3D.y;
+            distToHoopSq = pDX * pDX + pDY * pDY;
+            const distToHoop = Math.sqrt(distToHoopSq);
+            const limit = distToHoop + 5000;
+            isWayPastHoopThresholdSq = limit * limit;
+        }
+
         // Process Active Balls
         for (let i = activeBalls.length - 1; i >= 0; i--) {
             let b = activeBalls[i];
             if (b.active) {
                 if (b.isFire) {
                      // Update Trail
-                     if (playerData.graphics === 'HIGH') {
+                     if (showHighGraphics) {
                          if (!b.trail) b.trail = [];
                          b.trail.push({ x: b.x, y: b.y, z: b.z });
                          if (b.trail.length > 20) b.trail.shift();
@@ -17075,10 +17422,6 @@ var BallRenderer = {
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
-                         let customHue = undefined;
-                         if (currentStreak >= 10) {
-                             customHue = getStreakFireHue(currentStreak);
-                         }
                          particles.push({
                              x: b.x + (Math.random()-0.5)*15,
                              y: b.y + (Math.random()-0.5)*15,
@@ -17089,7 +17432,7 @@ var BallRenderer = {
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
                              isFireParticle: true,
-                             customHue: customHue
+                             customHue: cachedFireHue
                          });
                     }
                 } else {
@@ -17127,20 +17470,11 @@ var BallRenderer = {
                         AudioSystem.playBrick();
                     }
                 }
-                const pDX = HOOP_POS.x - player3D.x;
-                const pDY = HOOP_POS.y - player3D.y;
-                // Optimization: Calculate player's distance to hoop once per frame to avoid recalculating per ball
-                // We do still need Math.sqrt to correctly calculate the expanded binomial (distToHoop + 5000)^2
-                // which is distToHoopSq + 10000 * distToHoop + 25000000
-                const distToHoopSq = pDX * pDX + pDY * pDY;
-                const distToHoop = Math.sqrt(distToHoopSq);
-
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
                 const currentDistSq = bDX * bDX + bDY * bDY;
 
-                // Exact math for (distToHoop + 5000)^2 without calling sqrt per ball frame loop
-                const isWayPastHoop = currentDistSq > (distToHoopSq + 10000 * distToHoop + 25000000);
+                const isWayPastHoop = currentDistSq > isWayPastHoopThresholdSq;
 
                 if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
