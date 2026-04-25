@@ -1044,8 +1044,12 @@ var BallRenderer = {
         if (greenEnd === undefined) greenEnd = 1.0;
         ctx.lineCap = 'round';
         let color = '#FF4500';
-        if (progress >= greenStart && progress <= greenEnd) color = '#00FF00';
-        else if (progress > 0.6) color = '#FFFF00';
+        let glowColor = 'rgba(255, 69, 0, 0.5)';
+        if (progress >= greenStart && progress <= greenEnd) { color = '#00FF00'; glowColor = 'rgba(0, 255, 0, 0.8)'; }
+        else if (progress > 0.6) { color = '#FFFF00'; glowColor = 'rgba(255, 255, 0, 0.5)'; }
+
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = glowColor;
 
         if (shape === 'vertical') {
             const h = radius * 3;
@@ -1617,15 +1621,25 @@ var BallRenderer = {
 
         // 1. Background Bar (Glossy Dark)
         const bgGrad = ctx.createLinearGradient(0, y, 0, canvas.height);
-        bgGrad.addColorStop(0, '#2a2a2a');
-        bgGrad.addColorStop(0.5, '#151515');
-        bgGrad.addColorStop(1, '#0a0a0a');
+        bgGrad.addColorStop(0, 'rgba(40, 40, 40, 0.95)');
+        bgGrad.addColorStop(0.3, 'rgba(20, 20, 20, 0.95)');
+        bgGrad.addColorStop(1, 'rgba(5, 5, 5, 0.98)');
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, y, w, h);
 
-        // Top Border (Gold)
+        const highlightGrad = ctx.createLinearGradient(0, y, w, y);
+        highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        highlightGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.15)');
+        highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGrad;
+        ctx.fillRect(0, y, w, 2 * s);
+
+        // Top Border (Gold with glow)
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(0, y, w, 4 * s);
+        ctx.fillRect(0, y + 2*s, w, 3 * s);
+        ctx.shadowBlur = 0;
 
         // NBA Logo (Bottom Left Corner) - Scaled down
         const lX = 20 * s; const lY = canvas.height - 30 * s;
@@ -2076,20 +2090,21 @@ var BallRenderer = {
     const drawFuzzyCircle = (cx, cy, r, c, seed = 50, scale = 1.0, furry = true, applyShading = true) => {
         if(!furry) {
             if (applyShading) {
-                // Apply simple 3D shading even for smooth circles
                 const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                grad.addColorStop(0, '#FFFFFF'); // Highlight
-                grad.addColorStop(0.3, c);
-                grad.addColorStop(1, '#000000'); // Shadow
-                // Blend with base color to avoid white/black takeover
-                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
+                grad.addColorStop(0, '#FFFFFF'); // Hot highlight
+                grad.addColorStop(0.2, 'rgba(255,255,255,0.4)');
+                grad.addColorStop(0.6, c); // Base
+                grad.addColorStop(0.9, 'rgba(0,0,0,0.6)'); // Core shadow
+                grad.addColorStop(1, 'rgba(0,0,0,0.8)'); // Edge shadow
 
-                // Overlay gradient
-                const gradOverlay = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-                gradOverlay.addColorStop(0, 'rgba(255,255,255,0.4)');
-                gradOverlay.addColorStop(0.5, 'rgba(0,0,0,0)');
-                gradOverlay.addColorStop(1, 'rgba(0,0,0,0.5)');
-                ctx.fillStyle = gradOverlay; ctx.fill();
+                const bounceGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+                bounceGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                bounceGrad.addColorStop(0.7, 'rgba(0,0,0,0)');
+                bounceGrad.addColorStop(0.95, 'rgba(150,200,255,0.4)'); // Rim
+                bounceGrad.addColorStop(1, 'rgba(255,255,255,0.6)');
+
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = grad; ctx.fill();
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = bounceGrad; ctx.fill();
             } else {
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
             }
@@ -2097,7 +2112,6 @@ var BallRenderer = {
         }
 
         for(let i=0; i<CIRCLE_SEGS; i++) {
-            // Use precomputed lookup (faster than Math.cos/sin)
             const p = g_circlePoints[i];
             p.x = cx + g_circleCos[i]*r;
             p.y = cy + g_circleSin[i]*r;
@@ -2105,22 +2119,25 @@ var BallRenderer = {
         drawFuzzyPath(g_circlePoints, c, scale, true, seed);
 
         if (applyShading) {
-            // Radial Shading Overlay
-            const grad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.2, cx, cy, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.25)'); // Stronger Highlight
-            grad.addColorStop(0.5, 'rgba(0,0,0,0)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.6)'); // Deeper Shadow edge
+            const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0.4)');
+            grad.addColorStop(0.4, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.8, 'rgba(0,0,0,0.4)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.8)');
 
             ctx.save();
             ctx.beginPath();
-            // Re-trace fuzzy path to clip the shadow
             ctx.moveTo(g_circlePoints[0].x, g_circlePoints[0].y);
             for(let i=1; i<CIRCLE_SEGS; i++) ctx.lineTo(g_circlePoints[i].x, g_circlePoints[i].y);
             ctx.closePath();
             ctx.clip();
+            ctx.fillStyle = grad; ctx.fill();
 
-            ctx.fillStyle = grad;
-            ctx.fill();
+            const rim = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+            rim.addColorStop(0, 'rgba(0,0,0,0)');
+            rim.addColorStop(0.8, 'rgba(0,0,0,0)');
+            rim.addColorStop(1, 'rgba(150,200,255,0.5)');
+            ctx.fillStyle = rim; ctx.fill();
             ctx.restore();
         }
     };
@@ -9648,6 +9665,32 @@ var BallRenderer = {
         grad.addColorStop(1, zone.ground2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, y, width, h);
+
+        // Procedural Details Restored for HIGH graphics
+        if (playerData && playerData.graphics === 'HIGH') {
+            ctx.save();
+            ctx.globalCompositeOperation = 'overlay';
+            // Volumetric lighting shadow
+            const shadowGrad = ctx.createLinearGradient(0, y, 0, y + h);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+            shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(1, 'rgba(255,255,255,0.1)');
+            ctx.fillStyle = shadowGrad;
+            ctx.fillRect(0, y, width, h);
+            ctx.restore();
+
+            // Court Lines
+            if (zone.name === "COUR ARRIÈRE" || zone.type === 'arena') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(width/2 - 100, y);
+                ctx.lineTo(width/2 - 200, y+h);
+                ctx.moveTo(width/2 + 100, y);
+                ctx.lineTo(width/2 + 200, y+h);
+                ctx.stroke();
+            }
+        }
     }
 
     // Optimization: Cache mountain layers to offscreen canvas

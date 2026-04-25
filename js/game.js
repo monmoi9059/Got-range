@@ -669,45 +669,62 @@
             return a + (b - a) * t;
         };
         const lerp = (a, b, t) => a + (b - a) * t;
+        const easeInOutCubic = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
         if (state === 'SHOOTING') {
             // Target is Release
-            g_animTarget.la = anim.release.la;
-            g_animTarget.ra = anim.release.ra;
-            g_animTarget.lfa = anim.release.lfa;
-            g_animTarget.rfa = anim.release.rfa;
-            g_animTarget.w = anim.release.w;
+            // Add a small follow-through timing
+            let shootProgress = 1.0;
+            if (activeBalls.length > 0) {
+                const b = activeBalls[activeBalls.length-1];
+                if (b.active && b.vy !== 0) {
+                    const timeSinceShot = Date.now() - (b.shotTime || Date.now());
+                    shootProgress = Math.min(1.0, timeSinceShot / 300.0); // 300ms follow through snap
+                }
+            }
+
+            // Apply ease function to snap to release
+            const easeP = easeInOutCubic(shootProgress);
+
+            g_animTarget.la = lerpAngle(anim.set.la, anim.release.la, easeP);
+            g_animTarget.ra = lerpAngle(anim.set.ra, anim.release.ra, easeP);
+            g_animTarget.lfa = lerpAngle(anim.set.lfa, anim.release.lfa, easeP);
+            g_animTarget.rfa = lerpAngle(anim.set.rfa, anim.release.rfa, easeP);
+            g_animTarget.w = lerp(anim.set.w, anim.release.w, easeP);
             // Z-Angles (Default to 0 if missing)
-            g_animTarget.la_z = anim.release.la_z || 0;
-            g_animTarget.ra_z = anim.release.ra_z || 0;
-            g_animTarget.lfa_z = anim.release.lfa_z || 0;
-            g_animTarget.rfa_z = anim.release.rfa_z || 0;
-            g_animTarget.guide_u = anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7;
-            g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
+            g_animTarget.la_z = lerp(anim.set.la_z||0, anim.release.la_z || 0, easeP);
+            g_animTarget.ra_z = lerp(anim.set.ra_z||0, anim.release.ra_z || 0, easeP);
+            g_animTarget.lfa_z = lerp(anim.set.lfa_z||0, anim.release.lfa_z || 0, easeP);
+            g_animTarget.rfa_z = lerp(anim.set.rfa_z||0, anim.release.rfa_z || 0, easeP);
+            g_animTarget.guide_u = lerp(anim.set.guide_u||-1.7, anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7, easeP);
+            g_animTarget.guide_u_z = lerp(anim.set.guide_u_z||1.3, anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3, easeP);
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
-            let lift = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
-            lift = Math.min(1.0, lift);
+            let liftRaw = Math.max(0, (maxVz - getCurrentVz()) / maxVz);
+            let lift = Math.min(1.0, liftRaw);
+
+            // Ease the lift to make the gather feel weighty
+            const easeLift = easeInOutCubic(lift);
 
             const startPose = anim.ready || idle;
-            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, lift);
-            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, lift);
-            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, lift);
-            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, lift);
-            g_animTarget.w = lerp(startPose.w, anim.set.w, lift);
+            g_animTarget.la = lerpAngle(startPose.la, anim.set.la, easeLift);
+            g_animTarget.ra = lerpAngle(startPose.ra, anim.set.ra, easeLift);
+            g_animTarget.lfa = lerpAngle(startPose.lfa, anim.set.lfa, easeLift);
+            g_animTarget.rfa = lerpAngle(startPose.rfa, anim.set.rfa, easeLift);
+            g_animTarget.w = lerp(startPose.w, anim.set.w, easeLift);
 
             // Z-Angles Interpolation
-            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, lift);
-            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, lift);
-            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, lift);
-            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, lift);
+            g_animTarget.la_z = lerp(startPose.la_z||0, anim.set.la_z||0, easeLift);
+            g_animTarget.ra_z = lerp(startPose.ra_z||0, anim.set.ra_z||0, easeLift);
+            g_animTarget.lfa_z = lerp(startPose.lfa_z||0, anim.set.lfa_z||0, easeLift);
+            g_animTarget.rfa_z = lerp(startPose.rfa_z||0, anim.set.rfa_z||0, easeLift);
 
             // Guide Hand Interpolation
             // Default Start: 0.5 (Side), Default Set: -1.7 (Up/Forward)
             const startGuideU = startPose.guide_u !== undefined ? startPose.guide_u : 0.5;
             const setGuideU = anim.set.guide_u !== undefined ? anim.set.guide_u : -1.7;
-            g_animTarget.guide_u = lerp(startGuideU, setGuideU, lift);
+            g_animTarget.guide_u = lerp(startGuideU, setGuideU, easeLift);
 
             const startGuideUZ = startPose.guide_u_z !== undefined ? startPose.guide_u_z : 0.2;
             const setGuideUZ = anim.set.guide_u_z !== undefined ? anim.set.guide_u_z : 1.3;
