@@ -5966,13 +5966,20 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        for (let i = 0; i < SCALE_OBJECTS.length; i++) {
-            if (dist < SCALE_OBJECTS[i].limit) {
-                _lastScaleObj = SCALE_OBJECTS[i];
-                return _lastScaleObj;
+        let l = 0, r = SCALE_OBJECTS.length - 1;
+        while (l <= r) {
+            let m = (l + r) >>> 1;
+            if (dist < SCALE_OBJECTS[m].limit) {
+                if (m === 0 || dist >= SCALE_OBJECTS[m - 1].limit) {
+                    _lastScaleObj = SCALE_OBJECTS[m];
+                    return _lastScaleObj;
+                }
+                r = m - 1;
+            } else {
+                l = m + 1;
             }
         }
-        _lastScaleObj = SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        _lastScaleObj = SCALE_OBJECTS[SCALE_OBJECTS.length - 1];
         return _lastScaleObj;
     }
 
@@ -5981,13 +5988,20 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        for (let i = 0; i < COURT_ZONES.length; i++) {
-            if (dist < COURT_ZONES[i].limit) {
-                _lastCourtObj = COURT_ZONES[i];
-                return _lastCourtObj;
+        let l = 0, r = COURT_ZONES.length - 1;
+        while (l <= r) {
+            let m = (l + r) >>> 1;
+            if (dist < COURT_ZONES[m].limit) {
+                if (m === 0 || dist >= COURT_ZONES[m - 1].limit) {
+                    _lastCourtObj = COURT_ZONES[m];
+                    return _lastCourtObj;
+                }
+                r = m - 1;
+            } else {
+                l = m + 1;
             }
         }
-        _lastCourtObj = COURT_ZONES[COURT_ZONES.length-1];
+        _lastCourtObj = COURT_ZONES[COURT_ZONES.length - 1];
         return _lastCourtObj;
     }
 
