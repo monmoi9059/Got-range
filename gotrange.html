@@ -14643,7 +14643,11 @@ var BallRenderer = {
         let targetX = pX;
         let targetY = pY;
 
-        if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
+        if (currentGameMode === 'FREEROAM') {
+            // Keep the camera fixed on the hoop
+            targetX = HOOP_POS.x;
+            targetY = HOOP_POS.y;
+        } else if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
                 const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
@@ -16145,7 +16149,7 @@ var BallRenderer = {
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        // KeyS removed to allow 'S' key for moving backward
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 

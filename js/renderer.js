@@ -9720,7 +9720,11 @@ var BallRenderer = {
         let targetX = pX;
         let targetY = pY;
 
-        if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
+        if (currentGameMode === 'FREEROAM') {
+            // Keep the camera fixed on the hoop
+            targetX = HOOP_POS.x;
+            targetY = HOOP_POS.y;
+        } else if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
                 const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
