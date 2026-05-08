@@ -203,11 +203,9 @@
             else openShop();
         } else if (state === 'IDLE' || state === 'DRIBBLING') {
             if (currentGameMode === 'FREEROAM') {
-                // Determine if close enough to hoop to layup/dunk
                 const dx = HOOP_POS.x - player3D.x;
                 const dy = HOOP_POS.y - player3D.y;
                 const distSq = dx*dx + dy*dy;
-                // Hoop is usually around X:433, Y:300. A distance of ~150-200 is near hoop
                 if (distSq < 200 * 200) {
                     performLayupOrDunk();
                     return;
@@ -262,7 +260,6 @@
 
     var enterPressed = false;
 
-    // Key state tracking for movement
     window.keysPressed = {};
 
     window.addEventListener('keydown', (e) => {
@@ -301,7 +298,6 @@
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        // KeyS removed to allow 'S' key for moving backward
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 

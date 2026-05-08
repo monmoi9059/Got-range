@@ -4984,15 +4984,9 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
+        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        if (currentGameMode === 'FREEROAM') {
-            // Fix camera rotation to always point forward in Freeroam to avoid dizzying rotation
-            // when moving past the hoop horizontally.
-            this.rotation = 0;
-        } else {
-            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
-            this.rotation = -angleToHoop - Math.PI / 2;
-        }
+        this.rotation = -angleToHoop - Math.PI / 2;
         this.sinRot = Math.sin(this.rotation);
         this.cosRot = Math.cos(this.rotation);
 
@@ -14643,11 +14637,7 @@ var BallRenderer = {
         let targetX = pX;
         let targetY = pY;
 
-        if (currentGameMode === 'FREEROAM') {
-            // Keep the camera fixed on the hoop
-            targetX = HOOP_POS.x;
-            targetY = HOOP_POS.y;
-        } else if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
+        if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
                 const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
@@ -14990,42 +14980,6 @@ var BallRenderer = {
         const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
-        }
-
-        if (state === 'DRIBBLING' || state === 'IDLE') {
-             // In FREEROAM, the ball should follow the player's hand.
-             // We can approximate this by drawing a ball at the player's side that moves up and down.
-             let ballZ = pZ;
-
-             if (state === 'DRIBBLING') {
-                 const bounceSpeed = 10;
-                 const time = Date.now() / 1000 * bounceSpeed;
-                 const bounce = Math.sin(time); // -1 to 1
-                 // Map bounce (-1 to 1) to ball Z height (0 to 60)
-                 ballZ = pZ + (bounce > 0 ? bounce * 60 : -bounce * 60);
-             } else {
-                 ballZ = pZ + 40; // Held at hip
-             }
-
-             // Offset to the right of the player
-             const bX = pX + 30;
-             const bY = pY;
-             const bZ = ballZ;
-
-             const ballShadowProj = project(bX, bY, 0);
-             if (ballShadowProj) {
-                 const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
-                 item.ballRef = { x: bX, y: bY, z: bZ };
-             }
-
-             const ballProj = project(bX, bY, bZ);
-             if (ballProj) {
-                 const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
-                 item.ballRef = {
-                     x: bX, y: bY, z: bZ,
-                     isFire: (typeof currentStreak !== 'undefined' && currentStreak >= 5)
-                 };
-             }
         }
 
         activeBalls.forEach(b => {
@@ -16049,18 +16003,7 @@ var BallRenderer = {
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE' || state === 'DRIBBLING') {
-            if (currentGameMode === 'FREEROAM') {
-                // Determine if close enough to hoop to layup/dunk
-                const dx = HOOP_POS.x - player3D.x;
-                const dy = HOOP_POS.y - player3D.y;
-                const distSq = dx*dx + dy*dy;
-                // Hoop is usually around X:433, Y:300. A distance of ~150-200 is near hoop
-                if (distSq < 200 * 200) {
-                    performLayupOrDunk();
-                    return;
-                }
-            }
+        } else if (state === 'IDLE') {
             startJump();
         }
     }
@@ -16110,11 +16053,7 @@ var BallRenderer = {
 
     var enterPressed = false;
 
-    // Key state tracking for movement
-    window.keysPressed = {};
-
     window.addEventListener('keydown', (e) => {
-        window.keysPressed[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -16149,7 +16088,7 @@ var BallRenderer = {
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        // KeyS removed to allow 'S' key for moving backward
+        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
@@ -16167,8 +16106,6 @@ var BallRenderer = {
     });
 
     window.addEventListener('keyup', (e) => {
-        window.keysPressed[e.code] = false;
-
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');
@@ -16559,7 +16496,7 @@ var BallRenderer = {
 
     // --- GAME ACTIONS ---
     function startJump() {
-        if (state !== 'IDLE' && state !== 'DRIBBLING') return;
+        if (state !== 'IDLE') return;
         AudioSystem.init();
 
         // Pre-Jump (Gather/Crouch) for all characters
@@ -16580,28 +16517,6 @@ var BallRenderer = {
             player3D.vz = jv;
         }
     }
-    window.performLayupOrDunk = function() {
-        // Automatically release shot with perfect timing and high velocity
-        // For a true dunk/layup we would do a custom animation state,
-        // but for now we simulate it by jumping forward toward the hoop and shooting instantly
-
-        AudioSystem.init();
-        state = 'JUMPING';
-        player3D.vz = 8.0;
-
-        // Push player towards hoop
-        const dx = HOOP_POS.x - player3D.x;
-        const dy = HOOP_POS.y - player3D.y;
-        player3D.x += dx * 0.5;
-        player3D.y += dy * 0.5;
-
-        // Give a perfect "Green" release (0 error)
-        shoot(0);
-
-        feedback = "LAYUP/DUNK!";
-        activeBalls[activeBalls.length - 1].isDunk = true;
-    };
-
     function releaseShot() {
         if (state === 'PRE_JUMP') {
             state = 'JUMPING';
@@ -16993,30 +16908,6 @@ var BallRenderer = {
 
              g_animTarget.guide_u = ready.guide_u !== undefined ? ready.guide_u : 0.5;
              g_animTarget.guide_u_z = ready.guide_u_z !== undefined ? ready.guide_u_z : 0.2;
-        } else if (state === 'DRIBBLING') {
-             // Dribbling Animation (using procedural time based bouncing)
-             const bounceSpeed = 10;
-             const time = Date.now() / 1000 * bounceSpeed;
-             const bounce = Math.sin(time); // -1 to 1
-
-             // Base dribbling arm poses (right arm dribbling)
-             g_animTarget.la = idle.la + breathArm;
-             g_animTarget.lfa = idle.lfa;
-
-             // Right arm moving up and down
-             g_animTarget.ra = idle.ra + (bounce * 0.3) - 0.5; // Lift upper arm
-             g_animTarget.rfa = idle.rfa - (bounce * 0.4) + 0.2; // Move forearm down
-             g_animTarget.w = idle.w - (bounce * 0.2); // Snap wrist
-
-             g_animTarget.la_z = idle.la_z || 0;
-             g_animTarget.ra_z = (idle.ra_z || 0) + 0.2; // Move slightly forward
-             g_animTarget.lfa_z = idle.lfa_z || 0;
-             g_animTarget.rfa_z = idle.rfa_z || 0;
-
-             g_animTarget.guide_u = idle.guide_u !== undefined ? idle.guide_u : 0.5;
-             g_animTarget.guide_u_z = idle.guide_u_z !== undefined ? idle.guide_u_z : 0.2;
-
-             // We need to render the ball moving up and down in renderer
         } else {
              // IDLE (With Breathing)
              g_animTarget.la = idle.la + breathArm;
@@ -17279,24 +17170,6 @@ var BallRenderer = {
     }
 
     function update(dt) {
-        // Handle Freeroam movement before state updates
-        if (currentGameMode === 'FREEROAM' && (state === 'IDLE' || state === 'DRIBBLING')) {
-            const moveSpeed = 5 * dt;
-            let moved = false;
-
-            // Allow movement from either WSAD or Arrows
-            if (window.keysPressed && (window.keysPressed['KeyW'] || window.keysPressed['ArrowUp'])) { player3D.y -= moveSpeed; moved = true; }
-            if (window.keysPressed && (window.keysPressed['KeyS'] || window.keysPressed['ArrowDown'])) { player3D.y += moveSpeed; moved = true; }
-            if (window.keysPressed && (window.keysPressed['KeyA'] || window.keysPressed['ArrowLeft'])) { player3D.x -= moveSpeed; moved = true; }
-            if (window.keysPressed && (window.keysPressed['KeyD'] || window.keysPressed['ArrowRight'])) { player3D.x += moveSpeed; moved = true; }
-
-            if (moved && state === 'IDLE') {
-                state = 'DRIBBLING';
-            } else if (!moved && state === 'DRIBBLING') {
-                state = 'IDLE';
-            }
-        }
-
         // Interpolation History
         if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
         player3D.lastX = player3D.x;
@@ -19192,9 +19065,6 @@ var BallRenderer = {
         } else if (currentGameMode === 'CONTEST') {
             currentGameMode = 'TIME_ATTACK';
             document.getElementById('modeBtnText').innerText = "TIME ATTACK";
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            currentGameMode = 'FREEROAM';
-            document.getElementById('modeBtnText').innerText = "FREEROAM";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";
