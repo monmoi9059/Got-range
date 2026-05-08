@@ -61,9 +61,15 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        this.rotation = -angleToHoop - Math.PI / 2;
+        if (currentGameMode === 'FREEROAM') {
+            // Fix camera rotation to always point forward in Freeroam to avoid dizzying rotation
+            // when moving past the hoop horizontally.
+            this.rotation = 0;
+        } else {
+            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+            this.rotation = -angleToHoop - Math.PI / 2;
+        }
         this.sinRot = Math.sin(this.rotation);
         this.cosRot = Math.cos(this.rotation);
 
@@ -10057,6 +10063,42 @@ var BallRenderer = {
         const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
+        }
+
+        if (state === 'DRIBBLING' || state === 'IDLE') {
+             // In FREEROAM, the ball should follow the player's hand.
+             // We can approximate this by drawing a ball at the player's side that moves up and down.
+             let ballZ = pZ;
+
+             if (state === 'DRIBBLING') {
+                 const bounceSpeed = 10;
+                 const time = Date.now() / 1000 * bounceSpeed;
+                 const bounce = Math.sin(time); // -1 to 1
+                 // Map bounce (-1 to 1) to ball Z height (0 to 60)
+                 ballZ = pZ + (bounce > 0 ? bounce * 60 : -bounce * 60);
+             } else {
+                 ballZ = pZ + 40; // Held at hip
+             }
+
+             // Offset to the right of the player
+             const bX = pX + 30;
+             const bY = pY;
+             const bZ = ballZ;
+
+             const ballShadowProj = project(bX, bY, 0);
+             if (ballShadowProj) {
+                 const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
+                 item.ballRef = { x: bX, y: bY, z: bZ };
+             }
+
+             const ballProj = project(bX, bY, bZ);
+             if (ballProj) {
+                 const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
+                 item.ballRef = {
+                     x: bX, y: bY, z: bZ,
+                     isFire: (typeof currentStreak !== 'undefined' && currentStreak >= 5)
+                 };
+             }
         }
 
         activeBalls.forEach(b => {

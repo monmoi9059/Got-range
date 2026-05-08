@@ -201,7 +201,18 @@
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE') {
+        } else if (state === 'IDLE' || state === 'DRIBBLING') {
+            if (currentGameMode === 'FREEROAM') {
+                // Determine if close enough to hoop to layup/dunk
+                const dx = HOOP_POS.x - player3D.x;
+                const dy = HOOP_POS.y - player3D.y;
+                const distSq = dx*dx + dy*dy;
+                // Hoop is usually around X:433, Y:300. A distance of ~150-200 is near hoop
+                if (distSq < 200 * 200) {
+                    performLayupOrDunk();
+                    return;
+                }
+            }
             startJump();
         }
     }
@@ -251,7 +262,11 @@
 
     var enterPressed = false;
 
+    // Key state tracking for movement
+    window.keysPressed = {};
+
     window.addEventListener('keydown', (e) => {
+        window.keysPressed[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -304,6 +319,8 @@
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysPressed[e.code] = false;
+
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');

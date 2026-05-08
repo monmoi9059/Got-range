@@ -1455,6 +1455,8 @@ for(var k=0; k<12; k++) {
         { limit: 4000, name: "BASE LUNAIRE", type: 'space', ground1: '#808080', ground2: '#A9A9A9', sky1: '#000000', sky2: '#191970' },
         { limit: 6000, name: "MARS", type: 'space', ground1: '#8B4513', ground2: '#CD853F', sky1: '#FF4500', sky2: '#000000' },
         { limit: 8000, name: "LE NETHER", type: 'space', ground1: '#8B0000', ground2: '#2F0000', sky1: '#330000', sky2: '#000000' },
+        { limit: 12000, name: "CITÉ ENGLOUTIE", type: 'water', ground1: '#000080', ground2: '#008B8B', sky1: '#0000CD', sky2: '#00008B' },
+        { limit: 18000, name: "VOLCAN EN ÉRUPTION", type: 'mountain', ground1: '#800000', ground2: '#B22222', sky1: '#FF4500', sky2: '#8B0000' },
         { limit: 9999999, name: "DIMENSION TACO", type: 'grass', ground1: '#FF00FF', ground2: '#00FFFF', sky1: '#FFFF00', sky2: '#FF0000' }
     ];
 
@@ -1520,6 +1522,7 @@ for(var k=0; k<12; k++) {
         { id: 'rat_miner', animal: 'rat', name: 'Mineur', cost: 3000, jerseyColor: '#555', shortsColor: '#333', headAccessory: 'helmet', hatColor: '#FFA500' },
         { id: 'rat_rapper', animal: 'rat', name: 'Rappeur', cost: 3500, jerseyColor: '#FFF', shortsColor: '#000', headAccessory: 'beanie', hatColor: '#000', backAccessory: 'backpack' },
         { id: 'rat_detective', animal: 'rat', name: 'Détective', cost: 4000, jerseyColor: '#D2B48C', shortsColor: '#8B4513', legType: 'pants', headAccessory: 'hat', hatColor: '#8B4513' },
+        { id: 'rat_raccoon', animal: 'rat', name: 'Raton Laveur', cost: 4500, furColor: '#808080', pattern: 'tiger_stripes', headAccessory: 'beanie', hatColor: '#000' },
 
         // CATS
         { id: 'cat_classic', animal: 'cat', name: 'Classique', cost: 250, bodyShape: 'oval' },
@@ -1774,6 +1777,16 @@ for(var k=0; k<12; k++) {
         { id: 'human_peach', animal: 'human', name: 'Princesse Rose', cost: 15000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#FFC0CB', shortsColor: '#FF69B4', legType: 'tights', headAccessory: 'crown', hatColor: '#FFD700', skinTone: '#ffe0bd', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#FF1493' },
         { id: 'human_link', animal: 'human', name: 'Héros du Temps', cost: 15000, heightScale: 1.0, widthScale: 0.95, jerseyColor: '#008000', shortsColor: '#F5F5DC', legType: 'tights', headAccessory: 'hat', hatColor: '#008000', skinTone: '#ffe0bd', backProp: 'sword', hairStyle: 'long_flow', hairColor: '#FFD700', shoesColor: '#8B4513' },
 
+        // NEW HUMANS (POP CULTURE)
+        { id: 'human_action_hero', animal: 'human', name: 'Action Hero', cost: 10000, heightScale: 1.1, widthScale: 1.2, jerseyColor: '#556B2F', shortsColor: '#556B2F', legType: 'pants', headAccessory: 'bandana_blue', hatColor: '#FF0000', skinTone: '#dcb98a', hairStyle: 'buzz_cut', hairColor: '#000', shoesColor: '#111' },
+        { id: 'human_wizard', animal: 'human', name: 'Wizard', cost: 10000, heightScale: 1.0, widthScale: 0.9, jerseyColor: '#4B0082', shortsColor: '#4B0082', legType: 'pants', headAccessory: 'wizard_hat', hatColor: '#4B0082', skinTone: '#f0d5be', backProp: 'staff', hairStyle: 'long_flow', hairColor: '#FFF', shoesColor: '#333' },
+        { id: 'human_spy', animal: 'human', name: 'Secret Agent', cost: 10000, heightScale: 1.05, widthScale: 1.0, jerseyColor: '#111', shortsColor: '#111', legType: 'pants', headAccessory: 'fedora', hatColor: '#111', skinTone: '#e0ac69', hairStyle: 'slicked_back', hairColor: '#000', shoesColor: '#000', pattern: 'suit' },
+
+        // NEW ANIMALS
+        { id: 'panda_classic', animal: 'panda', name: 'Panda', cost: 3000, furColor: '#FFF', hasBlackEars: true, bodyShape: 'round', widthScale: 1.3 },
+        { id: 'koala_classic', animal: 'koala', name: 'Koala', cost: 3000, furColor: '#A9A9A9', bodyShape: 'oval', heightScale: 0.7, widthScale: 1.1, earColor: '#FFF' },
+        { id: 'rhino_classic', animal: 'rhino', name: 'Rhino', cost: 3000, furColor: '#808080', bodyShape: 'heavy', heightScale: 1.2, widthScale: 1.4 }
+
     ];
 
     var CLOTHING_DB = [
@@ -1959,7 +1972,10 @@ for(var k=0; k<12; k++) {
 
         // NEW HOODIES
         { id: 'hoodie_offwhite', name: 'Streetwear', cost: 8000, type: 'hoodie', color: '#FFF', pattern: 'stripes_sleeve_diag' },
-        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' }
+        { id: 'hoodie_bape', name: 'Camo Requin', cost: 10000, type: 'hoodie', color: '#556B2F', pattern: 'camo_shark' },
+        { id: 'tuxedo_black', name: 'Tuxedo Noir', cost: 15000, type: 'shirt', color: '#000', pattern: 'suit' },
+        { id: 'armor_knight', name: 'Armure Chevalier', cost: 25000, type: 'jacket', color: '#C0C0C0', pattern: 'armor' },
+        { id: 'cape_hero', name: 'Cape Héros', cost: 12000, type: 'jersey', color: '#0000FF', trimColor: '#FF0000' }
     ];
 
     var HATS_DB = [
@@ -2007,7 +2023,9 @@ for(var k=0; k<12; k++) {
         { id: 'hat_headphones', name: 'Écouteurs', cost: 2000, type: 'headphones', color: '#333' },
         { id: 'hat_antlers', name: 'Bois de Renne', cost: 2500, type: 'antlers', color: '#8B4513' },
         { id: 'hat_arrow', name: 'Flèche', cost: 2000, type: 'arrow_through_head' },
-        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' }
+        { id: 'hat_disguise', name: 'Moustache', cost: 1500, type: 'groucho' },
+        { id: 'hat_dunce', name: 'Dunce Cap', cost: 1000, type: 'dunce', color: '#FFF' },
+        { id: 'hat_samurai', name: 'Samouraï', cost: 6000, type: 'samurai_helmet', color: '#8B0000' }
     ];
 
     var PANTS_DB = [
@@ -2161,10 +2179,13 @@ for(var k=0; k<12; k++) {
         { id: 'shoe_timbs', name: 'Timbs', cost: 2500, type: 'boots_work', color: '#D2B48C', detailColor: '#5D4037' },
         { id: 'shoe_jordan4_cement', name: 'Retro 4 Cement', cost: 5000, type: 'retro_bulky', color: '#FFF', detailColor: '#000', color3: '#808080' },
         { id: 'shoe_jordan4_bred', name: 'Retro 4 Bred', cost: 5000, type: 'retro_bulky', color: '#111', detailColor: '#CC0000', color3: '#808080' },
-        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true }
+        { id: 'shoe_mag', name: 'McFly Future', cost: 50000, type: 'hightop_future', color: '#C0C0C0', detailColor: '#00FFFF', shiny: true },
+        { id: 'shoe_clown', name: 'Souliers de Clown', cost: 1500, type: 'clown', color: '#FF0000', detailColor: '#FFFF00' },
+        { id: 'shoe_rollerblades', name: 'Patins à Roues', cost: 3000, type: 'rollerblades', color: '#111', detailColor: '#00FFFF' },
+        { id: 'shoe_flipflops', name: 'Gougounes', cost: 500, type: 'flipflops', color: '#8B4513' }
     ];
 
-    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe'];
+    var ANIMALS = ['human', 'rat', 'cat', 'dog', 'bear', 'rabbit', 'moose', 'fox', 'wolf', 'lion', 'tiger', 'pig', 'cow', 'monkey', 'penguin', 'chicken', 'frog', 'turtle', 'elephant', 'dino', 'zebra', 'giraffe', 'panda', 'koala', 'rhino'];
 
     var SKIN_TONES = [
         '#f0d5be', // Light
@@ -2347,7 +2368,10 @@ for(var k=0; k<12; k++) {
         { id: 'ball_rainbow', name: 'Arc-en-ciel', cost: 5000, type: 'basketball', color1: '#FF0000', color2: '#0000FF', texture: 'rainbow' },
         { id: 'ball_camo', name: 'Camouflage', cost: 2500, type: 'camo', color1: '#556B2F', color2: '#8B4513' },
         { id: 'ball_beach', name: 'Plage', cost: 1500, type: 'beach', color1: '#FFFF00', color2: '#0000FF' },
-        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' }
+        { id: 'ball_eyeball', name: 'Oeil', cost: 3500, type: 'eyeball', color1: '#FFFFFF', color2: '#FF0000' },
+        { id: 'ball_disco', name: 'Disco', cost: 4500, type: 'disco', color1: '#C0C0C0', color2: '#FFF', shininess: 1.0 },
+        { id: 'ball_balloon', name: 'Ballon', cost: 1000, type: 'balloon', color1: '#FF69B4', color2: '#FF1493' },
+        { id: 'ball_fireball', name: 'Boule de Feu', cost: 15000, type: 'fireball', color1: '#FF4500', color2: '#FF0000' }
     ];
 
     var SHOOTING_STYLES = [
@@ -2395,7 +2419,10 @@ for(var k=0; k<12; k++) {
         { id: 'dab', name: 'Le Dab', cost: 0, desc: 'Style swag.', modifiers: { speed: 1.0 } },
         { id: 'helicopter', name: 'Hélico', cost: 0, desc: 'Rotation rapide.', modifiers: { speed: 1.2 } },
         { id: 'prayer', name: 'Prière', cost: 0, desc: 'Espoir divin.', modifiers: { speed: 0.8, jumpVelocity: 4.5 } },
-        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } }
+        { id: 'spirit_bomb', name: 'Esprit', cost: 0, desc: 'Chargez !', modifiers: { jumpVelocity: 0, speed: 2.0, timingWindow: 0.5 } },
+        { id: 'hook_shot', name: 'Hook Shot', cost: 0, desc: 'Lancer sur le côté.', modifiers: { jumpVelocity: 6.0, speed: 1.0, timingWindow: 0.9 } },
+        { id: 'underhand_toss', name: 'Underhand', cost: 0, desc: 'Toss doux vers le haut.', modifiers: { jumpVelocity: 0, speed: 0.8, timingWindow: 1.2 } },
+        { id: 'one_handed_push', name: 'Push', cost: 0, desc: 'Poussée à une main.', modifiers: { jumpVelocity: 5.0, speed: 1.1, timingWindow: 0.85 } }
     ];
 
     // Animation Keyframes (Optimized: Moved to global scope to avoid reallocation)
@@ -2608,6 +2635,21 @@ for(var k=0; k<12; k++) {
             ready: { la: 2.5, ra: 0.6, lfa: 2.5, rfa: 0.6, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Hands high V shape
             set: { la: 2.8, ra: 0.3, lfa: 2.8, rfa: 0.3, w: 0, la_z: 0.1, ra_z: 0.1, lfa_z: 0.1, rfa_z: 0.1 }, // Charge
             release: { la: -1.5, ra: -1.6, lfa: -0.1, rfa: -0.1, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Throw down
+        },
+        hook_shot: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.5, lfa: 1.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Right arm out side
+            release: { la: 0.0, ra: -3.0, lfa: 1.0, rfa: -3.1, w: 0.5, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 } // Flick wrist
+        },
+        underhand_toss: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 1.2, ra: 1.5, lfa: 2.2, rfa: 2.2, w: 0, la_z: 0.8, ra_z: 0.8, lfa_z: 0.8, rfa_z: 0.8 }, // Drop down
+            release: { la: -1.2, ra: -1.2, lfa: 0.5, rfa: 0.5, w: 0, la_z: 1.4, ra_z: 1.4, lfa_z: 1.4, rfa_z: 1.4 } // Swoop up
+        },
+        one_handed_push: {
+            ready: { la: 0.5, ra: 2.5, lfa: 1.5, rfa: -1.8, w: 0, la_z: 0.2, ra_z: 0.2, lfa_z: 0.2, rfa_z: 0.2 },
+            set: { la: 0.0, ra: -1.0, lfa: 0.0, rfa: -1.0, w: 0, la_z: 0.5, ra_z: 0.5, lfa_z: 0.5, rfa_z: 0.5 }, // Bring to chest
+            release: { la: 0.0, ra: -1.5, lfa: 0.0, rfa: -0.5, w: 0, la_z: 0.5, ra_z: 1.5, lfa_z: 0.5, rfa_z: 1.5 } // Push straight forward
         }
     };
 
@@ -3719,6 +3761,10 @@ function drawHeadTemplate(ctx, cx, cy, r) {
     const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
     let placedHouses = [];
 
+    // OPTIMIZATION: Pre-calculate squared limits for zone lookup to avoid Math.sqrt in the loop
+    const zoneLimitsSq = COURT_ZONES.map(z => z.limit * z.limit);
+    const PIXELS_PER_FOOT_SQ = PIXELS_PER_FOOT * PIXELS_PER_FOOT;
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -3733,14 +3779,13 @@ function drawHeadTemplate(ctx, cx, cy, r) {
         const dx = dX - HOOP_POS.x;
         const dy = dY - HOOP_POS.y;
         const distSq = dx * dx + dy * dy;
-        const dDist = Math.sqrt(distSq);
 
-        // Convert Pixel Distance to Game Feet for Zone Lookup
-        const feetDist = dDist / PIXELS_PER_FOOT;
+        // Convert Pixel Distance to Game Feet for Zone Lookup (Squared for performance)
+        const feetDistSq = distSq / PIXELS_PER_FOOT_SQ;
 
         let decorZone = COURT_ZONES[COURT_ZONES.length-1];
         for (let j = 0; j < COURT_ZONES.length; j++) {
-            if (feetDist < COURT_ZONES[j].limit) {
+            if (feetDistSq < zoneLimitsSq[j]) {
                 decorZone = COURT_ZONES[j];
                 break;
             }
@@ -4921,12 +4966,13 @@ RenderEngine.Camera = {
         // HOOP_POS.y is 150. A larger Y means further away down the court.
         // If targetY is significantly larger than current camera Y, we are returning to player.
         if (targetY > this.smoothPos.y + 50) {
-            // Speed up the return trip significantly
-            lerpSpeed = 0.3;
+            // Instant snap to prevent framerate stutter from rapidly rendering intermediate background objects
+            this.smoothPos.x = targetX;
+            this.smoothPos.y = targetY;
+        } else {
+            this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+            this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
         }
-
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -4938,9 +4984,15 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        this.rotation = -angleToHoop - Math.PI / 2;
+        if (currentGameMode === 'FREEROAM') {
+            // Fix camera rotation to always point forward in Freeroam to avoid dizzying rotation
+            // when moving past the hoop horizontally.
+            this.rotation = 0;
+        } else {
+            const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+            this.rotation = -angleToHoop - Math.PI / 2;
+        }
         this.sinRot = Math.sin(this.rotation);
         this.cosRot = Math.cos(this.rotation);
 
@@ -5367,6 +5419,9 @@ var BallRenderer = {
                     }
                 }
             }
+            else if (type === 'balloon') {
+                 // Nothing special for 3D projection, drawn in 2D part
+            }
             else if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -5473,6 +5528,26 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        var size = 25 * proj.scale * 0.3;
+                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+                    }
+                }
+            }
             else if (type === 'baseball' || type === 'tennis') {
                 ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -5555,6 +5630,8 @@ var BallRenderer = {
             else if (type === 'donut') color = '#D2691E';
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
+            else if (type === 'disco') color = '#A9A9A9';
+            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -5821,6 +5898,37 @@ var BallRenderer = {
                         ctx.fill();
                     }
                  });
+            }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    transform(p);
+                    if (self._projResult.z > 0) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+                    }
+                }
+            }
+            else if (type === 'balloon') {
+                 // Tie knot at bottom
+                 transform({x:0, y:-1.0, z:0});
+                 if (self._projResult.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+                     // Highlight
+                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+                     transform({x:-0.5, y:0.5, z:0.7});
+                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+                 }
             }
         },
 
@@ -6263,7 +6371,15 @@ var BallRenderer = {
             sorted.forEach(function(b) {
                 const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
-                const scale = 0.3 + b.v * 0.7;
+
+                // Base 2D perspective scale
+                let scale = 0.3 + b.v * 0.7;
+
+                // Multiply by camera zoom so they shrink when zoomed out
+                // Base zoom is typically around 698
+                const currentZoom = (g_camCache && g_camCache.cameraZoom) ? g_camCache.cameraZoom : 698;
+                scale *= currentZoom / 698;
+
                 let size = 30 * scale; // Base size unit
 
                 // Vertical Offset calculation
@@ -9044,6 +9160,8 @@ var BallRenderer = {
         const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
 
         // --- Draw Functions ---
+        const isOnFire = currentStreak >= 5;
+
         const drawPole = () => {
             if(projPoleTop && projPoleBot) {
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
@@ -9067,6 +9185,16 @@ var BallRenderer = {
             for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
             ctx.closePath();
             ctx.stroke();
+
+            // Streak Fire Outline around Backboard
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 4 * projBB[0].scale;
+                ctx.stroke();
+            }
         };
 
         const drawRimAndNet = () => {
@@ -9095,6 +9223,13 @@ var BallRenderer = {
             first = true;
             projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
             ctx.closePath(); ctx.stroke();
+
+            // Glow Rim if on fire
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                ctx.lineWidth = 12 * s;
+                ctx.stroke();
+            }
         };
 
         // Render Order (Painter's Algorithm)
@@ -9262,7 +9397,38 @@ var BallRenderer = {
         // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
         const sideMult = isRight ? 1 : -1;
 
-        if (type === 'foam') {
+        if (type === 'clown') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = detailColor || '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'rollerblades') {
+            ctx.fillStyle = color;
+            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+            ctx.fillStyle = '#AAA';
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+            ctx.fillStyle = detailColor || '#00FFFF';
+            // Wheels
+            for (let i = -0.6; i <= 0.6; i += 0.4) {
+                ctx.beginPath();
+                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (type === 'flipflops') {
+            ctx.fillStyle = color; // Sole
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+            ctx.strokeStyle = detailColor || '#000'; // Strap
+            ctx.lineWidth = 2 * s;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.5, h * 0.3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(w * 0.5, h * 0.3);
+            ctx.stroke();
+        } else if (type === 'foam') {
             // Yeezy Foam Runner (Blobby, porous)
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -14032,6 +14198,37 @@ var BallRenderer = {
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
+        else if (accessoryType === 'dunce') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x, headY - 40*s);
+             ctx.fill();
+             ctx.fillStyle = '#000';
+             ctx.font = `bold ${8*s}px Arial`;
+             ctx.textAlign = 'center';
+             ctx.fillText('D', p.x, headY - 20*s);
+        }
+        else if (accessoryType === 'samurai_helmet') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             // Base helmet
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 2*s, Math.PI, 0); ctx.fill();
+             // Crest
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - headRadius - 10*s);
+             ctx.lineTo(p.x - 10*s, headY - headRadius);
+             ctx.lineTo(p.x + 10*s, headY - headRadius);
+             ctx.fill();
+             // Neck guard (shikoro)
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             for(let i=0; i<3; i++) {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY + 5*s + (i*4*s), headRadius + 5*s + (i*s), 3*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+             }
+        }
         else if (accessoryType === 'headband') {
              ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
              if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
@@ -14049,6 +14246,19 @@ var BallRenderer = {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
              ctx.fillStyle = '#FF0000';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'headphones') {
+             ctx.strokeStyle = accessoryColor || '#333'; ctx.lineWidth = 4*s;
+             // Headband
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius + 2*s, Math.PI, 0); ctx.stroke();
+             // Ear cups
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             // Inner glow/detail
+             ctx.fillStyle = '#00FFFF';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
         }
 
         // Head Details that act like accessories
@@ -14638,9 +14848,15 @@ var BallRenderer = {
             // If the object is far off the sides of the screen, cull it
             // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
             // that might have their center off-screen but still bleed into the viewport.
-            if (screenX < -vpW || screenX > vpW * 2) return;
+            // Make horizontal culling tighter to save render cycles
+            const cullingMargin = (d.zoneType === 'castle') ? vpW * 1.5 : vpW * 0.5;
+            if (screenX < -cullingMargin || screenX > vpW + cullingMargin) return;
 
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            // Vertical Culling
+            // If it's way below the screen (and it's not something huge like a mountain), cull it
+            if (screenY > vpH + 500) return;
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
             item.zoneType = d.zoneType;
@@ -14669,16 +14885,30 @@ var BallRenderer = {
             // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
             // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
             // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
-            const backCullDist = (playerDistFromHoop > 5000) ? 6000 : 15000;
+            // Dynamic back-culling based on camera height/zoom to prevent drawing thousands of offscreen objects
+            // When zoomed out, we see more. The distance is relative to game units.
+            // playerDistFromHoop is in pixels. 15000 pixels is ~3500 feet.
+            let backCullDist = 12000;
+            // Narrow the front cull dist as well
+            let frontCullDist = playerDistFromHoop + 3000;
+
+            // Adjust based on graphics setting
+            if (playerData.graphics === 'LOW') {
+                backCullDist = 6000;
+                frontCullDist = playerDistFromHoop + 2000;
+            }
+
             const startDist = Math.max(0, playerDistFromHoop - backCullDist);
 
+            // Use binary search to quickly find the start index in the sorted array
             let startIndex = 0;
-            if (startDist > 1000) {
+            if (startDist > 0) {
                  startIndex = binarySearchLowerBound(decors, startDist);
             }
+
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
-                if (d.dist > cullDist) break;
+                if (d.dist > frontCullDist) break; // Array is sorted by distance, so we can break early
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
                     processDecor(d, g_catState.x, g_catState.y, g_catState.z);
@@ -14756,6 +14986,42 @@ var BallRenderer = {
         const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
+        }
+
+        if (state === 'DRIBBLING' || state === 'IDLE') {
+             // In FREEROAM, the ball should follow the player's hand.
+             // We can approximate this by drawing a ball at the player's side that moves up and down.
+             let ballZ = pZ;
+
+             if (state === 'DRIBBLING') {
+                 const bounceSpeed = 10;
+                 const time = Date.now() / 1000 * bounceSpeed;
+                 const bounce = Math.sin(time); // -1 to 1
+                 // Map bounce (-1 to 1) to ball Z height (0 to 60)
+                 ballZ = pZ + (bounce > 0 ? bounce * 60 : -bounce * 60);
+             } else {
+                 ballZ = pZ + 40; // Held at hip
+             }
+
+             // Offset to the right of the player
+             const bX = pX + 30;
+             const bY = pY;
+             const bZ = ballZ;
+
+             const ballShadowProj = project(bX, bY, 0);
+             if (ballShadowProj) {
+                 const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
+                 item.ballRef = { x: bX, y: bY, z: bZ };
+             }
+
+             const ballProj = project(bX, bY, bZ);
+             if (ballProj) {
+                 const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
+                 item.ballRef = {
+                     x: bX, y: bY, z: bZ,
+                     isFire: (typeof currentStreak !== 'undefined' && currentStreak >= 5)
+                 };
+             }
         }
 
         activeBalls.forEach(b => {
@@ -15779,7 +16045,18 @@ var BallRenderer = {
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE') {
+        } else if (state === 'IDLE' || state === 'DRIBBLING') {
+            if (currentGameMode === 'FREEROAM') {
+                // Determine if close enough to hoop to layup/dunk
+                const dx = HOOP_POS.x - player3D.x;
+                const dy = HOOP_POS.y - player3D.y;
+                const distSq = dx*dx + dy*dy;
+                // Hoop is usually around X:433, Y:300. A distance of ~150-200 is near hoop
+                if (distSq < 200 * 200) {
+                    performLayupOrDunk();
+                    return;
+                }
+            }
             startJump();
         }
     }
@@ -15829,7 +16106,11 @@ var BallRenderer = {
 
     var enterPressed = false;
 
+    // Key state tracking for movement
+    window.keysPressed = {};
+
     window.addEventListener('keydown', (e) => {
+        window.keysPressed[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -15882,6 +16163,8 @@ var BallRenderer = {
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysPressed[e.code] = false;
+
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');
@@ -16272,7 +16555,7 @@ var BallRenderer = {
 
     // --- GAME ACTIONS ---
     function startJump() {
-        if (state !== 'IDLE') return;
+        if (state !== 'IDLE' && state !== 'DRIBBLING') return;
         AudioSystem.init();
 
         // Pre-Jump (Gather/Crouch) for all characters
@@ -16293,6 +16576,28 @@ var BallRenderer = {
             player3D.vz = jv;
         }
     }
+    window.performLayupOrDunk = function() {
+        // Automatically release shot with perfect timing and high velocity
+        // For a true dunk/layup we would do a custom animation state,
+        // but for now we simulate it by jumping forward toward the hoop and shooting instantly
+
+        AudioSystem.init();
+        state = 'JUMPING';
+        player3D.vz = 8.0;
+
+        // Push player towards hoop
+        const dx = HOOP_POS.x - player3D.x;
+        const dy = HOOP_POS.y - player3D.y;
+        player3D.x += dx * 0.5;
+        player3D.y += dy * 0.5;
+
+        // Give a perfect "Green" release (0 error)
+        shoot(0);
+
+        feedback = "LAYUP/DUNK!";
+        activeBalls[activeBalls.length - 1].isDunk = true;
+    };
+
     function releaseShot() {
         if (state === 'PRE_JUMP') {
             state = 'JUMPING';
@@ -16426,6 +16731,50 @@ var BallRenderer = {
         AudioSystem.playSwish();
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
+
+        // Swish Shockwave Effect
+        if (currentStreak >= 5) {
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                particles.push({
+                    x: HOOP_POS.x + Math.cos(angle) * 10,
+                    y: HOOP_POS.y + Math.sin(angle) * 10,
+                    z: 0,
+                    vx: Math.cos(angle) * 8,
+                    vy: Math.sin(angle) * 8,
+                    vz: 2,
+                    life: 30, maxLife: 30,
+                    scale: 1.5, alpha: 0.8,
+                    type: 'smoke',
+                    color: `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)`
+                });
+            }
+        }
+
+        // Perfect Swish Fireworks
+        // If ball was very accurate (vrx and vry implies accuracy in scatter logic,
+        // we can just check if it didn't hit the rim, or if the accuracy was perfect based on some state)
+        // Since we don't have direct access to 'timingError' here easily without saving it,
+        // we'll trigger a firework if the ball had 'isFire' flag or if currentStreak % 3 == 0.
+        // Actually, let's just make every 3rd shot or high streak create fireworks for fun!
+        if (currentStreak > 0 && currentStreak % 3 === 0) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: HOOP_POS.x,
+                    y: HOOP_POS.y,
+                    z: HOOP_POS.z,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: 5 + Math.random() * 10, // Explode upwards
+                    life: 40 + Math.random() * 20, maxLife: 60,
+                    scale: 1.0 + Math.random(), alpha: 1.0,
+                    type: 'smoke',
+                    color: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'][Math.floor(Math.random() * 5)]
+                });
+            }
+        }
 
         // Basket Cat Growth
         let evolutionTriggered = false;
@@ -16640,6 +16989,30 @@ var BallRenderer = {
 
              g_animTarget.guide_u = ready.guide_u !== undefined ? ready.guide_u : 0.5;
              g_animTarget.guide_u_z = ready.guide_u_z !== undefined ? ready.guide_u_z : 0.2;
+        } else if (state === 'DRIBBLING') {
+             // Dribbling Animation (using procedural time based bouncing)
+             const bounceSpeed = 10;
+             const time = Date.now() / 1000 * bounceSpeed;
+             const bounce = Math.sin(time); // -1 to 1
+
+             // Base dribbling arm poses (right arm dribbling)
+             g_animTarget.la = idle.la + breathArm;
+             g_animTarget.lfa = idle.lfa;
+
+             // Right arm moving up and down
+             g_animTarget.ra = idle.ra + (bounce * 0.3) - 0.5; // Lift upper arm
+             g_animTarget.rfa = idle.rfa - (bounce * 0.4) + 0.2; // Move forearm down
+             g_animTarget.w = idle.w - (bounce * 0.2); // Snap wrist
+
+             g_animTarget.la_z = idle.la_z || 0;
+             g_animTarget.ra_z = (idle.ra_z || 0) + 0.2; // Move slightly forward
+             g_animTarget.lfa_z = idle.lfa_z || 0;
+             g_animTarget.rfa_z = idle.rfa_z || 0;
+
+             g_animTarget.guide_u = idle.guide_u !== undefined ? idle.guide_u : 0.5;
+             g_animTarget.guide_u_z = idle.guide_u_z !== undefined ? idle.guide_u_z : 0.2;
+
+             // We need to render the ball moving up and down in renderer
         } else {
              // IDLE (With Breathing)
              g_animTarget.la = idle.la + breathArm;
@@ -16902,6 +17275,24 @@ var BallRenderer = {
     }
 
     function update(dt) {
+        // Handle Freeroam movement before state updates
+        if (currentGameMode === 'FREEROAM' && (state === 'IDLE' || state === 'DRIBBLING')) {
+            const moveSpeed = 5 * dt;
+            let moved = false;
+
+            // Allow movement from either WSAD or Arrows
+            if (window.keysPressed && (window.keysPressed['KeyW'] || window.keysPressed['ArrowUp'])) { player3D.y -= moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyS'] || window.keysPressed['ArrowDown'])) { player3D.y += moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyA'] || window.keysPressed['ArrowLeft'])) { player3D.x -= moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyD'] || window.keysPressed['ArrowRight'])) { player3D.x += moveSpeed; moved = true; }
+
+            if (moved && state === 'IDLE') {
+                state = 'DRIBBLING';
+            } else if (!moved && state === 'DRIBBLING') {
+                state = 'IDLE';
+            }
+        }
+
         // Interpolation History
         if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
         player3D.lastX = player3D.x;
@@ -17060,13 +17451,32 @@ var BallRenderer = {
             }
         }
 
+        // Optimization: Calculate player's distance to hoop once per frame
+        let distToHoopSq = 0;
+        let isWayPastHoopThresholdSq = 0;
+        let cachedFireHue = undefined;
+        let showHighGraphics = (playerData.graphics === 'HIGH');
+        let streakThresholdMet = (currentStreak >= 10);
+        if (streakThresholdMet) {
+            cachedFireHue = getStreakFireHue(currentStreak);
+        }
+
+        if (activeBalls.length > 0) {
+            const pDX = HOOP_POS.x - player3D.x;
+            const pDY = HOOP_POS.y - player3D.y;
+            distToHoopSq = pDX * pDX + pDY * pDY;
+            const distToHoop = Math.sqrt(distToHoopSq);
+            const limit = distToHoop + 5000;
+            isWayPastHoopThresholdSq = limit * limit;
+        }
+
         // Process Active Balls
         for (let i = activeBalls.length - 1; i >= 0; i--) {
             let b = activeBalls[i];
             if (b.active) {
                 if (b.isFire) {
                      // Update Trail
-                     if (playerData.graphics === 'HIGH') {
+                     if (showHighGraphics) {
                          if (!b.trail) b.trail = [];
                          b.trail.push({ x: b.x, y: b.y, z: b.z });
                          if (b.trail.length > 20) b.trail.shift();
@@ -17075,10 +17485,6 @@ var BallRenderer = {
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
-                         let customHue = undefined;
-                         if (currentStreak >= 10) {
-                             customHue = getStreakFireHue(currentStreak);
-                         }
                          particles.push({
                              x: b.x + (Math.random()-0.5)*15,
                              y: b.y + (Math.random()-0.5)*15,
@@ -17089,7 +17495,7 @@ var BallRenderer = {
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
                              isFireParticle: true,
-                             customHue: customHue
+                             customHue: cachedFireHue
                          });
                     }
                 } else {
@@ -17127,20 +17533,11 @@ var BallRenderer = {
                         AudioSystem.playBrick();
                     }
                 }
-                const pDX = HOOP_POS.x - player3D.x;
-                const pDY = HOOP_POS.y - player3D.y;
-                // Optimization: Calculate player's distance to hoop once per frame to avoid recalculating per ball
-                // We do still need Math.sqrt to correctly calculate the expanded binomial (distToHoop + 5000)^2
-                // which is distToHoopSq + 10000 * distToHoop + 25000000
-                const distToHoopSq = pDX * pDX + pDY * pDY;
-                const distToHoop = Math.sqrt(distToHoopSq);
-
                 const bDX = b.x - player3D.x;
                 const bDY = b.y - player3D.y;
                 const currentDistSq = bDX * bDX + bDY * bDY;
 
-                // Exact math for (distToHoop + 5000)^2 without calling sqrt per ball frame loop
-                const isWayPastHoop = currentDistSq > (distToHoopSq + 10000 * distToHoop + 25000000);
+                const isWayPastHoop = currentDistSq > isWayPastHoopThresholdSq;
 
                 if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
@@ -18791,6 +19188,9 @@ var BallRenderer = {
         } else if (currentGameMode === 'CONTEST') {
             currentGameMode = 'TIME_ATTACK';
             document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            currentGameMode = 'FREEROAM';
+            document.getElementById('modeBtnText').innerText = "FREEROAM";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";

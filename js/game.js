@@ -317,7 +317,7 @@
 
     // --- GAME ACTIONS ---
     function startJump() {
-        if (state !== 'IDLE') return;
+        if (state !== 'IDLE' && state !== 'DRIBBLING') return;
         AudioSystem.init();
 
         // Pre-Jump (Gather/Crouch) for all characters
@@ -338,6 +338,28 @@
             player3D.vz = jv;
         }
     }
+    window.performLayupOrDunk = function() {
+        // Automatically release shot with perfect timing and high velocity
+        // For a true dunk/layup we would do a custom animation state,
+        // but for now we simulate it by jumping forward toward the hoop and shooting instantly
+
+        AudioSystem.init();
+        state = 'JUMPING';
+        player3D.vz = 8.0;
+
+        // Push player towards hoop
+        const dx = HOOP_POS.x - player3D.x;
+        const dy = HOOP_POS.y - player3D.y;
+        player3D.x += dx * 0.5;
+        player3D.y += dy * 0.5;
+
+        // Give a perfect "Green" release (0 error)
+        shoot(0);
+
+        feedback = "LAYUP/DUNK!";
+        activeBalls[activeBalls.length - 1].isDunk = true;
+    };
+
     function releaseShot() {
         if (state === 'PRE_JUMP') {
             state = 'JUMPING';
@@ -729,6 +751,30 @@
 
              g_animTarget.guide_u = ready.guide_u !== undefined ? ready.guide_u : 0.5;
              g_animTarget.guide_u_z = ready.guide_u_z !== undefined ? ready.guide_u_z : 0.2;
+        } else if (state === 'DRIBBLING') {
+             // Dribbling Animation (using procedural time based bouncing)
+             const bounceSpeed = 10;
+             const time = Date.now() / 1000 * bounceSpeed;
+             const bounce = Math.sin(time); // -1 to 1
+
+             // Base dribbling arm poses (right arm dribbling)
+             g_animTarget.la = idle.la + breathArm;
+             g_animTarget.lfa = idle.lfa;
+
+             // Right arm moving up and down
+             g_animTarget.ra = idle.ra + (bounce * 0.3) - 0.5; // Lift upper arm
+             g_animTarget.rfa = idle.rfa - (bounce * 0.4) + 0.2; // Move forearm down
+             g_animTarget.w = idle.w - (bounce * 0.2); // Snap wrist
+
+             g_animTarget.la_z = idle.la_z || 0;
+             g_animTarget.ra_z = (idle.ra_z || 0) + 0.2; // Move slightly forward
+             g_animTarget.lfa_z = idle.lfa_z || 0;
+             g_animTarget.rfa_z = idle.rfa_z || 0;
+
+             g_animTarget.guide_u = idle.guide_u !== undefined ? idle.guide_u : 0.5;
+             g_animTarget.guide_u_z = idle.guide_u_z !== undefined ? idle.guide_u_z : 0.2;
+
+             // We need to render the ball moving up and down in renderer
         } else {
              // IDLE (With Breathing)
              g_animTarget.la = idle.la + breathArm;
@@ -991,6 +1037,24 @@
     }
 
     function update(dt) {
+        // Handle Freeroam movement before state updates
+        if (currentGameMode === 'FREEROAM' && (state === 'IDLE' || state === 'DRIBBLING')) {
+            const moveSpeed = 5 * dt;
+            let moved = false;
+
+            // Allow movement from either WSAD or Arrows
+            if (window.keysPressed && (window.keysPressed['KeyW'] || window.keysPressed['ArrowUp'])) { player3D.y -= moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyS'] || window.keysPressed['ArrowDown'])) { player3D.y += moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyA'] || window.keysPressed['ArrowLeft'])) { player3D.x -= moveSpeed; moved = true; }
+            if (window.keysPressed && (window.keysPressed['KeyD'] || window.keysPressed['ArrowRight'])) { player3D.x += moveSpeed; moved = true; }
+
+            if (moved && state === 'IDLE') {
+                state = 'DRIBBLING';
+            } else if (!moved && state === 'DRIBBLING') {
+                state = 'IDLE';
+            }
+        }
+
         // Interpolation History
         if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
         player3D.lastX = player3D.x;
@@ -2886,6 +2950,9 @@
         } else if (currentGameMode === 'CONTEST') {
             currentGameMode = 'TIME_ATTACK';
             document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            currentGameMode = 'FREEROAM';
+            document.getElementById('modeBtnText').innerText = "FREEROAM";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";
