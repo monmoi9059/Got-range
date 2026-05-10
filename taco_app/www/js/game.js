@@ -1001,34 +1001,12 @@
         const speed = 5.0; // Units per frame
         let moved = false;
         if (window.keysDown) {
-            // Dynamic forward vector from player current position to hoop
-            let fDx = HOOP_POS.x - player3D.x;
-            let fDy = HOOP_POS.y - player3D.y;
-            let fLen = Math.sqrt(fDx*fDx + fDy*fDy);
-            if (fLen < 1) { fDx = 733 - 433; fDy = 150 - 300; fLen = Math.sqrt(fDx*fDx + fDy*fDy); }
-            fDx /= fLen; fDy /= fLen; // Normalize forward
-
-            // Right vector is 90 degrees clockwise in screen space (fDy, -fDx)
-            let rDx = -fDy;
-            let rDy = fDx;
-
-            let moveX = 0;
-            let moveY = 0;
-
-            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { moveX += fDx; moveY += fDy; }
-            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { moveX -= fDx; moveY -= fDy; }
-            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { moveX -= rDx; moveY -= rDy; }
-            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { moveX += rDx; moveY += rDy; }
-
-            // Normalize diagonal movement
-            let moveLen = Math.sqrt(moveX*moveX + moveY*moveY);
-            if (moveLen > 0) {
-                moveX /= moveLen;
-                moveY /= moveLen;
-                player3D.x += moveX * speed * dt;
-                player3D.y += moveY * speed * dt;
-                moved = true;
-            }
+            // Absolute 3rd person camera movement
+            // Up/Down maps visually to Y in classic view, Left/Right to X
+            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { player3D.y -= speed * dt; moved = true; }
+            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { player3D.y += speed * dt; moved = true; }
+            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { player3D.x -= speed * dt; moved = true; }
+            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { player3D.x += speed * dt; moved = true; }
         }
 
         // Keep player behind the hoop somewhat (Hoop is at 733, 150)
