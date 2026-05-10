@@ -1001,15 +1001,14 @@
         const speed = 5.0; // Units per frame
         let moved = false;
         if (window.keysDown) {
-            // Forward vector is from start (433, 300) to hoop (733, 150)
-            let fDx = 733 - 433;
-            let fDy = 150 - 300;
+            // Dynamic forward vector from player current position to hoop
+            let fDx = HOOP_POS.x - player3D.x;
+            let fDy = HOOP_POS.y - player3D.y;
             let fLen = Math.sqrt(fDx*fDx + fDy*fDy);
+            if (fLen < 1) { fDx = 733 - 433; fDy = 150 - 300; fLen = Math.sqrt(fDx*fDx + fDy*fDy); }
             fDx /= fLen; fDy /= fLen; // Normalize forward
 
-            // Right vector is 90 degrees clockwise (fDy, -fDx)
-            // But visually, right of forward vector is (-fDy, fDx) because Y is down.
-            // Let's test standard 2D rotation:
+            // Right vector is 90 degrees clockwise in screen space (fDy, -fDx)
             let rDx = -fDy;
             let rDy = fDx;
 

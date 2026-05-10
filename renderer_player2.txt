@@ -1,0 +1,3005 @@
+229:            else if (obj.type === 'player') PlayerRenderer.draw(obj);
+230-            else if (obj.type === 'ball') drawBall(obj, obj.ballRef);
+231-            else if (obj.type === 'smoke') drawSmoke(obj, obj.alpha, obj.color);
+232-            else if (obj.type === 'cat_shadow') drawSimpleShadow(obj);
+233-            else if (obj.type === 'text') drawFloatingText(obj);
+234-        }
+235-    }
+236-};
+237-
+238-function drawSimpleShadow(p) {
+239-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+240-    ctx.beginPath();
+241-    ctx.ellipse(p.x, p.y, 25 * p.scale, 10 * p.scale, 0, 0, Math.PI * 2);
+242-    ctx.fill();
+243-}
+244-
+245-// Initialize
+246-RenderEngine.Camera.init();
+247-RenderEngine.Queue.init();
+248-
+249-var BallRenderer = {
+250-    _projResult: {x:0, y:0, z:0},
+251-    _noisePattern: null,
+252-
+253-    getNoise: function(ctx) {
+254-        if (this._noisePattern) return this._noisePattern;
+255-        var cvs = document.createElement('canvas');
+256-        cvs.width = 128; cvs.height = 128;
+257-        var c = cvs.getContext('2d');
+258-        // Generate pebbled leather texture
+259-        for(var i=0; i<1500; i++) {
+260-            var x = Math.random() * 128;
+261-            var y = Math.random() * 128;
+262-            var s = 1 + Math.random();
+263-            c.fillStyle = 'rgba(0,0,0,0.15)';
+264-            c.beginPath(); c.arc(x, y, s, 0, Math.PI*2); c.fill();
+265-            c.fillStyle = 'rgba(255,255,255,0.05)';
+266-            c.beginPath(); c.arc(x+1, y+1, s, 0, Math.PI*2); c.fill();
+267-        }
+268-        this._noisePattern = ctx.createPattern(cvs, 'repeat');
+269-        return this._noisePattern;
+270-    },
+271-
+272-    projectIso: function(p, r, cosR, sinR) {
+273-        var ry = p.y * cosR - p.z * sinR;
+274-        var rz = p.y * sinR + p.z * cosR;
+275-        this._projResult.x = p.x * r;
+276-        this._projResult.y = ry * r;
+277-        this._projResult.z = rz;
+278-    },
+279-
+280-        draw: function(ctx, x, y, scale, rotation, ball, phys) {
+281-            // phys: {x, y, z, rotationX, rotationY, rotationZ}
+282-            // 3D Ball removed in favor of high-quality 2D shader
+283-
+284-            var radius = 25 * scale;
+285-            if (radius < 1) return; // Cull if too small
+286-
+287-            ctx.save();
+288-            ctx.translate(x, y);
+289-
+290-            // Clip to sphere
+291-            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.clip();
+292-
+293-            this.drawBackground(ctx, radius, ball);
+294-            this.drawPattern(ctx, radius, rotation, ball, phys);
+295-            this.drawLighting(ctx, radius, ball);
+296-
+297-            // Border
+298-            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2);
+299-            ctx.lineWidth = 1 * scale;
+300-            if(ctx.lineWidth < 1) ctx.lineWidth = 1;
+301-            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
+302-
+303-            ctx.restore();
+304-        },
+305-
+306-        rotatePoint: function(p, rx, ry, rz) {
+307-            var x = p.x, y = p.y, z = p.z;
+308-            // X Rotation
+309-            var cx = Math.cos(rx), sx = Math.sin(rx);
+310-            var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
+311-            // Y Rotation
+312-            var cy = Math.cos(ry), sy = Math.sin(ry);
+313-            var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
+314-            // Z Rotation
+315-            var cz = Math.cos(rz), sz = Math.sin(rz);
+316-            tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
+317-            return {x:x, y:y, z:z};
+318-        },
+319-
+320-        draw3D: function(ctx, ball, phys) {
+321-            // 1. Draw Mesh Base
+322-            var verts = Geometry.sphere.vertices;
+323-            var faces = Geometry.sphere.faces;
+324-            var tVerts = [];
+325-
+326-            // Transform Vertices
+327-            var radius = 8; // Match legacy visual size (roughly)
+328-            for(var i=0; i<verts.length; i++) {
+329-                var r = this.rotatePoint(verts[i], phys.rotationX, phys.rotationY, phys.rotationZ);
+330-                var wx = phys.x + r.x * radius;
+331-                var wy = phys.y + r.y * radius;
+332-                var wz = phys.z + r.z * radius;
+333-                var proj = project(wx, wy, wz, g_camCache);
+334-                tVerts.push({x: proj?proj.x:0, y: proj?proj.y:0, z: proj?proj.depth:0, valid: !!proj, normal: r});
+335-            }
+336-
+337-            // Prepare Faces
+338-            var drawFaces = [];
+339-            var camX = g_camCache.x; var camY = g_camCache.y; var camZ = 0; // Approx
+340-            // Actually view vector is (phys.x - camX, ...).
+341-            // Simplified Backface Culling: Dot product of Normal and Camera Vector
+342-            // Camera Vector in World Space: (camX - phys.x, camY - phys.y, -phys.z) roughly?
+343-            // Actually, we rotated the normal.
+344-            // Let's use screen space culling (winding order)
+345-
+346-            for(var i=0; i<faces.length; i++) {
+347-                var f = faces[i];
+348-                var v0 = tVerts[f[0]], v1 = tVerts[f[1]], v2 = tVerts[f[2]];
+349-                if(!v0.valid || !v1.valid || !v2.valid) continue;
+350-
+351-                // Screen Space Winding (Cross Product)
+352-                var cp = (v1.x - v0.x)*(v2.y - v0.y) - (v1.y - v0.y)*(v2.x - v0.x);
+353-                if (cp > 0) continue; // Cull (Assume standard CCW or CW, check sign)
+354-                // With standard coordinates, positive might be back facing or front depending on axis.
+355-                // Let's test. Usually < 0 is front for canvas Y-down.
+356-
+357-                // Lighting (Gouraud approximation on centroid)
+358-                // Light Source: Sun at (700, 80, 200)?
+359-                // Directional Light
+360-                var nx = (v0.normal.x + v1.normal.x + v2.normal.x) / 3;
+361-                var ny = (v0.normal.y + v1.normal.y + v2.normal.y) / 3;
+362-                var nz = (v0.normal.z + v1.normal.z + v2.normal.z) / 3;
+363-                // Normalize
+364-                var nl = Math.sqrt(nx*nx + ny*ny + nz*nz); nx/=nl; ny/=nl; nz/=nl;
+365-
+366-                // Light Dir (Top-Left-Front)
+367-                var lx = 0.5, ly = -0.5, lz = 0.7; // Normalized approx
+368-                var dot = nx*lx + ny*ly + nz*lz;
+369-                var light = 0.5 + Math.max(0, dot) * 0.5;
+370-
+371-                drawFaces.push({f:f, z: v0.z + v1.z + v2.z, light: light});
+372-            }
+373-            drawFaces.sort(function(a,b){ return b.z - a.z; });
+374-
+375-            // Draw Base Mesh
+376-            var type = ball.type || 'basketball';
+377-            var baseColor = ball.color1;
+378-            if (type === 'soccer' || type === 'baseball' || type === 'golf') baseColor = ball.color1;
+379-            else if (type === 'earth') baseColor = '#0000FF';
+380-            else if (type === 'watermelon') baseColor = '#155e15'; // Dark stripes base?
+381-            else if (type === 'beach') baseColor = '#FFF'; // Base white?
+382-
+383-            // Helper to darken color
+384-            var shadeColor = function(color, percent) {
+385-                var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+386-                return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+387-            };
+388-
+389-            for(var i=0; i<drawFaces.length; i++) {
+390-                var df = drawFaces[i];
+391-                var f = df.f;
+392-                var v0 = tVerts[f[0]], v1 = tVerts[f[1]], v2 = tVerts[f[2]];
+393-
+394-                ctx.fillStyle = baseColor;
+395-                // Apply lighting
+396-                // Since baseColor might be name or complex, simple opacity overlay?
+397-                // Or shading function if hex.
+398-                if (baseColor.startsWith('#')) {
+399-                    // Simple shading
+400-                    ctx.fillStyle = shadeColor(baseColor, (df.light - 1.0) * 0.5); // Darken
+401-                } else {
+402-                    // Gradient or special color, skip shading or use overlay
+403-                }
+404-
+405-                if (type === 'basketball' && ball.color2) {
+406-                    // Basketball has gradient look.
+407-                    // Simulate with lighting?
+408-                    // Just use shaded color1.
+409-                }
+410-
+411-                ctx.beginPath();
+412-                ctx.moveTo(v0.x, v0.y);
+413-                ctx.lineTo(v1.x, v1.y);
+414-                ctx.lineTo(v2.x, v2.y);
+415-                ctx.closePath();
+416-                ctx.fill();
+417-                // Fix seams
+418-                ctx.strokeStyle = ctx.fillStyle;
+419-                ctx.lineWidth = 1;
+420-                ctx.stroke();
+421-            }
+422-
+423-            // 2. Draw Patterns (3D)
+424-            this.drawPattern3D(ctx, ball, phys);
+425-        },
+426-
+427-        drawPattern3D: function(ctx, ball, phys) {
+428-            var type = ball.type || 'basketball';
+429-            var self = this;
+430-            var radius = 8; // Match draw3D radius
+431-
+432-            var projectPoint = function(p) {
+433-                var r = self.rotatePoint(p, phys.rotationX, phys.rotationY, phys.rotationZ);
+434-                // Visibility Check (Front Facing)
+435-                // Dot product of rotated normal (which is just r for unit sphere) and View Vector.
+436-
+437-                var wx = phys.x + r.x * radius;
+438-                var wy = phys.y + r.y * radius;
+439-                var wz = phys.z + r.z * radius;
+440-
+441-                // DistSq to Camera
+442-                // camX/Y from g_camCache. camZ = cameraHeight.
+443-                // This is heavy.
+444-                // Alternative: Rotated vector `r`.
+445-                // View Vector is (phys.x - camX, phys.y - camY, phys.z - camZ).
+446-                // Normalize.
+447-                // Dot(r, ViewVec) < 0 means facing camera (if ViewVec points FROM eye TO obj).
+448-                // Or > 0 if TO eye.
+449-
+450-                var vx = g_camCache.x - phys.x;
+451-                var vy = g_camCache.y - phys.y;
+452-                var vz = g_camCache.cameraHeight - phys.z;
+453-
+454-                if ((r.x*vx + r.y*vy + r.z*vz) <= 0) return null; // Backface
+455-
+456-                return project(wx, wy, wz, g_camCache);
+457-            };
+458-
+459-            if (type === 'basketball') {
+460-                ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+461-                // Scale line width by average depth scale
+462-                // Estimate scale from center
+463-                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+464-                var s = centerProj ? centerProj.scale : 1;
+465-                ctx.lineWidth = 2 * s * 1.5; // Adjusted thickness
+466-
+467-                ctx.beginPath();
+468-                var first = true;
+469-                for(var i=0; i<Geometry.basketball.length; i++) {
+470-                     if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
+471-                     var proj = projectPoint(Geometry.basketball[i]);
+472-                     if (proj) {
+473-                         if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
+474-                         else ctx.lineTo(proj.x, proj.y);
+475-                     } else {
+476-                         first = true;
+477-                     }
+478-                }
+479-                ctx.stroke();
+480-            }
+481-            else if (type === 'soccer') {
+482-                ctx.fillStyle = ball.color2; // Black pentagons
+483-                for(var i=0; i<Geometry.soccer.length; i++) {
+484-                    var face = Geometry.soccer[i];
+485-                    var projPoints = [];
+486-                    var valid = true;
+487-                    for(var j=0; j<face.length; j++) {
+488-                        var p = projectPoint(face[j]);
+489-                        if(!p) { valid = false; break; }
+490-                        projPoints.push(p);
+491-                    }
+492-                    if (valid) {
+493-                        ctx.beginPath();
+494-                        ctx.moveTo(projPoints[0].x, projPoints[0].y);
+495-                        for(var k=1; k<5; k++) ctx.lineTo(projPoints[k].x, projPoints[k].y);
+496-                        ctx.closePath();
+497-                        ctx.fill();
+498-                    }
+499-                }
+500-            }
+501-            else if (type === 'balloon') {
+502-                 // Nothing special for 3D projection, drawn in 2D part
+503-            }
+504-            else if (type === 'bille8') {
+505-                var proj = projectPoint({x:0, y:0, z:1});
+506-                if (proj) {
+507-                    var s = proj.scale;
+508-                    ctx.fillStyle = '#FFF';
+509-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * s * 0.45, 0, Math.PI*2); ctx.fill();
+510-                    ctx.fillStyle = '#000';
+511-                    ctx.font = 'bold ' + (25 * s * 0.6) + 'px Arial';
+512-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+513-                    ctx.fillText('8', proj.x, proj.y);
+514-                }
+515-            }
+516-            else if (type === 'bowling') {
+517-                 var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
+518-                 ctx.fillStyle = '#111';
+519-                 holes.forEach(function(h) {
+520-                     var proj = projectPoint(h);
+521-                     if (proj) {
+522-                         ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.12, 0, Math.PI*2); ctx.fill();
+523-                     }
+524-                 });
+525-            }
+526-            else if (type === 'eyeball') {
+527-                var proj = projectPoint({x:0, y:0, z:1});
+528-                if (proj) {
+529-                    var s = proj.scale;
+530-                    ctx.fillStyle = ball.color2;
+531-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * s * 0.5, 0, Math.PI*2); ctx.fill();
+532-                    ctx.fillStyle = '#000';
+533-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * s * 0.25, 0, Math.PI*2); ctx.fill();
+534-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+535-                    ctx.beginPath(); ctx.arc(proj.x - 25*s*0.15, proj.y - 25*s*0.15, 25 * s * 0.12, 0, Math.PI*2); ctx.fill();
+536-                }
+537-            }
+538-            else if (type === 'donut') {
+539-                 var icingCenter = projectPoint({x:0, y:-0.9, z:0});
+540-                 if (icingCenter) {
+541-                     var s = icingCenter.scale;
+542-                     ctx.fillStyle = ball.color1;
+543-                     ctx.beginPath(); ctx.arc(icingCenter.x, icingCenter.y, 25 * s * 0.85, 0, Math.PI*2); ctx.fill();
+544-
+545-                     var sprinkleColors = ['#FFF', '#FF0', '#0FF'];
+546-                     for(var i=0; i<8; i++) {
+547-                         var ang = (i/8)*Math.PI*2;
+548-                         var r = 0.5;
+549-                         var sx = Math.cos(ang)*r; var sy = -0.9 + Math.sin(ang)*r*0.2; var sz = Math.sin(ang)*r;
+550-                         var p = projectPoint({x:sx, y:sy, z:sz});
+551-                         if(p) {
+552-                             ctx.fillStyle = sprinkleColors[i%3];
+553-                             ctx.fillRect(p.x, p.y, 4*p.scale, 2*p.scale);
+554-                         }
+555-                     }
+556-                 }
+557-                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+558-                 if(centerProj) {
+559-                     ctx.fillStyle = '#222';
+560-                     ctx.beginPath(); ctx.arc(centerProj.x, centerProj.y, 25*centerProj.scale*0.25, 0, Math.PI*2); ctx.fill();
+561-                 }
+562-            }
+563-            else if (type === 'watermelon') {
+564-                 ctx.strokeStyle = '#155e15';
+565-                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+566-                 var s = centerProj ? centerProj.scale : 1;
+567-                 ctx.lineWidth = 4 * s;
+568-                 for(var sIdx=0; sIdx<Geometry.watermelon.length; sIdx++) {
+569-                     ctx.beginPath();
+570-                     var first = true;
+571-                     var line = Geometry.watermelon[sIdx];
+572-                     for(var i=0; i<line.length; i++) {
+573-                         var proj = projectPoint(line[i]);
+574-                         if(proj) {
+575-                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+576-                             else ctx.lineTo(proj.x, proj.y);
+577-                         } else first = true;
+578-                     }
+579-                     ctx.stroke();
+580-                 }
+581-            }
+582-            else if (type === 'camo') {
+583-                ctx.fillStyle = ball.color2;
+584-                var patches = [1,2,3,4];
+585-                patches.forEach(function(i) {
+586-                    var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
+587-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
+588-                    var proj = projectPoint(p);
+589-                    if (proj) {
+590-                        ctx.beginPath();
+591-                        ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.4, 0, Math.PI*2);
+592-                        ctx.fill();
+593-                    }
+594-                });
+595-            }
+596-            else if (type === 'earth') {
+597-                 ctx.fillStyle = '#228B22'; // Land
+598-                 var continents = [0, 2, 4];
+599-                 continents.forEach(function(i) {
+600-                    var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
+601-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z); p.x/=l; p.y/=l; p.z/=l;
+602-                    var proj = projectPoint(p);
+603-                     if (proj) {
+604-                        ctx.beginPath();
+605-                        ctx.arc(proj.x, proj.y, 25 * proj.scale * 0.5, 0, Math.PI*2);
+606-                        ctx.fill();
+607-                    }
+608-                 });
+609-            }
+610-            else if (type === 'disco') {
+611-                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+612-                var timeOffset = Date.now() * 0.005;
+613-                for(let i=0; i<12; i++) {
+614-                    var p = {
+615-                        x: Math.sin(i + timeOffset),
+616-                        y: Math.cos(i*2 + timeOffset),
+617-                        z: Math.sin(i*3 + timeOffset)
+618-                    };
+619-                    // Normalize
+620-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+621-                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+622-                    var proj = projectPoint(p);
+623-                    if (proj) {
+624-                        ctx.fillStyle = colors[i % colors.length];
+625-                        var size = 25 * proj.scale * 0.3;
+626-                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+627-                    }
+628-                }
+629-            }
+630-            else if (type === 'baseball' || type === 'tennis') {
+631-                ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
+632-                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+633-                var s = centerProj ? centerProj.scale : 1;
+634-                ctx.lineWidth = 3 * s;
+635-                if (type === 'baseball') ctx.setLineDash([4*s, 3*s]);
+636-
+637-                ctx.beginPath();
+638-                var first = true;
+639-                for(var i=0; i<Geometry.seam.length; i++) {
+640-                    var proj = projectPoint(Geometry.seam[i]);
+641-                    if (proj) {
+642-                        if (first) { ctx.moveTo(proj.x, proj.y); first=false; }
+643-                        else ctx.lineTo(proj.x, proj.y);
+644-                    } else {
+645-                        first = true;
+646-                    }
+647-                }
+648-                ctx.stroke();
+649-                ctx.setLineDash([]);
+650-            }
+651-            else if (type === 'beach') {
+652-                var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
+653-                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+654-                var s = centerProj ? centerProj.scale : 1;
+655-
+656-                for(var k=0; k<6; k++) {
+657-                     ctx.fillStyle = colors[k];
+658-                     // Beach ball segments are essentially slices.
+659-                     // Geometry.beach contains lines. We want to FILL them for 3D look.
+660-                     // But we have a mesh.
+661-                     // The mesh is white.
+662-                     // We can draw filled polygons for segments.
+663-                     // Or just thick lines for now to match 2D style.
+664-                     // Let's stick to lines but thick.
+665-                     ctx.strokeStyle = colors[k];
+666-                     ctx.lineWidth = 25 * s * 0.5; // Very thick to simulate color
+667-                     ctx.lineCap = 'round';
+668-
+669-                     ctx.beginPath();
+670-                     var line = Geometry.beach[k];
+671-                     var first = true;
+672-                     for(var i=0; i<line.length; i++) {
+673-                         var proj = projectPoint(line[i]);
+674-                         if (proj) {
+675-                             if(first) { ctx.moveTo(proj.x, proj.y); first=false; }
+676-                             else ctx.lineTo(proj.x, proj.y);
+677-                         } else first = true;
+678-                     }
+679-                     ctx.stroke();
+680-                }
+681-                // White Cap
+682-                var capProj = projectPoint({x:0, y:-0.9, z:0});
+683-                if(capProj) {
+684-                    ctx.fillStyle = '#FFF';
+685-                    ctx.beginPath(); ctx.arc(capProj.x, capProj.y, 25*s*0.2, 0, Math.PI*2); ctx.fill();
+686-                }
+687-            }
+688-            // Other types (golf, simple ones) will just rely on the mesh shading for now or simple points
+689-            else if (type === 'golf') {
+690-                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+691-                var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
+692-                var s = centerProj ? centerProj.scale : 1;
+693-                for(var i=0; i<Geometry.dimples.length; i++) {
+694-                    var proj = projectPoint(Geometry.dimples[i]);
+695-                    if (proj) {
+696-                        ctx.beginPath(); ctx.arc(proj.x, proj.y, 25 * s * 0.06, 0, Math.PI*2); ctx.fill();
+697-                    }
+698-                }
+699-            }
+700-        },
+701-
+702-        drawBackground: function(ctx, r, ball) {
+703-            var type = ball.type || 'basketball';
+704-
+705-            // 1. Base Color Determination
+706-            var color = ball.color1;
+707-            if (type === 'eyeball') color = '#EEE';
+708-            else if (type === 'bille8') color = '#151515'; // Dark grey instead of pure black for shading visibility
+709-            else if (type === 'donut') color = '#D2691E';
+710-            else if (type === 'watermelon') color = '#228B22';
+711-            else if (type === 'earth') color = '#0000FF';
+712-            else if (type === 'disco') color = '#A9A9A9';
+713-            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
+714-
+715-            // 2. Base Diffuse Gradient (Under-shading)
+716-            // Creates a rich spherical base color
+717-            var grad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
+718-
+719-            // Logic for gradients
+720-            if (['basketball', 'money', 'beach'].includes(type) && ball.color2) {
+721-                // Dual color balls rely on pattern, but base needs to be one of them or gradient
+722-                // Standard basketball uses gradient logic
+723-                grad.addColorStop(0, ball.color1);
+724-                grad.addColorStop(1, ball.color2);
+725-            } else {
+726-                // Single color balls
+727-                grad.addColorStop(0, color);
+728-                grad.addColorStop(1, color);
+729-            }
+730-
+731-            ctx.fillStyle = grad;
+732-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+733-
+734-            // 3. Texture Overlay (Leather/Fuzz)
+735-            if (ball.texture === 'leather' || ball.texture === 'fuzzy') {
+736-                var pat = this.getNoise(ctx);
+737-                if (pat) {
+738-                    ctx.save();
+739-                    // Scale pattern relative to ball size (approx)
+740-                    // If r=25, scale 1. If r=50, scale 2.
+741-                    var s = r / 25;
+742-                    ctx.scale(s, s);
+743-
+744-                    ctx.globalCompositeOperation = 'overlay';
+745-                    ctx.fillStyle = pat;
+746-                    // Draw large enough rect to cover circle (inverse scale)
+747-                    ctx.beginPath(); ctx.arc(0, 0, r/s, 0, Math.PI*2); ctx.fill();
+748-                    ctx.restore();
+749-                }
+750-            }
+751-        },
+752-
+753-        drawPattern: function(ctx, r, rot, ball, phys) {
+754-            var type = ball.type || 'basketball';
+755-            var cosR = Math.cos(rot);
+756-            var sinR = Math.sin(rot);
+757-            var self = this;
+758-
+759-            // Pre-calculate rotation trig if physics available
+760-            var cx, sx, cy, sy, cz, sz;
+761-            if (phys) {
+762-                cx = Math.cos(phys.rotationX); sx = Math.sin(phys.rotationX);
+763-                cy = Math.cos(phys.rotationY); sy = Math.sin(phys.rotationY);
+764-                cz = Math.cos(phys.rotationZ); sz = Math.sin(phys.rotationZ);
+765-            }
+766-
+767-            // Helper to transform points using full 3D physics state if available
+768-            var transform = function(p) {
+769-                if (phys) {
+770-                    // Inline rotation logic to reuse trig values and avoid object allocation
+771-                    var x = p.x, y = p.y, z = p.z;
+772-                    // X Rotation
+773-                    var ty = y*cx - z*sx; var tz = y*sx + z*cx; y=ty; z=tz;
+774-                    // Y Rotation
+775-                    var tx = x*cy + z*sy; tz = -x*sy + z*cy; x=tx; z=tz;
+776-                    // Z Rotation
+777-                    tx = x*cz - y*sz; ty = x*sz + y*cz; x=tx; y=ty;
+778-
+779-                    self._projResult.x = x * r;
+780-                    self._projResult.y = y * r;
+781-                    self._projResult.z = z; // Z points out/in
+782-                } else {
+783-                    self.projectIso(p, r, cosR, sinR);
+784-                }
+785-            };
+786-
+787-            if (type === 'basketball') {
+788-                // Draw Grooves (Highlight + Shadow)
+789-                var drawStrip = function(color, width, ox, oy) {
+790-                    ctx.strokeStyle = color;
+791-                    ctx.lineWidth = width;
+792-                    ctx.beginPath();
+793-                    var first = true;
+794-                    for(var i=0; i<Geometry.basketball.length; i++) {
+795-                         if (i % 33 === 0) { ctx.stroke(); ctx.beginPath(); first=true; }
+796-                         transform(Geometry.basketball[i]);
+797-                         if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+798-                         else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+799-                    }
+800-                    ctx.stroke();
+801-                };
+802-
+803-                // Highlight (Rim of groove)
+804-                drawStrip('rgba(255,255,255,0.15)', 2 * (r/25), -0.5, -0.5);
+805-                // Shadow (The Groove)
+806-                drawStrip('rgba(0,0,0,0.7)', 2 * (r/25), 0, 0);
+807-            }
+808-            else if (type === 'soccer') {
+809-                ctx.fillStyle = ball.color2;
+810-                ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Panel seams
+811-                ctx.lineWidth = 1;
+812-
+813-                for(var i=0; i<Geometry.soccer.length; i++) {
+814-                    var face = Geometry.soccer[i];
+815-                    var avgZ = 0;
+816-                    for(var j=0; j<face.length; j++) {
+817-                        transform(face[j]);
+818-                        avgZ += self._projResult.z;
+819-                    }
+820-
+821-                    if (avgZ > 0) {
+822-                        ctx.beginPath();
+823-                        for(var k=0; k<face.length; k++) {
+824-                            transform(face[k]);
+825-                            if (k === 0) ctx.moveTo(self._projResult.x, self._projResult.y);
+826-                            else ctx.lineTo(self._projResult.x, self._projResult.y);
+827-                        }
+828-                        ctx.closePath();
+829-                        ctx.fill();
+830-                        ctx.stroke(); // Draw seam
+831-                    }
+832-                }
+833-            }
+834-            else if (type === 'baseball' || type === 'tennis') {
+835-                var c = (type === 'baseball') ? '#FF0000' : '#FFF';
+836-
+837-                var drawSeam = function(col, w, ox, oy, dash) {
+838-                    ctx.strokeStyle = col;
+839-                    ctx.lineWidth = w;
+840-                    if(dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+841-                    ctx.beginPath();
+842-                    var first = true;
+843-                    for(var i=0; i<Geometry.seam.length; i++) {
+844-                        transform(Geometry.seam[i]);
+845-                        if (self._projResult.z > -0.5) {
+846-                            if (first) { ctx.moveTo(self._projResult.x + ox, self._projResult.y + oy); first=false; }
+847-                            else ctx.lineTo(self._projResult.x + ox, self._projResult.y + oy);
+848-                        } else {
+849-                            first = true;
+850-                        }
+851-                    }
+852-                    ctx.stroke();
+853-                    ctx.setLineDash([]);
+854-                };
+855-
+856-                // Drop Shadow for Thread
+857-                drawSeam('rgba(0,0,0,0.3)', 4 * (r/25), 1, 1, (type === 'baseball') ? [4, 3] : []);
+858-                // Thread
+859-                drawSeam(c, 3 * (r/25), 0, 0, (type === 'baseball') ? [4, 3] : []);
+860-            }
+861-            else if (type === 'golf') {
+862-                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+863-                for(var i=0; i<Geometry.dimples.length; i++) {
+864-                    transform(Geometry.dimples[i]);
+865-                    if (self._projResult.z > 0) {
+866-                        ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.06, 0, Math.PI*2); ctx.fill();
+867-                    }
+868-                }
+869-            }
+870-            else if (type === 'bille8') {
+871-                transform({x:0, y:0, z:1});
+872-                if (self._projResult.z > 0) {
+873-                    ctx.fillStyle = '#FFF';
+874-                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.45, 0, Math.PI*2); ctx.fill();
+875-                    ctx.fillStyle = '#000';
+876-                    ctx.font = 'bold ' + (r*0.6) + 'px Arial';
+877-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+878-                    ctx.fillText('8', self._projResult.x, self._projResult.y);
+879-                }
+880-            }
+881-            else if (type === 'bowling') {
+882-                 var holes = [{x:0.2, y:0.2, z:0.9}, {x:-0.2, y:0.2, z:0.9}, {x:0, y:-0.15, z:0.95}];
+883-                 ctx.fillStyle = '#111';
+884-                 holes.forEach(function(h) {
+885-                     transform(h);
+886-                     if (self._projResult.z > 0) {
+887-                         ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.12, 0, Math.PI*2); ctx.fill();
+888-                     }
+889-                 });
+890-            }
+891-            else if (type === 'eyeball') {
+892-                transform({x:0, y:0, z:1});
+893-                if (self._projResult.z > 0) {
+894-                    ctx.fillStyle = ball.color2;
+895-                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2); ctx.fill();
+896-                    ctx.fillStyle = '#000';
+897-                    ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r * 0.25, 0, Math.PI*2); ctx.fill();
+898-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+899-                    ctx.beginPath(); ctx.arc(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r * 0.12, 0, Math.PI*2); ctx.fill();
+900-                }
+901-            }
+902-            else if (type === 'beach') {
+903-                var colors = ['#FFFF00', '#0000FF', '#FF0000', '#FFFF00', '#0000FF', '#FF0000'];
+904-                for(var s=0; s<6; s++) {
+905-                     ctx.strokeStyle = colors[s];
+906-                     ctx.lineWidth = r * 0.8;
+907-                     ctx.lineCap = 'round';
+908-                     var first = true;
+909-                     ctx.beginPath();
+910-                     var line = Geometry.beach[s];
+911-                     for(var i=0; i<line.length; i++) {
+912-                         transform(line[i]);
+913-                         if (self._projResult.z > -0.2) {
+914-                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+915-                             else ctx.lineTo(self._projResult.x, self._projResult.y);
+916-                         } else first = true;
+917-                     }
+918-                     ctx.stroke();
+919-                }
+920-                ctx.fillStyle = '#FFF';
+921-                ctx.beginPath(); ctx.arc(0, -r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
+922-            }
+923-            else if (type === 'donut') {
+924-                 transform({x:0, y:-0.9, z:0});
+925-                 var cx = self._projResult.x; var cy = self._projResult.y; var cz = self._projResult.z;
+926-                 if (cz > -r) {
+927-                     ctx.fillStyle = ball.color1;
+928-                     ctx.beginPath(); ctx.arc(cx, cy, r * 0.85, 0, Math.PI*2); ctx.fill();
+929-                     // Sprinkles
+930-                     var sprinkleColors = ['#FFF', '#FF0', '#0FF'];
+931-                     for(var i=0; i<8; i++) {
+932-                         ctx.fillStyle = sprinkleColors[i%3];
+933-                         ctx.fillRect(cx + Math.cos(i)*r*0.5, cy + Math.sin(i)*r*0.5, 4, 2);
+934-                     }
+935-                 }
+936-                 ctx.fillStyle = '#222';
+937-                 ctx.beginPath(); ctx.arc(0, 0, r*0.25, 0, Math.PI*2); ctx.fill();
+938-            }
+939-            else if (type === 'watermelon') {
+940-                 ctx.strokeStyle = '#155e15'; ctx.lineWidth = 4 * (r/25);
+941-                 for(var s=0; s<Geometry.watermelon.length; s++) {
+942-                     ctx.beginPath();
+943-                     var first = true;
+944-                     var line = Geometry.watermelon[s];
+945-                     for(var i=0; i<line.length; i++) {
+946-                         transform(line[i]);
+947-                         if(self._projResult.z > -0.2) {
+948-                             if(first) { ctx.moveTo(self._projResult.x, self._projResult.y); first=false; }
+949-                             else ctx.lineTo(self._projResult.x, self._projResult.y);
+950-                         } else first = true;
+951-                     }
+952-                     ctx.stroke();
+953-                 }
+954-            }
+955-            else if (type === 'camo') {
+956-                ctx.fillStyle = ball.color2;
+957-                var patches = [1,2,3,4];
+958-                patches.forEach(function(i) {
+959-                    var p = {x: Math.sin(i), y: Math.cos(i*2), z: Math.sin(i*3)};
+960-                    transform(p);
+961-                    if (self._projResult.z > 0) {
+962-                        ctx.beginPath();
+963-                        ctx.arc(self._projResult.x, self._projResult.y, r * 0.4, 0, Math.PI*2);
+964-                        ctx.fill();
+965-                    }
+966-                });
+967-            }
+968-            else if (type === 'earth') {
+969-                 ctx.fillStyle = '#228B22';
+970-                 var continents = [0, 2, 4];
+971-                 continents.forEach(function(i) {
+972-                    var p = {x: Math.cos(i), y: Math.sin(i), z: Math.cos(i*1.5)};
+973-                    transform(p);
+974-                     if (self._projResult.z > 0) {
+975-                        ctx.beginPath();
+976-                        ctx.arc(self._projResult.x, self._projResult.y, r * 0.5, 0, Math.PI*2);
+977-                        ctx.fill();
+978-                    }
+979-                 });
+980-            }
+981-            else if (type === 'disco') {
+982-                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+983-                var timeOffset = Date.now() * 0.005;
+984-                for(let i=0; i<12; i++) {
+985-                    var p = {
+986-                        x: Math.sin(i + timeOffset),
+987-                        y: Math.cos(i*2 + timeOffset),
+988-                        z: Math.sin(i*3 + timeOffset)
+989-                    };
+990-                    // Normalize
+991-                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+992-                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+993-                    transform(p);
+994-                    if (self._projResult.z > 0) {
+995-                        ctx.fillStyle = colors[i % colors.length];
+996-                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+997-                    }
+998-                }
+999-            }
+1000-            else if (type === 'balloon') {
+1001-                 // Tie knot at bottom
+1002-                 transform({x:0, y:-1.0, z:0});
+1003-                 if (self._projResult.z > -r) {
+1004-                     ctx.fillStyle = ball.color1;
+1005-                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+1006-                     // Highlight
+1007-                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+1008-                     transform({x:-0.5, y:0.5, z:0.7});
+1009-                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+1010-                 }
+1011-            }
+1012-        },
+1013-
+1014-        drawLighting: function(ctx, r, ball) {
+1015-            var shininess = ball.shininess || 0.3;
+1016-
+1017-            // 1. Core Shadow (Volume)
+1018-            // Darken bottom-right
+1019-            var shadowGrad = ctx.createRadialGradient(-r*0.2, -r*0.2, r*0.4, 0, 0, r*1.1);
+1020-            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+1021-            shadowGrad.addColorStop(0.6, 'rgba(0,0,0,0.1)'); // Mid-tone falloff
+1022-            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.5)'); // Deep shadow edge
+1023-            ctx.fillStyle = shadowGrad;
+1024-            ctx.fill();
+1025-
+1026-            // 2. Specular Highlight (Key Light)
+1027-            // Sharp reflection at top-left
+1028-            var spotX = -r * 0.35;
+1029-            var spotY = -r * 0.35;
+1030-            var specGrad = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, r * 0.8);
+1031-            specGrad.addColorStop(0, 'rgba(255,255,255,' + Math.min(1, shininess + 0.3) + ')'); // Hotspot
+1032-            specGrad.addColorStop(0.15, 'rgba(255,255,255,' + (shininess) + ')');
+1033-            specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+1034-            ctx.fillStyle = specGrad;
+1035-            ctx.fill();
+1036-
+1037-            // 3. Rim Light (Bounce Light)
+1038-            // Subtle reflection from ground at the very bottom
+1039-            ctx.save();
+1040-            ctx.beginPath();
+1041-            ctx.arc(0, 0, r, 0, Math.PI*2);
+1042-            ctx.clip();
+1043-            var rimGrad = ctx.createLinearGradient(0, r*0.6, 0, r);
+1044-            rimGrad.addColorStop(0, 'rgba(255,255,255,0)');
+1045-            rimGrad.addColorStop(1, 'rgba(200,220,255,0.3)'); // Cool bounce light
+1046-            ctx.fillStyle = rimGrad;
+1047-            ctx.fillRect(-r, r*0.6, r*2, r*0.4);
+1048-            ctx.restore();
+1049-        }
+1050-    };
+1051-    function drawShotMeter(cx, cy, radius, s, progress, greenStart, shape, greenEnd) {
+1052-        if (greenEnd === undefined) greenEnd = 1.0;
+1053-        ctx.lineCap = 'round';
+1054-        let color = '#FF4500';
+1055-        if (progress >= greenStart && progress <= greenEnd) color = '#00FF00';
+1056-        else if (progress > 0.6) color = '#FFFF00';
+1057-
+1058-        if (shape === 'vertical') {
+1059-            const h = radius * 3;
+1060-            const w = 15 * s;
+1061-            const x = cx + radius;
+1062-            const y = cy - h/2;
+1063-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = w; ctx.moveTo(x, y + h); ctx.lineTo(x, y); ctx.stroke();
+1064-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = w;
+1065-            ctx.moveTo(x, y + h * (1-greenStart)); ctx.lineTo(x, y + h * (1-greenEnd)); ctx.stroke();
+1066-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = w * 0.8; ctx.moveTo(x, y + h); ctx.lineTo(x, y + h * (1-progress)); ctx.stroke();
+1067-        }
+1068-        else if (shape === 'horizontal') {
+1069-            const w = radius * 3;
+1070-            const h = 15 * s;
+1071-            const x = cx - w/2;
+1072-            const y = cy + radius;
+1073-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = h; ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
+1074-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = h;
+1075-            ctx.moveTo(x + w * greenStart, y); ctx.lineTo(x + w * greenEnd, y); ctx.stroke();
+1076-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = h * 0.8; ctx.moveTo(x, y); ctx.lineTo(x + w * progress, y); ctx.stroke();
+1077-        }
+1078-        else if (shape === 'orb') {
+1079-            ctx.lineWidth = 6 * s;
+1080-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
+1081-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.3)';
+1082-            ctx.arc(cx, cy, radius, -Math.PI/2 + (Math.PI*2*greenStart), -Math.PI/2 + (Math.PI*2*greenEnd), false); ctx.stroke();
+1083-            ctx.beginPath(); ctx.strokeStyle = color; ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
+1084-        }
+1085-        else if (shape === 'triangle') {
+1086-            const h = radius * 2.5; const w = radius * 2;
+1087-            const x = cx + radius * 1.5; const y = cy + h/2;
+1088-            ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w/2, y-h); ctx.lineTo(x-w/2, y-h); ctx.fill();
+1089-            const fh = h * progress; const fw = w * progress;
+1090-            ctx.fillStyle = color; ctx.beginPath();
+1091-            ctx.moveTo(x, y); ctx.lineTo(x + fw/2, y - fh); ctx.lineTo(x - fw/2, y - fh); ctx.fill();
+1092-            // Band
+1093-            const gy1 = y - h * greenStart;
+1094-            const gy2 = y - h * greenEnd;
+1095-            ctx.fillStyle = 'rgba(0,255,0,0.5)'; ctx.beginPath();
+1096-            // Trapezoid logic? Triangle width at height h is w * (h/totalH).
+1097-            const w1 = w * greenStart; const w2 = w * greenEnd;
+1098-            ctx.moveTo(x - w1/2, gy1); ctx.lineTo(x + w1/2, gy1);
+1099-            ctx.lineTo(x + w2/2, gy2); ctx.lineTo(x - w2/2, gy2);
+1100-            ctx.fill();
+1101-        }
+1102-        else if (shape === 'diamond') {
+1103-            const size = radius * 1.2;
+1104-            const x = cx + size * 1.5; const y = cy;
+1105-            ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI/4);
+1106-            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(-size, -size, size*2, size*2);
+1107-            ctx.fillStyle = color;
+1108-            const s2 = size * progress;
+1109-            ctx.fillRect(-s2, -s2, s2*2, s2*2);
+1110-            const mid = size * ((greenStart + greenEnd)/2);
+1111-            const thick = Math.max(2, size * (greenEnd - greenStart));
+1112-            ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.lineWidth=thick; ctx.strokeRect(-mid, -mid, mid*2, mid*2);
+1113-            ctx.restore();
+1114-        }
+1115-        else if (shape === 'ring') {
+1116-            ctx.lineWidth = 8 * s;
+1117-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
+1118-            ctx.beginPath(); ctx.strokeStyle = color;
+1119-            ctx.arc(cx, cy, radius, -Math.PI/2, -Math.PI/2 + (Math.PI*2*progress), false); ctx.stroke();
+1120-            const a1 = -Math.PI/2 + (Math.PI*2*greenStart);
+1121-            const a2 = -Math.PI/2 + (Math.PI*2*greenEnd);
+1122-            ctx.beginPath(); ctx.strokeStyle = '#00FF00'; ctx.lineWidth=4*s;
+1123-            ctx.arc(cx, cy, radius*1.2, a1, a2); ctx.stroke();
+1124-        }
+1125-        else if (shape === 'chevron') {
+1126-            const w = radius * 2; const h = radius * 0.8;
+1127-            const x = cx + radius; const y = cy + radius;
+1128-            const gap = 5*s;
+1129-            const count = 5;
+1130-            for(let i=0; i<count; i++) {
+1131-                const pct = (i+1)/count;
+1132-                const py = y - (i * (h+gap));
+1133-                ctx.fillStyle = (progress >= pct) ? color : 'rgba(255,255,255,0.2)';
+1134-                const mid = (i+0.5)/count;
+1135-                if (mid >= greenStart && mid <= greenEnd) ctx.fillStyle = 'rgba(0,255,0,0.5)';
+1136-                ctx.beginPath();
+1137-                ctx.moveTo(x, py); ctx.lineTo(x + w/2, py - h); ctx.lineTo(x, py - h*0.5); ctx.lineTo(x - w/2, py - h);
+1138-                ctx.fill();
+1139-            }
+1140-        }
+1141-        else {
+1142-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10*s;
+1143-            ctx.arc(cx, cy, radius, 0, -Math.PI / 2, true); ctx.stroke();
+1144-            ctx.beginPath(); ctx.strokeStyle = 'rgba(0,255,0,0.4)'; ctx.lineWidth = 10*s;
+1145-            ctx.arc(cx, cy, radius, -Math.PI/2 * Math.max(0, greenStart), -Math.PI/2 * greenEnd, true); ctx.stroke();
+1146-            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 8*s;
+1147-            ctx.arc(cx, cy, radius, 0, -Math.PI/2 * progress, true); ctx.stroke();
+1148-        }
+1149-    }
+1150-
+1151-    let _lastScaleDist = -1;
+1152-    let _lastScaleObj = null;
+1153-    function getScaleObject(dist) {
+1154-        if (dist === _lastScaleDist) return _lastScaleObj;
+1155-        _lastScaleDist = dist;
+1156-        for (let i = 0; i < SCALE_OBJECTS.length; i++) {
+1157-            if (dist < SCALE_OBJECTS[i].limit) {
+1158-                _lastScaleObj = SCALE_OBJECTS[i];
+1159-                return _lastScaleObj;
+1160-            }
+1161-        }
+1162-        _lastScaleObj = SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+1163-        return _lastScaleObj;
+1164-    }
+1165-
+1166-    let _lastCourtDist = -1;
+1167-    let _lastCourtObj = null;
+1168-    function getCourtDetails(dist) {
+1169-        if (dist === _lastCourtDist) return _lastCourtObj;
+1170-        _lastCourtDist = dist;
+1171-        for (let i = 0; i < COURT_ZONES.length; i++) {
+1172-            if (dist < COURT_ZONES[i].limit) {
+1173-                _lastCourtObj = COURT_ZONES[i];
+1174-                return _lastCourtObj;
+1175-            }
+1176-        }
+1177-        _lastCourtObj = COURT_ZONES[COURT_ZONES.length-1];
+1178-        return _lastCourtObj;
+1179-    }
+1180-
+1181-    function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
+1182-    function invalidateBackgroundCache() {
+1183-        bgCache = null;
+1184-        if(mountainLayers) mountainLayers.forEach(l => l.gradient = null);
+1185-    }
+1186-
+1187-    function resizeGame() {
+1188-        const winW = window.innerWidth;
+1189-        const winH = window.innerHeight;
+1190-        const dpr = window.devicePixelRatio || 1;
+1191-
+1192-        // Set Physical Resolution
+1193-        canvas.width = Math.ceil(winW * dpr);
+1194-        canvas.height = Math.ceil(winH * dpr);
+1195-
+1196-        // Set CSS Size to Fill Window
+1197-        canvas.style.width = winW + 'px';
+1198-        canvas.style.height = winH + 'px';
+1199-
+1200-        // Override Container Styles to Fill Screen
+1201-        if (container) {
+1202-            container.style.width = '100%';
+1203-            container.style.height = '100%';
+1204-            container.style.top = '0';
+1205-            container.style.left = '0';
+1206-            container.style.transform = 'none';
+1207-        }
+1208-
+1209-        // Calculate Resolution Scale
+1210-        // In portrait, fit width. In landscape, fit height.
+1211-        if (winW < winH) {
+1212-            // Portrait
+1213-            // Fit logical width (e.g. 1066) to screen width
+1214-            window.RESOLUTION_SCALE = canvas.width / 1066;
+1215-            window.LOGICAL_WIDTH = 1066;
+1216-            window.LOGICAL_HEIGHT = canvas.height / window.RESOLUTION_SCALE;
+1217-        } else {
+1218-            // Landscape (Original logic)
+1219-            // Fit logical height (600) to screen height
+1220-            window.RESOLUTION_SCALE = canvas.height / 600;
+1221-            window.LOGICAL_HEIGHT = 600;
+1222-            window.LOGICAL_WIDTH = canvas.width / window.RESOLUTION_SCALE;
+1223-        }
+1224-
+1225-        invalidateBackgroundCache();
+1226-    }
+1227-    window.addEventListener('resize', resizeGame);
+1228-
+1229-    // Global Project Wrapper (Delegates to Camera)
+--
+4105:                    PlayerRenderer.draw(obj);
+4106-                }
+4107-            } else if (type === 'ball') {
+4108-                drawBall(obj, obj.ballRef);
+4109-            }
+4110-        }, obj.x, obj.y, cacheKey);
+4111-
+4112-        ctx.save();
+4113-        ctx.translate(obj.x, obj.y);
+4114-
+4115-        // Directional Skew (Sun at Top-Right -> Shadow to Bottom-Left)
+4116-        // Shear X by -0.6, Scale Y by 0.3 (Flatten)
+4117-        ctx.transform(1, 0, -0.6, 0.3, 0, 0);
+4118-
+4119-        ctx.globalAlpha = alpha;
+4120-
+4121-        // Blur
+4122-        if (ctx.filter) {
+4123-            ctx.filter = 'blur(' + blur + 'px)';
+4124-        }
+4125-
+4126-        ctx.drawImage(sCanvas, -256, -400);
+4127-
+4128-        ctx.restore();
+4129-    }
+4130-
+4131-
+4132-    var g_cachedHoopGeometry = null;
+4133-
+4134-    function drawHoop(p) {
+4135-        if (!p) return;
+4136-
+4137-        // --- 3D Hoop Constants ---
+4138-        const rimZ = HOOP_POS.z;
+4139-        const rimY = HOOP_POS.y;
+4140-        const rimX = HOOP_POS.x;
+4141-
+4142-        // Orientation: Forward Vector towards Classic Start (433, 300) from Hoop (733, 150)
+4143-        // Dynamic Orientation based on player position
+4144-        let dx = player3D.x - HOOP_POS.x;
+4145-        let dy = player3D.y - HOOP_POS.y;
+4146-
+4147-        if (currentGameMode === 'CONTEST') {
+4148-            // Fix angle to face "Top" (Rack 3) position
+4149-            // Rack 3 is at (420, 306). HOOP at (733, 150).
+4150-            dx = 420 - 733;
+4151-            dy = 306 - 150;
+4152-        }
+4153-
+4154-        let len = Math.sqrt(dx*dx + dy*dy);
+4155-        if (len < 1) { dx = -300; dy = 150; len = Math.sqrt(dx*dx + dy*dy); } // Fallback
+4156-
+4157-        const fX = dx / len;
+4158-        const fY = dy / len;
+4159-        // Right Vector: (fY, -fX)
+4160-        const rX = fY;
+4161-        const rY = -fX;
+4162-
+4163-        // Geometry Dimensions
+4164-        const bbDist = 40; // Backboard behind rim
+4165-        const bbCX = rimX - fX * bbDist;
+4166-        const bbCY = rimY - fY * bbDist;
+4167-        const bbCZ = rimZ + 30;
+4168-        const bbW = 60; // Half Width
+4169-        const bbH = 45; // Half Height
+4170-
+4171-        const rimRadius = 25; // Matching ball radius approx
+4172-
+4173-        // --- Generate Vertices ---
+4174-
+4175-        // Backboard Corners
+4176-        const bbVerts = [
+4177-            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ + bbH }, // TL
+4178-            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ + bbH }, // TR
+4179-            { x: bbCX + rX * bbW, y: bbCY + rY * bbW, z: bbCZ - bbH }, // BR
+4180-            { x: bbCX - rX * bbW, y: bbCY - rY * bbW, z: bbCZ - bbH }  // BL
+4181-        ];
+4182-
+4183-        // Inner Square (Target) - On Surface
+4184-        const isW = 20; const isH = 15; const isYOffset = -15;
+4185-        const isVerts = [
+4186-            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset + isH },
+4187-            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset + isH },
+4188-            { x: bbCX + rX * isW, y: bbCY + rY * isW, z: bbCZ + isYOffset - isH },
+4189-            { x: bbCX - rX * isW, y: bbCY - rY * isW, z: bbCZ + isYOffset - isH }
+4190-        ];
+4191-
+4192-        // Rim Circle & Net Points (Cached)
+4193-        if (!g_cachedHoopGeometry) {
+4194-            const rPts = [];
+4195-            const segs = 24;
+4196-            for(let i=0; i<segs; i++) {
+4197-                const a = (i/segs) * Math.PI * 2;
+4198-                const rx = Math.cos(a) * rimRadius;
+4199-                const ry = Math.sin(a) * rimRadius;
+4200-                rPts.push({ x: rimX + rx, y: rimY + ry, z: rimZ });
+4201-            }
+4202-
+4203-            const nPts = [];
+4204-            const netLen = 35;
+4205-            const netBotRad = 12;
+4206-            const netSegs = 12;
+4207-            for(let i=0; i<netSegs; i++) {
+4208-                 const a = (i/netSegs) * Math.PI * 2;
+4209-                 nPts.push({
+4210-                     x: rimX + Math.cos(a)*netBotRad,
+4211-                     y: rimY + Math.sin(a)*netBotRad,
+4212-                     z: rimZ - netLen
+4213-                 });
+4214-            }
+4215-            g_cachedHoopGeometry = { rimPoints: rPts, netPointsBot: nPts, segs: segs, netSegs: netSegs };
+4216-        }
+4217-
+4218-        const { rimPoints, netPointsBot, segs, netSegs } = g_cachedHoopGeometry;
+4219-
+4220-        // Pole
+4221-        const poleX = bbCX - fX * 20;
+4222-        const poleY = bbCY - fY * 20;
+4223-
+4224-        // --- Project & Cull ---
+4225-        // Using global project() which uses g_camCache
+4226-
+4227-        const projBB = bbVerts.map(v => project(v.x, v.y, v.z));
+4228-        const projIS = isVerts.map(v => project(v.x, v.y, v.z));
+4229-        const projRim = rimPoints.map(v => project(v.x, v.y, v.z));
+4230-        const projNetBot = netPointsBot.map(v => project(v.x, v.y, v.z));
+4231-        const projPoleTop = project(poleX, poleY, bbCZ);
+4232-        const projPoleBot = project(poleX, poleY, 0);
+4233-
+4234-        if (projBB.some(v => !v) || projRim.some(v => !v)) return; // Occluded behind camera
+4235-
+4236-        // --- Sorting ---
+4237-        const camX = g_camCache.x; const camY = g_camCache.y;
+4238-        const distBB = Math.sqrt((bbCX-camX)**2 + (bbCY-camY)**2);
+4239-        const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
+4240-
+4241-        // --- Draw Functions ---
+4242-        const isOnFire = currentStreak >= 5;
+4243-
+4244-        const drawPole = () => {
+4245-            if(projPoleTop && projPoleBot) {
+4246-                ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
+4247-                ctx.beginPath(); ctx.moveTo(projPoleBot.x, projPoleBot.y); ctx.lineTo(projPoleTop.x, projPoleTop.y); ctx.stroke();
+4248-            }
+4249-        };
+4250-
+4251-        const drawBackboard = () => {
+4252-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+4253-            ctx.strokeStyle = '#333'; ctx.lineWidth = 2 * projBB[0].scale;
+4254-            ctx.beginPath();
+4255-            ctx.moveTo(projBB[0].x, projBB[0].y);
+4256-            for(let i=1; i<4; i++) ctx.lineTo(projBB[i].x, projBB[i].y);
+4257-            ctx.closePath();
+4258-            ctx.fill(); ctx.stroke();
+4259-
+4260-            // Inner Square
+4261-            ctx.strokeStyle = '#CE1126'; ctx.lineWidth = 2 * projBB[0].scale;
+4262-            ctx.beginPath();
+4263-            ctx.moveTo(projIS[0].x, projIS[0].y);
+4264-            for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
+4265-            ctx.closePath();
+4266-            ctx.stroke();
+4267-
+4268-            // Streak Fire Outline around Backboard
+4269-            if (isOnFire) {
+4270-                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+4271-                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+4272-                ctx.stroke();
+4273-                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+4274-                ctx.lineWidth = 4 * projBB[0].scale;
+4275-                ctx.stroke();
+4276-            }
+4277-        };
+4278-
+4279-        const drawRimAndNet = () => {
+4280-            const s = projRim[0].scale;
+4281-            // Net (White Lines)
+4282-            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1 * s;
+4283-
+4284-            // Vertical(ish) Lines
+4285-            for(let i=0; i<segs; i+=2) {
+4286-                const rimP = projRim[i];
+4287-                const botIdx = Math.floor((i / segs) * netSegs);
+4288-                const netP = projNetBot[botIdx];
+4289-                if(rimP && netP) {
+4290-                    ctx.beginPath(); ctx.moveTo(rimP.x, rimP.y); ctx.lineTo(netP.x, netP.y); ctx.stroke();
+4291-                }
+4292-            }
+4293-            // Bottom Ring
+4294-            ctx.beginPath();
+4295-            let first=true;
+4296-            projNetBot.forEach(pt => { if(!pt) return; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+4297-            ctx.closePath(); ctx.stroke();
+4298-
+4299-            // Rim (Orange Thick Loop)
+4300-            ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 4 * s;
+4301-            ctx.beginPath();
+4302-            first = true;
+4303-            projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+4304-            ctx.closePath(); ctx.stroke();
+4305-
+4306-            // Glow Rim if on fire
+4307-            if (isOnFire) {
+4308-                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+4309-                ctx.lineWidth = 12 * s;
+4310-                ctx.stroke();
+4311-            }
+4312-        };
+4313-
+4314-        // Render Order (Painter's Algorithm)
+4315-        drawPole();
+4316-        if (distBB > distRim) {
+4317-            drawBackboard();
+4318-            drawRimAndNet();
+4319-        } else {
+4320-            drawRimAndNet();
+4321-            drawBackboard();
+4322-        }
+4323-    }
+4324-    // Cached objects for drawMuscleLimb optimization
+4325-    var g_muscleGradientPattern = null;
+4326-    var g_muscleMatrix = (typeof DOMMatrix !== 'undefined') ? new DOMMatrix() : null;
+4327-
+4328-    function drawMuscleLimb(x1, y1, x2, y2, width, color, type, s, hasTattoos) {
+4329-        // type: 'thigh' or 'calf' or 'standard'
+4330-        const angle = Math.atan2(y2 - y1, x2 - x1);
+4331-        const len = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+4332-
+4333-        ctx.save();
+4334-        ctx.translate(x1, y1);
+4335-        ctx.rotate(angle);
+4336-
+4337-        const w = width / 2;
+4338-        let startW = w;
+4339-        let endW = w;
+4340-
+4341-        if (type === 'thigh') {
+4342-            endW = w * 0.7;
+4343-        } else if (type === 'calf') {
+4344-            startW = w * 0.7;
+4345-            endW = w * 0.5;
+4346-        }
+4347-
+4348-        ctx.beginPath();
+4349-
+4350-        // Start Cap
+4351-        ctx.arc(0, 0, startW, Math.PI/2, -Math.PI/2);
+4352-
+4353-        if (type === 'thigh') {
+4354-            if (playerData.graphics === 'HIGH') {
+4355-                 // Enhanced Quadriceps
+4356-                 ctx.bezierCurveTo(len*0.3, -w*1.5, len*0.7, -w*1.5, len, -endW);
+4357-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+4358-                 ctx.bezierCurveTo(len*0.7, w*1.3, len*0.3, w*1.3, 0, startW);
+4359-            } else {
+4360-                 ctx.lineTo(len, -endW);
+4361-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+4362-                 ctx.lineTo(0, startW);
+4363-            }
+4364-        } else if (type === 'calf') {
+4365-            if (playerData.graphics === 'HIGH') {
+4366-                 // Defined Calf
+4367-                 ctx.bezierCurveTo(len*0.25, -w*1.6, len*0.6, -w*1.3, len, -endW);
+4368-                 ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+4369-                 ctx.bezierCurveTo(len*0.5, w*1.2, len*0.2, w*1.2, 0, startW);
+4370-            } else {
+4371-                ctx.quadraticCurveTo(len * 0.3, -w * 1.4, len, -endW);
+4372-                ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+4373-                ctx.quadraticCurveTo(len * 0.3, w * 1.4, 0, startW);
+4374-            }
+4375-        } else {
+4376-            ctx.lineTo(len, -endW);
+4377-            ctx.arc(len, 0, endW, -Math.PI/2, Math.PI/2);
+4378-            ctx.lineTo(0, startW);
+4379-        }
+4380-        ctx.closePath();
+4381-
+4382-        // 1. Base Color Fill
+4383-        ctx.fillStyle = color;
+4384-        ctx.fill();
+4385-
+4386-        // 2. 3D Volume Gradient (Cylinder Effect)
+4387-        if (playerData.graphics === 'HIGH') {
+4388-            if (g_muscleMatrix && ctx.createPattern) {
+4389-                // Optimization: Reuse CanvasPattern and DOMMatrix
+4390-                if (!g_muscleGradientPattern) {
+4391-                    const gradCanvas = document.createElement('canvas');
+4392-                    gradCanvas.width = 1;
+4393-                    gradCanvas.height = 256;
+4394-                    const gCtx = gradCanvas.getContext('2d');
+4395-                    const grad = gCtx.createLinearGradient(0, 0, 0, 256);
+4396-                    grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+4397-                    grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+4398-                    grad.addColorStop(0.35, 'rgba(255,255,255,0.3)'); // Stronger Specular Shine
+4399-                    grad.addColorStop(0.6, 'rgba(0,0,0,0)');
+4400-                    grad.addColorStop(0.9, 'rgba(0,0,0,0.5)');
+4401-                    grad.addColorStop(1, 'rgba(0,0,0,0.7)'); // Darkest Edge
+4402-                    gCtx.fillStyle = grad;
+4403-                    gCtx.fillRect(0, 0, 1, 256);
+4404-                    g_muscleGradientPattern = ctx.createPattern(gradCanvas, 'repeat-x');
+4405-                }
+4406-
+4407-                // Update Matrix: Scale 256px height to 2*w height, translate to -w
+4408-                // Target Y range: -w to w. Source Y range: 0 to 256.
+4409-                // y_new = y_old * scale + translate
+4410-                // 0 -> -w  => translate = -w
+4411-                // 256 -> w => 256 * scale - w = w => 256 * scale = 2w => scale = 2w / 256
+4412-                g_muscleMatrix.a = 1; g_muscleMatrix.b = 0;
+4413-                g_muscleMatrix.c = 0; g_muscleMatrix.d = (2 * w) / 256;
+4414-                g_muscleMatrix.e = 0; g_muscleMatrix.f = -w;
+4415-
+4416-                g_muscleGradientPattern.setTransform(g_muscleMatrix);
+4417-                ctx.fillStyle = g_muscleGradientPattern;
+4418-            } else {
+4419-                // Fallback for environments without DOMMatrix
+4420-                const grad = ctx.createLinearGradient(0, -w, 0, w);
+4421-                grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+4422-                grad.addColorStop(0.2, 'rgba(0,0,0,0.1)');
+4423-                grad.addColorStop(0.35, 'rgba(255,255,255,0.35)'); // Sharp Highlight (Wet skin)
+4424-                grad.addColorStop(0.55, 'rgba(255,255,255,0.05)');
+4425-                grad.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+4426-                grad.addColorStop(1, 'rgba(0,0,0,0.6)');
+4427-                ctx.fillStyle = grad;
+4428-            }
+4429-            ctx.fill();
+4430-
+4431-            // 3. Tattoos Overlay
+4432-            if (hasTattoos) {
+4433-                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
+4434-                 // Tribal pattern - repeated along limb
+4435-                 for(let i=0; i<3; i++) {
+4436-                     const tx = (len * 0.2) + (i * (len * 0.25));
+4437-                     ctx.beginPath();
+4438-                     ctx.moveTo(tx, -startW*0.4);
+4439-                     ctx.lineTo(tx + (len*0.1), 0);
+4440-                     ctx.lineTo(tx, startW*0.4);
+4441-                     ctx.lineTo(tx - (len*0.05), 0);
+4442-                     ctx.fill();
+4443-                 }
+4444-                 // Crosshatch
+4445-                 ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+4446-                 ctx.beginPath();
+4447-                 ctx.moveTo(len*0.1, -startW); ctx.lineTo(len*0.9, startW);
+4448-                 ctx.moveTo(len*0.1, startW); ctx.lineTo(len*0.9, -startW);
+4449-                 ctx.stroke();
+4450-            }
+4451-
+4452-            // 4. Muscle Definition Highlights
+4453-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+4454-            ctx.lineWidth = w * 0.3;
+4455-            ctx.lineCap = 'round';
+4456-            ctx.beginPath();
+4457-            ctx.moveTo(len * 0.2, -w * 0.5);
+4458-            ctx.quadraticCurveTo(len * 0.5, -w * 0.8, len * 0.8, -w * 0.5);
+4459-            ctx.stroke();
+4460-        }
+4461-
+4462-        ctx.restore();
+4463-    }
+4464-
+4465-        function drawRealisticShoe(x, y, w, h, color, isRight, type, detailColor, s, pattern) {
+4466-        type = type || 'sneakers';
+4467-        const soleColor = '#EEE';
+4468-        const laceColor = detailColor || 'rgba(0,0,0,0.3)';
+4469-
+4470-        ctx.save();
+4471-        ctx.translate(x, y);
+4472-
+4473-        // Helper for mirroring details based on foot
+4474-        // Note: Render logic here assumes back view.
+4475-        // Left foot (isRight=false) is on left of screen. Right foot is on right.
+4476-        // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
+4477-        const sideMult = isRight ? 1 : -1;
+4478-
+4479-        if (type === 'clown') {
+4480-            ctx.fillStyle = color;
+4481-            ctx.beginPath();
+4482-            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+4483-            ctx.fill();
+4484-            ctx.fillStyle = detailColor || '#FFFF00';
+4485-            ctx.beginPath();
+4486-            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+4487-            ctx.fill();
+4488-        } else if (type === 'rollerblades') {
+4489-            ctx.fillStyle = color;
+4490-            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+4491-            ctx.fillStyle = '#AAA';
+4492-            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+4493-            ctx.fillStyle = detailColor || '#00FFFF';
+4494-            // Wheels
+4495-            for (let i = -0.6; i <= 0.6; i += 0.4) {
+4496-                ctx.beginPath();
+4497-                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+4498-                ctx.fill();
+4499-            }
+4500-        } else if (type === 'flipflops') {
+4501-            ctx.fillStyle = color; // Sole
+4502-            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+4503-            ctx.strokeStyle = detailColor || '#000'; // Strap
+4504-            ctx.lineWidth = 2 * s;
+4505-            ctx.beginPath();
+4506-            ctx.moveTo(-w * 0.5, h * 0.3);
+4507-            ctx.lineTo(0, 0);
+4508-            ctx.lineTo(w * 0.5, h * 0.3);
+4509-            ctx.stroke();
+4510-        } else if (type === 'foam') {
+4511-            // Yeezy Foam Runner (Blobby, porous)
+4512-            ctx.fillStyle = color;
+4513-            ctx.beginPath();
+4514-            // Organic Shape
+4515-            ctx.moveTo(-w*0.6, -h*0.5);
+4516-            ctx.quadraticCurveTo(-w, 0, -w*0.8, h*0.5);
+4517-            ctx.quadraticCurveTo(0, h*0.8, w*0.8, h*0.5);
+4518-            ctx.quadraticCurveTo(w, 0, w*0.6, -h*0.5);
+4519-            ctx.fill();
+4520-
+4521-            // Holes
+4522-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+4523-            const holes = [[0,0,0.3], [0.5,0.2,0.2], [-0.5,0.2,0.2], [0, -0.3, 0.25]];
+4524-            holes.forEach(p => {
+4525-                ctx.beginPath();
+4526-                ctx.ellipse(p[0]*w, p[1]*h, p[2]*w, p[2]*h*0.6, 0, 0, Math.PI*2);
+4527-                ctx.fill();
+4528-            });
+4529-
+4530-        } else if (type === 'hightop_canvas') {
+4531-            // Converse (Canvas texture, toe cap, logo)
+4532-            // Sole
+4533-            ctx.fillStyle = '#FFF';
+4534-            ctx.fillRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+4535-            ctx.strokeRect(-w*0.8, h*0.1, w*1.6, h*0.4);
+4536-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s;
+4537-            ctx.beginPath(); ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(w*0.8, h*0.3); ctx.stroke();
+4538-
+4539-            // Upper
+4540-            ctx.fillStyle = color;
+4541-            ctx.fillRect(-w*0.75, -h*0.8, w*1.5, h*0.9);
+4542-
+4543-            // White stitching
+4544-            ctx.strokeStyle = '#FFF'; ctx.setLineDash([2*s, 2*s]);
+4545-            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.8); ctx.lineTo(-w*0.4, h*0.1); ctx.stroke();
+4546-            ctx.beginPath(); ctx.moveTo(w*0.4, -h*0.8); ctx.lineTo(w*0.4, h*0.1); ctx.stroke();
+4547-            ctx.setLineDash([]);
+4548-
+4549-            // Star Logo (Inner side)
+4550-            // Left foot: Inner is Right side. Right foot: Inner is Left side.
+4551-            const logoX = isRight ? -w*0.5 : w*0.5;
+4552-            ctx.fillStyle = '#FFF';
+4553-            ctx.beginPath(); ctx.arc(logoX, -h*0.2, w*0.25, 0, Math.PI*2); ctx.fill();
+4554-            ctx.fillStyle = 'blue';
+4555-            ctx.beginPath(); ctx.moveTo(logoX, -h*0.25); ctx.lineTo(logoX+2*s, -h*0.15); ctx.lineTo(logoX-2*s, -h*0.15); ctx.fill();
+4556-
+4557-        } else if (type === 'slipon') {
+4558-            // Vans (Low, wide, pattern)
+4559-            // Sole
+4560-            ctx.fillStyle = '#FFF';
+4561-            ctx.beginPath(); ctx.ellipse(0, h*0.3, w*0.95, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+4562-
+4563-            // Upper
+4564-            ctx.fillStyle = color;
+4565-            ctx.beginPath(); ctx.ellipse(0, 0, w*0.9, h*0.5, 0, Math.PI, 0); ctx.fill();
+4566-
+4567-            // Checkerboard Pattern
+4568-            if (pattern === 'check') {
+4569-                ctx.fillStyle = '#000';
+4570-                const size = 4*s;
+4571-                for(let i=-2; i<=2; i++) {
+4572-                    for(let j=-2; j<=0; j++) {
+4573-                        if((i+j)%2===0) ctx.fillRect(i*size, j*size, size, size);
+4574-                    }
+4575-                }
+4576-            }
+4577-
+4578-        } else if (type === 'retro_bulky' || type === 'retro') {
+4579-            // Jordan 4 / Yeezy 2 (Bulky tech)
+4580-
+4581-            // Sole (Chunky)
+4582-            ctx.fillStyle = soleColor;
+4583-            ctx.beginPath();
+4584-            ctx.moveTo(-w, h*0.5); ctx.lineTo(w, h*0.5); ctx.lineTo(w*0.9, 0); ctx.lineTo(-w*0.9, 0);
+4585-            ctx.fill();
+4586-
+4587-            // Midsole Detail
+4588-            if (type === 'retro_bulky') {
+4589-                ctx.fillStyle = detailColor; // Mudguard
+4590-                ctx.beginPath(); ctx.arc(0, 0, w*0.9, 0, Math.PI, true); ctx.fill();
+4591-
+4592-                // Air Bubble
+4593-                ctx.fillStyle = 'rgba(0,255,255,0.5)';
+4594-                ctx.fillRect(-w*0.3, h*0.2, w*0.6, h*0.2);
+4595-            }
+4596-
+4597-            // Upper
+4598-            ctx.fillStyle = color;
+4599-            ctx.beginPath();
+4600-            ctx.moveTo(-w*0.8, 0); ctx.lineTo(-w*0.7, -h*0.8); // High collar
+4601-            ctx.lineTo(w*0.7, -h*0.8); ctx.lineTo(w*0.8, 0);
+4602-            ctx.fill();
+4603-
+4604-            // Plastic Wings / Straps
+4605-            ctx.fillStyle = detailColor;
+4606-            if (type === 'retro_bulky') {
+4607-                // Triangle Wings
+4608-                ctx.beginPath(); ctx.moveTo(-w*0.7, -h*0.2); ctx.lineTo(-w*0.8, -h*0.6); ctx.lineTo(-w*0.5, -h*0.4); ctx.fill();
+4609-                ctx.beginPath(); ctx.moveTo(w*0.7, -h*0.2); ctx.lineTo(w*0.8, -h*0.6); ctx.lineTo(w*0.5, -h*0.4); ctx.fill();
+4610-                // Heel Tab
+4611-                ctx.fillRect(-w*0.4, -h*0.8, w*0.8, h*0.4);
+4612-            } else {
+4613-                // Spikes/Scales (Yeezy 2)
+4614-                ctx.strokeStyle = detailColor;
+4615-                for(let i=0; i<5; i++) {
+4616-                     ctx.beginPath(); ctx.moveTo(-w*0.8, -h*0.8 + i*5*s); ctx.lineTo(w*0.8, -h*0.8 + i*5*s); ctx.stroke();
+4617-                }
+4618-            }
+4619-
+4620-        } else if (type === 'hightop_future') {
+4621-            // Mag
+4622-            ctx.fillStyle = '#EEE'; // Sole
+4623-            ctx.fillRect(-w*0.9, h*0.2, w*1.8, h*0.3);
+4624-            // Lights
+4625-            ctx.fillStyle = detailColor; ctx.shadowBlur = 5*s; ctx.shadowColor = detailColor;
+4626-            ctx.fillRect(-w*0.4, h*0.3, 5*s, 5*s);
+4627-            ctx.shadowBlur = 0;
+4628-
+4629-            // Tall Upper
+4630-            ctx.fillStyle = color;
+4631-            ctx.fillRect(-w*0.8, -h*1.2, w*1.6, h*1.4);
+4632-            // Straps
+4633-            ctx.fillStyle = '#FFF';
+4634-            ctx.fillRect(-w*0.85, -h*1.0, w*1.7, h*0.2);
+4635-            ctx.fillStyle = 'rgba(0,255,255,0.5)'; // Light up logo
+4636-            ctx.fillText("AIR", -w*0.3, -h*1.0 + 10*s);
+4637-
+4638-        } else if (type === 'boots_work' || type === 'boots') {
+4639-            // Timberland
+4640-            ctx.fillStyle = '#333'; // Lug Sole
+4641-            ctx.fillRect(-w*0.9, h*0.3, w*1.8, h*0.2);
+4642-
+4643-            ctx.fillStyle = color;
+4644-            ctx.beginPath();
+4645-            ctx.moveTo(-w*0.8, h*0.3); ctx.lineTo(-w*0.8, -h*0.8);
+4646-            ctx.lineTo(w*0.8, -h*0.8); ctx.lineTo(w*0.8, h*0.3);
+4647-            ctx.fill();
+4648-
+4649-            // Padded Collar
+4650-            ctx.fillStyle = detailColor;
+4651-            ctx.fillRect(-w*0.85, -h*0.9, w*1.7, h*0.25);
+4652-
+4653-            // Laces
+4654-            ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 2*s;
+4655-            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.stroke();
+4656-            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.2); ctx.lineTo(w*0.4, -h*0.2); ctx.stroke();
+4657-
+4658-        } else if (type === 'hightop') {
+4659-            // J1 Style
+4660-            ctx.fillStyle = soleColor;
+4661-            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.25, 0, 0, Math.PI*2); ctx.fill();
+4662-
+4663-            ctx.fillStyle = color; // Main
+4664-            ctx.beginPath(); ctx.arc(0, -h*0.2, w*0.9, 0, Math.PI*2); ctx.fill(); // Heel cup
+4665-
+4666-            ctx.fillStyle = detailColor; // Swoosh-like or panels
+4667-            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.5); ctx.lineTo(w*0.4, -h*0.5); ctx.lineTo(w*0.4, h*0.2); ctx.lineTo(-w*0.4, h*0.2); ctx.fill(); // Tongue area
+4668-
+4669-            // High ankle collar
+4670-            ctx.fillStyle = detailColor;
+4671-            ctx.fillRect(-w*0.8, -h*0.8, w*1.6, h*0.4);
+4672-
+4673-        } else if (type === 'heels') {
+4674-             ctx.fillStyle = color;
+4675-             ctx.beginPath(); ctx.ellipse(0, 0, w*0.8, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+4676-             ctx.strokeStyle = color; ctx.lineWidth = 3*s;
+4677-             ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.lineTo(0, h*0.8); ctx.stroke();
+4678-
+4679-        } else if (type === 'sandals' || type === 'slides') {
+4680-             ctx.fillStyle = '#D2B48C'; // Foot/Sole
+4681-             ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+4682-             ctx.fillStyle = color; // Strap
+4683-             ctx.fillRect(-w*0.8, -h*0.1, w*1.6, h*0.4);
+4684-
+4685-        } else if (type === 'cleats') {
+4686-            ctx.fillStyle = color;
+4687-            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.8, h*0.4, 0, 0, Math.PI*2); ctx.fill();
+4688-            // Studs
+4689-            ctx.fillStyle = '#FFF';
+4690-            ctx.beginPath(); ctx.arc(-w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+4691-            ctx.beginPath(); ctx.arc(w*0.5, h*0.5, 2*s, 0, Math.PI*2); ctx.fill();
+4692-
+4693-        } else if (type === 'slippers_bunny') {
+4694-            ctx.fillStyle = '#FFF';
+4695-            ctx.beginPath(); ctx.ellipse(0, h*0.1, w*1.1, h*0.5, 0, 0, Math.PI*2); ctx.fill();
+4696-            // Ears
+4697-            ctx.fillStyle = 'pink';
+4698-            ctx.beginPath(); ctx.ellipse(-w*0.4, -h*0.5, 3*s, 8*s, -0.3, 0, Math.PI*2); ctx.fill();
+4699-            ctx.beginPath(); ctx.ellipse(w*0.4, -h*0.5, 3*s, 8*s, 0.3, 0, Math.PI*2); ctx.fill();
+4700-
+4701-        } else {
+4702-            // Default Sneakers (Low Top)
+4703-            ctx.fillStyle = soleColor;
+4704-            ctx.beginPath(); ctx.ellipse(0, h*0.3, w, h*0.3, 0, 0, Math.PI*2); ctx.fill();
+4705-            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.stroke();
+4706-
+4707-            ctx.fillStyle = color;
+4708-            ctx.beginPath(); ctx.arc(0, -h*0.1, w*0.9, 0, Math.PI*2); ctx.fill();
+4709-
+4710-            // Tongue
+4711-            ctx.fillStyle = detailColor || '#FFF';
+4712-            ctx.beginPath(); ctx.arc(0, -h*0.3, w*0.5, Math.PI, 0); ctx.fill();
+4713-
+4714-            // Laces
+4715-            ctx.strokeStyle = laceColor; ctx.lineWidth = 2*s;
+4716-            ctx.beginPath(); ctx.moveTo(-w*0.4, -h*0.3); ctx.lineTo(w*0.4, -h*0.3); ctx.stroke();
+4717-        }
+4718-
+4719-        ctx.restore();
+4720-    }
+4721-
+4722-    // --- OPTIMIZATION: Gradient Caching ---
+4723-    const GRAD_CANVAS_SIZE = 64; // Power of 2 for performance
+4724-    const g_gradientCache = {};
+4725-
+4726-    function getCachedPattern(key, generator) {
+4727-        if (g_gradientCache[key]) {
+4728-            return g_gradientCache[key];
+4729-        }
+4730-
+4731-        const gradCanvas = document.createElement('canvas');
+4732-        gradCanvas.width = GRAD_CANVAS_SIZE;
+4733-        gradCanvas.height = GRAD_CANVAS_SIZE;
+4734-        const gradCtx = gradCanvas.getContext('2d');
+4735-
+4736-        generator(gradCtx, GRAD_CANVAS_SIZE);
+4737-
+4738-        const pattern = ctx.createPattern(gradCanvas, 'repeat');
+4739-        g_gradientCache[key] = pattern;
+4740-        return pattern;
+4741-    }
+4742-
+4743-    function drawJersey(cx, topY, baseW, h, scale, skinObj, anchors = null) {
+4744-        // baseW passed here is now the HIP WIDTH (matching pants)
+4745-        const color = skinObj.jerseyColor || '#FFF';
+4746-
+4747-        let slX, srX, sY, blX, brX, bY;
+4748-
+4749-        // Base Dimensions relative to Hip Width
+4750-        // "Shoulder width just a bit larger than hips" -> 1.2x hips
+4751-        const baseShoulderW = baseW * 1.2;
+4752-        const baseWaistW = baseW; // Exact match to hips
+4753-
+4754-        if (anchors && anchors.shoulders) {
+4755-            // If we have anchors, prioritize them but nudge towards our new ideal proportion
+4756-            // Calculate anchor widths
+4757-            const anchorSW = (anchors.shoulders.right.x - anchors.shoulders.left.x);
+4758-            // Blend anchor with ideal (Weighted towards ideal for "clothing" shape)
+4759-            const targetSW = Math.max(anchorSW, baseShoulderW);
+4760-
+4761-            slX = cx - targetSW/2;
+4762-            srX = cx + targetSW/2;
+4763-            sY = anchors.shoulders.left.y;
+4764-
+4765-            // For bottom, force alignment with baseWaistW (Hips)
+4766-            blX = cx - baseWaistW/2;
+4767-            brX = cx + baseWaistW/2;
+4768-            bY = topY + h;
+4769-        } else {
+4770-            // Standard Construction
+4771-            slX = cx - baseShoulderW/2;
+4772-            srX = cx + baseShoulderW/2;
+4773-            sY = topY;
+4774-
+4775-            blX = cx - baseWaistW/2;
+4776-            brX = cx + baseWaistW/2;
+4777-            bY = topY + h;
+4778-        }
+4779-
+4780-        const shoulderW = srX - slX;
+4781-        const waistW = brX - blX;
+4782-        const bottomY = bY;
+4783-        const armpitY = sY + h * 0.4;
+4784-
+4785-        // DETERMINE FIT TYPE
+4786-        let fitType = 'standard';
+4787-        const ct = skinObj.clothingType;
+4788-        if (['hoodie', 'sweatshirt'].includes(ct)) fitType = 'baggy';
+4789-        else if (['jacket', 'track'].includes(ct)) fitType = 'boxy';
+4790-        else if (ct === 'robe') fitType = 'robe';
+4791-        else if (['vest', 'tank'].includes(ct)) fitType = 'fitted';
+4792-
+4793-        // Calculate Relative Widths from our new standard baselines
+4794-        const halfHip = waistW / 2;
+4795-        const halfShoulder = shoulderW / 2;
+4796-
+4797-        // DRAW PATH BASED ON FIT
+4798-        ctx.beginPath();
+4799-
+4800-        if (fitType === 'baggy') {
+4801-            // Pear shape: Shoulders sloped, body wider than hips
+4802-            const slopeY = sY + h * 0.1;
+4803-            // Bulge width slightly larger than hips (1.1x)
+4804-            const bulgeW = halfHip * 1.15;
+4805-            // Hem width matches hips (1.0x) or slightly gathered (0.95x)? User said "base off hips".
+4806-            // Let's make hem match hips exactly for "physical correctness" of elastic band.
+4807-            const hemW = halfHip * 1.0;
+4808-
+4809-            // Shoulders (Sloped down)
+4810-            ctx.moveTo(slX, slopeY);
+4811-            ctx.quadraticCurveTo(cx, sY - h*0.05, srX, slopeY); // Neck arc
+4812-
+4813-            // Right Side (Bulge out then in to hip)
+4814-            ctx.bezierCurveTo(cx + bulgeW, sY + h*0.5, cx + hemW, bY, cx + hemW, bY + h*0.05);
+4815-
+4816-            // Hem
+4817-            ctx.quadraticCurveTo(cx, bY + h*0.1, cx - hemW, bY + h*0.05);
+4818-
+4819-            // Left Side
+4820-            ctx.bezierCurveTo(cx - hemW, bY, cx - bulgeW, sY + h*0.5, slX, slopeY);
+4821-        }
+4822-        else if (fitType === 'boxy') {
+4823-            // Rectangle: Shoulders = Hips = Box
+4824-            // User said shoulder width > hips. Boxy jacket falls straight from shoulders?
+4825-            // If shoulders > hips, straight down means hem > hips.
+4826-            // Let's conform to shoulders.
+4827-
+4828-            ctx.moveTo(slX, sY);
+4829-            ctx.lineTo(srX, sY);
+4830-            ctx.lineTo(srX, bY + h*0.05); // Straight down from shoulder
+4831-            ctx.lineTo(slX, bY + h*0.05);
+4832-            ctx.lineTo(slX, sY);
+4833-        }
+4834-        else if (fitType === 'robe') {
+4835-            // Trapezoid: Flared bottom
+4836-            const robeBot = halfHip * 1.5;
+4837-            const robeLen = h * 1.3;
+4838-
+4839-            ctx.moveTo(slX, sY);
+4840-            ctx.lineTo(srX, sY);
+4841-            ctx.lineTo(cx + robeBot, sY + robeLen);
+4842-            ctx.lineTo(cx - robeBot, sY + robeLen);
+4843-            ctx.lineTo(slX, sY);
+4844-        }
+4845-        else if (fitType === 'fitted') {
+4846-            // V-Shape: Follows the base dimensions exactly (which are already V-shaped: 1.2x -> 1.0x)
+4847-            // Just slightly tighter at the waist/midsection?
+4848-            const waistPinch = halfHip * 0.9;
+4849-
+4850-            ctx.moveTo(slX, sY);
+4851-            ctx.lineTo(srX, sY);
+4852-            // Taper in
+4853-            ctx.quadraticCurveTo(cx + waistPinch, sY + h*0.6, brX, bY);
+4854-            ctx.lineTo(blX, bY);
+4855-            ctx.quadraticCurveTo(cx - waistPinch, sY + h*0.6, slX, sY);
+4856-        }
+4857-        else {
+4858-            // Standard Jersey (Existing logic)
+4859-            ctx.moveTo(slX, sY);
+4860-            // Gentle neck curve (High back collar)
+4861-            ctx.quadraticCurveTo(cx, sY - (shoulderW * 0.05), srX, sY);
+4862-
+4863-            // Right side
+4864-            ctx.lineTo(srX, armpitY);
+4865-            // Curve from armpit to bottom right (hip)
+4866-            ctx.quadraticCurveTo(cx + (srX-cx)*0.8, (armpitY+bY)/2, brX, bY);
+4867-
+4868-            // Bottom curve (Tuck)
+4869-            ctx.quadraticCurveTo(cx, bY + 3*scale, blX, bY);
+4870-
+4871-            // Left side
+4872-            ctx.quadraticCurveTo(cx - (srX-cx)*0.8, (armpitY+bY)/2, slX, armpitY);
+4873-            ctx.lineTo(slX, sY);
+4874-        }
+4875-
+4876-        ctx.closePath();
+4877-
+4878-        // Fill
+4879-        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+4880-        grad.addColorStop(0, color);
+4881-        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+4882-        grad.addColorStop(1, color);
+4883-
+4884-        ctx.fillStyle = color;
+4885-        ctx.fill();
+4886-        ctx.fillStyle = grad;
+4887-        ctx.globalCompositeOperation = 'source-atop';
+4888-        ctx.fill();
+4889-
+4890-        ctx.globalCompositeOperation = 'source-over';
+4891-
+4892-
+4893-        // --- PATTERNS ---
+4894-        // Pinstripes
+4895-        if(skinObj.pinstripesColor) {
+4896-            ctx.strokeStyle = skinObj.pinstripesColor;
+4897-            ctx.lineWidth = 1 * scale;
+4898-            const step = 4 * scale;
+4899-            for(let dx = -shoulderW/2; dx <= shoulderW/2; dx += step) {
+4900-                if(Math.abs(dx) < 2*scale) continue; // Skip spine
+4901-                ctx.beginPath();
+4902-                ctx.moveTo(cx + dx, sY);
+4903-                ctx.lineTo(cx + dx * 0.7, bottomY); // Taper in
+4904-                ctx.stroke();
+4905-            }
+4906-        }
+4907-
+4908-        // Side Panels
+4909-        if(skinObj.sideStripesColor) {
+4910-            ctx.fillStyle = skinObj.sideStripesColor;
+4911-            const stripeW = 3 * scale;
+4912-
+4913-            // Left Panel
+4914-            ctx.beginPath();
+4915-            ctx.moveTo(cx - shoulderW/2, armpitY);
+4916-            ctx.quadraticCurveTo(cx - waistW*0.6, (armpitY+bottomY)/2, cx - waistW/2, bottomY);
+4917-            ctx.lineTo(cx - waistW/2 + stripeW, bottomY);
+4918-            ctx.quadraticCurveTo(cx - waistW*0.6 + stripeW, (armpitY+bottomY)/2, cx - shoulderW/2 + stripeW, armpitY);
+4919-            ctx.fill();
+4920-
+4921-            // Right Panel
+4922-            ctx.beginPath();
+4923-            ctx.moveTo(cx + shoulderW/2, armpitY);
+4924-            ctx.quadraticCurveTo(cx + waistW*0.6, (armpitY+bottomY)/2, cx + waistW/2, bottomY);
+4925-            ctx.lineTo(cx + waistW/2 - stripeW, bottomY);
+4926-            ctx.quadraticCurveTo(cx + waistW*0.6 - stripeW, (armpitY+bottomY)/2, cx + shoulderW/2 - stripeW, armpitY);
+4927-            ctx.fill();
+4928-        }
+4929-
+4930-        ctx.globalCompositeOperation = 'source-over';
+4931-
+4932-        // Spine/Back Detail
+4933-        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+4934-        ctx.beginPath();
+4935-        ctx.moveTo(cx, topY + h*0.2);
+4936-        ctx.lineTo(cx + 1*scale, topY + h*0.7);
+4937-        ctx.lineTo(cx - 1*scale, topY + h*0.7);
+4938-        ctx.fill();
+4939-
+4940-        // Mesh Texture
+4941-        ctx.save();
+4942-        ctx.clip();
+4943-        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+4944-        for(let i=0; i<h; i+=4*scale) {
+4945-            if (i%8===0) ctx.fillRect(cx - shoulderW, topY + i, shoulderW*2, 1*scale);
+4946-        }
+4947-        ctx.restore();
+4948-
+4949-        // --- TRIM (Over Texture) ---
+4950-        if(skinObj.trimColor || skinObj.trimColors) {
+4951-            const colors = skinObj.trimColors || [skinObj.trimColor];
+4952-            const lineWidth = 2 * scale;
+4953-
+4954-            colors.forEach((col, i) => {
+4955-                ctx.strokeStyle = col;
+4956-                ctx.lineWidth = lineWidth;
+4957-                const offset = i * lineWidth;
+4958-
+4959-                // Neck (Horizontal-ish)
+4960-                ctx.beginPath();
+4961-                ctx.moveTo(cx - shoulderW/2 + offset, sY + offset);
+4962-                ctx.lineTo(cx + shoulderW/2 - offset, sY + offset);
+4963-                ctx.stroke();
+4964-
+4965-                // Armholes (Vertical-ish)
+4966-                // Left
+4967-                ctx.beginPath();
+4968-                ctx.moveTo(cx - shoulderW/2 + offset, sY + offset);
+4969-                ctx.lineTo(cx - shoulderW/2 + offset, armpitY - offset);
+4970-                ctx.stroke();
+4971-                // Right
+4972-                ctx.beginPath();
+4973-                ctx.moveTo(cx + shoulderW/2 - offset, sY + offset);
+4974-                ctx.lineTo(cx + shoulderW/2 - offset, armpitY - offset);
+4975-                ctx.stroke();
+4976-            });
+4977-        }
+4978-
+4979-        // Tuck Shadow at bottom
+4980-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+4981-        ctx.beginPath();
+4982-        ctx.moveTo(cx - waistW/2, bottomY);
+4983-        ctx.quadraticCurveTo(cx, bottomY + 3*scale, cx + waistW/2, bottomY);
+4984-        ctx.lineTo(cx + waistW/2, bottomY - 4*scale);
+4985-        ctx.quadraticCurveTo(cx, bottomY - 1*scale, cx - waistW/2, bottomY - 4*scale);
+4986-        ctx.fill();
+4987-    }
+4988-
+4989-    function drawLinkTunic(cx, topY, w, h, scale, skinObj, anchors = null) {
+4990-        const color = skinObj.jerseyColor || '#00A000';
+4991-        const beltColor = '#8B4513';
+4992-
+4993-        // Extended length for tunic
+4994-        const tunicLen = h * 1.2;
+4995-        let slX, srX, sY, wlX, wrX, wY, bY;
+4996-        let shoulderW, waistW;
+4997-
+4998-        if (anchors && anchors.shoulders) {
+4999-            slX = anchors.shoulders.left.x;
+5000-            srX = anchors.shoulders.right.x;
+5001-            sY = anchors.shoulders.left.y;
+5002-            wY = sY + h * 0.55;
+5003-            bY = sY + tunicLen;
+5004-
+5005-            // Waist width relative to hips
+5006-            let hipW = w;
+5007-            if (anchors.hips) {
+5008-                hipW = (anchors.hips.right.x - anchors.hips.left.x);
+5009-            }
+5010-            wlX = cx - hipW*0.6;
+5011-            wrX = cx + hipW*0.6;
+5012-
+5013-            shoulderW = srX - slX;
+5014-            waistW = wrX - wlX;
+5015-        } else {
+5016-            shoulderW = w * 1.6;
+5017-            waistW = w * 1.0;
+5018-            slX = cx - shoulderW/2;
+5019-            srX = cx + shoulderW/2;
+5020-            sY = topY;
+5021-            wY = topY + h * 0.55;
+5022-            bY = topY + tunicLen;
+5023-            wlX = cx - waistW/2;
+5024-            wrX = cx + waistW/2;
+5025-        }
+5026-
+5027-        const waistY = wY; // Alias for belt position
+5028-        const bottomW = (wrX - wlX) * 1.3; // Flare
+5029-
+5030-        // Main Tunic Shape
+5031-        ctx.beginPath();
+5032-        ctx.moveTo(slX, sY);
+5033-        ctx.lineTo(srX, sY);
+5034-
+5035-        // Sides to waist
+5036-        ctx.lineTo(wrX, wY);
+5037-        // Flared bottom (Skirt part of tunic)
+5038-        ctx.lineTo(cx + bottomW/2, bY);
+5039-        ctx.lineTo(cx - bottomW/2, bY);
+5040-        ctx.lineTo(wlX, wY);
+5041-        ctx.lineTo(slX, sY);
+5042-        ctx.closePath();
+5043-
+5044-        ctx.fillStyle = color;
+5045-        ctx.fill();
+5046-
+5047-        // Shading
+5048-        const grad = ctx.createLinearGradient(cx - shoulderW/2, topY, cx + shoulderW/2, topY);
+5049-        grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+5050-        grad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+5051-        grad.addColorStop(1, 'rgba(0,0,0,0.1)');
+5052-        ctx.fillStyle = grad;
+5053-        ctx.fill();
+5054-
+5055-        // Belt
+5056-        ctx.fillStyle = beltColor;
+5057-        ctx.fillRect(cx - waistW*0.55, waistY - 5*scale, waistW*1.1, 10*scale);
+5058-        // Buckle (silver)
+5059-        ctx.fillStyle = '#C0C0C0';
+5060-        ctx.fillRect(cx - 5*scale, waistY - 5*scale, 10*scale, 10*scale);
+5061-
+5062-        // Collar (Back)
+5063-        ctx.fillStyle = '#EEE'; // White undershirt collar
+5064-        ctx.beginPath();
+5065-        ctx.moveTo(cx - 10*scale, topY);
+5066-        ctx.quadraticCurveTo(cx, topY + 5*scale, cx + 10*scale, topY);
+5067-        ctx.lineTo(cx + 8*scale, topY - 2*scale);
+5068-        ctx.quadraticCurveTo(cx, topY + 3*scale, cx - 8*scale, topY - 2*scale);
+5069-        ctx.fill();
+5070-    }
+5071-
+5072-    function drawShorts(cx, waistY, w, h, scale, skinObj) {
+5073-        if (skinObj.shortsType === 'kilt') {
+5074-             const color = skinObj.shortsColor || '#5D4037'; // Leather
+5075-             const beltH = 5 * scale;
+5076-             const stripCount = 5;
+5077-             const stripW = w / stripCount;
+5078-
+5079-             // Belt
+5080-             ctx.fillStyle = '#3E2723';
+5081-             ctx.fillRect(cx - w/2, waistY, w, beltH);
+5082-             // Gold Buckle
+5083-             ctx.fillStyle = '#FFD700';
+5084-             ctx.fillRect(cx - w*0.1, waistY, w*0.2, beltH);
+5085-
+5086-             // Pteruges (Strips)
+5087-             for(let i=0; i<stripCount; i++) {
+5088-                 const sx = (cx - w/2) + i*stripW;
+5089-                 ctx.fillStyle = color;
+5090-                 // Main Strip
+5091-                 ctx.fillRect(sx + 1*scale, waistY + beltH, stripW - 2*scale, h - beltH);
+5092-
+5093-                 // Shadow/Edge
+5094-                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
+5095-                 ctx.fillRect(sx + 1*scale, waistY + beltH, 1*scale, h - beltH);
+5096-
+5097-                 // Stud Detail
+5098-                 ctx.fillStyle = '#C0C0C0';
+5099-                 ctx.beginPath(); ctx.arc(sx + stripW/2, waistY + h - 5*scale, 2*scale, 0, Math.PI*2); ctx.fill();
+5100-             }
+5101-             return;
+5102-        }
+5103-
+5104-        // Baggy Shorts
+5105-        const color = skinObj.shortsColor || '#FFF';
+--
+7590:    var PlayerRenderer = {
+7591-        draw: function(p) {
+7592-            // Optimization: Removed 4x MSAA Supersampling
+7593-        if (!p) return;
+7594-        const alpha = p.alpha !== undefined ? p.alpha : 1.0;
+7595-
+7596-        const s = p.scale;
+7597-        let skin = playerData.currentSkin;
+7598-
+7599-        // SHOP PREVIEW OVERRIDE
+7600-        if (state === 'SHOP' && typeof currentShopTab !== 'undefined' && currentShopTab === 'character' && typeof getSkinGroups === 'function') {
+7601-             try {
+7602-                 const currentAnimal = ANIMALS[viewingAnimalIndex];
+7603-                 const groups = getSkinGroups(currentAnimal);
+7604-                 const group = groups[viewingSkinIndex];
+7605-                 if (group) {
+7606-                     const variant = group[viewingVariantIndex] || group[0];
+7607-                     if (variant) skin = variant.id;
+7608-                 }
+7609-             } catch(e) { console.error("Preview error", e); }
+7610-        }
+7611-
+7612-        let skinObj;
+7613-        if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
+7614-            skinObj = g_cachedSkinObj;
+7615-        } else {
+7616-            skinObj = SKINS_DB_MAP.get(skin);
+7617-            if(!skinObj) skinObj = SKINS_DB[0];
+7618-
+7619-            if (state !== 'SHOP') {
+7620-                g_cachedSkinId = skin;
+7621-                g_cachedSkinObj = skinObj;
+7622-            }
+7623-        }
+7624-
+7625-        // Apply Custom Human Settings
+7626-        if (skin === 'human_custom') {
+7627-             // Create shallow copy
+7628-             skinObj = Object.assign({}, skinObj);
+7629-
+7630-             if (!playerData.customSkinSettings) playerData.customSkinSettings = { height: 1.0, width: 1.0, skinToneIndex: 4 };
+7631-             const cs = playerData.customSkinSettings;
+7632-
+7633-             // Base human is ~1.06 height (Anchor). Range 0.5 to 1.5 -> 0.53 to 1.59
+7634-             skinObj.heightScale = 1.06 * cs.height;
+7635-             skinObj.widthScale = 1.0 * cs.width;
+7636-
+7637-             // Arm/Leg width should scale with width?
+7638-             // Renderer defaults armWidth/legWidth to widthScale if not set.
+7639-             // But let's explicitly scale them to keep proportions or let it fallback.
+7640-             // Fallback logic: if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
+7641-             // This works fine.
+7642-
+7643-             if (typeof SKIN_TONES !== 'undefined' && SKIN_TONES[cs.skinToneIndex]) {
+7644-                 skinObj.skinTone = SKIN_TONES[cs.skinToneIndex];
+7645-             }
+7646-        }
+7647-
+7648-        // Apply Global Hair Overrides
+7649-        const hasCustomHair = (playerData.customHairstyle && playerData.customHairstyle !== 'default');
+7650-        const hasCustomColor = (playerData.customHairColorIndex !== undefined);
+7651-        const hasCustomLength = (playerData.customHairLength !== undefined && Math.abs(playerData.customHairLength - 1.0) > 0.01);
+7652-
+7653-        if (hasCustomHair || hasCustomLength || (hasCustomColor && (hasCustomHair || skin === 'human_custom'))) {
+7654-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+7655-
+7656-             if (hasCustomHair) {
+7657-                 skinObj.hairStyle = playerData.customHairstyle;
+7658-             }
+7659-
+7660-             if (hasCustomLength) {
+7661-                 skinObj.hairScale = playerData.customHairLength;
+7662-             }
+7663-
+7664-             if (hasCustomColor && (hasCustomHair || skin === 'human_custom')) {
+7665-                 if (typeof HAIR_COLORS !== 'undefined') {
+7666-                     skinObj.hairColor = HAIR_COLORS[playerData.customHairColorIndex];
+7667-                 }
+7668-             }
+7669-        }
+7670-
+7671-        // Apply Variant Overrides (Style 2)
+7672-        if (playerData.skinVariants && playerData.skinVariants[skin] === 1) {
+7673-             // Create shallow copy to avoid mutating global cache
+7674-             skinObj = Object.assign({}, skinObj);
+7675-             if (skinObj.hairStyle2) skinObj.hairStyle = skinObj.hairStyle2;
+7676-             if (skinObj.hairColor2) skinObj.hairColor = skinObj.hairColor2;
+7677-             if (skinObj.afroSize2) skinObj.afroSize = skinObj.afroSize2;
+7678-             if (skinObj.beard2 !== undefined) skinObj.beard = skinObj.beard2;
+7679-             if (skinObj.headbandColor2 !== undefined) skinObj.headbandColor = skinObj.headbandColor2;
+7680-             if (skinObj.pattern2) skinObj.pattern = skinObj.pattern2;
+7681-        }
+7682-
+7683-        // Apply Clothing Overrides
+7684-        // ROBUST LOOKUP: Ensure clothing data is populated even if previous steps failed
+7685-        if (playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
+7686-             // Ensure we are working on a copy
+7687-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+7688-
+7689-             // Force re-lookup to guarantee data integrity
+7690-             let clothing = g_clothingCache.get(playerData.currentClothing);
+7691-             if (!clothing) {
+7692-                 clothing = CLOTHING_DB_MAP.get(playerData.currentClothing);
+7693-                 if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
+7694-             }
+7695-
+7696-             if (clothing) {
+7697-                 skinObj.clothing = clothing; // Tag for later use
+7698-                 skinObj.jerseyColor = clothing.color;
+7699-
+7700-                 // Explicitly propagate type for shape logic
+7701-                 skinObj.clothingType = clothing.type;
+7702-                 skinObj.clothingStyle = clothing.style;
+7703-                 skinObj.clothingMaterial = clothing.material;
+7704-
+7705-                 if (clothing.type === 'tshirt') {
+7706-                     skinObj.jerseyType = 'tshirt';
+7707-                     skinObj.sleeveColor = null;
+7708-                 } else if (clothing.sleeveColor) {
+7709-                     skinObj.sleeveColor = clothing.sleeveColor;
+7710-                 }
+7711-
+7712-                 if (clothing.pattern) skinObj.pattern = clothing.pattern;
+7713-                 if (clothing.decal) skinObj.decal = clothing.decal;
+7714-
+7715-                 // Copy Jersey Details (Name, Number, Stripes)
+7716-                 if (clothing.jerseyName) skinObj.jerseyName = clothing.jerseyName;
+7717-                 if (clothing.number) skinObj.number = clothing.number;
+7718-                 if (clothing.numberColor) skinObj.numberColor = clothing.numberColor;
+7719-                 if (clothing.sideStripesColor) skinObj.sideStripesColor = clothing.sideStripesColor;
+7720-                 if (clothing.chestStripeColor) skinObj.chestStripeColor = clothing.chestStripeColor;
+7721-                 if (clothing.trimColor) skinObj.trimColor = clothing.trimColor;
+7722-                 if (clothing.pinstripesColor) skinObj.pinstripesColor = clothing.pinstripesColor;
+7723-
+7724-                 // Override back props if hoodie
+7725-                 if (clothing.type === 'hoodie') {
+7726-                     skinObj.backAccessory = 'hoodie_hood';
+7727-                     skinObj.backColor = clothing.hoodColor || clothing.color;
+7728-                 }
+7729-
+7730-                 // Remove conflicting built-in details
+7731-                 if (['track', 'hoodie', 'sweatshirt', 'jacket', 'vest', 'robe'].includes(clothing.type)) {
+7732-                     skinObj.clothingDetail = null; // Hide suspenders etc.
+7733-                     // Track suits often have stripes
+7734-                     if(clothing.stripeColor) {
+7735-                         if (clothing.pattern === 'stripes_side') {
+7736-                             skinObj.sideStripesColor = clothing.stripeColor;
+7737-                         } else {
+7738-                             skinObj.chestStripeColor = clothing.stripeColor;
+7739-                         }
+7740-                     }
+7741-                 }
+7742-             }
+7743-        }
+7744-
+7745-                // Apply Pants Overrides
+7746-        if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
+7747-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+7748-             let pants = g_pantsCache.get(playerData.currentPants);
+7749-             if (!pants) {
+7750-                 pants = PANTS_DB_MAP.get(playerData.currentPants);
+7751-                 if (pants) g_pantsCache.set(playerData.currentPants, pants);
+7752-             }
+7753-             if (pants) {
+7754-                 skinObj.shortsColor = pants.color;
+7755-                 if (pants.type === 'long') {
+7756-                     skinObj.legType = 'pants';
+7757-                 } else if (pants.type === 'short') {
+7758-                     skinObj.legType = null;
+7759-                     skinObj.shortsLength = 'short';
+7760-                 } else if (pants.type === 'tights') {
+7761-                     skinObj.legType = 'tights';
+7762-                 }
+7763-             }
+7764-        }
+7765-
+7766-        // Apply Shoes Overrides
+7767-        if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
+7768-             if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
+7769-             const shoe = SHOES_DB_MAP.get(playerData.currentShoes);
+7770-             if (shoe) {
+7771-                 skinObj.shoesColor = shoe.color;
+7772-                 skinObj.shoeType = shoe.type;
+7773-                 skinObj.shoeDetailColor = shoe.detailColor || shoe.color2;
+7774-                 skinObj.shoePattern = shoe.pattern;
+7775-             }
+7776-        }
+7777-
+7778-        const isMechanical = isMechanicalSkin(skinObj.id);
+7779-        const currentAnimal = skinObj.animal;
+7780-
+7781-        if (currentAnimal === 'human') {
+7782-            drawRealisticHuman(p, s, skinObj);
+7783-            return;
+7784-        }
+7785-
+7786-        let sizeMod = { w: 1, h: 1, head: 1, stance: 1.0, limbLen: 1.0, armWidth: 1.0, legWidth: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, snoutScale: 1.0, limbTaper: 0.7 };
+7787-        switch(currentAnimal) {
+7788-            case 'rat': sizeMod = { w: 0.7, h: 0.7, head: 0.8, stance: 0.8, limbLen: 0.85, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 0.8, snoutScale: 1.0, limbTaper: 0.7 }; break;
+7789-            case 'cat':
+7790-                sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 0.8, limbTaper: 0.7 };
+7791-                if (skin.includes('sphinx')) { sizeMod.w = 0.7; sizeMod.h = 0.85; sizeMod.head = 0.85; } // Skinny
+7792-                if (skin.includes('persian')) { sizeMod.w = 1.0; sizeMod.h = 0.8; sizeMod.head = 1.0; } // Fluffy
+7793-                if (skin.includes('panther')) { sizeMod.w = 0.9; sizeMod.h = 0.9; sizeMod.limbLen = 1.0; } // Athletic
+7794-                if (skin.includes('garfield')) { sizeMod.w = 1.1; sizeMod.h = 0.9; sizeMod.head = 1.1; } // Fat cat
+7795-                break;
+7796-            case 'rabbit': sizeMod = { w: 0.8, h: 0.8, head: 0.9, stance: 0.9, limbLen: 0.9, shoulderWidth: 0.6, footScale: 1.2, neckWidth: 0.8, limbTaper: 0.7 }; break;
+7797-            case 'dog':
+7798-                sizeMod = { w: 1.0, h: 1.0, head: 1.0, stance: 1.0, limbLen: 1.0, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.1, limbTaper: 0.7 };
+7799-                if (skin.includes('pug')) { sizeMod.w = 0.9; sizeMod.h = 0.75; sizeMod.head = 1.1; sizeMod.limbLen = 0.8; sizeMod.snoutScale = 0.5; } // Small & Flat
+7800-                if (skin.includes('husky') || skin.includes('police') || skin.includes('wolf')) { sizeMod.w = 1.05; sizeMod.h = 1.1; sizeMod.limbLen = 1.1; } // Athletic
+7801-                if (skin.includes('boxer')) { sizeMod.w = 1.1; sizeMod.h = 1.05; sizeMod.shoulderWidth = 0.9; } // Muscular
+7802-                if (skin.includes('dalmation')) { sizeMod.w = 0.95; sizeMod.h = 1.05; sizeMod.limbLen = 1.1; } // Lean
+7803-                break;
+7804-            case 'moose': sizeMod = { w: 1.2, h: 1.3, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.4, limbTaper: 0.7 }; break;
+7805-            case 'bear': sizeMod = { w: 1.4, h: 1.3, head: 1.2, stance: 1.6, limbLen: 0.7, armWidth: 1.3, legWidth: 1.5, shoulderWidth: 0.9, footScale: 1.3, neckWidth: 1.4, snoutScale: 1.2, limbTaper: 0.85 }; break;
+7806-            case 'human': sizeMod = { w: 0.9, h: 1.1, head: 0.9, stance: 1.0, limbLen: 1.0, shoulderWidth: 1.0, footScale: 1.0, neckWidth: 1.0, limbTaper: 0.8 }; break;
+7807-            case 'fox': sizeMod = { w: 0.9, h: 0.9, head: 0.95, stance: 0.95, limbLen: 0.95, shoulderWidth: 0.6, footScale: 0.9, neckWidth: 0.9, snoutScale: 1.1, limbTaper: 0.7 }; break;
+7808-            case 'wolf': sizeMod = { w: 1.1, h: 1.1, head: 1.1, stance: 1.05, limbLen: 1.05, legWidth: 1.1, shoulderWidth: 0.7, footScale: 1.0, neckWidth: 1.1, snoutScale: 1.2, limbTaper: 0.75 }; break;
+7809-            case 'lion': sizeMod = { w: 1.3, h: 1.2, head: 1.25, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1, limbTaper: 0.8 }; break;
+7810-            case 'tiger': sizeMod = { w: 1.3, h: 1.2, head: 1.2, stance: 1.2, limbLen: 1.05, legWidth: 1.25, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.1, limbTaper: 0.8 }; break;
+7811-            case 'pig': sizeMod = { w: 1.1, h: 0.9, head: 1.0, stance: 1.5, limbLen: 0.7, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.6, footScale: 0.8, neckWidth: 1.2, snoutScale: 1.0, limbTaper: 0.85 }; break;
+7812-            case 'cow': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.5, limbLen: 0.9, legWidth: 1.2, shoulderWidth: 0.7, footScale: 1.1, neckWidth: 1.3, snoutScale: 1.2, limbTaper: 0.85 }; break;
+7813-            case 'monkey': sizeMod = { w: 0.85, h: 0.9, head: 0.9, stance: 1.0, limbLen: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 0.8, limbTaper: 0.7 }; break;
+7814-            case 'penguin': sizeMod = { w: 1.0, h: 0.8, head: 0.9, stance: 1.1, limbLen: 0.5, shoulderWidth: 0.5, footScale: 1.3, neckWidth: 1.0, limbTaper: 0.8 }; break;
+7815-            case 'chicken': sizeMod = { w: 0.7, h: 0.7, head: 0.7, stance: 0.8, limbLen: 0.7, armWidth: 0.6, legWidth: 0.6, shoulderWidth: 0.5, footScale: 0.8, neckWidth: 0.6, limbTaper: 0.6 }; break;
+7816-            case 'frog': sizeMod = { w: 0.8, h: 0.7, head: 1.0, stance: 1.4, limbLen: 1.1, armWidth: 0.8, legWidth: 0.8, shoulderWidth: 0.6, footScale: 1.4, neckWidth: 0.8, limbTaper: 0.7 }; break;
+7817-            case 'turtle': sizeMod = { w: 1.1, h: 0.9, head: 0.9, stance: 1.2, limbLen: 0.6, armWidth: 1.2, legWidth: 1.2, shoulderWidth: 0.8, footScale: 1.1, neckWidth: 1.2, limbTaper: 0.8 }; break;
+7818-            case 'elephant': sizeMod = { w: 1.5, h: 1.3, head: 1.4, stance: 1.3, limbLen: 0.8, armWidth: 1.5, legWidth: 1.6, shoulderWidth: 0.9, footScale: 1.5, neckWidth: 1.5, limbTaper: 0.9 }; break;
+7819-            case 'dino': sizeMod = { w: 1.3, h: 1.3, head: 1.2, stance: 1.2, limbLen: 1.1, legWidth: 1.4, shoulderWidth: 0.7, footScale: 1.3, neckWidth: 1.2, snoutScale: 1.3, limbTaper: 0.8 }; break;
+7820-            case 'zebra': sizeMod = { w: 1.2, h: 1.2, head: 1.1, stance: 1.1, limbLen: 1.1, shoulderWidth: 0.75, footScale: 1.0, neckWidth: 1.2, snoutScale: 1.2, limbTaper: 0.7 }; break;
+7821-            case 'giraffe': sizeMod = { w: 1.2, h: 1.6, head: 1.0, stance: 1.2, limbLen: 1.5, shoulderWidth: 0.7, footScale: 1.2, neckWidth: 0.7, limbTaper: 0.7 }; break;
+7822-        }
+7823-
+7824-        // Apply Skin Overrides (Size & Proportions)
+7825-        if (skinObj.widthScale) sizeMod.w = skinObj.widthScale;
+7826-        if (skinObj.heightScale) sizeMod.h = skinObj.heightScale;
+7827-        if (skinObj.armWidthScale) sizeMod.armWidth = skinObj.armWidthScale;
+7828-        if (skinObj.legWidthScale) sizeMod.legWidth = skinObj.legWidthScale;
+7829-
+7830-        // Fill defaults if missing
+7831-        if (!sizeMod.armWidth) sizeMod.armWidth = sizeMod.w;
+7832-        if (!sizeMod.legWidth) sizeMod.legWidth = sizeMod.w;
+7833-
+7834-        // V-Taper / Hulk Body Size Adjustment
+7835-        if (currentAnimal === 'human' && skinObj.jerseyType === 'none') {
+7836-            sizeMod.w *= 1.5;
+7837-            sizeMod.h *= 1.5;
+7838-        }
+7839-
+7840-        // Determine if Furry
+7841-        const NON_FURRY_ANIMALS = ['dino', 'turtle', 'penguin', 'frog', 'elephant', 'human'];
+7842-        const isNonFurrySkin = skin.includes('robot') || skin.includes('astronaut') || skin.includes('alien') || skin.includes('ninja');
+7843-        let isFurry = !NON_FURRY_ANIMALS.includes(currentAnimal) && !isNonFurrySkin;
+7844-
+7845-        // 1. Setup Base Colors
+7846-        let furColor = '#555', tailColor = '#FFC0CB', torsoColor = '#555', legColor = '#555', armColor = '#555';
+7847-        let thighColor = '#555', calfColor = '#555';
+7848-        let bellyColor = null, hasSpots = false, hasBlackEars = false;
+7849-
+7850-        if (skin === 'bear_panda' || skinObj.hasBlackEars) hasBlackEars = true;
+7851-
+7852-        if(currentAnimal === 'rat') { furColor = '#696969'; tailColor = '#FFC0CB'; }
+7853-        else if(currentAnimal === 'cat') { furColor = '#808080'; tailColor = '#808080'; }
+7854-        else if(currentAnimal === 'dog') { furColor = '#8B4513'; tailColor = '#8B4513'; }
+7855-        else if(currentAnimal === 'bear') { furColor = '#4B3621'; tailColor = '#4B3621'; }
+7856-        else if(currentAnimal === 'rabbit') { furColor = '#fff'; tailColor = '#fff'; }
+7857-        else if(currentAnimal === 'moose') { furColor = '#5D4037'; tailColor = '#5D4037'; }
+7858-        else if(currentAnimal === 'fox') { furColor = '#D2691E'; tailColor = '#D2691E'; }
+7859-        else if(currentAnimal === 'wolf') { furColor = '#808080'; tailColor = '#808080'; }
+7860-        else if(currentAnimal === 'lion') { furColor = '#DAA520'; tailColor = '#DAA520'; }
+7861-        else if(currentAnimal === 'tiger') { furColor = '#FFA500'; tailColor = '#FFA500'; }
+7862-        else if(currentAnimal === 'pig') { furColor = '#FFC0CB'; tailColor = '#FFC0CB'; }
+7863-        else if(currentAnimal === 'cow') { furColor = '#FFF'; tailColor = '#FFF'; }
+7864-        else if(currentAnimal === 'monkey') { furColor = '#8B4513'; tailColor = '#8B4513'; }
+7865-        else if(currentAnimal === 'penguin') { furColor = '#000'; tailColor = '#000'; }
+7866-        else if(currentAnimal === 'human') {
+7867-            furColor = skinObj.skinTone || '#8d5524';
+7868-            tailColor = 'transparent';
+7869-        }
+7870-
+7871-        // 2. Apply Skin Overrides (Data Driven)
+7872-        // Biological overrides first
+7873-        if (skinObj.furColor) { furColor = skinObj.furColor; tailColor = skinObj.furColor; }
+7874-        if (skinObj.hasSpots) hasSpots = true;
+7875-
+7876-        if (skin.includes('alien')) { furColor = '#32CD32'; tailColor = '#32CD32'; }
+7877-        if (skin.includes('zombie')) { furColor = '#98FB98'; }
+7878-        if (skin.includes('robot')) { furColor = '#C0C0C0'; }
+7879-
+7880-        // Default clothes to fur color (naked)
+7881-        torsoColor = furColor; legColor = furColor; armColor = furColor;
+7882-        thighColor = legColor; calfColor = legColor;
+7883-
+7884-        // Clothing overrides
+7885-        torsoColor = skinObj.jerseyColor || furColor;
+7886-        thighColor = skinObj.shortsColor || furColor;
+7887-        calfColor = furColor; // Default exposed calf
+7888-
+7889-        // Arms: Default to fur, check for sleeves
+7890-        armColor = furColor;
+7891-        if (skinObj.sleeveColor) armColor = skinObj.sleeveColor;
+7892-
+7893-        // Legs: If "trousers" (long pants), calf follows thigh color
+7894-        if (skinObj.legType === 'pants') calfColor = thighColor;
+7895-        if (skinObj.legType === 'tights') calfColor = thighColor;
+7896-
+7897-        // Panda Logic (Black limbs)
+7898-        if (skinObj.legType === 'panda_limbs') {
+7899-            legColor = '#000'; thighColor = '#000'; calfColor = '#000'; armColor = '#000';
+7900-        }
+7901-
+7902-        // 0. Calculate Arm Config EARLY
+7903-        const getInterp = (prop) => {
+7904-            if (typeof g_animStateLast !== 'undefined' && g_animStateLast[prop] !== undefined) {
+7905-                return lerp(g_animStateLast[prop], g_animState[prop], alpha);
+7906-            }
+7907-            return g_animState[prop];
+7908-        };
+7909-
+7910-        const r_la = getInterp('la');
+7911-        const r_ra = getInterp('ra');
+7912-        const r_lfa = getInterp('lfa');
+7913-        const r_rfa = getInterp('rfa');
+7914-        const r_w = getInterp('w');
+7915-
+7916-        // Z-Rotation (Depth)
+7917-        const r_la_z = getInterp('la_z') || 0;
+7918-        const r_ra_z = getInterp('ra_z') || 0;
+7919-        const r_lfa_z = getInterp('lfa_z') || 0;
+7920-        const r_rfa_z = getInterp('rfa_z') || 0;
+7921-
+7922-        let leftArmAngle, rightArmAngle, leftForeArmAngle, rightForeArmAngle, wristAngle;
+7923-        let leftArmZ, rightArmZ, leftForeArmZ, rightForeArmZ;
+7924-
+7925-        const isLefty = playerData.isLefty;
+7926-        if (isLefty) {
+7927-            leftArmAngle = Math.PI - r_ra; rightArmAngle = Math.PI - r_la;
+7928-            leftForeArmAngle = Math.PI - r_rfa; rightForeArmAngle = Math.PI - r_lfa;
+7929-            wristAngle = -r_w;
+7930-            // Swap Z for Lefty
+7931-            leftArmZ = r_ra_z; rightArmZ = r_la_z;
+7932-            leftForeArmZ = r_rfa_z; rightForeArmZ = r_lfa_z;
+7933-        } else {
+7934-            leftArmAngle = r_la; rightArmAngle = r_ra;
+7935-            leftForeArmAngle = r_lfa; rightForeArmAngle = r_rfa;
+7936-            wristAngle = r_w;
+7937-            // Standard Z
+7938-            leftArmZ = r_la_z; rightArmZ = r_ra_z;
+7939-            leftForeArmZ = r_lfa_z; rightForeArmZ = r_rfa_z;
+7940-        }
+7941-
+7942-        let bodyW = 20 * s * sizeMod.w; let bodyH = 40 * s * sizeMod.h;
+7943-        if(currentAnimal === 'bear') bodyW = 30 * s * sizeMod.w;
+7944-
+7945-        let legLen = 30 * s * sizeMod.h * (sizeMod.limbLen || 1.0);
+7946-
+7947-        // Match Human Shortening Logic for Crouch
+7948-        if (state === 'PRE_JUMP') {
+7949-            legLen *= 0.7;
+7950-        }
+7951-
+7952-        let neckLen = 0;
+7953-
+7954-        // Pose Logic
+7955-        const isSitting = (state === 'GAMEOVER' && currentAnimal !== 'human');
+7956-        // const isCrouching = (state === 'PRE_JUMP'); // Handled via legLen scaling
+7957-
+7958-        let torsoY;
+7959-        if (isSitting) {
+7960-             torsoY = p.y - bodyH * 0.85; // Low to ground
+7961-        } else {
+7962-             torsoY = p.y - legLen - bodyH;
+7963-        }
+7964-        if (skinObj.neckLength) neckLen = skinObj.neckLength * s;
+7965-        let headY = torsoY - (10 * s * sizeMod.head) - neckLen;
+7966-        let headRadius = 12 * s * sizeMod.head;
+7967-
+7968-        // NBA Jam "He's On Fire" Smoke & Turbo Effect
+7969-        if (currentStreak >= 10) {
+7970-             const hue = getStreakFireHue(currentStreak);
+7971-             // Turbo Smoke Rising
+7972-             ctx.save();
+7973-             for(let k=0; k<8; k++) {
+7974-                 // Random puffs rising from body area
+7975-                 let px = p.x + (Math.random() - 0.5) * bodyW * 2.5;
+7976-                 let py = torsoY + bodyH - (Math.random() * bodyH * 1.5);
+7977-                 let size = (20 + Math.random() * 15) * s;
+7978-                 ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.4)`;
+7979-                 ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+7980-             }
+7981-             // Ground Scorch
+7982-             ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.3)`;
+7983-             ctx.beginPath(); ctx.ellipse(p.x, p.y, bodyW * 1.5, 10*s, 0, 0, Math.PI*2); ctx.fill();
+7984-             ctx.restore();
+7985-        }
+7986-
+7987-        // Draw Neck (Universal - Connect Head to Body)
+7988-        const neckWidth = 10 * s * (sizeMod.neckWidth || (sizeMod.w || 1.0) * 0.6);
+7989-        const neckTopY = headY + headRadius * 0.5;
+7990-        const neckBottomY = torsoY + (10*s);
+7991-
+7992-        // Always draw neck if gap exists or explicitly requested (Rat/Giraffe fix)
+7993-        if (neckBottomY > neckTopY || skinObj.neckLength) {
+7994-             const savedFill = ctx.fillStyle;
+7995-             ctx.fillStyle = furColor;
+7996-             // Ensure skin tone for humans
+7997-             if (currentAnimal === 'human') ctx.fillStyle = skinObj.skinTone || furColor;
+7998-
+7999-             ctx.fillRect(p.x - neckWidth/2, neckTopY, neckWidth, neckBottomY - neckTopY);
+8000-             ctx.fillStyle = savedFill;
+8001-        }
+8002-
+8003-        // Lift shoulders for humans to extend jersey higher (Trapezoid shape)
+8004-        let shoulderY = torsoY + (2*s);
+8005-        let armY = torsoY + (5*s); // Lower attachment
+8006-        if (currentAnimal === 'human') { shoulderY = torsoY; armY = torsoY; } // Square shoulders at top of bounding box
+8007-
+8008-        // Stance modifier for shoulder width and hip width
+8009-        const stanceMod = sizeMod.stance || 1.0;
+8010-
+8011-        // Dynamic Shoulder Width (Scaling with Body Width)
+8012-        const shoulderScale = (sizeMod.w || 1.0) * (sizeMod.shoulderWidth || 1.0);
+8013-        let shoulderBaseW = 12 * s * stanceMod * shoulderScale;
+8014-
+8015-        // Extra Broad for Hulk/Strong types (Shirtless = Broad)
+8016-        if (skinObj.jerseyType === 'none') {
+8017-            shoulderBaseW *= 1.5;
+8018-        }
+8019-
+8020-        let leftShoulderX = p.x - shoulderBaseW;
+8021-        let rightShoulderX = p.x + shoulderBaseW;
+8022-
+8023-        let armLenMod = sizeMod.limbLen || 1.0;
+8024-        if (skinObj.armLen) armLenMod = skinObj.armLen;
+8025-        else if (currentAnimal === 'bear') armLenMod = 0.95; // Bears have slightly shorter arms but not too short to break shooting
+8026-        let upperArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod; let foreArmLen = 20 * s * sizeMod.h * 1.05 * armLenMod;
+8027-
+8028-        // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
+8029-        // Updated to use Human Logic (Animation + Fixed Offset)
+8030-        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+8031-            const isRightHand = !isLefty;
+8032-
+8033-            const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+8034-            const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+8035-            const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+8036-            const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+8037-            const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
+8038-
+8039-            const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+8040-            const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+8041-
+8042-            const elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+8043-            const wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
+8044-            const ballPos = calculateBallPosition(wrist.x, wrist.y, s, shootFAngle, wristAngle);
+8045-
+8046-            const guideTargetX = ballPos.x + (isRightHand ? -8*s : 8*s);
+8047-            const guideTargetY = ballPos.y;
+8048-            const guideSX = isRightHand ? leftShoulderX : rightShoulderX;
+8049-
+8050-            const animGuideU = (g_animState.guide_u !== undefined) ? g_animState.guide_u : -1.7;
+8051-            const animGuideUZ = (g_animState.guide_u_z !== undefined) ? g_animState.guide_u_z : 1.3;
+8052-            const finalGuideU = isRightHand ? animGuideU : (-Math.PI - animGuideU);
+8053-
+8054-            const guideEffUpper = upperArmLen * Math.max(0.1, Math.cos(animGuideUZ));
+8055-            const guideElbow = getJoint(guideSX, armY, guideEffUpper, finalGuideU);
+8056-
+8057-            const dx = guideTargetX - guideElbow.x;
+8058-            const dy = guideTargetY - guideElbow.y;
+8059-            const dist = Math.sqrt(dx*dx + dy*dy);
+8060-            const fixedGuideFAngle = Math.atan2(dy, dx);
+8061-            const ratio = Math.min(0.99, dist / foreArmLen);
+8062-            const fixedGuideFZ = Math.acos(ratio);
+8063-
+8064-            if (isRightHand) {
+8065-                leftArmAngle = finalGuideU; leftForeArmAngle = fixedGuideFAngle;
+8066-                leftArmZ = animGuideUZ; leftForeArmZ = fixedGuideFZ;
+8067-            } else {
+8068-                rightArmAngle = finalGuideU; rightForeArmAngle = fixedGuideFAngle;
+8069-                rightArmZ = animGuideUZ; rightForeArmZ = fixedGuideFZ;
+8070-            }
+8071-        }
+8072-
+8073-        const isShadow = (p.type === 'player_shadow');
+8074-
+8075-        const drawSegmentedArm = (sx, sy, isRight, angle1, angle2, angle1_z, angle2_z) => {
+8076-            const seedBase = isRight ? 10 : 20;
+8077-            const isShootingSide = (isLefty && !isRight) || (!isLefty && isRight);
+8078-
+8079-            // 1. Determine Base Colors based on Clothing
+8080-            let thisUpperColor = armColor;
+8081-            let thisForeColor = armColor;
+8082-            let upperIsCovered = false; // By clothing
+8083-            let foreIsCovered = false;  // By clothing
+8084-
+8085-            if (skinObj.clothing) {
+8086-                const c = skinObj.clothing;
+8087-                if (c.type === 'tshirt') {
+8088-                    thisUpperColor = c.color; // T-Shirt covers upper arm
+8089-                    thisForeColor = furColor; // Forearm exposed
+8090-                    upperIsCovered = true;
+8091-                } else if (['track', 'hoodie', 'sweatshirt', 'jacket', 'robe'].includes(c.type)) {
+8092-                    // Long sleeves cover both
+8093-                    const sColor = c.sleeveColor || c.color;
+8094-                    thisUpperColor = sColor;
+8095-                    thisForeColor = sColor;
+8096-                    upperIsCovered = true;
+8097-                    foreIsCovered = true;
+8098-                } else if (c.type === 'vest') {
+8099-                    // Vest is sleeveless
+8100-                    thisUpperColor = furColor;
+8101-                    thisForeColor = furColor;
+8102-                    upperIsCovered = false;
+8103-                    foreIsCovered = false;
+8104-                }
+8105-            } else if (skinObj.jerseyType === 'tshirt' || skinObj.jerseyType === 'link_tunic') {
+8106-                // Fallback for skins defined with jerseyType but no clothing object (e.g. Link)
+8107-                thisUpperColor = torsoColor;
+8108-                upperIsCovered = true;
+8109-            }
+8110-
+8111-            // 2. Accessory Overrides (Compression Sleeves)
+8112-            let activeSleeveColor = null;
+8113-            if(isRight && skinObj.sleeveRight) activeSleeveColor = skinObj.sleeveRight;
+8114-            if(!isRight && skinObj.sleeveLeft) activeSleeveColor = skinObj.sleeveLeft;
+8115-
+8116-            // 3. Determine Fuzziness
+8117-            const isFurryArm = isFurry && !upperIsCovered && !foreIsCovered && !activeSleeveColor;
+8118-
+8119-            // Calculate Tapered Widths
+8120-            const taper = sizeMod.limbTaper || 0.7;
+8121-            let upperStartW = 7 * s * sizeMod.armWidth;
+8122-
+8123-            // Bulky Jacket Sleeves
+8124-            if (skinObj.clothingType === 'jacket') {
+8125-                upperStartW *= 1.3;
+8126-            }
+8127-
+8128-            const upperEndW = upperStartW * taper;
+8129-            const foreEndW = upperEndW * taper;
+8130-
+8131-            // FORESHORTENING
+8132-            let uFactor = Math.cos(angle1_z || 0);
+8133-            let fFactor = Math.cos(angle2_z || 0);
+8134-
+8135-            // Shadow Logic: Show full length (projected to ground) to imply depth
+8136-            if (isShadow) {
+8137-                uFactor = 1.0;
+8138-                fFactor = 1.0;
+8139-            }
+8140-
+8141-            uFactor = Math.max(0.1, Math.abs(uFactor));
+8142-            fFactor = Math.max(0.1, Math.abs(fFactor));
+8143-
+8144-            const elbow = getJoint(sx, sy, upperArmLen * uFactor, angle1);
+8145-            const wrist = getJoint(elbow.x, elbow.y, foreArmLen * fFactor, angle2);
+8146-
+8147-            // Determine Draw Mode
+8148-            let drawMode = 'skin';
+8149-            if (activeSleeveColor) drawMode = 'long_sleeve';
+8150-            else if (upperIsCovered && foreIsCovered) drawMode = 'long_cloth'; // Track suit etc
+8151-            else if (upperIsCovered && !foreIsCovered) drawMode = 'tshirt';
+8152-            else drawMode = 'skin';
+8153-
+8154-            // Draw Arm Structure
+8155-            if (drawMode === 'long_sleeve') {
+8156-                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, activeSleeveColor, s, false, seedBase);
+8157-            }
+8158-            else if (drawMode === 'long_cloth') {
+8159-                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, thisUpperColor, s, isFurry && (thisUpperColor === furColor), seedBase, {pattern: skinObj.pattern});
+8160-            }
+8161-            else if (drawMode === 'tshirt') {
+8162-                 // Skin Arm
+8163-                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW*0.9, upperEndW*0.9, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+8164-                 // Sleeve
+8165-                 const sleeveLen = upperArmLen * uFactor * 0.45;
+8166-                 const sleeveEnd = getJoint(sx, sy, sleeveLen, angle1);
+8167-                 const sleeveW = upperStartW * 1.1;
+8168-                 // Draw short segment
+8169-                 drawContinuousLimb({x:sx,y:sy}, sleeveEnd, sleeveEnd, sleeveW, sleeveW*0.9, sleeveW*0.9, thisUpperColor, s, false, 0, {pattern: skinObj.pattern});
+8170-            }
+8171-            else { // Skin
+8172-                 drawContinuousLimb({x:sx,y:sy}, elbow, wrist, upperStartW, upperEndW, foreEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+8173-            }
+8174-
+8175-            ctx.save(); ctx.translate(wrist.x, wrist.y); ctx.rotate(angle2 + (isShootingSide ? wristAngle : 0));
+8176-
+8177-            // Hand / Paw
+8178-            const foreFurry = isFurry && !foreIsCovered && !activeSleeveColor;
+8179-            if (foreFurry) {
+8180-                 // Fuzzy Paw
+8181-                 const pawColor = furColor;
+8182-                 drawFuzzyCircle(0, 0, 4.5*s, pawColor, seedBase+5, s, true);
+8183-                 // Toes
+8184-                 for(let k=-1; k<=1; k++) {
+8185-                     drawFuzzyCircle(k*3*s, 5*s, 2.5*s, pawColor, seedBase+6+k, s, true);
+8186-                 }
+8187-            } else {
+8188-                 // Human Hand (Mitten shape for style)
+8189-                 const handColor = (currentAnimal === 'human') ? (skinObj.skinTone || '#8d5524') : furColor;
+8190-
+8191-                 ctx.fillStyle = handColor;
+8192-                 ctx.beginPath();
+8193-                 // Palm
+8194-                 ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2);
+8195-                 ctx.fill();
+8196-
+8197-                 // Thumb (medial)
+8198-                 const thumbX = isRight ? -2.5*s : 2.5*s;
+8199-                 ctx.beginPath();
+8200-                 ctx.ellipse(thumbX, 2*s, 1.5*s, 2.5*s, isRight ? 0.5 : -0.5, 0, Math.PI*2);
+8201-                 ctx.fill();
+8202-
+8203-                 // Simple shading
+8204-                 const gradH = ctx.createRadialGradient(-1*s, 2*s, 0, 0, 3*s, 5*s);
+8205-                 gradH.addColorStop(0, 'rgba(255,255,255,0.1)');
+8206-                 gradH.addColorStop(1, 'rgba(0,0,0,0.1)');
+8207-                 ctx.fillStyle = gradH;
+8208-                 ctx.beginPath(); ctx.ellipse(0, 3*s, 3.5*s, 4.5*s, 0, 0, Math.PI*2); ctx.fill();
+8209-            }
+8210-
+8211-            if (wristAngle > 0.5 && isShootingSide) {
+8212-                 if(skin.includes('hockey')) { ctx.strokeStyle='#8B4513'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 40*s); ctx.lineTo(10*s, 45*s); ctx.stroke(); }
+8213-            }
+8214-
+8215-            ctx.restore();
+8216-        };
+8217-
+8218-        if (playerData.currentStyle === 'airbud' && state === 'SHOOTING') {
+8219-             const t = airbudJumpTime;
+8220-             const maxT = 30;
+8221-             if (t < maxT) {
+8222-                 const jumpHeight = 60 * s * sizeMod.h;
+8223-                 const nt = t / maxT;
+8224-                 const offset = 4 * jumpHeight * nt * (1 - nt);
+8225-                 p.y -= offset;
+8226-                 torsoY = p.y - legLen - bodyH;
+8227-                 headY = torsoY - (10 * s * sizeMod.head);
+8228-                 shoulderY = torsoY + (2*s);
+8229-                 armY = torsoY + (5*s);
+8230-                 // Recalculate shoulders
+8231-                 leftShoulderX = p.x - 12*s; rightShoulderX = p.x + 12*s;
+8232-             }
+8233-        }
+8234-
+8235-        // 0b. Detached Ball Rendering
+8236-        drawDetachedBall(p, s, torsoY, bodyH, headY);
+8237-
+8238-        // 0c. HELD BALL RENDERING (Layer 0)
+8239-        const isDetachedStyle = ['airbud', 'telekinesis'].includes(playerData.currentStyle);
+8240-        if (!isDetachedStyle && state !== 'SHOOTING' && state !== 'GAMEOVER') {
+8241-             let ballX, ballY;
+8242-
+8243-             if (isSitting) {
+8244-                 // Ball in Lap
+8245-                 ballX = p.x;
+8246-                 ballY = torsoY + bodyH * 0.8;
+8247-             } else {
+8248-                 const isRightHand = !isLefty;
+8249-                 const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
+8250-                 const shootFAngle = isRightHand ? rightForeArmAngle : leftForeArmAngle;
+8251-                 // Use Z-factor for ball position too!
+8252-                 const shootUZ = isRightHand ? rightArmZ : leftArmZ;
+8253-                 const shootFZ = isRightHand ? rightForeArmZ : leftForeArmZ;
+8254-                 const effUpper = upperArmLen * Math.max(0.1, Math.cos(shootUZ));
+8255-                 const effFore = foreArmLen * Math.max(0.1, Math.cos(shootFZ));
+8256-
+8257-                 const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
+8258-
+8259-                 let elbow = getJoint(shootSX, armY, effUpper, shootUAngle);
+8260-                 let wrist = getJoint(elbow.x, elbow.y, effFore, shootFAngle);
+8261-
+8262-                 let theta = shootFAngle + wristAngle;
+8263-                 ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
+8264-                 ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+8265-             }
+8266-
+8267-             // Apply dribbling Z offset in Free Roam mode
+8268-             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+8269-                 ballY += player3D.dribbleZ * s;
+8270-             }
+8271-
+8272-             var phys = getTempBallPhys(ballX, ballY, p);
+8273-             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0, phys);
+8274-        }
+8275-
+8276-        // Arms First (Layer 1) - Arms behind legs
+8277-        drawSegmentedArm(leftShoulderX, armY, false, leftArmAngle, leftForeArmAngle, leftArmZ, leftForeArmZ);
+8278-        drawSegmentedArm(rightShoulderX, armY, true, rightArmAngle, rightForeArmAngle, rightArmZ, rightForeArmZ);
+8279-
+8280-        // 2. Legs (Base implementation)
+8281-        let lKneeX, lKneeY, rKneeX, rKneeY, lFootX, lFootY, rFootX, rFootY;
+8282-
+8283-        if (isSitting) {
+8284-             // Sitting Pose: Knees wide, Feet forward/central
+8285-             lKneeX = p.x - 20*s*stanceMod; lKneeY = p.y - 5*s;
+8286-             rKneeX = p.x + 20*s*stanceMod; rKneeY = p.y - 5*s;
+8287-             lFootX = p.x - 12*s; lFootY = p.y + 5*s;
+8288-             rFootX = p.x + 12*s; rFootY = p.y + 5*s;
+8289-        } else {
+8290-             // Standing (Includes Crouch via legLen shortening)
+8291-             const baseKneeY = p.y - (legLen * 0.5);
+8292-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
+8293-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
+8294-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
+8295-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+8296-        }
+8297-
+8298-        // Dirk Kick Logic
+8299-        if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
+8300-            const style = getCurrentStyle();
+8301-            const maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
+8302-            const lift = Math.min(1.0, Math.max(0, (maxVz - getCurrentVz()) / maxVz));
+8303-            const kickH = 20 * s * lift;
+8304-            const kickW = 15 * s * lift;
+8305-            if (playerData.isLefty) {
+8306-                 lKneeY -= kickH; lKneeX -= kickW; lFootX -= kickW; lFootY -= kickH*0.8;
+8307-            } else {
+8308-                 rKneeY -= kickH; rKneeX += kickW; rFootX += kickW; rFootY -= kickH*0.8;
+8309-            }
+8310-        }
+8311-
+8312-
+8313-        const legFurry = isFurry && (legColor === furColor);
+8314-
+8315-        // Scale Hip Width with Body/Leg Width (Fixes narrow hips on wide chars)
+8316-        const hipScale = (sizeMod.legWidth || sizeMod.w || 1.0);
+8317-        const hipX = 8 * s * stanceMod * hipScale;
+8318-
+8319-        let hipY = p.y - legLen;
+8320-        if (isSitting) hipY = p.y - 10 * s;
+8321-
+8322-        // Calculate Tapered Leg Widths
+8323-        const legTaper = sizeMod.limbTaper || 0.7;
+8324-        const thighStartW = 8 * s * sizeMod.legWidth;
+8325-        const thighEndW = thighStartW * legTaper;
+8326-        const calfStartW = thighEndW;
+8327-        const calfEndW = calfStartW * legTaper;
+8328-
+8329-        // Unified Leg Drawer
+8330-        const drawLeg = (hipP, kneeP, ankleP, isRight) => {
+8331-            const seedBase = isRight ? 30 : 40;
+8332-
+8333-            let legMode = 'skin';
+8334-            if (skinObj.legType === 'pants' || skinObj.legType === 'tights') legMode = 'pants';
+8335-
+8336-            // Helper to draw feet (Socks + Shoes/Paws)
+8337-            const drawFeet = () => {
+8338-                // Socks
+8339-                if (skinObj.socksColor) {
+8340-                     const sockH = 0.4; // % of calf
+8341-                     const sockTop = {
+8342-                         x: kneeP.x + (ankleP.x - kneeP.x) * (1-sockH),
+8343-                         y: kneeP.y + (ankleP.y - kneeP.y) * (1-sockH)
+8344-                     };
+8345-                     const sockW = calfEndW * 1.1;
+8346-                     // Use simple limb for sock
+8347-                     drawLimb(sockTop.x, sockTop.y, ankleP.x, ankleP.y, sockW, skinObj.socksColor);
+8348-                }
+8349-
+8350-                // Feet / Shoes
+8351-                if (skinObj.shoesColor) {
+8352-                     // Shoe covers ankle
+8353-                     drawRealisticShoe(ankleP.x, ankleP.y, 4.5*s, 4*s, skinObj.shoesColor, isRight, skinObj.shoeType, skinObj.shoeDetailColor, s, skinObj.shoePattern);
+8354-                } else if (legFurry) {
+8355-                     // Paw
+8356-                     const pawColor = furColor;
+8357-                     drawFuzzyCircle(ankleP.x, ankleP.y, 4.5*s, pawColor, seedBase+5, s, true);
+8358-                     // Toes
+8359-                     for(let k=-1; k<=1; k++) {
+8360-                         drawFuzzyCircle(ankleP.x + k*3*s, ankleP.y + 4*s, 3*s, pawColor, seedBase+6+k, s, true);
+8361-                     }
+8362-                } else {
+8363-                     // Human Foot
+8364-                     const footColor = (legMode === 'pants') ? thighColor : furColor;
+8365-                     ctx.fillStyle = footColor;
+8366-                     // Simple foot shape
+8367-                     const toeX = isRight ? ankleP.x + 3*s : ankleP.x - 3*s;
+8368-                     ctx.beginPath();
+8369-                     ctx.moveTo(ankleP.x, ankleP.y - 2*s);
+8370-                     ctx.quadraticCurveTo(toeX, ankleP.y, toeX, ankleP.y + 3*s);
+8371-                     ctx.lineTo(ankleP.x, ankleP.y + 4*s);
+8372-                     ctx.fill();
+8373-                }
+8374-            };
+8375-
+8376-            // 1. Draw Main Structure (Continuous)
+8377-            if (legMode === 'pants') {
+8378-                if (skinObj.legType === 'tights') {
+8379-                    // Tights (Form fitting, no flare)
+8380-                    drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, thighColor, s, false, seedBase);
+8381-                    drawFeet(); // Draw feet OVER tights
+8382-                } else {
+8383-                    // Long Pants (Baggy/Straight + Cuff) - "Sleeve on lower leg"
+8384-
+8385-                    // LAYER FIX: Draw Shoes FIRST so pants drape over them
+8386-                    drawFeet();
+8387-
+8388-                    // Override widths to be wider and straighter (hiding animal shape/taper)
+8389-                    // Ensure it is at least wide enough to look like pants (13*s base)
+8390-                    const pantWidth = Math.max(thighStartW * 1.1, 13 * s);
+8391-
+8392-                    // SPLIT SEGMENT RENDERING: Draw Thigh and Shin separately to simulate fabric stiffness/crease
+8393-                    // Thigh Segment
+8394-                    drawLimb(hipP.x, hipP.y, kneeP.x, kneeP.y, pantWidth, thighColor);
+8395-
+8396-                    // Knee Joint (Circle to cover gap)
+8397-                    ctx.fillStyle = thighColor;
+8398-                    ctx.beginPath(); ctx.arc(kneeP.x, kneeP.y, pantWidth/2, 0, Math.PI*2); ctx.fill();
+8399-
+8400-                    // CUSTOM SHIN SEGMENT ("Sleeve")
+8401-                    // Replace drawLimb with custom geometry to avoid rounded bottom cap.
+8402-                    // We want a flat or slightly curved opening at the bottom.
+8403-
+8404-                    const dx = ankleP.x - kneeP.x;
+8405-                    const dy = ankleP.y - kneeP.y;
+8406-                    const angle = Math.atan2(dy, dx);
+8407-                    const len = Math.sqrt(dx*dx + dy*dy);
+8408-
+8409-                    // Extend length slightly to cover shoe top
+8410-                    const extLen = len + 2*s;
+8411-
+8412-                    // Flare the bottom slightly for baggy look
+8413-                    const topW = pantWidth;
+8414-                    const botW = pantWidth * 1.15; // Bell bottom / Boot cut effect
+8415-
+8416-                    ctx.save();
+8417-                    ctx.translate(kneeP.x, kneeP.y);
+8418-                    ctx.rotate(angle);
+8419-
+8420-                    // Draw Trapazoid (Thigh-width at top, Flared at bottom)
+8421-                    const topExt = -15 * s; // Extend backwards to tuck under knee
+8422-                    ctx.beginPath();
+8423-                    ctx.moveTo(topExt, -topW/2); // Top Left
+8424-                    ctx.lineTo(extLen, -botW/2); // Bottom Left
+8425-
+8426-                    // Bottom Edge (Curved "Smile" to match cuff perspective)
+8427-                    // Use bezier to curve it slightly inward (concave) or outward (convex)?
+8428-                    // A visual sleeve opening usually looks like an ellipse.
+8429-                    // We draw the back half of the ellipse here or just a flat line?
+8430-                    // Flat line is better than rounded cap.
+8431-                    // Let's do a slight curve matching the cuff ellipse we will draw later.
+8432-                    ctx.quadraticCurveTo(extLen + 2*s, 0, extLen, botW/2);
+8433-
+8434-                    ctx.lineTo(topExt, topW/2); // Top Right
+8435-                    ctx.closePath();
+8436-
+8437-                    ctx.fillStyle = thighColor;
+8438-                    ctx.fill();
+8439-
+8440-                    // Apply Pattern (Replicating drawLimb)
+8441-                    if (playerData.graphics === 'HIGH') {
+8442-                        const pat = getFabricPattern(ctx);
+8443-                        if (pat) {
+8444-                            ctx.globalCompositeOperation = 'overlay';
+8445-                            ctx.fillStyle = pat;
+8446-                            ctx.fill();
+8447-                            ctx.globalCompositeOperation = 'source-over';
+8448-                        }
+8449-                    }
+8450-
+8451-                    // Draw Cuff / Hem (Relative to rotated context)
+8452-                    // Draw at extLen
+8453-                    ctx.translate(extLen, 0);
+8454-                    ctx.rotate(Math.PI/2); // Make ellipse perpendicular to leg
+8455-
+8456-                    // Dark hollow opening
+8457-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+8458-                    ctx.beginPath();
+8459-                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+8460-                    ctx.fill();
+8461-
+8462-                    // Hem Ring (Thickness)
+8463-                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+8464-                    if(playerData.graphics === 'LOW') ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+8465-                    ctx.lineWidth = 1.5*s;
+8466-                    ctx.beginPath();
+8467-                    ctx.ellipse(0, 0, botW/2, 4*s, 0, 0, Math.PI*2);
+8468-                    ctx.stroke();
+8469-
+8470-                    ctx.restore();
+8471-                }
+8472-            } else {
+8473-                // Skin Leg (Furry or Human Skin)
+8474-                drawContinuousLimb(hipP, kneeP, ankleP, thighStartW, thighEndW, calfEndW, furColor, s, isFurry, seedBase, {muscle: currentAnimal==='human'});
+8475-
+8476-                // Shorts Overlay
+8477-                if (!legFurry) {
+8478-                    // Shorts Length Choice (Short vs Normal)
+8479-                    const isShortShorts = (skinObj.shortsLength === 'short');
+8480-                    const shortsLen = isShortShorts ? 0.35 : 0.5;
+8481-                    const shortsFlare = isShortShorts ? 1.1 : 1.25; // Normal shorts are baggier
+8482-
+8483-                    // Interpolate shorts end
+8484-                    const shortsEnd = {
+8485-                        x: hipP.x + (kneeP.x - hipP.x) * shortsLen,
+8486-                        y: hipP.y + (kneeP.y - hipP.y) * shortsLen
+8487-                    };
+8488-                    const shortsW = thighStartW * shortsFlare;
+8489-                    // Draw shorts as a short limb
+8490-                    drawContinuousLimb(hipP, shortsEnd, shortsEnd, shortsW, shortsW*1.05, shortsW*1.05, thighColor, s, false, 0);
+8491-
+8492-                    // Side Stripes on Shorts
+8493-                    if (skinObj.sideStripesColor) {
+8494-                        ctx.strokeStyle = skinObj.sideStripesColor;
+8495-                        ctx.lineWidth = 2 * s;
+8496-                        const sideX = isRight ? (hipP.x + shortsW*0.4) : (hipP.x - shortsW*0.4);
+8497-                        const sideXEnd = isRight ? (shortsEnd.x + shortsW*0.45) : (shortsEnd.x - shortsW*0.45);
+8498-                        ctx.beginPath(); ctx.moveTo(sideX, hipP.y); ctx.lineTo(sideXEnd, shortsEnd.y); ctx.stroke();
+8499-                    }
+8500-                }
+8501-
+8502-                // Draw Feet Second (Over skin)
+8503-                drawFeet();
+8504-            }
+8505-        };
+8506-
+8507-        // Draw Legs
+8508-        drawLeg({x:p.x-hipX, y:hipY}, {x:lKneeX, y:lKneeY}, {x:lFootX, y:lFootY}, false);
+8509-        drawLeg({x:p.x+hipX, y:hipY}, {x:rKneeX, y:rKneeY}, {x:rFootX, y:rFootY}, true);
+8510-
+8511-        // 6. Draw Body (Layer 2)
+8512-        const bodyFurry = isFurry && (torsoColor === furColor);
+8513-        let bodyOptions = {};
+8514-
+8515-        // Define Body Shapes for Animals
+8516-        if (currentAnimal === 'bear') { bodyOptions.bodyShape = 'bear_new'; }
+8517-        else if (['rat', 'cat', 'rabbit', 'fox', 'monkey'].includes(currentAnimal)) {
+8518-            bodyOptions.bodyShape = 'oval'; // Small animals
+8519-        }
+8520-        else if (['dog', 'wolf', 'lion', 'tiger'].includes(currentAnimal)) {
+8521-            bodyOptions.bodyShape = 'athletic_animal'; // Leaner, standing
+8522-        }
+8523-        else if (['pig', 'cow', 'moose'].includes(currentAnimal)) {
+8524-            bodyOptions.bodyShape = 'round'; // Chunky
+8525-            bodyOptions.waistScale = 1.1;
+8526-            bodyOptions.roundness = 0.2;
+8527-        }
+8528-
+8529-        if (skin === 'bear_panda') bodyOptions.chestStripeColor = '#000';
+8530-
+8531-        // Auto-detect Jersey
+8532-        if (!bodyFurry && torsoColor !== furColor && !skinObj.pattern) {
+8533-            bodyOptions.isJersey = true;
+8534-        }
+8535-
+8536-        bodyOptions.pattern = skinObj.pattern; // Pass pattern to body (e.g. tattoos)
+8537-        bodyOptions.animal = currentAnimal;
+8538-        bodyOptions.skinId = skin;
+8539-        bodyOptions.hasSpots = hasSpots;
+8540-        bodyOptions.spotColor = skinObj.spotColor;
+8541-        bodyOptions.isTabby = skin.includes('tabby');
+8542-        bodyOptions.chestStripeColor = skinObj.chestStripeColor;
+8543-        bodyOptions.sideStripesColor = skinObj.sideStripesColor;
+8544-        bodyOptions.pinstripesColor = skinObj.pinstripesColor;
+8545-
+8546-        // Pass Clothing Info
+8547-        bodyOptions.clothingType = skinObj.clothingType;
+8548-        bodyOptions.clothingStyle = skinObj.clothingStyle;
+8549-        bodyOptions.clothingMaterial = skinObj.clothingMaterial;
+8550-        bodyOptions.clothingTrim = (skinObj.clothing && skinObj.clothing.trimColor) || skinObj.trimColor;
+8551-
+8552-        // Force side stripes pattern if color is present but pattern is missing
+8553-        if (skinObj.sideStripesColor && !bodyOptions.pattern) {
+8554-             bodyOptions.pattern = 'stripes_side';
+8555-        }
+8556-
+8557-        const anchors = {
+8558-            shoulders: { left: {x: leftShoulderX, y: shoulderY}, right: {x: rightShoulderX, y: shoulderY} },
+8559-            hips: { left: {x: p.x - hipX, y: hipY}, right: {x: p.x + hipX, y: hipY} }
+8560-        };
+8561-        drawAnatomicBody(p.x, torsoY, bodyW, bodyH, s, torsoColor, bodyFurry, 40, bodyOptions, anchors);
+8562-
+8563-        if(currentAnimal === 'penguin' && torsoColor === furColor) {
+8564-             ctx.fillStyle = '#FFF';
+8565-             ctx.beginPath(); ctx.ellipse(p.x, torsoY + bodyH * 0.55, bodyW * 0.7, bodyH * 0.4, 0, 0, Math.PI*2); ctx.fill();
+8566-        }
+8567-
+8568-        // Clothing Details (New Layer)
+8569-        if(skinObj.clothingDetail === 'suspenders') {
+8570-             ctx.fillStyle = '#1a1a1a'; // Dark suspenders
+8571-             // Left
+8572-             ctx.fillRect(p.x - bodyW/2 + 2*s, torsoY, 3*s, bodyH);
+8573-             // Right
+8574-             ctx.fillRect(p.x + bodyW/2 - 5*s, torsoY, 3*s, bodyH);
+8575-        }
+8576-        if(skinObj.clothingDetail === 'apron_ties') {
+8577-             ctx.strokeStyle = '#FFF'; ctx.lineWidth = 2*s;
+8578-             ctx.beginPath();
+8579-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
+8580-             ctx.lineTo(p.x - 10*s, torsoY + bodyH*0.6 + 5*s); // Left hanging
+8581-             ctx.moveTo(p.x, torsoY + bodyH*0.6);
+8582-             ctx.lineTo(p.x + 10*s, torsoY + bodyH*0.6 + 5*s); // Right hanging
+8583-             // Knot
+8584-             ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(p.x, torsoY+bodyH*0.6, 3*s, 0, Math.PI*2); ctx.fill();
+8585-             ctx.stroke();
+8586-        }
+8587-        if(skinObj.clothingDetail === 'overalls') {
+8588-             ctx.fillStyle = skinObj.shortsColor || '#000080';
+8589-             // Bib
+8590-             ctx.fillRect(p.x - bodyW*0.3, torsoY + bodyH*0.3, bodyW*0.6, bodyH*0.4);

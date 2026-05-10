@@ -4994,7 +4994,7 @@ RenderEngine.Camera = {
         const dyToHoop = HOOP_POS.y - this.y;
         let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        if (currentGameMode === 'FREE_ROAM' || currentGameMode === 'CONTEST') {
+        if (currentGameMode === 'CONTEST') {
             // Keep camera fixed relative to hoop, looking down the classic court
             // The classic court angle from (433, 300) to (733, 150)
             const classicDx = 733 - 433;
@@ -9075,7 +9075,7 @@ var BallRenderer = {
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
 
-        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
+        if (currentGameMode === 'CONTEST') {
             // Fix angle to face "Top" (Rack 3) position
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
@@ -17218,15 +17218,14 @@ var BallRenderer = {
         const speed = 5.0; // Units per frame
         let moved = false;
         if (window.keysDown) {
-            // Forward vector is from start (433, 300) to hoop (733, 150)
-            let fDx = 733 - 433;
-            let fDy = 150 - 300;
+            // Dynamic forward vector from player current position to hoop
+            let fDx = HOOP_POS.x - player3D.x;
+            let fDy = HOOP_POS.y - player3D.y;
             let fLen = Math.sqrt(fDx*fDx + fDy*fDy);
+            if (fLen < 1) { fDx = 733 - 433; fDy = 150 - 300; fLen = Math.sqrt(fDx*fDx + fDy*fDy); }
             fDx /= fLen; fDy /= fLen; // Normalize forward
 
-            // Right vector is 90 degrees clockwise (fDy, -fDx)
-            // But visually, right of forward vector is (-fDy, fDx) because Y is down.
-            // Let's test standard 2D rotation:
+            // Right vector is 90 degrees clockwise in screen space (fDy, -fDx)
             let rDx = -fDy;
             let rDy = fDx;
 
