@@ -1001,10 +1001,35 @@
         const speed = 5.0; // Units per frame
         let moved = false;
         if (window.keysDown) {
-            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { player3D.y -= speed * dt; moved = true; }
-            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { player3D.y += speed * dt; moved = true; }
-            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { player3D.x -= speed * dt; moved = true; }
-            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { player3D.x += speed * dt; moved = true; }
+            // Forward vector is from start (433, 300) to hoop (733, 150)
+            let fDx = 733 - 433;
+            let fDy = 150 - 300;
+            let fLen = Math.sqrt(fDx*fDx + fDy*fDy);
+            fDx /= fLen; fDy /= fLen; // Normalize forward
+
+            // Right vector is 90 degrees clockwise (fDy, -fDx)
+            // But visually, right of forward vector is (-fDy, fDx) because Y is down.
+            // Let's test standard 2D rotation:
+            let rDx = -fDy;
+            let rDy = fDx;
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { moveX += fDx; moveY += fDy; }
+            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { moveX -= fDx; moveY -= fDy; }
+            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { moveX -= rDx; moveY -= rDy; }
+            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { moveX += rDx; moveY += rDy; }
+
+            // Normalize diagonal movement
+            let moveLen = Math.sqrt(moveX*moveX + moveY*moveY);
+            if (moveLen > 0) {
+                moveX /= moveLen;
+                moveY /= moveLen;
+                player3D.x += moveX * speed * dt;
+                player3D.y += moveY * speed * dt;
+                moved = true;
+            }
         }
 
         // Keep player behind the hoop somewhat (Hoop is at 733, 150)

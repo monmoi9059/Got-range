@@ -288,7 +288,12 @@
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyS') {
+            loadContext(game1);
+            if (currentGameMode !== 'FREE_ROAM') {
+                openStats(); return;
+            }
+        }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
