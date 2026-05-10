@@ -61,9 +61,17 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        this.rotation = -angleToHoop - Math.PI / 2;
+        if (currentGameMode === 'FREEROAM') {
+             // 2K MyCareer Style: Don't swivel the camera when moving left/right.
+             // Always face perfectly straight down the court (angle -90 deg)
+             // The camera already tracks targetX/targetY (the player) perfectly above.
+             this.rotation = 0;
+        } else {
+             const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+             this.rotation = -angleToHoop - Math.PI / 2;
+        }
+
         this.sinRot = Math.sin(this.rotation);
         this.cosRot = Math.cos(this.rotation);
 
@@ -4141,6 +4149,11 @@ var BallRenderer = {
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
             dy = 306 - 150;
+        } else if (currentGameMode === 'FREEROAM') {
+            // Lock hoop facing perfectly forward (-X direction, or standard down-court)
+            // HOOP_POS is at 733, 150. Center court is around 400.
+            dx = -300;
+            dy = 150;
         }
 
         let len = Math.sqrt(dx*dx + dy*dy);
@@ -9744,7 +9757,7 @@ var BallRenderer = {
             g_mountainCanvas = null;
 
             let court;
-            if (currentGameMode === 'CONTEST') {
+            if (currentGameMode === 'CONTEST' || currentGameMode === 'FREEROAM') {
                 court = COURT_THEMES.arena;
             } else if (currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;

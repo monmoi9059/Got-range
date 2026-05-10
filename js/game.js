@@ -2936,6 +2936,9 @@
             currentGameMode = 'CONTEST';
             document.getElementById('modeBtnText').innerText = "CONCOURS";
         } else if (currentGameMode === 'CONTEST') {
+            currentGameMode = 'TIME_ATTACK';
+            document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else if (currentGameMode === 'TIME_ATTACK') {
             currentGameMode = 'FREEROAM';
             document.getElementById('modeBtnText').innerText = "FREEROAM";
         } else {
