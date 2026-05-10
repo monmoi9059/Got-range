@@ -201,7 +201,16 @@
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE') {
+        } else if (state === 'IDLE' || state === 'DRIBBLING') {
+            if (currentGameMode === 'FREEROAM') {
+                const dx = HOOP_POS.x - player3D.x;
+                const dy = HOOP_POS.y - player3D.y;
+                const distSq = dx*dx + dy*dy;
+                if (distSq < 200 * 200) {
+                    performLayupOrDunk();
+                    return;
+                }
+            }
             startJump();
         }
     }
@@ -251,7 +260,10 @@
 
     var enterPressed = false;
 
+    window.keysPressed = {};
+
     window.addEventListener('keydown', (e) => {
+        window.keysPressed[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -286,7 +298,6 @@
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
@@ -304,6 +315,8 @@
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysPressed[e.code] = false;
+
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');

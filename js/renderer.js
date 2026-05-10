@@ -61,9 +61,17 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        this.rotation = -angleToHoop - Math.PI / 2;
+        if (currentGameMode === 'FREEROAM') {
+             // 2K MyCareer Style: Don't swivel the camera when moving left/right.
+             // Always face perfectly straight down the court (angle -90 deg)
+             // The camera already tracks targetX/targetY (the player) perfectly above.
+             this.rotation = 0;
+        } else {
+             const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+             this.rotation = -angleToHoop - Math.PI / 2;
+        }
+
         this.sinRot = Math.sin(this.rotation);
         this.cosRot = Math.cos(this.rotation);
 
@@ -4141,6 +4149,11 @@ var BallRenderer = {
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
             dy = 306 - 150;
+        } else if (currentGameMode === 'FREEROAM') {
+            // Lock hoop facing perfectly forward (-X direction, or standard down-court)
+            // HOOP_POS is at 733, 150. Center court is around 400.
+            dx = -300;
+            dy = 150;
         }
 
         let len = Math.sqrt(dx*dx + dy*dy);
@@ -9744,7 +9757,7 @@ var BallRenderer = {
             g_mountainCanvas = null;
 
             let court;
-            if (currentGameMode === 'CONTEST') {
+            if (currentGameMode === 'CONTEST' || currentGameMode === 'FREEROAM') {
                 court = COURT_THEMES.arena;
             } else if (currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;
@@ -10057,6 +10070,38 @@ var BallRenderer = {
         const shadowProj = project(pX, pY, 0);
         if (shadowProj) {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
+        }
+
+        if (state === 'DRIBBLING' || state === 'IDLE') {
+             let ballZ = pZ;
+
+             if (state === 'DRIBBLING') {
+                 const bounceSpeed = 10;
+                 const time = Date.now() / 1000 * bounceSpeed;
+                 const bounce = Math.sin(time);
+                 ballZ = pZ + (bounce > 0 ? bounce * 60 : -bounce * 60);
+             } else {
+                 ballZ = pZ + 40;
+             }
+
+             const bX = pX + 30;
+             const bY = pY;
+             const bZ = ballZ;
+
+             const ballShadowProj = project(bX, bY, 0);
+             if (ballShadowProj) {
+                 const item = RenderEngine.Queue.add('ball_shadow', ballShadowProj.depth + 0.1, ballShadowProj.x, ballShadowProj.y, ballShadowProj.scale);
+                 item.ballRef = { x: bX, y: bY, z: bZ };
+             }
+
+             const ballProj = project(bX, bY, bZ);
+             if (ballProj) {
+                 const item = RenderEngine.Queue.add('ball', ballProj.depth, ballProj.x, ballProj.y, ballProj.scale);
+                 item.ballRef = {
+                     x: bX, y: bY, z: bZ,
+                     isFire: (typeof currentStreak !== 'undefined' && currentStreak >= 5)
+                 };
+             }
         }
 
         activeBalls.forEach(b => {
