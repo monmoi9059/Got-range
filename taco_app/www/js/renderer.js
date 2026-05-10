@@ -1,5 +1,6 @@
 // --- START renderer.js ---
 var RenderEngine = RenderEngine || {};
+window.RenderEngine = RenderEngine;
 
 RenderEngine.Camera = {
     // State
@@ -34,9 +35,21 @@ RenderEngine.Camera = {
         }
 
         // Smooth Interpolation
-        const lerp = 0.1;
-        this.smoothPos.x += (targetX - this.smoothPos.x) * lerp;
-        this.smoothPos.y += (targetY - this.smoothPos.y) * lerp;
+        // Default follow speed when shooting or panning
+        let lerpSpeed = 0.1;
+
+        // Dynamic Lerp: if the camera needs to pan BACK down the court (away from hoop towards the player)
+        // This happens instantly after a shot when targetY snaps back to the player's Y position.
+        // HOOP_POS.y is 150. A larger Y means further away down the court.
+        // If targetY is significantly larger than current camera Y, we are returning to player.
+        if (targetY > this.smoothPos.y + 50) {
+            // Instant snap to prevent framerate stutter from rapidly rendering intermediate background objects
+            this.smoothPos.x = targetX;
+            this.smoothPos.y = targetY;
+        } else {
+            this.smoothPos.x += (targetX - this.smoothPos.x) * lerpSpeed;
+            this.smoothPos.y += (targetY - this.smoothPos.y) * lerpSpeed;
+        }
 
         // Snap
         if (Math.abs(targetX - this.smoothPos.x) < 1) this.smoothPos.x = targetX;
@@ -48,7 +61,15 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+
+        if (currentGameMode === 'FREE_ROAM' || currentGameMode === 'CONTEST') {
+            // Keep camera fixed relative to hoop, looking down the classic court
+            // The classic court angle from (433, 300) to (733, 150)
+            const classicDx = 733 - 433;
+            const classicDy = 150 - 300;
+            angleToHoop = Math.atan2(classicDy, classicDx);
+        }
 
         this.rotation = -angleToHoop - Math.PI / 2;
         this.sinRot = Math.sin(this.rotation);
@@ -477,6 +498,9 @@ var BallRenderer = {
                     }
                 }
             }
+            else if (type === 'balloon') {
+                 // Nothing special for 3D projection, drawn in 2D part
+            }
             else if (type === 'bille8') {
                 var proj = projectPoint({x:0, y:0, z:1});
                 if (proj) {
@@ -583,6 +607,26 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    var proj = projectPoint(p);
+                    if (proj) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        var size = 25 * proj.scale * 0.3;
+                        ctx.fillRect(proj.x - size/2, proj.y - size/2, size, size);
+                    }
+                }
+            }
             else if (type === 'baseball' || type === 'tennis') {
                 ctx.strokeStyle = (type === 'baseball') ? '#FF0000' : '#FFF';
                 var centerProj = project(phys.x, phys.y, phys.z, g_camCache);
@@ -665,6 +709,8 @@ var BallRenderer = {
             else if (type === 'donut') color = '#D2691E';
             else if (type === 'watermelon') color = '#228B22';
             else if (type === 'earth') color = '#0000FF';
+            else if (type === 'disco') color = '#A9A9A9';
+            else if (type === 'balloon') color = ball.color1 || '#FF69B4';
 
             // 2. Base Diffuse Gradient (Under-shading)
             // Creates a rich spherical base color
@@ -932,6 +978,37 @@ var BallRenderer = {
                     }
                  });
             }
+            else if (type === 'disco') {
+                var colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFF'];
+                var timeOffset = Date.now() * 0.005;
+                for(let i=0; i<12; i++) {
+                    var p = {
+                        x: Math.sin(i + timeOffset),
+                        y: Math.cos(i*2 + timeOffset),
+                        z: Math.sin(i*3 + timeOffset)
+                    };
+                    // Normalize
+                    var l = Math.sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+                    if(l > 0) { p.x/=l; p.y/=l; p.z/=l; }
+                    transform(p);
+                    if (self._projResult.z > 0) {
+                        ctx.fillStyle = colors[i % colors.length];
+                        ctx.fillRect(self._projResult.x - r*0.15, self._projResult.y - r*0.15, r*0.3, r*0.3);
+                    }
+                }
+            }
+            else if (type === 'balloon') {
+                 // Tie knot at bottom
+                 transform({x:0, y:-1.0, z:0});
+                 if (self._projResult.z > -r) {
+                     ctx.fillStyle = ball.color1;
+                     ctx.beginPath(); ctx.moveTo(self._projResult.x, self._projResult.y); ctx.lineTo(self._projResult.x-r*0.2, self._projResult.y+r*0.3); ctx.lineTo(self._projResult.x+r*0.2, self._projResult.y+r*0.3); ctx.fill();
+                     // Highlight
+                     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = r*0.1;
+                     transform({x:-0.5, y:0.5, z:0.7});
+                     ctx.beginPath(); ctx.arc(self._projResult.x, self._projResult.y, r*0.2, Math.PI*0.5, Math.PI); ctx.stroke();
+                 }
+            }
         },
 
         drawLighting: function(ctx, r, ball) {
@@ -1076,7 +1153,13 @@ var BallRenderer = {
     function getScaleObject(dist) {
         if (dist === _lastScaleDist) return _lastScaleObj;
         _lastScaleDist = dist;
-        _lastScaleObj = SCALE_OBJECTS.find(o => dist < o.limit) || SCALE_OBJECTS[SCALE_OBJECTS.length-1];
+        for (let i = 0; i < SCALE_OBJECTS.length; i++) {
+            if (dist < SCALE_OBJECTS[i].limit) {
+                _lastScaleObj = SCALE_OBJECTS[i];
+                return _lastScaleObj;
+            }
+        }
+        _lastScaleObj = SCALE_OBJECTS[SCALE_OBJECTS.length-1];
         return _lastScaleObj;
     }
 
@@ -1085,7 +1168,13 @@ var BallRenderer = {
     function getCourtDetails(dist) {
         if (dist === _lastCourtDist) return _lastCourtObj;
         _lastCourtDist = dist;
-        _lastCourtObj = COURT_ZONES.find(z => dist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
+        for (let i = 0; i < COURT_ZONES.length; i++) {
+            if (dist < COURT_ZONES[i].limit) {
+                _lastCourtObj = COURT_ZONES[i];
+                return _lastCourtObj;
+            }
+        }
+        _lastCourtObj = COURT_ZONES[COURT_ZONES.length-1];
         return _lastCourtObj;
     }
 
@@ -1361,7 +1450,15 @@ var BallRenderer = {
             sorted.forEach(function(b) {
                 const yBase = horizonY + b.v * riverH;
                 const x = b.u * vpW;
-                const scale = 0.3 + b.v * 0.7;
+
+                // Base 2D perspective scale
+                let scale = 0.3 + b.v * 0.7;
+
+                // Multiply by camera zoom so they shrink when zoomed out
+                // Base zoom is typically around 698
+                const currentZoom = (g_camCache && g_camCache.cameraZoom) ? g_camCache.cameraZoom : 698;
+                scale *= currentZoom / 698;
+
                 let size = 30 * scale; // Base size unit
 
                 // Vertical Offset calculation
@@ -1691,10 +1788,10 @@ var BallRenderer = {
         // Determine Ball Object
         var ballObj = null;
         if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
-            ballObj = BALLS_DB.find(function(b) { return b.id === 'ball_money'; });
+            ballObj = BALLS_DB_MAP.get('ball_money');
         } else {
             var ballId = playerData.currentBall || 'ball_classic';
-            ballObj = BALLS_DB.find(function(b) { return b.id === ballId; });
+            ballObj = BALLS_DB_MAP.get(ballId);
         }
         if (!ballObj) ballObj = BALLS_DB[0];
 
@@ -1967,6 +2064,7 @@ var BallRenderer = {
         points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
         return {minX, minY, maxX, maxY};
     }
+    RenderEngine.getBounds = getBounds;
 
     // --- OPTIMIZATION: Render Pools ---
     const CIRCLE_SEGS = 16;
@@ -2327,8 +2425,9 @@ var BallRenderer = {
         ctx.restore();
     }
 
-    // Cache for hat lookup (Memoization) to avoid Array.find every frame
-    const g_hatCache = new Map();
+    // Caches to avoid Array.find every frame
+    const g_pantsCache = new Map();
+    const g_clothingCache = new Map();
 
     function drawAnatomicBody(cx, topY, w, h, scale, color, isFurry, seed = 1, options = {}, anchors = null) {
         const waistScale = options.waistScale || 0.85;
@@ -3510,8 +3609,10 @@ var BallRenderer = {
             const wallColor = wallColors[Math.floor(Math.abs(Math.sin(seed * 1234)) * wallColors.length)];
             const roofColor = roofColors[Math.floor(Math.abs(Math.sin(seed * 5678)) * roofColors.length)];
 
-            const w = 50 * s;
-            const h = 50 * s;
+            // Scale up houses by 4x to make them "real house sized"
+            const houseScale = 4.0;
+            const w = 50 * s * houseScale;
+            const h = 50 * s * houseScale;
 
             // Body
             ctx.fillStyle = wallColor;
@@ -3520,33 +3621,33 @@ var BallRenderer = {
             // Roof (Pitched)
             ctx.fillStyle = roofColor;
             ctx.beginPath();
-            ctx.moveTo(p.x - w/2 - 5*s, p.y - h);
-            ctx.lineTo(p.x + w/2 + 5*s, p.y - h);
-            ctx.lineTo(p.x, p.y - h - 30*s);
+            ctx.moveTo(p.x - w/2 - 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x + w/2 + 5*s*houseScale, p.y - h);
+            ctx.lineTo(p.x, p.y - h - 30*s*houseScale);
             ctx.fill();
 
             // Door
             ctx.fillStyle = '#4E342E';
-            ctx.fillRect(p.x - 8*s, p.y - 20*s, 16*s, 20*s);
+            ctx.fillRect(p.x - 8*s*houseScale, p.y - 20*s*houseScale, 16*s*houseScale, 20*s*houseScale);
             // Knob
             ctx.fillStyle = '#FFD700';
-            ctx.beginPath(); ctx.arc(p.x + 4*s, p.y - 10*s, 1.5*s, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x + 4*s*houseScale, p.y - 10*s*houseScale, 1.5*s*houseScale, 0, Math.PI*2); ctx.fill();
 
             // Windows
             ctx.fillStyle = '#87CEEB';
             // Window 1
-            ctx.fillRect(p.x - w/2 + 5*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x - w/2 + 5*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
             // Window 2
-            ctx.fillRect(p.x + w/2 - 17*s, p.y - h + 10*s, 12*s, 12*s);
+            ctx.fillRect(p.x + w/2 - 17*s*houseScale, p.y - h + 10*s*houseScale, 12*s*houseScale, 12*s*houseScale);
 
             // Window Frames
-            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s;
+            ctx.strokeStyle = '#FFF'; ctx.lineWidth = 1*s*houseScale;
             // Cross 1
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s, p.y - h + 10*s); ctx.lineTo(p.x - w/2 + 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s, p.y - h + 16*s); ctx.lineTo(p.x - w/2 + 17*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x - w/2 + 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x - w/2 + 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x - w/2 + 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
             // Cross 2
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s, p.y - h + 10*s); ctx.lineTo(p.x + w/2 - 11*s, p.y - h + 22*s); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s, p.y - h + 16*s); ctx.lineTo(p.x + w/2 - 5*s, p.y - h + 16*s); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 11*s*houseScale, p.y - h + 10*s*houseScale); ctx.lineTo(p.x + w/2 - 11*s*houseScale, p.y - h + 22*s*houseScale); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(p.x + w/2 - 17*s*houseScale, p.y - h + 16*s*houseScale); ctx.lineTo(p.x + w/2 - 5*s*houseScale, p.y - h + 16*s*houseScale); ctx.stroke();
         }
         else if (type === 'mountain') {
             ctx.fillStyle = '#757575';
@@ -3866,30 +3967,25 @@ var BallRenderer = {
     }
 
     var ShadowCache = {
-        entries: {},
-        keys: [],
+        cache: new Map(),
         MAX_ENTRIES: 128,
         get: function(key) {
-            var entry = this.entries[key];
-            if (entry) {
-                // Move to end of keys for LRU-ish behavior
-                var idx = this.keys.indexOf(key);
-                if (idx > -1) {
-                    this.keys.splice(idx, 1);
-                    this.keys.push(key);
-                }
+            if (this.cache.has(key)) {
+                var entry = this.cache.get(key);
+                // Move to end of map for LRU-ish behavior
+                this.cache.delete(key);
+                this.cache.set(key, entry);
                 return entry;
             }
             return null;
         },
         set: function(key, canvas) {
-            if (this.entries[key]) return;
-            if (this.keys.length >= this.MAX_ENTRIES) {
-                var oldKey = this.keys.shift();
-                delete this.entries[oldKey];
+            if (this.cache.has(key)) return;
+            if (this.cache.size >= this.MAX_ENTRIES) {
+                var oldKey = this.cache.keys().next().value;
+                this.cache.delete(oldKey);
             }
-            this.entries[key] = canvas;
-            this.keys.push(key);
+            this.cache.set(key, canvas);
         }
     };
 
@@ -4048,7 +4144,7 @@ var BallRenderer = {
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
 
-        if (currentGameMode === 'CONTEST') {
+        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
             // Fix angle to face "Top" (Rack 3) position
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
@@ -4143,6 +4239,8 @@ var BallRenderer = {
         const distRim = Math.sqrt((rimX-camX)**2 + (rimY-camY)**2);
 
         // --- Draw Functions ---
+        const isOnFire = currentStreak >= 5;
+
         const drawPole = () => {
             if(projPoleTop && projPoleBot) {
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 15 * projPoleTop.scale;
@@ -4166,6 +4264,16 @@ var BallRenderer = {
             for(let i=1; i<4; i++) ctx.lineTo(projIS[i].x, projIS[i].y);
             ctx.closePath();
             ctx.stroke();
+
+            // Streak Fire Outline around Backboard
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 69, 0, 0.8)';
+                ctx.lineWidth = 8 * projBB[0].scale + Math.sin(Date.now() * 0.01) * 2;
+                ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 4 * projBB[0].scale;
+                ctx.stroke();
+            }
         };
 
         const drawRimAndNet = () => {
@@ -4194,6 +4302,13 @@ var BallRenderer = {
             first = true;
             projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
             ctx.closePath(); ctx.stroke();
+
+            // Glow Rim if on fire
+            if (isOnFire) {
+                ctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                ctx.lineWidth = 12 * s;
+                ctx.stroke();
+            }
         };
 
         // Render Order (Painter's Algorithm)
@@ -4361,7 +4476,38 @@ var BallRenderer = {
         // Shoes generally look symmetric from straight back, but logos/branding might be on outside.
         const sideMult = isRight ? 1 : -1;
 
-        if (type === 'foam') {
+        if (type === 'clown') {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.ellipse(0, h * 0.2, w * 2.0, h * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = detailColor || '#FFFF00';
+            ctx.beginPath();
+            ctx.arc(0, -h * 0.1, w * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'rollerblades') {
+            ctx.fillStyle = color;
+            ctx.fillRect(-w * 0.8, -h * 0.5, w * 1.6, h * 0.8);
+            ctx.fillStyle = '#AAA';
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2); // Frame
+            ctx.fillStyle = detailColor || '#00FFFF';
+            // Wheels
+            for (let i = -0.6; i <= 0.6; i += 0.4) {
+                ctx.beginPath();
+                ctx.arc(w * i, h * 0.6, w * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (type === 'flipflops') {
+            ctx.fillStyle = color; // Sole
+            ctx.fillRect(-w * 0.8, h * 0.3, w * 1.6, h * 0.2);
+            ctx.strokeStyle = detailColor || '#000'; // Strap
+            ctx.lineWidth = 2 * s;
+            ctx.beginPath();
+            ctx.moveTo(-w * 0.5, h * 0.3);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(w * 0.5, h * 0.3);
+            ctx.stroke();
+        } else if (type === 'foam') {
             // Yeezy Foam Runner (Blobby, porous)
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -5333,13 +5479,24 @@ var BallRenderer = {
     function drawCustomBlobs(ctx, p, headY, headRadius, s, blobs) {
         if (!blobs || !blobs.length) return;
         blobs.forEach(b => {
-             const col = (typeof HAIR_COLORS !== 'undefined') ? (HAIR_COLORS[b.c] || '#000') : '#000';
+             let col = b.c;
+             // Check if it is an index (legacy)
+             if (typeof col === 'number' || (typeof col === 'string' && !col.startsWith('#') && !col.startsWith('rgb'))) {
+                 if (typeof HAIR_COLORS !== 'undefined') {
+                     col = HAIR_COLORS[col] || '#000';
+                 } else {
+                     col = '#000';
+                 }
+             }
              ctx.fillStyle = col;
 
              const alpha = (b.a !== undefined) ? b.a : 1.0;
              const oldAlpha = ctx.globalAlpha;
              ctx.globalAlpha = oldAlpha * alpha;
 
+             // Coordinates are normalized relative to head center and radius
+             // b.x = (pixelX - center) / radius
+             // So: pixelX = center + b.x * radius
              const bx = p.x + b.x * headRadius;
              const by = headY + b.y * headRadius;
              const br = b.r * headRadius;
@@ -5352,7 +5509,13 @@ var BallRenderer = {
     function drawCustomBeard(ctx, p, headY, headRadius, s, skinObj) {
          if (!skinObj.hairStyle || !skinObj.hairStyle.startsWith('custom_')) return;
          if (!playerData.customHairstyles) return;
-         const customData = playerData.customHairstyles.find(h => h.id === skinObj.hairStyle);
+         let customData = undefined;
+         for (let i = 0; i < playerData.customHairstyles.length; i++) {
+             if (playerData.customHairstyles[i].id === skinObj.hairStyle) {
+                 customData = playerData.customHairstyles[i];
+                 break;
+             }
+         }
          if (customData && customData.blobs && customData.blobs.front) {
              drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.front);
          }
@@ -5465,7 +5628,13 @@ var BallRenderer = {
         // --- 0. CUSTOM ---
         if (style.startsWith('custom_')) {
              if (playerData.customHairstyles) {
-                 const customData = playerData.customHairstyles.find(h => h.id === style);
+                 let customData = undefined;
+                 for (let i = 0; i < playerData.customHairstyles.length; i++) {
+                     if (playerData.customHairstyles[i].id === style) {
+                         customData = playerData.customHairstyles[i];
+                         break;
+                     }
+                 }
                  if (customData && customData.blobs && customData.blobs.back) {
                      drawCustomBlobs(ctx, p, headY, headRadius, s, customData.blobs.back);
                  }
@@ -6490,7 +6659,11 @@ var BallRenderer = {
     function drawRealisticHuman(p, s, skinObj) {
         // Fallback: Ensure clothing data is present if missing from pre-process
         if (!skinObj.clothingType && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-             const cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let cItem = g_clothingCache.get(playerData.currentClothing);
+             if (!cItem) {
+                 cItem = CLOTHING_DB_MAP.get(playerData.currentClothing);
+                 if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+             }
              if (cItem) {
                  skinObj.clothing = cItem;
                  skinObj.clothingType = cItem.type;
@@ -6665,6 +6838,13 @@ var BallRenderer = {
             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
+            // Apply dribbling Z offset in Free Roam mode
+            if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                ballY += player3D.dribbleZ * s;
+                // Move hand to follow ball if it's bouncing
+                // We'll let the arm stay, but visual bounce is fine
+            }
+
             var phys = getTempBallPhys(ballX, ballY, p);
             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0, phys);
         }
@@ -6736,7 +6916,11 @@ var BallRenderer = {
             // Prioritize passed object, fallback to global state if needed
             let cItem = skinObj.clothing;
             if (!cItem && playerData.currentClothing && playerData.currentClothing !== 'clothes_none') {
-                 cItem = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+                 cItem = g_clothingCache.get(playerData.currentClothing);
+                 if (!cItem) {
+                     cItem = CLOTHING_DB_MAP.get(playerData.currentClothing);
+                     if (cItem) g_clothingCache.set(playerData.currentClothing, cItem);
+                 }
             }
 
             if (cItem) {
@@ -7119,11 +7303,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             let hat = g_hatCache.get(playerData.currentHat);
-             if (!hat) {
-                 hat = HATS_DB.find(h => h.id === playerData.currentHat);
-                 if (hat) g_hatCache.set(playerData.currentHat, hat);
-             }
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
@@ -7433,7 +7613,7 @@ var BallRenderer = {
         if (state !== 'SHOP' && skin === g_cachedSkinId && g_cachedSkinObj) {
             skinObj = g_cachedSkinObj;
         } else {
-            skinObj = SKINS_DB.find(x => x.id === skin);
+            skinObj = SKINS_DB_MAP.get(skin);
             if(!skinObj) skinObj = SKINS_DB[0];
 
             if (state !== 'SHOP') {
@@ -7507,7 +7687,11 @@ var BallRenderer = {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
 
              // Force re-lookup to guarantee data integrity
-             const clothing = CLOTHING_DB.find(c => c.id === playerData.currentClothing);
+             let clothing = g_clothingCache.get(playerData.currentClothing);
+             if (!clothing) {
+                 clothing = CLOTHING_DB_MAP.get(playerData.currentClothing);
+                 if (clothing) g_clothingCache.set(playerData.currentClothing, clothing);
+             }
 
              if (clothing) {
                  skinObj.clothing = clothing; // Tag for later use
@@ -7561,7 +7745,11 @@ var BallRenderer = {
                 // Apply Pants Overrides
         if (playerData.currentPants && playerData.currentPants !== 'pants_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const pants = PANTS_DB.find(p => p.id === playerData.currentPants);
+             let pants = g_pantsCache.get(playerData.currentPants);
+             if (!pants) {
+                 pants = PANTS_DB_MAP.get(playerData.currentPants);
+                 if (pants) g_pantsCache.set(playerData.currentPants, pants);
+             }
              if (pants) {
                  skinObj.shortsColor = pants.color;
                  if (pants.type === 'long') {
@@ -7578,7 +7766,7 @@ var BallRenderer = {
         // Apply Shoes Overrides
         if (playerData.currentShoes && playerData.currentShoes !== 'shoe_none') {
              if (skinObj === g_cachedSkinObj) skinObj = Object.assign({}, skinObj);
-             const shoe = SHOES_DB.find(s => s.id === playerData.currentShoes);
+             const shoe = SHOES_DB_MAP.get(playerData.currentShoes);
              if (shoe) {
                  skinObj.shoesColor = shoe.color;
                  skinObj.shoeType = shoe.type;
@@ -8074,6 +8262,11 @@ var BallRenderer = {
                  let theta = shootFAngle + wristAngle;
                  ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
                  ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+             }
+
+             // Apply dribbling Z offset in Free Roam mode
+             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                 ballY += player3D.dribbleZ * s;
              }
 
              var phys = getTempBallPhys(ballX, ballY, p);
@@ -8903,7 +9096,7 @@ var BallRenderer = {
         let accessoryColor = skinObj.hatColor;
 
         if (playerData.currentHat && playerData.currentHat !== 'hat_none') {
-             const hat = HATS_DB.find(h => h.id === playerData.currentHat);
+             let hat = HATS_DB_MAP.get(playerData.currentHat);
              if (hat) {
                  accessoryType = hat.type;
                  if (hat.color) accessoryColor = hat.color;
@@ -9096,6 +9289,37 @@ var BallRenderer = {
              // Cylinder
              ctx.fillRect(p.x - headRadius * 0.8, headY - 25*s, headRadius * 1.6, 20*s);
         }
+        else if (accessoryType === 'dunce') {
+             ctx.fillStyle = accessoryColor || '#FFF';
+             ctx.beginPath();
+             ctx.moveTo(p.x - headRadius, headY - 5*s);
+             ctx.lineTo(p.x + headRadius, headY - 5*s);
+             ctx.lineTo(p.x, headY - 40*s);
+             ctx.fill();
+             ctx.fillStyle = '#000';
+             ctx.font = `bold ${8*s}px Arial`;
+             ctx.textAlign = 'center';
+             ctx.fillText('D', p.x, headY - 20*s);
+        }
+        else if (accessoryType === 'samurai_helmet') {
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             // Base helmet
+             ctx.beginPath(); ctx.arc(p.x, headY, headRadius + 2*s, Math.PI, 0); ctx.fill();
+             // Crest
+             ctx.fillStyle = '#FFD700';
+             ctx.beginPath();
+             ctx.moveTo(p.x, headY - headRadius - 10*s);
+             ctx.lineTo(p.x - 10*s, headY - headRadius);
+             ctx.lineTo(p.x + 10*s, headY - headRadius);
+             ctx.fill();
+             // Neck guard (shikoro)
+             ctx.fillStyle = accessoryColor || '#8B0000';
+             for(let i=0; i<3; i++) {
+                 ctx.beginPath();
+                 ctx.ellipse(p.x, headY + 5*s + (i*4*s), headRadius + 5*s + (i*s), 3*s, 0, 0, Math.PI*2);
+                 ctx.fill();
+             }
+        }
         else if (accessoryType === 'headband') {
              ctx.fillStyle = accessoryColor || '#FF0000'; // Default red
              if(accessoryColor === '#FFF' && skin.includes('tiger_white')) ctx.fillStyle = '#000'; // Contrast for white tiger
@@ -9113,6 +9337,19 @@ var BallRenderer = {
              ctx.strokeStyle = '#000'; ctx.lineWidth = 1*s; ctx.stroke();
              ctx.fillStyle = '#FF0000';
              ctx.beginPath(); ctx.ellipse(p.x, headY - 15*s, 2*s, 5*s, 0, 0, Math.PI*2); ctx.fill();
+        }
+        else if (accessoryType === 'headphones') {
+             ctx.strokeStyle = accessoryColor || '#333'; ctx.lineWidth = 4*s;
+             // Headband
+             ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius + 2*s, Math.PI, 0); ctx.stroke();
+             // Ear cups
+             ctx.fillStyle = '#111';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 4*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+             // Inner glow/detail
+             ctx.fillStyle = '#00FFFF';
+             ctx.beginPath(); ctx.ellipse(p.x - headRadius - 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
+             ctx.beginPath(); ctx.ellipse(p.x + headRadius + 2*s, headY, 2*s, 4*s, 0, 0, Math.PI*2); ctx.fill();
         }
 
         // Head Details that act like accessories
@@ -9425,105 +9662,12 @@ var BallRenderer = {
     }
 
     function drawZonePattern(ctx, y, h, width, zone, horizonY) {
-        // Base Gradient
+        // Base Gradient (Textures Removed for Performance)
         const grad = ctx.createLinearGradient(0, y, 0, y + h);
         grad.addColorStop(0, zone.ground1);
         grad.addColorStop(1, zone.ground2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, y, width, h);
-
-        // Texture Overlay
-        // Clip to zone area
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, y, width, h);
-        ctx.clip();
-
-        const type = zone.type;
-        const cx = width / 2;
-        // Deterministic Seed based on zone index/name to prevent jitter if we used random
-        // Using simple modulo logic on coordinates for noise is stable.
-
-        if (type === 'arena') {
-            // Wood Planks (Perspective Lines)
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-            ctx.lineWidth = 2;
-            const rayCount = 40;
-            // Draw rays from vanishing point (cx, horizonY)
-            // We only draw the segment within y -> y+h
-            for(let i = -rayCount; i <= rayCount; i++) {
-                const bottomX = cx + (i * width * 0.05); // Fan out
-                ctx.beginPath();
-                ctx.moveTo(cx, horizonY);
-                ctx.lineTo(bottomX, y + h + 100);
-                ctx.stroke();
-            }
-        }
-        else if (type === 'carnival') {
-            // Checkerboard
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            // Vertical Lines
-            for(let i = -10; i <= 10; i++) {
-                const bottomX = cx + (i * width * 0.15);
-                ctx.beginPath(); ctx.moveTo(cx, horizonY); ctx.lineTo(bottomX, y+h+100); ctx.stroke();
-            }
-            // Horizontal lines (Perspective spacing)
-            let ly = horizonY + 20;
-            let step = 5;
-            while(ly < y + h) {
-                if(ly > y) ctx.fillRect(0, ly, width, 2);
-                ly += step;
-                step *= 1.1; // Exponential growth
-            }
-        }
-        else if (type === 'grass' || type === 'tree') {
-            // Grass Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
-            const density = (width * h) / 1000;
-            // Simple stable noise
-            for(let i=0; i<density; i++) {
-                const nx = (i * 157) % width;
-                const ny = y + (i * 83) % h;
-                ctx.fillRect(nx, ny, 2, 2);
-            }
-        }
-        else if (type === 'water') {
-            // Waves
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-            ctx.lineWidth = 1;
-            const density = h / 8;
-            for(let i=0; i<density; i++) {
-                const ly = y + (i * 8 + (Date.now()*0.01 + i)%8);
-                const lx = (i * 123) % width;
-                const len = 20 + (i*17)%40;
-                ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+len, ly); ctx.stroke();
-                // Mirrored for density
-                ctx.beginPath(); ctx.moveTo(width - lx, ly); ctx.lineTo(width - lx - len, ly); ctx.stroke();
-            }
-        }
-        else if (type === 'space') {
-            // Stars Reflection / Craters
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            const density = 20;
-            for(let i=0; i<density; i++) {
-                const rx = (i * 211) % width;
-                const ry = y + (i * 103) % h;
-                const r = 1 + (i % 3);
-                ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI*2); ctx.fill();
-            }
-        }
-        else if (type === 'castle' || type === 'street') {
-            // Cobblestone/Asphalt Noise
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            const density = (width * h) / 500;
-            for(let i=0; i<density; i++) {
-                const nx = (i * 97) % width;
-                const ny = y + (i * 47) % h;
-                ctx.fillRect(nx, ny, 3, 2);
-            }
-        }
-
-        ctx.restore();
     }
 
     // Optimization: Cache mountain layers to offscreen canvas
@@ -9624,6 +9768,8 @@ var BallRenderer = {
                 court = COURT_THEMES.arena;
             } else if (currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;
+            } else if (currentGameMode === 'FREE_ROAM') {
+                court = COURT_THEMES.free_roam;
             } else {
                 const currentDist = 10 + (distanceLevel * 5);
                 court = getCourtDetails(currentDist);
@@ -9635,109 +9781,9 @@ var BallRenderer = {
             bgCache.sky = skyGrad;
 
             // Current Floor
-            if (playerData.graphics === 'HIGH') {
-                 // Bake texture for high graphics
-                 const fCv = document.createElement('canvas');
-                 fCv.width = vpW;
-                 fCv.height = Math.ceil(vpH - horizonY);
-                 const fCtx = fCv.getContext('2d');
-
-                 // Base Gradient
-                 const grad = fCtx.createLinearGradient(0, 0, 0, fCv.height);
-                 grad.addColorStop(0, court.ground1); grad.addColorStop(1, court.ground2);
-                 fCtx.fillStyle = grad;
-                 fCtx.fillRect(0, 0, fCv.width, fCv.height);
-
-                 // Procedural Textures based on Type
-                 const cx = fCv.width / 2;
-                 if (court.type === 'arena') {
-                     // Wood Planks (Perspective Lines)
-                     fCtx.strokeStyle = 'rgba(0,0,0,0.1)';
-                     fCtx.lineWidth = 2;
-                     const rayCount = 40;
-                     // Draw rays from vanishing point (cx, 0) relative to this canvas which starts at horizonY
-                     // Actually, this canvas IS the floor from horizonY downwards.
-                     // So vanishing point Y is 0 (top of this canvas).
-                     for(let i = -rayCount; i <= rayCount; i++) {
-                         const bottomX = cx + (i * fCv.width * 0.05);
-                         fCtx.beginPath();
-                         fCtx.moveTo(cx, 0); // Top center
-                         fCtx.lineTo(bottomX, fCv.height + 100);
-                         fCtx.stroke();
-                     }
-                 }
-                 else if (court.type === 'carnival') {
-                     // Carnival Checkerboard
-                     fCtx.fillStyle = 'rgba(0,0,0,0.1)';
-                     // Vertical Lines
-                     for(let i = -10; i <= 10; i++) {
-                         const bottomX = cx + (i * fCv.width * 0.15);
-                         fCtx.beginPath(); fCtx.moveTo(cx, 0); fCtx.lineTo(bottomX, fCv.height+100); fCtx.stroke();
-                     }
-                     // Horizontal lines (Perspective spacing)
-                     let ly = 20;
-                     let step = 5;
-                     while(ly < fCv.height) {
-                         fCtx.fillRect(0, ly, fCv.width, 2);
-                         ly += step;
-                         step *= 1.1;
-                     }
-                 }
-                 else if (court.type === 'grass' || court.type === 'tree') {
-                     // Grass Noise
-                     fCtx.fillStyle = 'rgba(0,0,0,0.08)';
-                     const density = (fCv.width * fCv.height) / 1000;
-                     for(let i=0; i<density; i++) {
-                         fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 2, 2);
-                     }
-                 }
-                 else if (court.type === 'castle') {
-                    // Clean asphalt/cobblestone noise
-                    fCtx.fillStyle = 'rgba(0,0,0,0.15)';
-                    const density = (fCv.width * fCv.height) / 500;
-                    for(let i=0; i<density; i++) {
-                        fCtx.fillRect(Math.random() * fCv.width, Math.random() * fCv.height, 3, 2);
-                    }
-                 }
-                 else if (court.type === 'mountain') {
-                     // Ice / Snow Gloss
-                     const gradRef = fCtx.createLinearGradient(0, 0, fCv.width, fCv.height);
-                     gradRef.addColorStop(0, 'rgba(255,255,255,0)');
-                     gradRef.addColorStop(0.5, 'rgba(255,255,255,0.1)');
-                     gradRef.addColorStop(1, 'rgba(255,255,255,0)');
-                     fCtx.fillStyle = gradRef;
-                     fCtx.fillRect(0, 0, fCv.width, fCv.height);
-                 }
-                 else if (court.type === 'water') {
-                    // Waves
-                    fCtx.strokeStyle = 'rgba(255,255,255,0.15)';
-                    fCtx.lineWidth = 1;
-                    const density = fCv.height / 8;
-                    for(let i=0; i<density; i++) {
-                        const ly = i * 8 + (Math.random()*4);
-                        const lx = Math.random() * fCv.width;
-                        const len = 20 + Math.random()*20;
-                        fCtx.beginPath(); fCtx.moveTo(lx, ly); fCtx.lineTo(lx+len, ly); fCtx.stroke();
-                        // Mirror
-                        fCtx.beginPath(); fCtx.moveTo(fCv.width - lx, ly); fCtx.lineTo(fCv.width - lx - len, ly); fCtx.stroke();
-                    }
-                 }
-                 else if (court.type === 'space') {
-                     // Craters / Dust
-                     fCtx.fillStyle = 'rgba(255,255,255,0.2)';
-                     for(let i=0; i<50; i++) {
-                         fCtx.beginPath();
-                         fCtx.arc(Math.random() * fCv.width, Math.random() * fCv.height, 1 + Math.random() * 2, 0, Math.PI*2);
-                         fCtx.fill();
-                     }
-                 }
-
-                 bgCache.floorImage = fCv;
-            } else {
-                 const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
-                 currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
-                 bgCache.currentFloor = currentZoneGrad;
-            }
+        const currentZoneGrad = ctx.createLinearGradient(0, horizonY, 0, canvas.height);
+        currentZoneGrad.addColorStop(0, court.ground1); currentZoneGrad.addColorStop(1, court.ground2);
+        bgCache.currentFloor = currentZoneGrad;
         }
 
         // DRAW FROM CACHE
@@ -9860,7 +9906,9 @@ var BallRenderer = {
         // OPTIMIZATION: Cull objects far beyond the player
         // Player moves away from hoop. d.dist approximates distance from hoop (in pixels).
         // Objects with d.dist >> playerDistFromHoop are behind the camera.
-        const playerDistFromHoop = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2));
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const playerDistFromHoop = Math.sqrt(pdx * pdx + pdy * pdy);
         const cullDist = playerDistFromHoop + 3000; // Margin for scatter and frustum depth
 
         // OPTIMIZATION: Start iteration from visible range
@@ -9875,17 +9923,33 @@ var BallRenderer = {
             // Fast Z-Check
             const dx = dX - camX;
             const dy = dY - camY;
-            // ry calculation: dx * sin + dy * cos
+
+            // Optimization: Frustum culling check
+            // If the object is too far to the left or right of the camera vector, skip it early
+            // This prevents adding off-screen objects to the RenderEngine.Queue, which saves sorting time later
+            const rx = dx * camCos - dy * camSin;
             const ry = dx * camSin + dy * camCos;
+
             // cameraOffset is 550 in project()
             const depth = 550 - ry;
             if (depth <= 0) return;
 
-            // Inline projection
-            const rx = dx * camCos - dy * camSin;
+            // Calculate screen X early to check horizontal bounds
             const scale = camZoom / depth;
             const screenX = vpW / 2 + (rx * scale);
+
+            // If the object is far off the sides of the screen, cull it
+            // Widen the culling margins (e.g., vpW * 1.5) to account for large decors (like houses)
+            // that might have their center off-screen but still bleed into the viewport.
+            // Make horizontal culling tighter to save render cycles
+            const cullingMargin = (d.zoneType === 'castle') ? vpW * 1.5 : vpW * 0.5;
+            if (screenX < -cullingMargin || screenX > vpW + cullingMargin) return;
+
             const screenY = horizonY + (camHeight - 0) * scale; // z is 0
+
+            // Vertical Culling
+            // If it's way below the screen (and it's not something huge like a mountain), cull it
+            if (screenY > vpH + 500) return;
 
             const item = RenderEngine.Queue.add('decor', depth, screenX, screenY, scale);
             item.zoneType = d.zoneType;
@@ -9893,15 +9957,51 @@ var BallRenderer = {
             item.seed = d.seed;
         };
 
+        // Optimization: Cache cat_hoop decor reference to avoid O(N) array search every frame
+        if (typeof decors !== 'undefined') {
+            if (window._cachedDecorsRef !== decors || window._cachedCatDecor === undefined) {
+                window._cachedCatDecor = undefined;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        window._cachedCatDecor = decors[i];
+                        break;
+                    }
+                }
+                window._cachedDecorsRef = decors;
+            }
+        } else {
+            window._cachedCatDecor = undefined;
+            window._cachedDecorsRef = undefined;
+        }
+
         if (currentGameMode === 'CLASSIC') {
-            const startDist = Math.max(0, playerDistFromHoop - 15000);
+            // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
+            // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
+            // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
+            // Dynamic back-culling based on camera height/zoom to prevent drawing thousands of offscreen objects
+            // When zoomed out, we see more. The distance is relative to game units.
+            // playerDistFromHoop is in pixels. 15000 pixels is ~3500 feet.
+            let backCullDist = 12000;
+            // Narrow the front cull dist as well
+            let frontCullDist = playerDistFromHoop + 3000;
+
+            // Adjust based on graphics setting
+            if (playerData.graphics === 'LOW') {
+                backCullDist = 6000;
+                frontCullDist = playerDistFromHoop + 2000;
+            }
+
+            const startDist = Math.max(0, playerDistFromHoop - backCullDist);
+
+            // Use binary search to quickly find the start index in the sorted array
             let startIndex = 0;
-            if (startDist > 1000) {
+            if (startDist > 0) {
                  startIndex = binarySearchLowerBound(decors, startDist);
             }
+
             for (let i = startIndex; i < decors.length; i++) {
                 const d = decors[i];
-                if (d.dist > cullDist) break;
+                if (d.dist > frontCullDist) break; // Array is sorted by distance, so we can break early
 
                 if (d.zoneType === 'cat_hoop' && typeof g_catState !== 'undefined') {
                     processDecor(d, g_catState.x, g_catState.y, g_catState.z);
@@ -9928,13 +10028,10 @@ var BallRenderer = {
                     seed: i
                 });
             }
-            // Ensure Cat is visible
-            if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
-                    else processDecor(cat);
-                }
+            // Ensure Cat is visible (using cached reference)
+            if (window._cachedCatDecor) {
+                if (typeof g_catState !== 'undefined') processDecor(window._cachedCatDecor, g_catState.x, g_catState.y, g_catState.z);
+                else processDecor(window._cachedCatDecor);
             }
         } else if (currentGameMode === 'CONTEST') {
             // Arena: Bleachers
@@ -9949,13 +10046,10 @@ var BallRenderer = {
                     seed: i
                 });
             }
-            // Ensure Cat is visible
-            if (typeof decors !== 'undefined') {
-                const cat = decors.find(d => d.zoneType === 'cat_hoop');
-                if(cat) {
-                    if (typeof g_catState !== 'undefined') processDecor(cat, g_catState.x, g_catState.y, g_catState.z);
-                    else processDecor(cat);
-                }
+            // Ensure Cat is visible (using cached reference)
+            if (window._cachedCatDecor) {
+                if (typeof g_catState !== 'undefined') processDecor(window._cachedCatDecor, g_catState.x, g_catState.y, g_catState.z);
+                else processDecor(window._cachedCatDecor);
             }
         }
 
@@ -10744,7 +10838,7 @@ var BallRenderer = {
 
              // Accessories
              if (playerData.currentCatAccessory && playerData.currentCatAccessory !== 'acc_none') {
-                 const acc = CAT_ACCESSORIES_DB.find(a => a.id === playerData.currentCatAccessory);
+                 const acc = CAT_ACCESSORIES_DB_MAP.get(playerData.currentCatAccessory);
                  if (acc) {
                      if (acc.type === 'glasses') {
                          ctx.fillStyle = acc.color || '#000';

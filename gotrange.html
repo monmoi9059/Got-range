@@ -1439,6 +1439,14 @@ for(var k=0; k<12; k++) {
             ground2: '#FFD700', // Yellow
             sky1: '#000080',
             sky2: '#4B0082'
+        },
+        free_roam: {
+            name: "RUCKER PARK",
+            type: 'street',
+            ground1: '#4A4A4A', // Asphalt Light
+            ground2: '#2C2C2C', // Asphalt Dark
+            sky1: '#87CEEB', // Day Sky
+            sky2: '#E0FFFF'
         }
     };
 
@@ -4338,7 +4346,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
-        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : (currentGameMode === 'TIME_ATTACK' ? 'time_attack' : 'classic')));
         updateMobileControlsUI();
         saveContext(game1);
     }
@@ -4984,7 +4992,15 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+
+        if (currentGameMode === 'FREE_ROAM' || currentGameMode === 'CONTEST') {
+            // Keep camera fixed relative to hoop, looking down the classic court
+            // The classic court angle from (433, 300) to (733, 150)
+            const classicDx = 733 - 433;
+            const classicDy = 150 - 300;
+            angleToHoop = Math.atan2(classicDy, classicDx);
+        }
 
         this.rotation = -angleToHoop - Math.PI / 2;
         this.sinRot = Math.sin(this.rotation);
@@ -9059,7 +9075,7 @@ var BallRenderer = {
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
 
-        if (currentGameMode === 'CONTEST') {
+        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
             // Fix angle to face "Top" (Rack 3) position
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
@@ -11753,6 +11769,13 @@ var BallRenderer = {
             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
+            // Apply dribbling Z offset in Free Roam mode
+            if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                ballY += player3D.dribbleZ * s;
+                // Move hand to follow ball if it's bouncing
+                // We'll let the arm stay, but visual bounce is fine
+            }
+
             var phys = getTempBallPhys(ballX, ballY, p);
             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0, phys);
         }
@@ -13170,6 +13193,11 @@ var BallRenderer = {
                  let theta = shootFAngle + wristAngle;
                  ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
                  ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+             }
+
+             // Apply dribbling Z offset in Free Roam mode
+             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                 ballY += player3D.dribbleZ * s;
              }
 
              var phys = getTempBallPhys(ballX, ballY, p);
@@ -14671,6 +14699,8 @@ var BallRenderer = {
                 court = COURT_THEMES.arena;
             } else if (currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;
+            } else if (currentGameMode === 'FREE_ROAM') {
+                court = COURT_THEMES.free_roam;
             } else {
                 const currentDist = 10 + (distanceLevel * 5);
                 court = getCourtDetails(currentDist);
@@ -16052,8 +16082,10 @@ var BallRenderer = {
     }
 
     var enterPressed = false;
+    window.keysDown = window.keysDown || {};
 
     window.addEventListener('keydown', (e) => {
+        window.keysDown[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -16106,6 +16138,7 @@ var BallRenderer = {
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysDown[e.code] = false;
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');
@@ -16316,6 +16349,7 @@ var BallRenderer = {
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
         if (currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
+        if (currentGameMode === 'FREE_ROAM') { aimBonus *= 1.5; } // Extra aim in free roam
         let dampener = baseDampener + aimBonus;
 
         if(mods.timingWindow) dampener *= mods.timingWindow;
@@ -16794,6 +16828,9 @@ var BallRenderer = {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; updateContestUI();
+        } else if (currentGameMode === 'FREE_ROAM') {
+             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
+             feedbackTimer = 30; state = 'IDLE';
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
@@ -16816,6 +16853,8 @@ var BallRenderer = {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
+        } else if (currentGameMode === 'FREE_ROAM') {
+             feedback = "Manqué"; feedbackTimer = 30; state = 'IDLE';
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
@@ -17169,6 +17208,37 @@ var BallRenderer = {
         }
     }
 
+    function updateFreeRoam(dt) {
+        if (state !== 'IDLE') return;
+        const speed = 5.0; // Units per frame
+        let moved = false;
+        if (window.keysDown) {
+            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { player3D.y -= speed * dt; moved = true; }
+            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { player3D.y += speed * dt; moved = true; }
+            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { player3D.x -= speed * dt; moved = true; }
+            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { player3D.x += speed * dt; moved = true; }
+        }
+
+        // Keep player behind the hoop somewhat (Hoop is at 733, 150)
+        // Let's just constrain to court bounds roughly.
+        if (player3D.x < 100) player3D.x = 100;
+        if (player3D.x > 1500) player3D.x = 1500;
+        if (player3D.y < -500) player3D.y = -500;
+        if (player3D.y > 1000) player3D.y = 1000;
+
+        if (moved) {
+            invalidateBackgroundCache();
+            if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
+            g_dribblePhase += dt * 0.3; // Speed of dribble
+            player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
+        } else {
+            if (typeof g_dribblePhase !== 'undefined') {
+                g_dribblePhase = 0;
+                player3D.dribbleZ = 0;
+            }
+        }
+    }
+
     function update(dt) {
         // Interpolation History
         if (player3D.lastX === undefined) { player3D.lastX = player3D.x; player3D.lastY = player3D.y; player3D.lastZ = player3D.z; }
@@ -17290,6 +17360,10 @@ var BallRenderer = {
                 if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
                 if(Math.ceil(contestData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
             }
+        }
+
+        if(currentGameMode === 'FREE_ROAM' && state !== 'GAMEOVER') {
+            if(typeof updateFreeRoam === 'function') updateFreeRoam(dt);
         }
 
         if(currentGameMode === 'TIME_ATTACK' && state !== 'GAMEOVER') {
@@ -17570,6 +17644,8 @@ var BallRenderer = {
         } else if (currentGameMode === 'TIME_ATTACK') {
             courtNameEl.innerText = "TIME ATTACK";
             // Update Timer/Score in UI loop, but title here is good
+        } else if (currentGameMode === 'FREE_ROAM') {
+            courtNameEl.innerText = "FREE ROAM";
         }
     }
 
@@ -17616,6 +17692,14 @@ var BallRenderer = {
         particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
+        else if(currentGameMode === 'FREE_ROAM') {
+            document.getElementById('classic-stats').style.display = 'none';
+            player3D = { x: 433, y: 300, z: 0, vz: 0 };
+            state = 'IDLE';
+            feedback = ""; feedbackTimer = 0;
+            updateUI();
+            invalidateBackgroundCache();
+        }
         else {
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
@@ -19065,6 +19149,9 @@ var BallRenderer = {
         } else if (currentGameMode === 'CONTEST') {
             currentGameMode = 'TIME_ATTACK';
             document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            currentGameMode = 'FREE_ROAM';
+            document.getElementById('modeBtnText').innerText = "FREE ROAM";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";

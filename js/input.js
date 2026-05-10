@@ -250,8 +250,10 @@
     }
 
     var enterPressed = false;
+    window.keysDown = window.keysDown || {};
 
     window.addEventListener('keydown', (e) => {
+        window.keysDown[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -304,6 +306,7 @@
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysDown[e.code] = false;
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');
