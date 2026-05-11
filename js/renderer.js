@@ -63,7 +63,7 @@ RenderEngine.Camera = {
         const dyToHoop = HOOP_POS.y - this.y;
         let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
+        if (currentGameMode === 'CONTEST') {
             // Keep camera fixed relative to hoop, looking down the classic court
             // The classic court angle from (433, 300) to (733, 150)
             const classicDx = 733 - 433;
