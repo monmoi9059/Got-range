@@ -61,7 +61,15 @@ RenderEngine.Camera = {
         // Calculate Angle to Hoop
         const dxToHoop = HOOP_POS.x - this.x;
         const dyToHoop = HOOP_POS.y - this.y;
-        const angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+        let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
+
+        if (currentGameMode === 'CONTEST') {
+            // Keep camera fixed relative to hoop, looking down the classic court
+            // The classic court angle from (433, 300) to (733, 150)
+            const classicDx = 733 - 433;
+            const classicDy = 150 - 300;
+            angleToHoop = Math.atan2(classicDy, classicDx);
+        }
 
         this.rotation = -angleToHoop - Math.PI / 2;
         this.sinRot = Math.sin(this.rotation);
@@ -4136,7 +4144,7 @@ var BallRenderer = {
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
 
-        if (currentGameMode === 'CONTEST') {
+        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
             // Fix angle to face "Top" (Rack 3) position
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
@@ -6830,6 +6838,13 @@ var BallRenderer = {
             let ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
+            // Apply dribbling Z offset in Free Roam mode
+            if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                ballY += player3D.dribbleZ * s;
+                // Move hand to follow ball if it's bouncing
+                // We'll let the arm stay, but visual bounce is fine
+            }
+
             var phys = getTempBallPhys(ballX, ballY, p);
             drawBallSprite(ballX, ballY, s, (currentStreak >= 5), 0, phys);
         }
@@ -8247,6 +8262,11 @@ var BallRenderer = {
                  let theta = shootFAngle + wristAngle;
                  ballX = wrist.x + Math.cos(theta) * 0 - Math.sin(theta) * 5 * s;
                  ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
+             }
+
+             // Apply dribbling Z offset in Free Roam mode
+             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+                 ballY += player3D.dribbleZ * s;
              }
 
              var phys = getTempBallPhys(ballX, ballY, p);
@@ -9748,6 +9768,8 @@ var BallRenderer = {
                 court = COURT_THEMES.arena;
             } else if (currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;
+            } else if (currentGameMode === 'FREE_ROAM') {
+                court = COURT_THEMES.free_roam;
             } else {
                 const currentDist = 10 + (distanceLevel * 5);
                 court = getCourtDetails(currentDist);

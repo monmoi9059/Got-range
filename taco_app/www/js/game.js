@@ -50,12 +50,19 @@
     function updateHighScoreDisplay() {
         const display = document.getElementById('hsNameDisplay');
         if(!display) return;
-        let html = '';
+        display.innerHTML = ''; // Clear existing
         for(let i=0; i<3; i++) {
-            if (i === highScoreCursor) html += `<span style="color:#FFD700; text-decoration:underline;">${highScoreName[i]}</span> `;
-            else html += `${highScoreName[i]} `;
+            const span = document.createElement('span');
+            span.textContent = highScoreName[i];
+            if (i === highScoreCursor) {
+                span.style.color = '#FFD700';
+                span.style.textDecoration = 'underline';
+            }
+            display.appendChild(span);
+            if (i < 2) {
+                display.appendChild(document.createTextNode(' '));
+            }
         }
-        display.innerHTML = html.trim();
     }
 
     function handleHighScoreInput(action) {
@@ -130,6 +137,7 @@
         let baseDampener = 6.0;
         if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
         if (currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
+        if (currentGameMode === 'FREE_ROAM') { aimBonus *= 1.5; } // Extra aim in free roam
         let dampener = baseDampener + aimBonus;
 
         if(mods.timingWindow) dampener *= mods.timingWindow;
@@ -187,7 +195,7 @@
     function unlockAchievement(id) {
         if (!playerData.unlockedAchievements.includes(id)) {
             playerData.unlockedAchievements.push(id);
-            const ach = ACHIEVEMENTS.find(a => a.id === id);
+            const ach = ACHIEVEMENTS_MAP.get(id);
             if(ach) {
                 playerData.tacos += ach.reward;
                 saveData();
@@ -244,7 +252,7 @@
             if (playerData.stats.luck >= 5) unlockAchievement('leprechaun');
             if (playerData.stats.moonwalk >= 5) unlockAchievement('moonwalker_pro');
             const animalsOwned = new Set();
-            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB.find(x => x.id === skinId); if(s) animalsOwned.add(s.animal); });
+            playerData.unlockedSkins.forEach(skinId => { const s = SKINS_DB_MAP.get(skinId); if(s) animalsOwned.add(s.animal); });
             if(animalsOwned.size >= 3) unlockAchievement('zoo');
         }
         if (context === 'lucky') unlockAchievement('lucky');
@@ -273,7 +281,37 @@
             const unlocked = playerData.unlockedAchievements.includes(ach.id);
             const div = document.createElement('div');
             div.className = `ach-row ${unlocked ? 'unlocked' : ''}`;
-            div.innerHTML = `<div style="display:flex; align-items:center;"><div class="ach-icon">${unlocked ? '🏆' : '🔒'}</div><div class="ach-info"><h4>${ach.name}</h4><span>${ach.desc}</span></div></div>${unlocked ? '<div style="color:#00FF00">✓</div>' : ''}`;
+
+            const flexDiv = document.createElement('div');
+            flexDiv.style.display = 'flex';
+            flexDiv.style.alignItems = 'center';
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'ach-icon';
+            iconDiv.textContent = unlocked ? '🏆' : '🔒';
+            flexDiv.appendChild(iconDiv);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'ach-info';
+
+            const h4 = document.createElement('h4');
+            h4.textContent = ach.name;
+            infoDiv.appendChild(h4);
+
+            const descSpan = document.createElement('span');
+            descSpan.textContent = ach.desc;
+            infoDiv.appendChild(descSpan);
+
+            flexDiv.appendChild(infoDiv);
+            div.appendChild(flexDiv);
+
+            if (unlocked) {
+                const checkmark = document.createElement('div');
+                checkmark.style.color = '#00FF00';
+                checkmark.textContent = '✓';
+                div.appendChild(checkmark);
+            }
+
             list.appendChild(div);
         });
     }
@@ -435,6 +473,50 @@
         targetBall.hasScored = true; // Mark as scored but keep active for eating animation
         g_catEatTimer = 20; // Trigger cat animation
 
+        // Swish Shockwave Effect
+        if (currentStreak >= 5) {
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                particles.push({
+                    x: HOOP_POS.x + Math.cos(angle) * 10,
+                    y: HOOP_POS.y + Math.sin(angle) * 10,
+                    z: 0,
+                    vx: Math.cos(angle) * 8,
+                    vy: Math.sin(angle) * 8,
+                    vz: 2,
+                    life: 30, maxLife: 30,
+                    scale: 1.5, alpha: 0.8,
+                    type: 'smoke',
+                    color: `hsl(${getStreakFireHue(currentStreak)}, 100%, 70%)`
+                });
+            }
+        }
+
+        // Perfect Swish Fireworks
+        // If ball was very accurate (vrx and vry implies accuracy in scatter logic,
+        // we can just check if it didn't hit the rim, or if the accuracy was perfect based on some state)
+        // Since we don't have direct access to 'timingError' here easily without saving it,
+        // we'll trigger a firework if the ball had 'isFire' flag or if currentStreak % 3 == 0.
+        // Actually, let's just make every 3rd shot or high streak create fireworks for fun!
+        if (currentStreak > 0 && currentStreak % 3 === 0) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 8;
+                particles.push({
+                    x: HOOP_POS.x,
+                    y: HOOP_POS.y,
+                    z: HOOP_POS.z,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: 5 + Math.random() * 10, // Explode upwards
+                    life: 40 + Math.random() * 20, maxLife: 60,
+                    scale: 1.0 + Math.random(), alpha: 1.0,
+                    type: 'smoke',
+                    color: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'][Math.floor(Math.random() * 5)]
+                });
+            }
+        }
+
         // Basket Cat Growth
         let evolutionTriggered = false;
         if (typeof playerData.basketCatExp === 'undefined') playerData.basketCatExp = 0;
@@ -476,13 +558,15 @@
         if (playerData.difficulty >= 2.5) checkDailyProgress('makes_legend', 1);
 
         // Distance Checks (Classic/Calculated)
-        const dist = Math.sqrt(Math.pow(player3D.x - HOOP_POS.x, 2) + Math.pow(player3D.y - HOOP_POS.y, 2)) / PIXELS_PER_FOOT;
+        const pdx = player3D.x - HOOP_POS.x;
+        const pdy = player3D.y - HOOP_POS.y;
+        const dist = Math.sqrt(pdx * pdx + pdy * pdy) / PIXELS_PER_FOOT;
         if (dist >= 100) checkDailyProgress('makes_long', 1);
         if (dist >= 200) checkDailyProgress('makes_super', 1);
 
         // Skin Checks
-        if (typeof SKINS_DB !== 'undefined') {
-            const currentSkinObj = SKINS_DB.find(s => s.id === playerData.currentSkin);
+        if (typeof SKINS_DB_MAP !== 'undefined') {
+            const currentSkinObj = SKINS_DB_MAP.get(playerData.currentSkin);
             if (currentSkinObj) {
                 if (currentSkinObj.animal === 'human') checkDailyProgress('makes_human', 1);
                 else checkDailyProgress('makes_animal', 1);
@@ -532,6 +616,9 @@
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; updateContestUI();
+        } else if (currentGameMode === 'FREE_ROAM') {
+             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
+             feedbackTimer = 30; state = 'IDLE';
         } else {
             consecutiveMisses = 0;
             if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak} 🔥`; } else { feedback = "Swish"; }
@@ -554,6 +641,8 @@
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
+        } else if (currentGameMode === 'FREE_ROAM') {
+             feedback = "Manqué"; feedbackTimer = 30; state = 'IDLE';
         } else {
             consecutiveMisses++; updateUI();
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
@@ -687,16 +776,25 @@
         g_animState.guide_u_z = lerp(currentGuideUZ, g_animTarget.guide_u_z, smoothFactor);
     }
 
+    let g_catDecorCache = null;
     function updateCatLogic(dt) {
         const cat = g_catState;
         const speed = 4.0; // Movement speed
 
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
-            const catD = decors.find(d => d.zoneType === 'cat_hoop');
-            if (catD) {
-                catD.x = cat.x;
-                catD.y = cat.y;
+            if (!g_catDecorCache || g_catDecorCache.zoneType !== 'cat_hoop') {
+                g_catDecorCache = null;
+                for (let i = 0; i < decors.length; i++) {
+                    if (decors[i].zoneType === 'cat_hoop') {
+                        g_catDecorCache = decors[i];
+                        break;
+                    }
+                }
+            }
+            if (g_catDecorCache) {
+                g_catDecorCache.x = cat.x;
+                g_catDecorCache.y = cat.y;
             }
         }
 
@@ -709,16 +807,18 @@
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
-                let minDist = Infinity;
+                let minDistSq = Infinity;
                 let targetIdx = -1;
                 for(let i=0; i<tacosOnGround.length; i++) {
                     const t = tacosOnGround[i];
                     if (t.beingEaten) continue; // Skip claimed tacos
                     if (Date.now() - (t.spawnTime || 0) < 1500) continue; // Ignore if fresh (< 1.5s)
 
-                    const d = Math.sqrt(Math.pow(t.x - cat.x, 2) + Math.pow(t.y - cat.y, 2));
-                    if (d < minDist) {
-                        minDist = d;
+                    const dx = t.x - cat.x;
+                    const dy = t.y - cat.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq < minDistSq) {
+                        minDistSq = dSq;
                         targetIdx = i;
                     }
                 }
@@ -731,16 +831,16 @@
 
                     const dx = cat.targetX - cat.x;
                     const dy = cat.targetY - cat.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const distSq = dx*dx + dy*dy;
 
-                    if (dist > 60) {
+                    if (distSq > 3600) { // dist > 60 -> distSq > 3600
                         cat.state = 'POUNCING';
                         // Deterministic Animation Setup
                         cat.startX = cat.x;
                         cat.startY = cat.y;
                         cat.pounceTimer = 0;
                         const pounceSpeed = 12.0;
-                        cat.pounceDuration = Math.max(30, dist / pounceSpeed);
+                        cat.pounceDuration = Math.max(30, Math.sqrt(distSq) / pounceSpeed);
                     } else {
                         cat.state = 'MOVING';
                     }
@@ -797,9 +897,9 @@
             // Move towards target
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'EATING';
@@ -808,6 +908,7 @@
                 cat.eatTimer = eatTime;
                 g_catEatTimer = eatTime; // Sync render animation
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2; // Walk cycle
@@ -846,13 +947,14 @@
         else if (cat.state === 'RETURNING') {
             const dx = cat.targetX - cat.x;
             const dy = cat.targetY - cat.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
+            const distSq = dx*dx + dy*dy;
 
-            if (dist < speed) {
+            if (distSq < speed * speed) {
                 cat.x = cat.targetX;
                 cat.y = cat.targetY;
                 cat.state = 'IDLE';
             } else {
+                const dist = Math.sqrt(distSq);
                 cat.x += (dx / dist) * speed * dt;
                 cat.y += (dy / dist) * speed * dt;
                 cat.animFrame += dt * 0.2;
@@ -890,6 +992,61 @@
             if (p.life <= 0) {
                 particles[i] = particles[particles.length - 1];
                 particles.pop();
+            }
+        }
+    }
+
+    function updateFreeRoam(dt) {
+        if (state !== 'IDLE') return;
+        const speed = 5.0; // Units per frame
+        let moved = false;
+        if (window.keysDown) {
+            // Dynamic forward vector from player current position to hoop
+            let fDx = HOOP_POS.x - player3D.x;
+            let fDy = HOOP_POS.y - player3D.y;
+            let fLen = Math.sqrt(fDx*fDx + fDy*fDy);
+            if (fLen < 1) { fDx = 733 - 433; fDy = 150 - 300; fLen = Math.sqrt(fDx*fDx + fDy*fDy); }
+            fDx /= fLen; fDy /= fLen; // Normalize forward
+
+            // Right vector is 90 degrees clockwise in screen space (fDy, -fDx)
+            let rDx = -fDy;
+            let rDy = fDx;
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { moveX += fDx; moveY += fDy; }
+            if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { moveX -= fDx; moveY -= fDy; }
+            if (window.keysDown['KeyA'] || window.keysDown['ArrowLeft']) { moveX -= rDx; moveY -= rDy; }
+            if (window.keysDown['KeyD'] || window.keysDown['ArrowRight']) { moveX += rDx; moveY += rDy; }
+
+            // Normalize diagonal movement
+            let moveLen = Math.sqrt(moveX*moveX + moveY*moveY);
+            if (moveLen > 0) {
+                moveX /= moveLen;
+                moveY /= moveLen;
+                player3D.x += moveX * speed * dt;
+                player3D.y += moveY * speed * dt;
+                moved = true;
+            }
+        }
+
+        // Keep player behind the hoop somewhat (Hoop is at 733, 150)
+        // Let's just constrain to court bounds roughly.
+        if (player3D.x < 100) player3D.x = 100;
+        if (player3D.x > 1500) player3D.x = 1500;
+        if (player3D.y < -500) player3D.y = -500;
+        if (player3D.y > 1000) player3D.y = 1000;
+
+        if (moved) {
+            invalidateBackgroundCache();
+            if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
+            g_dribblePhase += dt * 0.3; // Speed of dribble
+            player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
+        } else {
+            if (typeof g_dribblePhase !== 'undefined') {
+                g_dribblePhase = 0;
+                player3D.dribbleZ = 0;
             }
         }
     }
@@ -1017,6 +1174,10 @@
             }
         }
 
+        if(currentGameMode === 'FREE_ROAM' && state !== 'GAMEOVER') {
+            if(typeof updateFreeRoam === 'function') updateFreeRoam(dt);
+        }
+
         if(currentGameMode === 'TIME_ATTACK' && state !== 'GAMEOVER') {
             if(timeAttackData.timer > 0) {
                 timeAttackData.timer -= (1/60) * dt;
@@ -1053,13 +1214,32 @@
             }
         }
 
+        // Optimization: Calculate player's distance to hoop once per frame
+        let distToHoopSq = 0;
+        let isWayPastHoopThresholdSq = 0;
+        let cachedFireHue = undefined;
+        let showHighGraphics = (playerData.graphics === 'HIGH');
+        let streakThresholdMet = (currentStreak >= 10);
+        if (streakThresholdMet) {
+            cachedFireHue = getStreakFireHue(currentStreak);
+        }
+
+        if (activeBalls.length > 0) {
+            const pDX = HOOP_POS.x - player3D.x;
+            const pDY = HOOP_POS.y - player3D.y;
+            distToHoopSq = pDX * pDX + pDY * pDY;
+            const distToHoop = Math.sqrt(distToHoopSq);
+            const limit = distToHoop + 5000;
+            isWayPastHoopThresholdSq = limit * limit;
+        }
+
         // Process Active Balls
         for (let i = activeBalls.length - 1; i >= 0; i--) {
             let b = activeBalls[i];
             if (b.active) {
                 if (b.isFire) {
                      // Update Trail
-                     if (playerData.graphics === 'HIGH') {
+                     if (showHighGraphics) {
                          if (!b.trail) b.trail = [];
                          b.trail.push({ x: b.x, y: b.y, z: b.z });
                          if (b.trail.length > 20) b.trail.shift();
@@ -1068,10 +1248,6 @@
                      // Emit Fire Particles
                      if (Math.random() < 1.0 * dt) {
                          const life = 20 + Math.random() * 20;
-                         let customHue = undefined;
-                         if (currentStreak >= 10) {
-                             customHue = getStreakFireHue(currentStreak);
-                         }
                          particles.push({
                              x: b.x + (Math.random()-0.5)*15,
                              y: b.y + (Math.random()-0.5)*15,
@@ -1082,7 +1258,7 @@
                              life: life, maxLife: life,
                              scale: 0.8 + Math.random()*0.5, alpha: 1.0,
                              isFireParticle: true,
-                             customHue: customHue
+                             customHue: cachedFireHue
                          });
                     }
                 } else {
@@ -1109,8 +1285,10 @@
                     const crossX = prevX + (b.x - prevX) * t;
                     const crossY = prevY + (b.y - prevY) * t;
 
-                    const distToHoopCenter = Math.sqrt(Math.pow(crossX - HOOP_POS.x, 2) + Math.pow(crossY - HOOP_POS.y, 2));
-                    if (distToHoopCenter < 25) { handleScore(b); continue; }
+                    const hoopDX = crossX - HOOP_POS.x;
+                    const hoopDY = crossY - HOOP_POS.y;
+                    const distToHoopCenterSq = hoopDX * hoopDX + hoopDY * hoopDY;
+                    if (distToHoopCenterSq < 625) { handleScore(b); continue; } // 25 * 25
 
                     if (b.isWindow) {
                         AudioSystem.playWindowBreak();
@@ -1118,10 +1296,13 @@
                         AudioSystem.playBrick();
                     }
                 }
-                const distToHoop = Math.sqrt(Math.pow(HOOP_POS.x - player3D.x, 2) + Math.pow(HOOP_POS.y - player3D.y, 2));
-                const currentDist = Math.sqrt(Math.pow(b.x - player3D.x, 2) + Math.pow(b.y - player3D.y, 2));
+                const bDX = b.x - player3D.x;
+                const bDY = b.y - player3D.y;
+                const currentDistSq = bDX * bDX + bDY * bDY;
 
-                if (b.z < -50 || currentDist > distToHoop + 5000) { b.active = false; handleMiss(b); continue; }
+                const isWayPastHoop = currentDistSq > isWayPastHoopThresholdSq;
+
+                if (b.z < -50 || isWayPastHoop) { b.active = false; handleMiss(b); continue; }
                 if (b.z <= 0) {
                     b.z = 0;
                     if (!b.hasScored) { // Don't trigger miss if it scored and fell
@@ -1275,6 +1456,8 @@
         } else if (currentGameMode === 'TIME_ATTACK') {
             courtNameEl.innerText = "TIME ATTACK";
             // Update Timer/Score in UI loop, but title here is good
+        } else if (currentGameMode === 'FREE_ROAM') {
+            courtNameEl.innerText = "FREE ROAM";
         }
     }
 
@@ -1321,6 +1504,14 @@
         particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
+        else if(currentGameMode === 'FREE_ROAM') {
+            document.getElementById('classic-stats').style.display = 'none';
+            player3D = { x: 433, y: 300, z: 0, vz: 0 };
+            state = 'IDLE';
+            feedback = ""; feedbackTimer = 0;
+            updateUI();
+            invalidateBackgroundCache();
+        }
         else {
             distanceLevel = 1; consecutiveMisses = 0;
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
@@ -1471,8 +1662,9 @@
         document.getElementById('leaderboardUI').style.display = 'none';
         document.getElementById('diffSlider').value = playerData.difficulty;
 
-        // Reset to first tab
-        window.switchShopTab('upgrades');
+        // Reset to first tab only if not already open (preserves state)
+        if (!currentShopTab) window.switchShopTab('upgrades');
+        else window.switchShopTab(currentShopTab);
 
         updateDifficulty(); updateShopUI();
         updateMobileControlsUI();
@@ -1863,11 +2055,11 @@
         playerData.customHairstyle = 'default';
 
         // Reset indices for UI to point to defaults
-        if (typeof HATS_DB !== 'undefined') viewingHatIndex = HATS_DB.findIndex(x => x.id === 'hat_none');
-        if (typeof CLOTHING_DB !== 'undefined') viewingClothingIndex = CLOTHING_DB.findIndex(x => x.id === 'clothes_none');
-        if (typeof PANTS_DB !== 'undefined') viewingPantsIndex = PANTS_DB.findIndex(x => x.id === 'pants_none');
-        if (typeof SHOES_DB !== 'undefined') viewingShoeIndex = SHOES_DB.findIndex(x => x.id === 'shoe_none');
-        if (typeof HAIRSTYLES !== 'undefined') viewingHairstyleIndex = HAIRSTYLES.findIndex(x => x.id === 'default');
+        if (typeof HATS_INDEX_MAP !== 'undefined') viewingHatIndex = HATS_INDEX_MAP.get('hat_none') ?? 0;
+        if (typeof CLOTHING_INDEX_MAP !== 'undefined') viewingClothingIndex = CLOTHING_INDEX_MAP.get('clothes_none') ?? 0;
+        if (typeof PANTS_INDEX_MAP !== 'undefined') viewingPantsIndex = PANTS_INDEX_MAP.get('pants_none') ?? 0;
+        if (typeof SHOES_INDEX_MAP !== 'undefined') viewingShoeIndex = SHOES_INDEX_MAP.get('shoe_none') ?? 0;
+        if (typeof HAIRSTYLES_INDEX_MAP !== 'undefined') viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get('default') ?? 0;
 
         // Safety fallback if index not found
         if (viewingHatIndex < 0) viewingHatIndex = 0;
@@ -2104,7 +2296,7 @@
     function syncShopToEquipped() {
         // Animal
         const skinId = playerData.currentSkin;
-        const skinObj = SKINS_DB.find(s => s.id === skinId);
+        const skinObj = SKINS_DB_MAP.get(skinId);
         if (skinObj) {
             const animal = skinObj.animal;
             viewingAnimalIndex = ANIMALS.indexOf(animal);
@@ -2125,56 +2317,47 @@
 
         // Hair
         if(playerData.customHairstyle) {
-            viewingHairstyleIndex = HAIRSTYLES.findIndex(h => h.id === playerData.customHairstyle);
-            if(viewingHairstyleIndex < 0) viewingHairstyleIndex = 0;
+            viewingHairstyleIndex = HAIRSTYLES_INDEX_MAP.get(playerData.customHairstyle) ?? 0;
         }
 
         // Clothes
         if(playerData.currentClothing) {
-            viewingClothingIndex = CLOTHING_DB.findIndex(c => c.id === playerData.currentClothing);
-            if(viewingClothingIndex < 0) viewingClothingIndex = 0;
+            viewingClothingIndex = CLOTHING_INDEX_MAP.get(playerData.currentClothing) ?? 0;
         }
 
         // Pants
         if(playerData.currentPants) {
-            viewingPantsIndex = PANTS_DB.findIndex(p => p.id === playerData.currentPants);
-            if(viewingPantsIndex < 0) viewingPantsIndex = 0;
+            viewingPantsIndex = PANTS_INDEX_MAP.get(playerData.currentPants) ?? 0;
         }
 
         // Hat
         if(playerData.currentHat) {
-            viewingHatIndex = HATS_DB.findIndex(h => h.id === playerData.currentHat);
-            if(viewingHatIndex < 0) viewingHatIndex = 0;
+            viewingHatIndex = HATS_INDEX_MAP.get(playerData.currentHat) ?? 0;
         }
 
         // Shoe
         if(playerData.currentShoes) {
-            viewingShoeIndex = SHOES_DB.findIndex(s => s.id === playerData.currentShoes);
-            if(viewingShoeIndex < 0) viewingShoeIndex = 0;
+            viewingShoeIndex = SHOES_INDEX_MAP.get(playerData.currentShoes) ?? 0;
         }
 
         // Ball
         if(playerData.currentBall) {
-            viewingBallIndex = BALLS_DB.findIndex(b => b.id === playerData.currentBall);
-            if(viewingBallIndex < 0) viewingBallIndex = 0;
+            viewingBallIndex = BALLS_INDEX_MAP.get(playerData.currentBall) ?? 0;
         }
 
         // Cat
         if(playerData.currentCatSkin) {
-            viewingCatSkinIndex = CAT_SKINS_DB.findIndex(c => c.id === playerData.currentCatSkin);
-            if(viewingCatSkinIndex < 0) viewingCatSkinIndex = 0;
+            viewingCatSkinIndex = CAT_SKINS_INDEX_MAP.get(playerData.currentCatSkin) ?? 0;
         }
 
         // Cat Accessory
         if(playerData.currentCatAccessory) {
-            viewingCatAccessoryIndex = CAT_ACCESSORIES_DB.findIndex(a => a.id === playerData.currentCatAccessory);
-            if(viewingCatAccessoryIndex < 0) viewingCatAccessoryIndex = 0;
+            viewingCatAccessoryIndex = CAT_ACCESSORIES_INDEX_MAP.get(playerData.currentCatAccessory) ?? 0;
         }
 
         // Style
         if(playerData.currentStyle) {
-            viewingStyleIndex = SHOOTING_STYLES.findIndex(s => s.id === playerData.currentStyle);
-            if(viewingStyleIndex < 0) viewingStyleIndex = 0;
+            viewingStyleIndex = SHOOTING_STYLES_INDEX_MAP.get(playerData.currentStyle) ?? 0;
         }
     }
 
@@ -2416,29 +2599,48 @@
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        let html = '';
+        container.innerHTML = '';
 
         // Down Arrow ([-]) - Visible if active level > 0
         if (active > 0) {
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', -1)" style="padding: 8px 12px; margin-right:5px;">⬇️</button>`;
+            const downBtn = document.createElement('button');
+            downBtn.className = 'btn';
+            downBtn.onclick = () => changeStatLevel(statName, -1);
+            downBtn.style.padding = '8px 12px';
+            downBtn.style.marginRight = '5px';
+            downBtn.textContent = '⬇️';
+            container.appendChild(downBtn);
         }
 
         // Up Arrow ([+]) or Buy Button
         if (active < purchased) {
             // Navigate up through owned levels
-            html += `<button class="btn" onclick="changeStatLevel('${statName}', 1)" style="padding: 8px 12px;">⬆️</button>`;
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn';
+            upBtn.onclick = () => changeStatLevel(statName, 1);
+            upBtn.style.padding = '8px 12px';
+            upBtn.textContent = '⬆️';
+            container.appendChild(upBtn);
         } else {
             // Buy next level
             if (statName === 'luck' && purchased >= 10) {
-                html += `<button class="btn" disabled>MAX</button>`;
+                const maxBtn = document.createElement('button');
+                maxBtn.className = 'btn';
+                maxBtn.disabled = true;
+                maxBtn.textContent = 'MAX';
+                container.appendChild(maxBtn);
             } else {
                 const cost = getUpgradeCost(statName);
-                const disabled = playerData.tacos < cost ? 'disabled' : '';
-                html += `<button class="btn" ${disabled} onclick="buyUpgrade('${statName}')">Acheter (${cost})</button>`;
+                const disabled = playerData.tacos < cost;
+
+                const buyBtn = document.createElement('button');
+                buyBtn.className = 'btn';
+                if (disabled) buyBtn.disabled = true;
+                buyBtn.onclick = () => buyUpgrade(statName);
+                buyBtn.textContent = `Acheter (${cost})`;
+                container.appendChild(buyBtn);
             }
         }
-
-        container.innerHTML = html;
 
         // Update Label Level
         const lblId = 'lvl' + statName.charAt(0).toUpperCase() + statName.slice(1);
@@ -2535,7 +2737,7 @@
             btnVar.style.fontSize = '0.9em';
             btnVar.style.background = '#444';
             // Insert after equip button
-            btn.parentNode.insertBefore(btnVar, btn.nextSibling);
+            if(btn.parentNode) btn.parentNode.insertBefore(btnVar, btn.nextSibling);
         }
 
         // Repurpose button for cycling skin variants
@@ -2561,7 +2763,7 @@
         // Hairstyle UI
         if (typeof HAIRSTYLES !== 'undefined') {
             const hair = HAIRSTYLES[viewingHairstyleIndex];
-            document.getElementById('hairName').innerText = hair.name;
+            if (document.getElementById('hairName')) document.getElementById('hairName').innerText = hair.name;
             const btnHair = document.getElementById('btnEquipHair');
             const statusHair = document.getElementById('hairStatus');
 
@@ -2759,6 +2961,9 @@
         } else if (currentGameMode === 'CONTEST') {
             currentGameMode = 'TIME_ATTACK';
             document.getElementById('modeBtnText').innerText = "TIME ATTACK";
+        } else if (currentGameMode === 'TIME_ATTACK') {
+            currentGameMode = 'FREE_ROAM';
+            document.getElementById('modeBtnText').innerText = "FREE ROAM";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";

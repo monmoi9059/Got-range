@@ -185,6 +185,14 @@
             ground2: '#FFD700', // Yellow
             sky1: '#000080',
             sky2: '#4B0082'
+        },
+        free_roam: {
+            name: "RUCKER PARK",
+            type: 'street',
+            ground1: '#4A4A4A', // Asphalt Light
+            ground2: '#2C2C2C', // Asphalt Dark
+            sky1: '#87CEEB', // Day Sky
+            sky2: '#E0FFFF'
         }
     };
 

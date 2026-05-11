@@ -610,7 +610,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
-        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : (currentGameMode === 'TIME_ATTACK' ? 'time_attack' : 'classic')));
         updateMobileControlsUI();
         saveContext(game1);
     }

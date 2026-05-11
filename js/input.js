@@ -250,8 +250,10 @@
     }
 
     var enterPressed = false;
+    window.keysDown = window.keysDown || {};
 
     window.addEventListener('keydown', (e) => {
+        window.keysDown[e.code] = true;
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
@@ -286,7 +288,12 @@
 
         if(e.code === 'KeyP') { loadContext(game1); openShop(); return; }
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
-        if(e.code === 'KeyS') { loadContext(game1); openStats(); return; }
+        if(e.code === 'KeyS') {
+            loadContext(game1);
+            if (currentGameMode !== 'FREE_ROAM') {
+                openStats(); return;
+            }
+        }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
 
@@ -304,6 +311,7 @@
     });
 
     window.addEventListener('keyup', (e) => {
+        window.keysDown[e.code] = false;
         if (e.code === 'Space') {
             spacePressed = false;
             doGameAction(game1, 'release');

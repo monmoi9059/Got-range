@@ -30,6 +30,13 @@
     var catDecor = { x: HOOP_POS.x, y: HOOP_POS.y + 10, dist: 0, zoneType: 'cat_hoop', variant: 'default', seed: 0 };
     decors.push(catDecor);
 
+    const MIN_HOUSE_DIST_SQ = 600 * 600; // House size is 200*s, so 600px ensures plenty of space between houses
+    let placedHouses = [];
+
+    // OPTIMIZATION: Pre-calculate squared limits for zone lookup to avoid Math.sqrt in the loop
+    const zoneLimitsSq = COURT_ZONES.map(z => z.limit * z.limit);
+    const PIXELS_PER_FOOT_SQ = PIXELS_PER_FOOT * PIXELS_PER_FOOT;
+
     // Increased range to ~120,000 pixels (approx 28,000 feet) to cover late game
     // Increased count to 4000 to maintain density
     for(let i=0; i<4000; i++) {
@@ -41,23 +48,50 @@
         const dX = pathX + scatter;
         const dY = pathY + scatter;
 
+        const dx = dX - HOOP_POS.x;
+        const dy = dY - HOOP_POS.y;
+        const distSq = dx * dx + dy * dy;
+
+        // Convert Pixel Distance to Game Feet for Zone Lookup (Squared for performance)
+        const feetDistSq = distSq / PIXELS_PER_FOOT_SQ;
+
+        let decorZone = COURT_ZONES[COURT_ZONES.length-1];
+        for (let j = 0; j < COURT_ZONES.length; j++) {
+            if (feetDistSq < zoneLimitsSq[j]) {
+                decorZone = COURT_ZONES[j];
+                break;
+            }
+        }
+
+        const isHouse = decorZone.type === 'castle'; // Residential Houses
+
         // Safety Corridor Check: Prevent objects between player (sum=600) and hoop (sum=750)
-        // Player Width ~30 units. Safety = 1.5x (~45).
-        // Corridor: [600 - 60, 750 + 60] -> [540, 810]
+        // Houses are scaled up ~4x, so we need a much wider safety corridor to avoid blocking the lane.
         const sum = dX + dY;
-        if (sum > 540 && sum < 810) continue;
+        if (isHouse) {
+            if (sum > 200 && sum < 1150) continue;
 
-        const dDist = Math.sqrt(Math.pow(dX - HOOP_POS.x, 2) + Math.pow(dY - HOOP_POS.y, 2));
+            // House minimum distance check
+            let tooClose = false;
+            for (let h = 0; h < placedHouses.length; h++) {
+                const hx = placedHouses[h].x - dX;
+                const hy = placedHouses[h].y - dY;
+                if ((hx * hx + hy * hy) < MIN_HOUSE_DIST_SQ) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+        } else {
+            if (sum > 540 && sum < 810) continue;
+        }
 
-        // Convert Pixel Distance to Game Feet for Zone Lookup
-        const feetDist = dDist / PIXELS_PER_FOOT;
-
-        const decorZone = COURT_ZONES.find(z => feetDist < z.limit) || COURT_ZONES[COURT_ZONES.length-1];
         let variant = 'default';
         if(decorZone.type === 'tree') {
              variant = (decorZone.name.includes("FORÊT") || decorZone.name.includes("MONT")) ? 'pine' : 'oak';
         }
         decors.push({ x: dX, y: dY, dist: dist, zoneType: decorZone.type, variant: variant, seed: Math.random() });
+        if (isHouse) placedHouses.push({ x: dX, y: dY });
     }
 
     // Crowd Generation (Stands along the side)
@@ -563,7 +597,7 @@ let lastDisplayedContestTime = -1;
         saveData();
     }
 
-    function openLeaderboard() {
+    window.openLeaderboard = function() {
         if (window.closeControlsMenu) window.closeControlsMenu();
         loadContext(game1);
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
@@ -576,12 +610,12 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
-        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : 'time_attack'));
+        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : (currentGameMode === 'TIME_ATTACK' ? 'time_attack' : 'classic')));
         updateMobileControlsUI();
         saveContext(game1);
     }
 
-    function closeLeaderboard() {
+    window.closeLeaderboard = function() {
         // If coming from Game Over flow?
         // Note: feedback is context-specific. closeAllMenus resets it.
         // We capture it before closing.
@@ -592,7 +626,7 @@ let lastDisplayedContestTime = -1;
         });
     }
 
-    function switchLeaderboardTab(mode) {
+    window.switchLeaderboardTab = function(mode) {
         document.getElementById('btnTabClassic').className = mode === 'classic' ? 'lb-tab active' : 'lb-tab';
         document.getElementById('btnTabContest').className = mode === 'contest' ? 'lb-tab active' : 'lb-tab';
         document.getElementById('btnTabTime').className = mode === 'time_attack' ? 'lb-tab active' : 'lb-tab';
@@ -609,9 +643,22 @@ let lastDisplayedContestTime = -1;
         list.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'lb-row';
-            // Highlight pending score? Not easy to track unique ID without adding one.
-            // Just basic render.
-            div.innerHTML = `<span class="lb-rank">${index + 1}.</span><span class="lb-name">${entry.name}</span><span class="lb-score">${entry.score}</span>`;
+
+            const rankSpan = document.createElement('span');
+            rankSpan.className = 'lb-rank';
+            rankSpan.textContent = (index + 1) + '.';
+            div.appendChild(rankSpan);
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'lb-name';
+            nameSpan.textContent = entry.name;
+            div.appendChild(nameSpan);
+
+            const scoreSpan = document.createElement('span');
+            scoreSpan.className = 'lb-score';
+            scoreSpan.textContent = entry.score;
+            div.appendChild(scoreSpan);
+
             container.appendChild(div);
         });
     }
@@ -654,13 +701,13 @@ let lastDisplayedContestTime = -1;
     window.processAllChallenges = processAllChallenges;
 
     function processAllChallenges(type, amount) {
-        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES));
-        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES));
+        if(playerData.dailyChallenges) playerData.dailyChallenges.forEach(c => updateChallenge(c, type, amount, DAILY_CHALLENGES_MAP));
+        if(playerData.weeklyChallenges) playerData.weeklyChallenges.forEach(c => updateChallenge(c, type, amount, WEEKLY_CHALLENGES_MAP));
     }
 
-    function updateChallenge(userC, type, amount, db) {
+    function updateChallenge(userC, type, amount, dbMap) {
         if(userC.claimed) return;
-        const def = db.find(d => d.id === userC.id);
+        const def = dbMap.get(userC.id);
         if(!def) return;
 
         if(def.type === type) {
@@ -699,9 +746,9 @@ let lastDisplayedContestTime = -1;
     window.claimChallenge = function(index, isWeekly) {
         loadContext(game1);
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const c = list[index];
-        const def = db.find(d => d.id === c.id);
+        const def = dbMap.get(c.id);
 
         if(c && !c.claimed && c.progress >= def.target) {
             c.claimed = true;
@@ -891,7 +938,7 @@ let lastDisplayedContestTime = -1;
     window.renderChallenges = function(tab) {
         const isWeekly = (tab === 'weekly') || (document.getElementById('btnChalWeekly') && document.getElementById('btnChalWeekly').classList.contains('active'));
         const list = isWeekly ? playerData.weeklyChallenges : playerData.dailyChallenges;
-        const db = isWeekly ? WEEKLY_CHALLENGES : DAILY_CHALLENGES;
+        const dbMap = isWeekly ? WEEKLY_CHALLENGES_MAP : DAILY_CHALLENGES_MAP;
         const container = document.getElementById('challengeList');
         container.innerHTML = '';
 
@@ -901,29 +948,79 @@ let lastDisplayedContestTime = -1;
         }
 
         list.forEach((c, idx) => {
-            const def = db.find(d => d.id === c.id);
+            const def = dbMap.get(c.id);
             if(!def) return;
             const pct = Math.min(100, Math.floor((c.progress / def.target) * 100));
             const isDone = c.progress >= def.target;
 
             const div = document.createElement('div');
             div.className = 'challenge-row';
-            div.innerHTML = `
-                <div style="flex-grow:1; text-align:left;">
-                    <div style="color:#FFD700; font-weight:bold; font-size:0.9em;">${def.desc}</div>
-                    <div class="challenge-progress-bg">
-                        <div class="challenge-progress-bar" style="width:${pct}%"></div>
-                    </div>
-                    <div style="font-size:0.8em; color:#AAA;">${c.progress} / ${def.target}</div>
-                </div>
-                <div style="text-align:right; margin-left:10px; min-width:80px;">
-                    <div style="color:#FFFF00; font-weight:bold; margin-bottom:5px;">+${def.reward}</div>
-                    ${c.claimed ?
-                        '<button class="btn" disabled style="background:#333; font-size:0.7em;">REÇU</button>' :
-                        (isDone ? `<button class="btn" onclick="claimChallenge(${idx}, ${isWeekly})" style="background:#008000; border-color:#00FF00; font-size:0.7em; animation:pulse 1s infinite;">RÉCUP</button>` :
-                        '<button class="btn" disabled style="opacity:0.3; font-size:0.7em;">EN COURS</button>')}
-                </div>
-            `;
+
+            const leftDiv = document.createElement('div');
+            leftDiv.style.flexGrow = '1';
+            leftDiv.style.textAlign = 'left';
+
+            const descDiv = document.createElement('div');
+            descDiv.style.color = '#FFD700';
+            descDiv.style.fontWeight = 'bold';
+            descDiv.style.fontSize = '0.9em';
+            descDiv.textContent = def.desc;
+            leftDiv.appendChild(descDiv);
+
+            const progressBgDiv = document.createElement('div');
+            progressBgDiv.className = 'challenge-progress-bg';
+
+            const progressBarDiv = document.createElement('div');
+            progressBarDiv.className = 'challenge-progress-bar';
+            progressBarDiv.style.width = pct + '%';
+            progressBgDiv.appendChild(progressBarDiv);
+            leftDiv.appendChild(progressBgDiv);
+
+            const progressTextDiv = document.createElement('div');
+            progressTextDiv.style.fontSize = '0.8em';
+            progressTextDiv.style.color = '#AAA';
+            progressTextDiv.textContent = c.progress + ' / ' + def.target;
+            leftDiv.appendChild(progressTextDiv);
+
+            div.appendChild(leftDiv);
+
+            const rightDiv = document.createElement('div');
+            rightDiv.style.textAlign = 'right';
+            rightDiv.style.marginLeft = '10px';
+            rightDiv.style.minWidth = '80px';
+
+            const rewardDiv = document.createElement('div');
+            rewardDiv.style.color = '#FFFF00';
+            rewardDiv.style.fontWeight = 'bold';
+            rewardDiv.style.marginBottom = '5px';
+            rewardDiv.textContent = '+' + def.reward;
+            rightDiv.appendChild(rewardDiv);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+
+            if (c.claimed) {
+                btn.disabled = true;
+                btn.style.background = '#333';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'REÇU';
+            } else if (isDone) {
+                btn.onclick = () => claimChallenge(idx, isWeekly);
+                btn.style.background = '#008000';
+                btn.style.borderColor = '#00FF00';
+                btn.style.fontSize = '0.7em';
+                btn.style.animation = 'pulse 1s infinite';
+                btn.textContent = 'RÉCUP';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.3';
+                btn.style.fontSize = '0.7em';
+                btn.textContent = 'EN COURS';
+            }
+            rightDiv.appendChild(btn);
+
+            div.appendChild(rightDiv);
+
             container.appendChild(div);
         });
     }
@@ -1056,7 +1153,7 @@ let lastDisplayedContestTime = -1;
     game2.playerData.tacos = 0; // Session score for competition? Or keep tacos?
     // Let's keep it separate.
 
-    function toggleSplitscreen() {
+    window.toggleSplitscreen = function() {
         if (window.closeControlsMenu) window.closeControlsMenu();
         if(state !== 'IDLE' && state !== 'GAMEOVER') return;
         isSplitscreen = !isSplitscreen;
