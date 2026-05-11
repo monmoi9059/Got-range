@@ -6764,7 +6764,7 @@ var BallRenderer = {
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
         // PROCEDURAL GUIDE HAND LOGIC
-        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK')) {
             const isRightHand = !playerData.isLefty;
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
@@ -6839,7 +6839,7 @@ var BallRenderer = {
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
             // Apply dribbling Z offset in Free Roam mode
-            if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+            if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                 ballY += player3D.dribbleZ * s;
                 // Move hand to follow ball if it's bouncing
                 // We'll let the arm stay, but visual bounce is fine
@@ -8027,7 +8027,7 @@ var BallRenderer = {
 
         // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
         // Updated to use Human Logic (Animation + Fixed Offset)
-        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK')) {
             const isRightHand = !isLefty;
 
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
@@ -8265,7 +8265,7 @@ var BallRenderer = {
              }
 
              // Apply dribbling Z offset in Free Roam mode
-             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+             if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                  ballY += player3D.dribbleZ * s;
              }
 
@@ -8287,12 +8287,23 @@ var BallRenderer = {
              lFootX = p.x - 12*s; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
         } else {
-             // Standing (Includes Crouch via legLen shortening)
+                          // Standing (Includes Crouch via legLen shortening)
+             let runPhase = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+             let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
+             let lStride = isRunning ? Math.sin(runPhase) : 0;
+             let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
+             let strideScale = (state === 'FREE_ROAM_SPRINTING') ? 15 : 10;
+             let liftScale = (state === 'FREE_ROAM_SPRINTING') ? 10 : 5;
+
              const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 9*s*stanceMod + (lStride * strideScale * s * 0.5);
+             lKneeY = baseKneeY - (Math.max(0, lStride) * liftScale * s);
+             rKneeX = p.x + 9*s*stanceMod + (rStride * strideScale * s * 0.5);
+             rKneeY = baseKneeY - (Math.max(0, rStride) * liftScale * s);
+             lFootX = p.x - 10*s*stanceMod + (lStride * strideScale * s);
+             lFootY = p.y - (Math.max(0, lStride) * liftScale * s * 1.5);
+             rFootX = p.x + 10*s*stanceMod + (rStride * strideScale * s);
+             rFootY = p.y - (Math.max(0, rStride) * liftScale * s * 1.5);
         }
 
         // Dirk Kick Logic

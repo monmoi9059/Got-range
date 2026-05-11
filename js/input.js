@@ -201,7 +201,7 @@
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE') {
+        } else if (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
             startJump();
         }
     }
@@ -244,7 +244,7 @@
         if (type === 'press') {
             handleActionPress();
         } else if (type === 'release') {
-            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
+            if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') releaseShot();
         }
         saveContext(game);
     }

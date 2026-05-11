@@ -11695,7 +11695,7 @@ var BallRenderer = {
         const foreArmLen = 20 * s * sizeMod.h * 1.05;
 
         // PROCEDURAL GUIDE HAND LOGIC
-        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK')) {
             const isRightHand = !playerData.isLefty;
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
             const shootUAngle = isRightHand ? rightArmAngle : leftArmAngle;
@@ -11770,7 +11770,7 @@ var BallRenderer = {
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
             // Apply dribbling Z offset in Free Roam mode
-            if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+            if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                 ballY += player3D.dribbleZ * s;
                 // Move hand to follow ball if it's bouncing
                 // We'll let the arm stay, but visual bounce is fine
@@ -12958,7 +12958,7 @@ var BallRenderer = {
 
         // --- PROCEDURAL GUIDE HAND LOGIC (ANIMALS) ---
         // Updated to use Human Logic (Animation + Fixed Offset)
-        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP')) {
+        if (isTwoHandedStyle(playerData.currentStyle) && (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK')) {
             const isRightHand = !isLefty;
 
             const shootSX = isRightHand ? rightShoulderX : leftShoulderX;
@@ -13196,7 +13196,7 @@ var BallRenderer = {
              }
 
              // Apply dribbling Z offset in Free Roam mode
-             if (currentGameMode === 'FREE_ROAM' && state === 'IDLE' && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+             if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                  ballY += player3D.dribbleZ * s;
              }
 
@@ -13218,12 +13218,23 @@ var BallRenderer = {
              lFootX = p.x - 12*s; lFootY = p.y + 5*s;
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
         } else {
-             // Standing (Includes Crouch via legLen shortening)
+                          // Standing (Includes Crouch via legLen shortening)
+             let runPhase = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+             let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
+             let lStride = isRunning ? Math.sin(runPhase) : 0;
+             let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
+             let strideScale = (state === 'FREE_ROAM_SPRINTING') ? 15 : 10;
+             let liftScale = (state === 'FREE_ROAM_SPRINTING') ? 10 : 5;
+
              const baseKneeY = p.y - (legLen * 0.5);
-             lKneeX = p.x - 9*s*stanceMod; lKneeY = baseKneeY;
-             rKneeX = p.x + 9*s*stanceMod; rKneeY = baseKneeY;
-             lFootX = p.x - 10*s*stanceMod; lFootY = p.y;
-             rFootX = p.x + 10*s*stanceMod; rFootY = p.y;
+             lKneeX = p.x - 9*s*stanceMod + (lStride * strideScale * s * 0.5);
+             lKneeY = baseKneeY - (Math.max(0, lStride) * liftScale * s);
+             rKneeX = p.x + 9*s*stanceMod + (rStride * strideScale * s * 0.5);
+             rKneeY = baseKneeY - (Math.max(0, rStride) * liftScale * s);
+             lFootX = p.x - 10*s*stanceMod + (lStride * strideScale * s);
+             lFootY = p.y - (Math.max(0, lStride) * liftScale * s * 1.5);
+             rFootX = p.x + 10*s*stanceMod + (rStride * strideScale * s);
+             rFootY = p.y - (Math.max(0, rStride) * liftScale * s * 1.5);
         }
 
         // Dirk Kick Logic
@@ -16033,7 +16044,7 @@ var BallRenderer = {
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE') {
+        } else if (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
             startJump();
         }
     }
@@ -16076,7 +16087,7 @@ var BallRenderer = {
         if (type === 'press') {
             handleActionPress();
         } else if (type === 'release') {
-            if (state === 'JUMPING' || state === 'PRE_JUMP') releaseShot();
+            if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') releaseShot();
         }
         saveContext(game);
     }
@@ -16534,8 +16545,26 @@ var BallRenderer = {
     }
 
     // --- GAME ACTIONS ---
-    function startJump() {
-        if (state !== 'IDLE') return;
+        function startJump() {
+        if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING') return;
+
+        if (currentGameMode === 'FREE_ROAM') {
+            let dx = HOOP_POS.x - player3D.x;
+            let dy = HOOP_POS.y - player3D.y;
+            let distToHoop = Math.sqrt(dx*dx + dy*dy);
+
+            if (distToHoop < 200) {
+                // Trigger dunk or layup
+                if (state === 'FREE_ROAM_SPRINTING') {
+                    state = 'FREE_ROAM_DUNK';
+                } else {
+                    state = 'FREE_ROAM_LAYUP';
+                }
+                g_dunkTimer = 0;
+                return;
+            }
+        }
+
         AudioSystem.init();
 
         // Pre-Jump (Gather/Crouch) for all characters
@@ -16556,7 +16585,7 @@ var BallRenderer = {
             player3D.vz = jv;
         }
     }
-    function releaseShot() {
+                    function releaseShot() {
         if (state === 'PRE_JUMP') {
             state = 'JUMPING';
             const style = getCurrentStyle();
@@ -16564,7 +16593,7 @@ var BallRenderer = {
             player3D.vz = jv; // Force launch if early release
         }
 
-        if (state !== 'JUMPING') return;
+        if (state !== 'JUMPING' && state !== 'FREE_ROAM_LAYUP' && state !== 'FREE_ROAM_DUNK') return;
 
         const style = getCurrentStyle();
         let maxVz = (style.modifiers.jumpVelocity !== undefined) ? style.modifiers.jumpVelocity : 8.0;
@@ -16572,11 +16601,8 @@ var BallRenderer = {
         const currentVz = getCurrentVz();
         const targetVz = getReleaseTargetVz(maxVz);
 
-        // Calculate error relative to the chosen release point
-        // If target is 0 and current is 0, error is 0.
-        // If target is 5 and current is 5, error is 0.
-        // We use absolute difference for the check.
-        const timingError = currentVz - targetVz;
+        let timingError = currentVz - targetVz;
+        if (state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') timingError = 0;
 
         shoot(timingError);
     }
@@ -16601,11 +16627,13 @@ var BallRenderer = {
         let threshold = calculateShotThreshold();
         if (!playerData.meterEnabled) threshold *= 1.2;
 
-        const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
+                const dx = HOOP_POS.x - player3D.x; const dy = HOOP_POS.y - player3D.y;
 
         let spawnZ = 120;
-        if (styleId === 'airbud') spawnZ = 95;
-        if (styleId === 'telekinesis' || styleId === 'peekaboo') spawnZ = 130;
+        if (state === 'FREE_ROAM_DUNK') spawnZ = 250;
+        else if (state === 'FREE_ROAM_LAYUP') spawnZ = 200;
+        else if (styleId === 'airbud') spawnZ = 95;
+        else if (styleId === 'telekinesis' || styleId === 'peekaboo') spawnZ = 130;
 
         let newBall = {
             x: player3D.x,
@@ -16893,7 +16921,7 @@ var BallRenderer = {
         };
         const lerp = (a, b, t) => a + (b - a) * t;
 
-        if (state === 'SHOOTING') {
+                if (state === 'SHOOTING') {
             // Target is Release
             g_animTarget.la = anim.release.la;
             g_animTarget.ra = anim.release.ra;
@@ -16907,6 +16935,40 @@ var BallRenderer = {
             g_animTarget.rfa_z = anim.release.rfa_z || 0;
             g_animTarget.guide_u = anim.release.guide_u !== undefined ? anim.release.guide_u : -1.7;
             g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
+        } else if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
+            // Arms swing while running
+            let runP = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+            let swing = Math.sin(runP) * 1.0;
+            g_animTarget.la = idle.la - swing;
+            g_animTarget.ra = idle.ra + swing;
+
+            // Simulating a dribbling arm if they have the ball (right arm mostly)
+            if (player3D.dribbleZ) {
+               g_animTarget.ra = idle.ra - 0.5; // Raised slightly to bounce
+               g_animTarget.rfa = idle.rfa - 0.5;
+            } else {
+               g_animTarget.rfa = idle.rfa + swing * 0.5;
+            }
+            g_animTarget.lfa = idle.lfa - swing * 0.5;
+            g_animTarget.w = idle.w;
+            g_animTarget.la_z = 0; g_animTarget.ra_z = 0; g_animTarget.lfa_z = 0; g_animTarget.rfa_z = 0;
+            g_animTarget.guide_u = idle.guide_u; g_animTarget.guide_u_z = idle.guide_u_z;
+        } else if (state === 'FREE_ROAM_LAYUP') {
+            // Layup pose (arm extended up)
+            g_animTarget.la = 0.5; g_animTarget.ra = -1.5;
+            g_animTarget.lfa = 1.0; g_animTarget.rfa = -1.5;
+            g_animTarget.w = 0.5;
+            g_animTarget.la_z = 0.5; g_animTarget.ra_z = 1.5;
+            g_animTarget.lfa_z = 0.5; g_animTarget.rfa_z = 1.5;
+            g_animTarget.guide_u = 0.5; g_animTarget.guide_u_z = 0.5;
+        } else if (state === 'FREE_ROAM_DUNK') {
+            // Dunk pose (both arms up)
+            g_animTarget.la = -1.5; g_animTarget.ra = -1.5;
+            g_animTarget.lfa = -1.5; g_animTarget.rfa = -1.5;
+            g_animTarget.w = 1.0;
+            g_animTarget.la_z = 1.5; g_animTarget.ra_z = 1.5;
+            g_animTarget.lfa_z = 1.5; g_animTarget.rfa_z = 1.5;
+            g_animTarget.guide_u = -1.5; g_animTarget.guide_u_z = 1.5;
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
@@ -17213,10 +17275,49 @@ var BallRenderer = {
         }
     }
 
+
     function updateFreeRoam(dt) {
-        if (state !== 'IDLE') return;
-        const speed = 5.0; // Units per frame
+        if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING' && state !== 'FREE_ROAM_LAYUP' && state !== 'FREE_ROAM_DUNK') return;
+
+        if (state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') {
+            // Handle animation progression for layup/dunk
+            if (typeof g_dunkTimer === 'undefined') g_dunkTimer = 0;
+            g_dunkTimer += dt * (1/60);
+
+            // Move player towards hoop during animation
+            let dx = HOOP_POS.x - player3D.x;
+            let dy = HOOP_POS.y - player3D.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if (dist > 10) {
+                player3D.x += (dx/dist) * 8.0 * dt;
+                player3D.y += (dy/dist) * 8.0 * dt;
+            }
+
+            // Animate Z
+            let duration = state === 'FREE_ROAM_DUNK' ? 0.6 : 0.5;
+            let progress = Math.min(1.0, g_dunkTimer / duration);
+            player3D.z = Math.sin(progress * Math.PI) * (state === 'FREE_ROAM_DUNK' ? 50 : 30);
+
+            if (progress >= 1.0) {
+                // Score!
+                releaseShot(); // Force perfect shot or just handle logic directly
+                player3D.z = 0;
+                state = 'IDLE';
+                g_dunkTimer = 0;
+            }
+            invalidateBackgroundCache();
+            return;
+        }
+
+        let isSprinting = false;
+        if (window.keysDown && (window.keysDown['ShiftLeft'] || window.keysDown['ShiftRight'])) {
+            isSprinting = true;
+        }
+
+        const speed = isSprinting ? 9.0 : 5.0; // Units per frame
         let moved = false;
+
         if (window.keysDown) {
             // Dynamic forward vector from player current position to hoop
             let fDx = HOOP_POS.x - player3D.x;
@@ -17256,14 +17357,23 @@ var BallRenderer = {
         if (player3D.y > 1000) player3D.y = 1000;
 
         if (moved) {
+            state = isSprinting ? 'FREE_ROAM_SPRINTING' : 'FREE_ROAM_MOVING';
             invalidateBackgroundCache();
             if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
-            g_dribblePhase += dt * 0.3; // Speed of dribble
+            if (typeof g_runPhase === 'undefined') g_runPhase = 0;
+
+            let phaseSpeed = isSprinting ? 0.5 : 0.3;
+            g_dribblePhase += dt * phaseSpeed; // Speed of dribble
+            g_runPhase += dt * phaseSpeed;
             player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
         } else {
+            state = 'IDLE';
             if (typeof g_dribblePhase !== 'undefined') {
                 g_dribblePhase = 0;
                 player3D.dribbleZ = 0;
+            }
+            if (typeof g_runPhase !== 'undefined') {
+                g_runPhase = 0;
             }
         }
     }
