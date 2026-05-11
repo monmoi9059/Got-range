@@ -709,7 +709,7 @@
             g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
         } else if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
             // Arms swing while running
-            let runP = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+            let runP = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
             let swing = Math.sin(runP) * 1.0;
             g_animTarget.la = idle.la - swing;
             g_animTarget.ra = idle.ra + swing;
@@ -1132,11 +1132,11 @@
             state = isSprinting ? 'FREE_ROAM_SPRINTING' : 'FREE_ROAM_MOVING';
             invalidateBackgroundCache();
             if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
-            if (typeof g_runPhase === 'undefined') g_runPhase = 0;
+            if (typeof window.window.window.g_runPhase === 'undefined') window.window.g_runPhase = 0;
 
             let phaseSpeed = isSprinting ? 0.5 : 0.3;
             g_dribblePhase += dt * phaseSpeed; // Speed of dribble
-            g_runPhase += dt * phaseSpeed;
+            window.window.g_runPhase += dt * phaseSpeed;
             player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
         } else {
             state = 'IDLE';
@@ -1144,8 +1144,8 @@
                 g_dribblePhase = 0;
                 player3D.dribbleZ = 0;
             }
-            if (typeof g_runPhase !== 'undefined') {
-                g_runPhase = 0;
+            if (typeof window.window.g_runPhase !== 'undefined') {
+                window.window.g_runPhase = 0;
             }
         }
     }

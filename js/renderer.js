@@ -6857,17 +6857,28 @@ var BallRenderer = {
         const socksColor = skinObj.socksColor;
         const shoesColor = skinObj.shoesColor;
 
-        // Legs
+                // Legs
+        let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
+        let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
+        let lStride = isRunning ? Math.sin(runPhase) : 0;
+        let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
+        let strideScale = (state === 'FREE_ROAM_SPRINTING') ? 15 : 10;
+        let liftScale = (state === 'FREE_ROAM_SPRINTING') ? 10 : 5;
+
         const baseKneeY = p.y - (legLen * 0.5);
         const stanceModLegs = sizeMod.stance || 1.0;
         const hipOffset = 7 * s * sizeMod.w;
         const footOffset = 10 * s * sizeMod.w * stanceModLegs;
         const kneeOffset = (hipOffset + footOffset) / 2;
 
-        let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
-        let rKneeX = p.x + kneeOffset, rKneeY = baseKneeY;
-        let lFootX = p.x - footOffset, lFootY = p.y;
-        let rFootX = p.x + footOffset, rFootY = p.y;
+        let lKneeX = p.x - kneeOffset + (lStride * strideScale * s * 0.5);
+        let lKneeY = baseKneeY - (Math.max(0, lStride) * liftScale * s);
+        let rKneeX = p.x + kneeOffset + (rStride * strideScale * s * 0.5);
+        let rKneeY = baseKneeY - (Math.max(0, rStride) * liftScale * s);
+        let lFootX = p.x - footOffset + (lStride * strideScale * s);
+        let lFootY = p.y - (Math.max(0, lStride) * liftScale * s * 1.5);
+        let rFootX = p.x + footOffset + (rStride * strideScale * s);
+        let rFootY = p.y - (Math.max(0, rStride) * liftScale * s * 1.5);
 
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
             const style = getCurrentStyle();
@@ -8288,7 +8299,7 @@ var BallRenderer = {
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
         } else {
                           // Standing (Includes Crouch via legLen shortening)
-             let runPhase = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+             let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
              let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
              let lStride = isRunning ? Math.sin(runPhase) : 0;
              let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;

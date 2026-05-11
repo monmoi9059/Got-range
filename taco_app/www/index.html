@@ -11788,17 +11788,28 @@ var BallRenderer = {
         const socksColor = skinObj.socksColor;
         const shoesColor = skinObj.shoesColor;
 
-        // Legs
+                // Legs
+        let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
+        let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
+        let lStride = isRunning ? Math.sin(runPhase) : 0;
+        let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
+        let strideScale = (state === 'FREE_ROAM_SPRINTING') ? 15 : 10;
+        let liftScale = (state === 'FREE_ROAM_SPRINTING') ? 10 : 5;
+
         const baseKneeY = p.y - (legLen * 0.5);
         const stanceModLegs = sizeMod.stance || 1.0;
         const hipOffset = 7 * s * sizeMod.w;
         const footOffset = 10 * s * sizeMod.w * stanceModLegs;
         const kneeOffset = (hipOffset + footOffset) / 2;
 
-        let lKneeX = p.x - kneeOffset, lKneeY = baseKneeY;
-        let rKneeX = p.x + kneeOffset, rKneeY = baseKneeY;
-        let lFootX = p.x - footOffset, lFootY = p.y;
-        let rFootX = p.x + footOffset, rFootY = p.y;
+        let lKneeX = p.x - kneeOffset + (lStride * strideScale * s * 0.5);
+        let lKneeY = baseKneeY - (Math.max(0, lStride) * liftScale * s);
+        let rKneeX = p.x + kneeOffset + (rStride * strideScale * s * 0.5);
+        let rKneeY = baseKneeY - (Math.max(0, rStride) * liftScale * s);
+        let lFootX = p.x - footOffset + (lStride * strideScale * s);
+        let lFootY = p.y - (Math.max(0, lStride) * liftScale * s * 1.5);
+        let rFootX = p.x + footOffset + (rStride * strideScale * s);
+        let rFootY = p.y - (Math.max(0, rStride) * liftScale * s * 1.5);
 
         if (state === 'JUMPING' && playerData.currentStyle === 'dirk') {
             const style = getCurrentStyle();
@@ -13219,7 +13230,7 @@ var BallRenderer = {
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
         } else {
                           // Standing (Includes Crouch via legLen shortening)
-             let runPhase = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+             let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
              let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
              let lStride = isRunning ? Math.sin(runPhase) : 0;
              let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
@@ -16545,7 +16556,7 @@ var BallRenderer = {
     }
 
     // --- GAME ACTIONS ---
-        function startJump() {
+    function startJump() {
         if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING') return;
 
         if (currentGameMode === 'FREE_ROAM') {
@@ -16585,7 +16596,7 @@ var BallRenderer = {
             player3D.vz = jv;
         }
     }
-                    function releaseShot() {
+    function releaseShot() {
         if (state === 'PRE_JUMP') {
             state = 'JUMPING';
             const style = getCurrentStyle();
@@ -16937,7 +16948,7 @@ var BallRenderer = {
             g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
         } else if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
             // Arms swing while running
-            let runP = typeof g_runPhase !== 'undefined' ? g_runPhase : 0;
+            let runP = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
             let swing = Math.sin(runP) * 1.0;
             g_animTarget.la = idle.la - swing;
             g_animTarget.ra = idle.ra + swing;
@@ -17360,11 +17371,11 @@ var BallRenderer = {
             state = isSprinting ? 'FREE_ROAM_SPRINTING' : 'FREE_ROAM_MOVING';
             invalidateBackgroundCache();
             if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
-            if (typeof g_runPhase === 'undefined') g_runPhase = 0;
+            if (typeof window.window.window.g_runPhase === 'undefined') window.window.g_runPhase = 0;
 
             let phaseSpeed = isSprinting ? 0.5 : 0.3;
             g_dribblePhase += dt * phaseSpeed; // Speed of dribble
-            g_runPhase += dt * phaseSpeed;
+            window.window.g_runPhase += dt * phaseSpeed;
             player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
         } else {
             state = 'IDLE';
@@ -17372,8 +17383,8 @@ var BallRenderer = {
                 g_dribblePhase = 0;
                 player3D.dribbleZ = 0;
             }
-            if (typeof g_runPhase !== 'undefined') {
-                g_runPhase = 0;
+            if (typeof window.window.g_runPhase !== 'undefined') {
+                window.window.g_runPhase = 0;
             }
         }
     }
