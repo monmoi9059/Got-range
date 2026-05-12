@@ -63,7 +63,7 @@ RenderEngine.Camera = {
         const dyToHoop = HOOP_POS.y - this.y;
         let angleToHoop = Math.atan2(dyToHoop, dxToHoop);
 
-        if (currentGameMode === 'CONTEST') {
+        if (window.currentGameMode === 'CONTEST') {
             // Keep camera fixed relative to hoop, looking down the classic court
             // The classic court angle from (433, 300) to (733, 150)
             const classicDx = 733 - 433;
@@ -1672,7 +1672,7 @@ var BallRenderer = {
         const rowTitleY = y + 20 * s;
         const rowValueY = y + 48 * s;
 
-        if (currentGameMode === 'CLASSIC') {
+        if (window.currentGameMode === 'CLASSIC') {
             // LEFT SIDE: Record & Current Distance
             // Record
             ctx.textAlign = "right";
@@ -1704,7 +1704,7 @@ var BallRenderer = {
             ctx.font = fontName;
             ctx.fillText(scaleObj.name.toUpperCase(), iconX + 25 * s, rowValueY - 2 * s);
         }
-        else if (currentGameMode === 'CONTEST') {
+        else if (window.currentGameMode === 'CONTEST') {
             const time = Math.ceil(contestData.timer);
 
             // LEFT SIDE: TIME & SCORE
@@ -1729,7 +1729,7 @@ var BallRenderer = {
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
             ctx.fillText(contestData.rack + " / 5", w / 2 + 25 * s, rowValueY);
         }
-        else if (currentGameMode === 'TIME_ATTACK') {
+        else if (window.currentGameMode === 'TIME_ATTACK') {
             const time = Math.ceil(timeAttackData.timer);
 
             // LEFT SIDE: TIME & SCORE
@@ -1787,7 +1787,7 @@ var BallRenderer = {
 
         // Determine Ball Object
         var ballObj = null;
-        if(currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
+        if(window.currentGameMode === 'CONTEST' && contestData.ballsInRack === 4) {
             ballObj = BALLS_DB_MAP.get('ball_money');
         } else {
             var ballId = playerData.currentBall || 'ball_classic';
@@ -4144,7 +4144,7 @@ var BallRenderer = {
         let dx = player3D.x - HOOP_POS.x;
         let dy = player3D.y - HOOP_POS.y;
 
-        if (currentGameMode === 'CONTEST' || currentGameMode === 'FREE_ROAM') {
+        if (window.currentGameMode === 'CONTEST' || window.currentGameMode === 'FREE_ROAM') {
             // Fix angle to face "Top" (Rack 3) position
             // Rack 3 is at (420, 306). HOOP at (733, 150).
             dx = 420 - 733;
@@ -6839,7 +6839,7 @@ var BallRenderer = {
             let ballY = wrist.y + Math.sin(theta) * 0 + Math.cos(theta) * 5 * s;
 
             // Apply dribbling Z offset in Free Roam mode
-            if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+            if (window.currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                 ballY += player3D.dribbleZ * s;
                 // Move hand to follow ball if it's bouncing
                 // We'll let the arm stay, but visual bounce is fine
@@ -6858,7 +6858,7 @@ var BallRenderer = {
         const shoesColor = skinObj.shoesColor;
 
                 // Legs
-        let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
+        let runPhase = typeof window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
         let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
         let lStride = isRunning ? Math.sin(runPhase) : 0;
         let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
@@ -8276,7 +8276,7 @@ var BallRenderer = {
              }
 
              // Apply dribbling Z offset in Free Roam mode
-             if (currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
+             if (window.currentGameMode === 'FREE_ROAM' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') && typeof player3D !== 'undefined' && player3D.dribbleZ) {
                  ballY += player3D.dribbleZ * s;
              }
 
@@ -8299,7 +8299,7 @@ var BallRenderer = {
              rFootX = p.x + 12*s; rFootY = p.y + 5*s;
         } else {
                           // Standing (Includes Crouch via legLen shortening)
-             let runPhase = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
+             let runPhase = typeof window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
              let isRunning = (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING');
              let lStride = isRunning ? Math.sin(runPhase) : 0;
              let rStride = isRunning ? Math.sin(runPhase + Math.PI) : 0;
@@ -9756,7 +9756,7 @@ var BallRenderer = {
         let targetX = pX;
         let targetY = pY;
 
-        if (state === 'SHOOTING' && activeBalls.length > 0 && currentGameMode === 'CLASSIC') {
+        if (state === 'SHOOTING' && activeBalls.length > 0 && window.currentGameMode === 'CLASSIC') {
             const b = activeBalls[activeBalls.length - 1];
             if (b.active) {
                 const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
@@ -9779,18 +9779,18 @@ var BallRenderer = {
 
         const horizonY = (vpH - 120) * 0.38;
 
-        if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== currentGameMode) {
-            bgCache = { distanceLevel: distanceLevel, mode: currentGameMode, pastFloors: [] };
+        if (!bgCache || bgCache.distanceLevel !== distanceLevel || bgCache.mode !== window.currentGameMode) {
+            bgCache = { distanceLevel: distanceLevel, mode: window.currentGameMode, pastFloors: [] };
 
             // Invalidate Mountain Cache on level change (just in case style changes, though currently static)
             g_mountainCanvas = null;
 
             let court;
-            if (currentGameMode === 'CONTEST') {
+            if (window.currentGameMode === 'CONTEST') {
                 court = COURT_THEMES.arena;
-            } else if (currentGameMode === 'TIME_ATTACK') {
+            } else if (window.currentGameMode === 'TIME_ATTACK') {
                 court = COURT_THEMES.carnival;
-            } else if (currentGameMode === 'FREE_ROAM') {
+            } else if (window.currentGameMode === 'FREE_ROAM') {
                 court = COURT_THEMES.free_roam;
             } else {
                 const currentDist = 10 + (distanceLevel * 5);
@@ -9812,7 +9812,7 @@ var BallRenderer = {
         ctx.fillStyle = bgCache.sky; ctx.fillRect(0, 0, vpW, vpH);
 
         // SUN / MOON / STARS / MOUNTAINS (CLASSIC ONLY)
-        if (currentGameMode === 'CLASSIC') {
+        if (window.currentGameMode === 'CLASSIC') {
             if (distanceLevel > 8) {
                  // Simple stars
                  ctx.fillStyle = 'rgba(255,255,255,0.8)';
@@ -9860,7 +9860,7 @@ var BallRenderer = {
         }
 
         // CLOUDS
-        if (currentGameMode === 'CLASSIC') {
+        if (window.currentGameMode === 'CLASSIC') {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             clouds.forEach(c => {
                  // c.x updated in updateEnvironment
@@ -9888,7 +9888,7 @@ var BallRenderer = {
             boatSystem.draw(ctx, horizonY, riverBottomY, vpW);
         }
 
-        if (currentGameMode === 'CLASSIC') {
+        if (window.currentGameMode === 'CLASSIC') {
             const currentDist = 10 + (distanceLevel * 5);
             // Optimization: Reuse Gradient Objects
             for (let i = 0; i < COURT_ZONES.length; i++) {
@@ -9996,7 +9996,7 @@ var BallRenderer = {
             window._cachedDecorsRef = undefined;
         }
 
-        if (currentGameMode === 'CLASSIC') {
+        if (window.currentGameMode === 'CLASSIC') {
             // Optimization: At long distances (> 200 game feet), processing 15000 pixels worth of
             // distant objects causes severe lag. We shrink the back-culling distance based on camera zoom.
             // When far away, objects > 6000 pixels behind the player are indistinguishable or sub-pixel.
@@ -10037,7 +10037,7 @@ var BallRenderer = {
                     processDecor(d);
                 }
             }
-        } else if (currentGameMode === 'TIME_ATTACK') {
+        } else if (window.currentGameMode === 'TIME_ATTACK') {
             // Carnival: Circle of tents around hoop
             const r = 800;
             for(let i=0; i<8; i++) {
@@ -10055,7 +10055,7 @@ var BallRenderer = {
                 if (typeof g_catState !== 'undefined') processDecor(window._cachedCatDecor, g_catState.x, g_catState.y, g_catState.z);
                 else processDecor(window._cachedCatDecor);
             }
-        } else if (currentGameMode === 'CONTEST') {
+        } else if (window.currentGameMode === 'CONTEST') {
             // Arena: Bleachers
             const r = 900;
             for(let i=0; i<12; i++) {
@@ -10189,17 +10189,17 @@ var BallRenderer = {
             let line1 = "";
             let line2 = "";
 
-            if (currentGameMode === 'CLASSIC') {
+            if (window.currentGameMode === 'CLASSIC') {
                 const dist = 10 + (gCtx.distanceLevel * 5);
                 const maxMisses = 2 + (gCtx.playerData.stats.extraLives || 0);
                 line1 = `${dist} PI`;
                 line2 = `MISS: ${gCtx.consecutiveMisses}/${maxMisses}`;
                 // Streak?
                 if (gCtx.currentStreak > 1) line2 += ` (${gCtx.currentStreak} 🔥)`;
-            } else if (currentGameMode === 'CONTEST') {
+            } else if (window.currentGameMode === 'CONTEST') {
                 line1 = `SCORE: ${gCtx.contestData.score}`;
                 line2 = `TIME: ${Math.ceil(gCtx.contestData.timer)}`;
-            } else if (currentGameMode === 'TIME_ATTACK') {
+            } else if (window.currentGameMode === 'TIME_ATTACK') {
                 line1 = `SCORE: ${gCtx.timeAttackData.score}`;
                 line2 = `TIME: ${Math.ceil(gCtx.timeAttackData.timer)}`;
             }

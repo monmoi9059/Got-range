@@ -262,7 +262,7 @@
         window.keysDown[e.code] = true;
 
         // Crossover Double Tap Detection
-        if (!e.repeat && typeof currentGameMode !== 'undefined' && currentGameMode === 'FREE_ROAM' && (typeof state !== 'undefined' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING'))) {
+        if (!e.repeat && typeof window.currentGameMode !== 'undefined' && window.currentGameMode === 'FREE_ROAM' && (typeof state !== 'undefined' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING'))) {
             const now = Date.now();
             const timeSinceLastKey = now - lastKeyTime;
 
@@ -324,7 +324,7 @@
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
         if(e.code === 'KeyS') {
             loadContext(game1);
-            if (currentGameMode !== 'FREE_ROAM') {
+            if (window.currentGameMode !== 'FREE_ROAM') {
                 openStats(); return;
             }
         }

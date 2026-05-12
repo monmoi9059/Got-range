@@ -135,9 +135,9 @@
 
         let aimBonus = (playerData.stats.aim - 1);
         let baseDampener = 6.0;
-        if (currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
-        if (currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
-        if (currentGameMode === 'FREE_ROAM') { aimBonus *= 1.5; } // Extra aim in free roam
+        if (window.currentGameMode === 'CONTEST') { aimBonus *= 0.2; baseDampener = 4.5; }
+        if (window.currentGameMode === 'TIME_ATTACK') { aimBonus = 0; }
+        if (window.currentGameMode === 'FREE_ROAM') { aimBonus *= 1.5; } // Extra aim in free roam
         let dampener = baseDampener + aimBonus;
 
         if(mods.timingWindow) dampener *= mods.timingWindow;
@@ -320,7 +320,7 @@
     function startJump() {
         if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING') return;
 
-        if (currentGameMode === 'FREE_ROAM') {
+        if (window.currentGameMode === 'FREE_ROAM') {
             let dx = HOOP_POS.x - player3D.x;
             let dy = HOOP_POS.y - player3D.y;
             let distToHoop = Math.sqrt(dx*dx + dy*dy);
@@ -413,7 +413,7 @@
             z: player3D.z + spawnZ,
             vx: 0, vy: 0, vz: 0,
             active: true,
-            isFire: (currentStreak >= 5 && currentGameMode !== 'TIME_ATTACK'),
+            isFire: (currentStreak >= 5 && window.currentGameMode !== 'TIME_ATTACK'),
             trail: [],
             rotationX: 0,
             rotationY: 0,
@@ -549,7 +549,7 @@
             if (playerData.basketCatSkinIndex < CAT_SKINS_DB.length - 1) {
                 // Determine completion callback based on mode
                 let onComplete = null;
-                if (currentGameMode === 'CONTEST' || currentGameMode === 'CLASSIC') {
+                if (window.currentGameMode === 'CONTEST' || window.currentGameMode === 'CLASSIC') {
                     onComplete = nextLevel;
                 }
 
@@ -597,7 +597,7 @@
         }
 
         // Perfect Rack Check (Contest)
-        if (currentGameMode === 'CONTEST') {
+        if (window.currentGameMode === 'CONTEST') {
              if (typeof contestData.makesInRack === 'undefined') contestData.makesInRack = 0;
              contestData.makesInRack++;
         }
@@ -619,7 +619,7 @@
             spawnTime: Date.now()
         });
 
-        if(currentGameMode === 'CONTEST') {
+        if(window.currentGameMode === 'CONTEST') {
             const isMoneyBall = (contestData.ballsInRack === 4);
             const points = isMoneyBall ? 2 : 1;
             contestData.score += points;
@@ -629,11 +629,11 @@
             if (!evolutionTriggered) {
                 state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
             }
-        } else if (currentGameMode === 'TIME_ATTACK') {
+        } else if (window.currentGameMode === 'TIME_ATTACK') {
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; updateContestUI();
-        } else if (currentGameMode === 'FREE_ROAM') {
+        } else if (window.currentGameMode === 'FREE_ROAM') {
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; state = 'IDLE';
         } else {
@@ -654,11 +654,11 @@
         targetBall.active = false;
         playerData.lifetimeStats.misses++; currentStreak = 0; checkAchievements('shot_stats');
         checkDailyProgress('misses', 1);
-        if(currentGameMode === 'CONTEST') {
+        if(window.currentGameMode === 'CONTEST') {
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
-        } else if (currentGameMode === 'TIME_ATTACK') {
+        } else if (window.currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
-        } else if (currentGameMode === 'FREE_ROAM') {
+        } else if (window.currentGameMode === 'FREE_ROAM') {
              feedback = "Manqué"; feedbackTimer = 30; state = 'IDLE';
         } else {
             consecutiveMisses++; updateUI();
@@ -709,7 +709,7 @@
             g_animTarget.guide_u_z = anim.release.guide_u_z !== undefined ? anim.release.guide_u_z : 1.3;
         } else if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
             // Arms swing while running
-            let runP = typeof window.window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
+            let runP = typeof window.g_runPhase !== 'undefined' ? window.g_runPhase : 0;
             let swing = Math.sin(runP) * 1.0;
             g_animTarget.la = idle.la - swing;
             g_animTarget.ra = idle.ra + swing;
@@ -834,7 +834,7 @@
 
         // Taco Cat Defend Logic Check
         const defendToggle = document.getElementById('tacoCatDefendToggle');
-        const isDefending = defendToggle && defendToggle.checked && currentGameMode === 'FREE_ROAM';
+        const isDefending = defendToggle && defendToggle.checked && window.currentGameMode === 'FREE_ROAM';
 
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
@@ -1213,11 +1213,11 @@
             state = isSprinting ? 'FREE_ROAM_SPRINTING' : 'FREE_ROAM_MOVING';
             invalidateBackgroundCache();
             if (typeof g_dribblePhase === 'undefined') g_dribblePhase = 0;
-            if (typeof window.window.window.g_runPhase === 'undefined') window.window.g_runPhase = 0;
+            if (typeof window.g_runPhase === 'undefined') window.g_runPhase = 0;
 
             let phaseSpeed = isSprinting ? 0.5 : 0.3;
             g_dribblePhase += dt * phaseSpeed; // Speed of dribble
-            window.window.g_runPhase += dt * phaseSpeed;
+            window.g_runPhase += dt * phaseSpeed;
             player3D.dribbleZ = Math.abs(Math.sin(g_dribblePhase)) * 30; // Max bounce height 30
         } else {
             state = 'IDLE';
@@ -1225,8 +1225,8 @@
                 g_dribblePhase = 0;
                 player3D.dribbleZ = 0;
             }
-            if (typeof window.window.g_runPhase !== 'undefined') {
-                window.window.g_runPhase = 0;
+            if (typeof window.g_runPhase !== 'undefined') {
+                window.g_runPhase = 0;
             }
         }
     }
@@ -1346,7 +1346,7 @@
             }
         }
 
-        if(currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
+        if(window.currentGameMode === 'CONTEST' && state !== 'GAMEOVER') {
             if(contestData.timer > 0) {
                 contestData.timer -= (1/60) * dt;
                 if(contestData.timer <= 0) { contestData.timer = 0; endContest(); }
@@ -1354,11 +1354,11 @@
             }
         }
 
-        if(currentGameMode === 'FREE_ROAM' && state !== 'GAMEOVER') {
+        if(window.currentGameMode === 'FREE_ROAM' && state !== 'GAMEOVER') {
             if(typeof updateFreeRoam === 'function') updateFreeRoam(dt);
         }
 
-        if(currentGameMode === 'TIME_ATTACK' && state !== 'GAMEOVER') {
+        if(window.currentGameMode === 'TIME_ATTACK' && state !== 'GAMEOVER') {
             if(timeAttackData.timer > 0) {
                 timeAttackData.timer -= (1/60) * dt;
                 if(timeAttackData.timer <= 0) {
@@ -1388,7 +1388,7 @@
         if (state === 'SHOOTING') {
             if (playerData.currentStyle === 'airbud') airbudJumpTime += 1 * dt;
             if (player3D.z > 0) { player3D.z += player3D.vz * dt; player3D.vz -= GRAVITY * dt; if (player3D.z < 0) player3D.z = 0; }
-            if (currentGameMode === 'TIME_ATTACK' && player3D.z <= 0) {
+            if (window.currentGameMode === 'TIME_ATTACK' && player3D.z <= 0) {
                 state = 'IDLE';
                 player3D.z = 0;
             }
@@ -1508,7 +1508,7 @@
 
     // --- HELPER FUNCTIONS ---
     function nextLevel() {
-        if(currentGameMode === 'CONTEST') {
+        if(window.currentGameMode === 'CONTEST') {
             // Perfect Rack Check
             if (contestData.makesInRack === 5) {
                 checkDailyProgress('perfect_rack', 1);
@@ -1525,7 +1525,7 @@
                 else { setPlayerPositionForRack(contestData.rack); }
             }
             updateContestUI(); state = 'IDLE';
-        } else if (currentGameMode === 'TIME_ATTACK') {
+        } else if (window.currentGameMode === 'TIME_ATTACK') {
              // Continuous play, no level reset logic needed here usually
         } else {
             const baseReward = 1 * distanceLevel * playerData.difficulty;
@@ -1627,16 +1627,16 @@
 
     function updateUI() {
         scoreEl.innerText = playerData.tacos;
-        if(currentGameMode === 'CLASSIC') {
+        if(window.currentGameMode === 'CLASSIC') {
             const maxMisses = 2 + (playerData.stats.extraLives || 0);
             missValEl.innerText = `${consecutiveMisses}/${maxMisses}`;
             const dist = 10 + (distanceLevel * 5); const c = getCourtDetails(dist); courtNameEl.innerText = c.name;
-        } else if (currentGameMode === 'CONTEST') {
+        } else if (window.currentGameMode === 'CONTEST') {
             courtNameEl.innerText = "CONCOURS 3 POINTS";
-        } else if (currentGameMode === 'TIME_ATTACK') {
+        } else if (window.currentGameMode === 'TIME_ATTACK') {
             courtNameEl.innerText = "TIME ATTACK";
             // Update Timer/Score in UI loop, but title here is good
-        } else if (currentGameMode === 'FREE_ROAM') {
+        } else if (window.currentGameMode === 'FREE_ROAM') {
             courtNameEl.innerText = "FREE ROAM";
         }
     }
@@ -1682,9 +1682,9 @@
         activeBalls = []; // Clear all balls on reset
         tacosOnGround = []; // Clear tacos on reset
         particles = []; // Clear particles
-        if(currentGameMode === 'CONTEST') { startContest(); }
-        else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
-        else if(currentGameMode === 'FREE_ROAM') {
+        if(window.currentGameMode === 'CONTEST') { startContest(); }
+        else if(window.currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
+        else if(window.currentGameMode === 'FREE_ROAM') {
             document.getElementById('classic-stats').style.display = 'none';
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
             state = 'IDLE';
@@ -3137,15 +3137,15 @@
         if(state !== 'IDLE' && state !== 'GAMEOVER') {
             // Revert select visually if they try to change during a shot
             const sel = document.getElementById('modeSelect');
-            if(sel) sel.value = currentGameMode;
+            if(sel) sel.value = window.currentGameMode;
             return;
         }
 
-        currentGameMode = mode;
+        window.currentGameMode = mode;
 
         // Sync any other select elements if split screen
         const selects = document.querySelectorAll('#modeSelect');
-        selects.forEach(sel => sel.value = currentGameMode);
+        selects.forEach(sel => sel.value = window.currentGameMode);
 
         runForAllPlayers(resetGame);
     }
