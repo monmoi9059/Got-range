@@ -724,7 +724,16 @@
             </div>
             <!-- Expanded Items -->
             <div id="controls-items" class="controls-menu-items">
-                <div class="broadcast-btn" role="button" aria-label="Changer le mode de jeu" tabindex="0" onclick="toggleMode()"><span>MODE: <span id="modeBtnText">CLASSIQUE</span></span></div>
+                <select id="modeSelect" class="broadcast-btn" aria-label="Changer le mode de jeu" tabindex="0" onchange="setMode(this.value)" style="appearance: none; -webkit-appearance: none; text-align: center; font-family: 'Oswald', sans-serif;">
+                    <option value="CLASSIC">MODE: CLASSIQUE</option>
+                    <option value="CONTEST">MODE: CONCOURS</option>
+                    <option value="TIME_ATTACK">MODE: TIME ATTACK</option>
+                    <option value="FREE_ROAM">MODE: FREE ROAM</option>
+                </select>
+                <label class="broadcast-btn" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="tacoCatDefendToggle" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>DEFEND CAT</span>
+                </label>
                 <div class="broadcast-btn" role="button" aria-label="Activer mode 2 joueurs" tabindex="0" onclick="toggleSplitscreen()"><span id="btnSplitText">2 PLAYERS</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir la boutique" tabindex="0" onclick="openShop()"><span>BOUTIQUE [P]</span></div>
                 <div class="broadcast-btn" role="button" aria-label="Ouvrir les défis" tabindex="0" onclick="openChallenges()"><span>DÉFIS [C]</span></div>

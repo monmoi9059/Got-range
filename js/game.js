@@ -734,13 +734,13 @@
             g_animTarget.lfa_z = 0.5; g_animTarget.rfa_z = 1.5;
             g_animTarget.guide_u = 0.5; g_animTarget.guide_u_z = 0.5;
         } else if (state === 'FREE_ROAM_DUNK') {
-            // Dunk pose (both arms up)
-            g_animTarget.la = -1.5; g_animTarget.ra = -1.5;
-            g_animTarget.lfa = -1.5; g_animTarget.rfa = -1.5;
-            g_animTarget.w = 1.0;
-            g_animTarget.la_z = 1.5; g_animTarget.ra_z = 1.5;
-            g_animTarget.lfa_z = 1.5; g_animTarget.rfa_z = 1.5;
-            g_animTarget.guide_u = -1.5; g_animTarget.guide_u_z = 1.5;
+            // "Like Mike" iconic dunk pose: Right arm fully stretched back and up, Left arm down, Legs split
+            g_animTarget.la = 0.5; g_animTarget.ra = -2.5;
+            g_animTarget.lfa = 0.5; g_animTarget.rfa = -2.5;
+            g_animTarget.w = 1.5;
+            g_animTarget.la_z = 0.2; g_animTarget.ra_z = 2.0;
+            g_animTarget.lfa_z = 0.2; g_animTarget.rfa_z = 2.0;
+            g_animTarget.guide_u = 0.5; g_animTarget.guide_u_z = 0.5;
         } else if (state === 'JUMPING') {
             let maxVz = (anim.modifiers && anim.modifiers.jumpVelocity !== undefined) ? anim.modifiers.jumpVelocity : 8.0;
             if (maxVz <= 0.1) maxVz = 1.0; // Avoid divide by zero
@@ -832,6 +832,10 @@
         const cat = g_catState;
         const speed = 4.0; // Movement speed
 
+        // Taco Cat Defend Logic Check
+        const defendToggle = document.getElementById('tacoCatDefendToggle');
+        const isDefending = defendToggle && defendToggle.checked && currentGameMode === 'FREE_ROAM';
+
         // Ensure catDecor syncs with logic position
         if (typeof decors !== 'undefined') {
             if (!g_catDecorCache || g_catDecorCache.zoneType !== 'cat_hoop') {
@@ -846,6 +850,7 @@
             if (g_catDecorCache) {
                 g_catDecorCache.x = cat.x;
                 g_catDecorCache.y = cat.y;
+                g_catDecorCache.z = cat.z || 0;
             }
         }
 
@@ -855,6 +860,9 @@
                 cat.reactionTimer -= dt;
                 return;
             }
+
+            let tacoDistraction = false;
+
             // Check for tacos
             if (tacosOnGround.length > 0) {
                 // Find nearest taco
@@ -875,6 +883,7 @@
                 }
 
                 if (targetIdx !== -1) {
+                    tacoDistraction = true; // Cat is distracted by a taco
                     cat.targetTacoIndex = targetIdx;
                     tacosOnGround[targetIdx].beingEaten = true; // Claim it
                     cat.targetX = tacosOnGround[targetIdx].x;
@@ -895,14 +904,69 @@
                     } else {
                         cat.state = 'MOVING';
                     }
-                } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
-                    // Return home if no valid targets
-                     cat.state = 'RETURNING';
-                     cat.targetX = HOOP_POS.x;
-                     cat.targetY = HOOP_POS.y + 10;
                 }
-            } else if (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5) {
-                // Return home if idle and away
+            }
+
+            // If the cat is NOT distracted by a taco, and the player enabled the defend toggle
+            if (!tacoDistraction && isDefending) {
+                cat.z = cat.z || 0;
+
+                // Loosely follow player
+                const followX = HOOP_POS.x + (player3D.x - HOOP_POS.x) * 0.5; // Roughly halfway between hoop and player
+                const followY = HOOP_POS.y + (player3D.y - HOOP_POS.y) * 0.5;
+
+                const fdx = followX - cat.x;
+                const fdy = followY - cat.y;
+                const fDistSq = fdx*fdx + fdy*fdy;
+
+                if (fDistSq > 100) {
+                    const fDist = Math.sqrt(fDistSq);
+                    cat.x += (fdx / fDist) * speed * dt;
+                    cat.y += (fdy / fDist) * speed * dt;
+                    cat.animFrame += dt * 0.2;
+                }
+
+                // Jump to block if player is shooting
+                if (state === 'SHOOTING' && activeBalls.length > 0 && cat.z === 0) {
+                     // Check if close enough to player to trigger block jump
+                     const pdx = player3D.x - cat.x;
+                     const pdy = player3D.y - cat.y;
+                     if (pdx*pdx + pdy*pdy < 10000) { // 100 distance
+                         cat.vz = 8; // Jump velocity
+                     }
+                }
+
+                // Process cat gravity for block jumps
+                if (cat.z > 0 || cat.vz > 0) {
+                    cat.z += cat.vz * dt;
+                    cat.vz -= GRAVITY * dt;
+                    if (cat.z <= 0) {
+                        cat.z = 0;
+                        cat.vz = 0;
+                    }
+                }
+
+                // Collision with ball
+                if (cat.z > 0 && activeBalls.length > 0) {
+                    const b = activeBalls[activeBalls.length - 1]; // Only care about latest
+                    if (b && b.active && !b.hasScored) {
+                        const bdx = b.x - cat.x;
+                        const bdy = b.y - cat.y;
+                        const bdz = b.z - cat.z;
+                        // Cat bounding box roughly 40x40x40
+                        if (Math.abs(bdx) < 40 && Math.abs(bdy) < 40 && Math.abs(bdz) < 40) {
+                            // Block successful
+                            b.vx = (Math.random() - 0.5) * 10;
+                            b.vy = (Math.random() - 0.5) * 10;
+                            b.vz = 5 + Math.random() * 5;
+                            AudioSystem.playBrick();
+                            feedback = "BLOCKED BY CAT!";
+                            feedbackTimer = 30;
+                        }
+                    }
+                }
+            } else if (!tacoDistraction && (Math.abs(cat.x - (HOOP_POS.x)) > 5 || Math.abs(cat.y - (HOOP_POS.y + 10)) > 5)) {
+                // Return home if idle, not distracted by taco, not defending, and away
                 cat.state = 'RETURNING';
                 cat.targetX = HOOP_POS.x;
                 cat.targetY = HOOP_POS.y + 10;
@@ -1067,9 +1131,12 @@
             }
 
             // Animate Z
-            let duration = state === 'FREE_ROAM_DUNK' ? 0.6 : 0.5;
+            let duration = state === 'FREE_ROAM_DUNK' ? 0.8 : 0.5; // Longer hang time for dunk
             let progress = Math.min(1.0, g_dunkTimer / duration);
-            player3D.z = Math.sin(progress * Math.PI) * (state === 'FREE_ROAM_DUNK' ? 50 : 30);
+
+            // Exaggerated height for "Like Mike" dunk
+            let jumpHeight = state === 'FREE_ROAM_DUNK' ? 90 : 30;
+            player3D.z = Math.sin(progress * Math.PI) * jumpHeight;
 
             if (progress >= 1.0) {
                 // Score!
@@ -1104,6 +1171,20 @@
 
             let moveX = 0;
             let moveY = 0;
+
+            if (window.crossoverTriggered) {
+                // Execute quick dash to the side
+                const dashDistance = 80; // Distance of the dash
+                const dashDir = window.crossoverDirection; // 1 for right, -1 for left
+                player3D.x += rDx * dashDir * dashDistance;
+                player3D.y += rDy * dashDir * dashDistance;
+
+                // Crossover animation flag (handled generically via dribble animation offset)
+                if (typeof g_dribblePhase !== 'undefined') g_dribblePhase += Math.PI;
+                AudioSystem.playSwish(); // Sound feedback
+                window.crossoverTriggered = false;
+                moved = true;
+            }
 
             if (window.keysDown['KeyW'] || window.keysDown['ArrowUp']) { moveX += fDx; moveY += fDy; }
             if (window.keysDown['KeyS'] || window.keysDown['ArrowDown']) { moveX -= fDx; moveY -= fDy; }
@@ -3051,22 +3132,21 @@
         loadContext(game1);
     }
 
-    window.toggleMode = function() {
+    window.setMode = function(mode) {
         window.closeControlsMenu();
-        if(state !== 'IDLE' && state !== 'GAMEOVER') return;
-        if(currentGameMode === 'CLASSIC') {
-            currentGameMode = 'CONTEST';
-            document.getElementById('modeBtnText').innerText = "CONCOURS";
-        } else if (currentGameMode === 'CONTEST') {
-            currentGameMode = 'TIME_ATTACK';
-            document.getElementById('modeBtnText').innerText = "TIME ATTACK";
-        } else if (currentGameMode === 'TIME_ATTACK') {
-            currentGameMode = 'FREE_ROAM';
-            document.getElementById('modeBtnText').innerText = "FREE ROAM";
-        } else {
-            currentGameMode = 'CLASSIC';
-            document.getElementById('modeBtnText').innerText = "CLASSIQUE";
+        if(state !== 'IDLE' && state !== 'GAMEOVER') {
+            // Revert select visually if they try to change during a shot
+            const sel = document.getElementById('modeSelect');
+            if(sel) sel.value = currentGameMode;
+            return;
         }
+
+        currentGameMode = mode;
+
+        // Sync any other select elements if split screen
+        const selects = document.querySelectorAll('#modeSelect');
+        selects.forEach(sel => sel.value = currentGameMode);
+
         runForAllPlayers(resetGame);
     }
     window.toggleMuteUI = function() {

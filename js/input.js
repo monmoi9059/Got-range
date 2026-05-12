@@ -252,8 +252,42 @@
     var enterPressed = false;
     window.keysDown = window.keysDown || {};
 
+    // Crossover move double-tap detection variables
+    let lastKey = null;
+    let lastKeyTime = 0;
+    window.crossoverTriggered = false;
+    window.crossoverDirection = 0; // -1 for left, 1 for right
+
     window.addEventListener('keydown', (e) => {
         window.keysDown[e.code] = true;
+
+        // Crossover Double Tap Detection
+        if (!e.repeat && typeof currentGameMode !== 'undefined' && currentGameMode === 'FREE_ROAM' && (typeof state !== 'undefined' && (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING'))) {
+            const now = Date.now();
+            const timeSinceLastKey = now - lastKeyTime;
+
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+                if (lastKey === 'LEFT' && timeSinceLastKey < 250) {
+                    window.crossoverTriggered = true;
+                    window.crossoverDirection = -1;
+                    lastKey = null;
+                } else {
+                    lastKey = 'LEFT';
+                }
+            } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+                if (lastKey === 'RIGHT' && timeSinceLastKey < 250) {
+                    window.crossoverTriggered = true;
+                    window.crossoverDirection = 1;
+                    lastKey = null;
+                } else {
+                    lastKey = 'RIGHT';
+                }
+            } else {
+                lastKey = null;
+            }
+            lastKeyTime = now;
+        }
+
         // General Keyboard Accessibility for Custom Buttons
         if (e.code === 'Enter' || e.code === 'Space') {
             const active = document.activeElement;
