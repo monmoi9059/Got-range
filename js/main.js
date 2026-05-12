@@ -325,7 +325,7 @@
     let viewingBallIndex = 0;
     let viewingCatSkinIndex = 0;
     let viewingCatAccessoryIndex = 0;
-    let currentGameMode = 'CLASSIC';
+    window.currentGameMode = 'CLASSIC';
     let contestData = { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false };
 let lastDisplayedContestTime = -1;
     let distanceLevel = 1;
@@ -610,7 +610,7 @@ let lastDisplayedContestTime = -1;
         document.getElementById('statsUI').style.display = 'none';
         document.getElementById('achUI').style.display = 'none';
         document.getElementById('challengesUI').style.display = 'none';
-        switchLeaderboardTab(currentGameMode === 'CLASSIC' ? 'classic' : (currentGameMode === 'CONTEST' ? 'contest' : (currentGameMode === 'TIME_ATTACK' ? 'time_attack' : 'classic')));
+        switchLeaderboardTab(window.currentGameMode === 'CLASSIC' ? 'classic' : (window.currentGameMode === 'CONTEST' ? 'contest' : (window.currentGameMode === 'TIME_ATTACK' ? 'time_attack' : 'classic')));
         updateMobileControlsUI();
         saveContext(game1);
     }
