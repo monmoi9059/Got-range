@@ -8986,6 +8986,19 @@ var BallRenderer = {
                  ctx.fillStyle = skinObj.hairColor || '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
             }
+
+            // Front-facing simple face for defenders
+            if (facingFront) {
+                 ctx.fillStyle = '#000';
+                 // Eyes
+                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 // Mouth (Neutral/Focused)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - 3*s, headY + 5*s);
+                 ctx.lineTo(p.x + 3*s, headY + 5*s);
+                 ctx.stroke();
+            }
         }
         if(currentAnimal === 'moose') {
             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
