@@ -1754,6 +1754,13 @@ var BallRenderer = {
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
             ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * s, rowValueY);
         }
+        else if (currentGameMode === 'TEAM_5V5') {
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fff";
+            ctx.font = fontValue;
+            const scoreText = `HOME ${team5v5Data.scoreHome} - ${team5v5Data.scoreAway} AWAY`;
+            ctx.fillText(scoreText, w / 2, rowValueY);
+        }
 
         // Live Indicator
         ctx.fillStyle = "#D32F2F"; ctx.fillRect(20 * s, y + 10 * s, 6 * s, 6 * s);
@@ -7606,6 +7613,12 @@ var BallRenderer = {
 
         const s = p.scale;
         let skin = playerData.currentSkin;
+        let isAI = p.isAI || false;
+
+        // Force team colors and skins for AI
+        if (isAI && currentGameMode === 'TEAM_5V5') {
+            skin = p.isHome ? playerData.currentSkin : 'human_kobe24';
+        }
 
         // SHOP PREVIEW OVERRIDE
         if (state === 'SHOP' && typeof currentShopTab !== 'undefined' && currentShopTab === 'character' && typeof getSkinGroups === 'function') {
@@ -8973,6 +8986,19 @@ var BallRenderer = {
                  ctx.fillStyle = skinObj.hairColor || '#000';
                  ctx.beginPath(); ctx.arc(p.x, headY - 2*s, headRadius * 1.5, 0, Math.PI*2); ctx.fill();
             }
+
+            // Front-facing simple face for defenders
+            if (facingFront) {
+                 ctx.fillStyle = '#000';
+                 // Eyes
+                 ctx.beginPath(); ctx.arc(p.x - 5*s, headY - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 ctx.beginPath(); ctx.arc(p.x + 5*s, headY - 5*s, 2*s, 0, Math.PI*2); ctx.fill();
+                 // Mouth (Neutral/Focused)
+                 ctx.beginPath();
+                 ctx.moveTo(p.x - 3*s, headY + 5*s);
+                 ctx.lineTo(p.x + 3*s, headY + 5*s);
+                 ctx.stroke();
+            }
         }
         if(currentAnimal === 'moose') {
             ctx.strokeStyle = '#5D4037'; ctx.lineWidth = 4*s;
@@ -10091,11 +10117,44 @@ var BallRenderer = {
             RenderEngine.Queue.add('hoop', hoopProj.depth, hoopProj.x, hoopProj.y, hoopProj.scale);
         }
 
+        if (currentGameMode === 'TEAM_5V5') {
+            if (typeof team5v5Data !== 'undefined') {
+                const drawTeam = (teamArr, isHome) => {
+                    teamArr.forEach((tm, idx) => {
+                        // Skip main player logic for active player, draw them separately with interpolation
+                        if (isHome && idx === team5v5Data.activePlayerIdx) {
+                            return;
+                        }
+
+                        const tProj = project(tm.x, tm.y, tm.z);
+                        if (tProj) {
+                            const item = RenderEngine.Queue.add('player', tProj.depth, tProj.x, tProj.y, tProj.scale);
+                            item.alpha = 1.0;
+                            item.z = tm.z;
+                            // Add custom rendering properties so PlayerRenderer knows this is an AI
+                            item.isAI = true;
+                            item.isHome = isHome;
+                            item.aiId = idx;
+                            item.hasBall = tm.hasBall;
+                        }
+
+                        const tShadowProj = project(tm.x, tm.y, 0);
+                        if (tShadowProj) {
+                            RenderEngine.Queue.add('player_shadow', tShadowProj.depth + 0.1, tShadowProj.x, tShadowProj.y, tShadowProj.scale);
+                        }
+                    });
+                };
+                drawTeam(team5v5Data.homeTeam, true);
+                drawTeam(team5v5Data.awayTeam, false);
+            }
+        }
+
         const playerProj = project(pX, pY, pZ);
         if (playerProj) {
             const item = RenderEngine.Queue.add('player', playerProj.depth, playerProj.x, playerProj.y, playerProj.scale);
             item.alpha = alpha;
             item.z = pZ;
+            item.isAI = false;
         }
 
         const shadowProj = project(pX, pY, 0);

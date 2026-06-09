@@ -65,6 +65,27 @@
         }
     }
 
+    function endTeam5v5() {
+        team5v5Data.active = false;
+        state = 'GAMEOVER';
+
+        const reward = team5v5Data.scoreHome * 10 * playerData.difficulty;
+        playerData.tacos += reward;
+
+        checkDailyProgress('play_all_modes', 1);
+
+        if (team5v5Data.scoreHome > team5v5Data.scoreAway) {
+            feedback = "VICTOIRE!";
+        } else {
+            feedback = "DÉFAITE!";
+        }
+
+        feedbackTimer = 180;
+        saveData();
+        resetTimer = 180;
+        nextAction = () => checkGameOverSequence('classic', 0); // fallback to open shop
+    }
+
     function handleHighScoreInput(action) {
         if (action === 'UP') {
             if (keyboardCursor >= 7) keyboardCursor -= 7;
@@ -633,6 +654,18 @@
              timeAttackData.score++;
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; updateContestUI();
+        } else if (currentGameMode === 'TEAM_5V5') {
+            if (team5v5Data.possession === 'home') {
+                team5v5Data.scoreHome += 2;
+                feedback = "PANIER!";
+            } else {
+                team5v5Data.scoreAway += 2;
+                feedback = "PANIER ADVERSE!";
+            }
+            feedbackTimer = 30;
+            team5v5Data.possession = (team5v5Data.possession === 'home') ? 'away' : 'home';
+            team5v5Data.state = 'OFFENSE';
+            state = 'IDLE';
         } else if (currentGameMode === 'FREE_ROAM') {
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; state = 'IDLE';
@@ -658,6 +691,12 @@
             feedback = "Manqué"; feedbackTimer = 30; state = 'RESETTING'; resetTimer = 30; nextAction = nextLevel;
         } else if (currentGameMode === 'TIME_ATTACK') {
              feedback = "Manqué"; feedbackTimer = 30;
+        } else if (currentGameMode === 'TEAM_5V5') {
+            feedback = "REBOND!";
+            feedbackTimer = 30;
+            team5v5Data.possession = (team5v5Data.possession === 'home') ? 'away' : 'home';
+            team5v5Data.state = 'DEFENSE'; // They need to clear it
+            state = 'IDLE';
         } else if (currentGameMode === 'FREE_ROAM') {
              feedback = "Manqué"; feedbackTimer = 30; state = 'IDLE';
         } else {
@@ -1048,6 +1087,197 @@
     }
 
 
+    function passBall() {
+        if (currentGameMode !== 'TEAM_5V5' || team5v5Data.possession !== 'home') return;
+        // Find nearest teammate
+        let nearestId = -1;
+        let minDistSq = Infinity;
+        let activePlayer = team5v5Data.homeTeam[team5v5Data.activePlayerIdx];
+
+        for (let i = 0; i < team5v5Data.homeTeam.length; i++) {
+            if (i === team5v5Data.activePlayerIdx) continue;
+            let tm = team5v5Data.homeTeam[i];
+            let dx = tm.x - activePlayer.x;
+            let dy = tm.y - activePlayer.y;
+            let distSq = dx*dx + dy*dy;
+            if (distSq < minDistSq) {
+                minDistSq = distSq;
+                nearestId = i;
+            }
+        }
+
+        if (nearestId !== -1) {
+            team5v5Data.activePlayerIdx = nearestId;
+            let newActive = team5v5Data.homeTeam[nearestId];
+            player3D.x = newActive.x;
+            player3D.y = newActive.y;
+            player3D.z = 0; player3D.vz = 0;
+            state = 'IDLE';
+            feedback = "PASSE!";
+            feedbackTimer = 30;
+            invalidateBackgroundCache();
+        }
+    }
+
+    function switchPlayer() {
+        if (currentGameMode !== 'TEAM_5V5' || team5v5Data.possession !== 'away') return;
+        // Cycle to next player
+        team5v5Data.activePlayerIdx = (team5v5Data.activePlayerIdx + 1) % team5v5Data.homeTeam.length;
+        let newActive = team5v5Data.homeTeam[team5v5Data.activePlayerIdx];
+        player3D.x = newActive.x;
+        player3D.y = newActive.y;
+        player3D.z = 0; player3D.vz = 0;
+        state = 'IDLE';
+        invalidateBackgroundCache();
+    }
+
+    function attemptSteal() {
+        if (currentGameMode !== 'TEAM_5V5' || team5v5Data.possession !== 'away') return;
+
+        let activePlayer = team5v5Data.homeTeam[team5v5Data.activePlayerIdx];
+        let ballCarrier = team5v5Data.awayTeam.find(p => p.hasBall);
+        if (!ballCarrier) ballCarrier = team5v5Data.awayTeam[0]; // Fallback
+
+        let dx = ballCarrier.x - activePlayer.x;
+        let dy = ballCarrier.y - activePlayer.y;
+        if (Math.sqrt(dx*dx + dy*dy) < 50) {
+            if (Math.random() < 0.3) { // 30% chance to steal if close
+                team5v5Data.possession = 'home';
+                team5v5Data.state = 'OFFENSE';
+                feedback = "VOL!";
+                feedbackTimer = 30;
+                // AI loses ball
+                team5v5Data.awayTeam.forEach(p => p.hasBall = false);
+                activePlayer.hasBall = true;
+            } else {
+                feedback = "RATÉ!";
+                feedbackTimer = 20;
+            }
+        }
+    }
+
+    function attemptBlock() {
+        if (currentGameMode !== 'TEAM_5V5' || team5v5Data.possession !== 'away') return;
+        state = 'JUMPING';
+        player3D.vz = 8.0; // Jump up
+        feedback = "CONTRE!";
+        feedbackTimer = 30;
+        // Logic to affect shot accuracy happens in updateTeam5v5 if ball is shot
+    }
+
+    function updateTeam5v5(dt) {
+        if (state === 'GAMEOVER') return;
+
+        // Timer
+        if(team5v5Data.timer > 0) {
+            team5v5Data.timer -= (1/60) * dt;
+            if(team5v5Data.timer <= 0) {
+                team5v5Data.timer = 0;
+                endTeam5v5();
+                return;
+            }
+        }
+
+        // Win Condition (First to 21)
+        if (team5v5Data.scoreHome >= 21 || team5v5Data.scoreAway >= 21) {
+            endTeam5v5();
+            return;
+        }
+
+        let activePlayer = team5v5Data.homeTeam[team5v5Data.activePlayerIdx];
+
+        // Sync active player to player3D movement
+        if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING' || state === 'IDLE') {
+            activePlayer.x = player3D.x;
+            activePlayer.y = player3D.y;
+        }
+
+        // Basic AI Logic
+        const speed = 4.0;
+        const ballCarrierSpeed = 3.5;
+
+        // Home Team AI (Teammates)
+        for (let i = 0; i < team5v5Data.homeTeam.length; i++) {
+            if (i === team5v5Data.activePlayerIdx) continue;
+            let tm = team5v5Data.homeTeam[i];
+
+            if (team5v5Data.possession === 'home') {
+                // Spacing around 3-point line
+                let angle = (i / 4) * Math.PI - Math.PI/2; // Arc
+                tm.targetX = HOOP_POS.x - 300 * Math.cos(angle);
+                tm.targetY = HOOP_POS.y + 300 * Math.sin(angle);
+            } else {
+                // Man-to-man defense
+                let matchup = team5v5Data.awayTeam[i];
+                tm.targetX = matchup.x - 50; // Stand between him and hoop
+                tm.targetY = matchup.y;
+            }
+
+            // Move
+            let dx = tm.targetX - tm.x;
+            let dy = tm.targetY - tm.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 5) {
+                tm.x += (dx/dist) * speed * dt;
+                tm.y += (dy/dist) * speed * dt;
+            }
+        }
+
+        // Away Team AI
+        let aiBallCarrier = team5v5Data.awayTeam.find(p => p.hasBall);
+        if (team5v5Data.possession === 'away' && !aiBallCarrier) {
+            team5v5Data.awayTeam[0].hasBall = true;
+            aiBallCarrier = team5v5Data.awayTeam[0];
+        }
+
+        for (let i = 0; i < team5v5Data.awayTeam.length; i++) {
+            let ai = team5v5Data.awayTeam[i];
+            if (team5v5Data.possession === 'away') {
+                if (ai.hasBall) {
+                    // Drive to hoop
+                    ai.targetX = HOOP_POS.x + 50;
+                    ai.targetY = HOOP_POS.y;
+
+                    let dx = ai.targetX - ai.x;
+                    let dy = ai.targetY - ai.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 100 && Math.random() < 0.02) {
+                        // AI Shoots
+                        ai.hasBall = false;
+                        team5v5Data.possession = 'home';
+                        if (Math.random() < 0.5) { // 50% accuracy
+                            team5v5Data.scoreAway += 2;
+                            feedback = "AI MARQUE!";
+                        } else {
+                            feedback = "AI RATE!";
+                        }
+                        feedbackTimer = 60;
+                    }
+                } else {
+                    // Spread
+                    let angle = (i / 4) * Math.PI - Math.PI/2;
+                    ai.targetX = HOOP_POS.x - 300 * Math.cos(angle);
+                    ai.targetY = HOOP_POS.y + 300 * Math.sin(angle);
+                }
+            } else {
+                // Defense
+                let matchup = team5v5Data.homeTeam[i];
+                ai.targetX = matchup.x + 50;
+                ai.targetY = matchup.y;
+            }
+
+            // Move
+            let dx = ai.targetX - ai.x;
+            let dy = ai.targetY - ai.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let s = ai.hasBall ? ballCarrierSpeed : speed;
+            if (dist > 5) {
+                ai.x += (dx/dist) * s * dt;
+                ai.y += (dy/dist) * s * dt;
+            }
+        }
+    }
+
     function updateFreeRoam(dt) {
         if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING' && state !== 'FREE_ROAM_LAYUP' && state !== 'FREE_ROAM_DUNK') return;
 
@@ -1287,6 +1517,10 @@
                 if(Math.ceil(timeAttackData.timer) !== lastDisplayedContestTime) { updateContestUI(); }
             }
         }
+
+        if(currentGameMode === 'TEAM_5V5' && state !== 'GAMEOVER') {
+            if(typeof updateTeam5v5 === 'function') updateTeam5v5(dt);
+        }
         if (state === 'JUMPING') {
             if (isGroundedShot) {
                 groundShotTimer += dt;
@@ -1511,6 +1745,55 @@
         invalidateBackgroundCache();
     }
 
+    function startTeam5v5() {
+        team5v5Data = {
+            timer: 180,
+            scoreHome: 0,
+            scoreAway: 0,
+            active: true,
+            homeTeam: [],
+            awayTeam: [],
+            activePlayerIdx: 0,
+            possession: 'home',
+            state: 'OFFENSE'
+        };
+        currentStreak = 0;
+        activeBalls = []; // Clear any existing balls
+
+        // Generate Home Team (Player is index 0)
+        // We'll populate full AI logic later, just basic structures for now.
+        for (let i = 0; i < 5; i++) {
+            team5v5Data.homeTeam.push({
+                id: i,
+                x: 600 + (Math.random() - 0.5) * 200,
+                y: 400 + (Math.random() - 0.5) * 200,
+                z: 0, vz: 0,
+                targetX: 600, targetY: 400,
+                state: 'IDLE'
+            });
+            team5v5Data.awayTeam.push({
+                id: i,
+                x: 600 + (Math.random() - 0.5) * 200,
+                y: 100 + (Math.random() - 0.5) * 200,
+                z: 0, vz: 0,
+                targetX: 600, targetY: 100,
+                state: 'IDLE'
+            });
+        }
+
+        // Active player controls index 0 of home team
+        player3D.x = team5v5Data.homeTeam[0].x;
+        player3D.y = team5v5Data.homeTeam[0].y;
+        player3D.z = 0; player3D.vz = 0;
+        player3D.dribbleZ = 0;
+
+        document.getElementById('classic-stats').style.display = 'none';
+
+        state = 'IDLE';
+        updateUI();
+        invalidateBackgroundCache();
+    }
+
     function endTimeAttack() {
         timeAttackData.active = false;
         state = 'GAMEOVER';
@@ -1555,6 +1838,8 @@
         } else if (currentGameMode === 'TIME_ATTACK') {
             courtNameEl.innerText = "TIME ATTACK";
             // Update Timer/Score in UI loop, but title here is good
+        } else if (currentGameMode === 'TEAM_5V5') {
+            courtNameEl.innerText = "TEAM 5V5";
         } else if (currentGameMode === 'FREE_ROAM') {
             courtNameEl.innerText = "FREE ROAM";
         }
@@ -1603,6 +1888,7 @@
         particles = []; // Clear particles
         if(currentGameMode === 'CONTEST') { startContest(); }
         else if(currentGameMode === 'TIME_ATTACK') { startTimeAttack(); }
+        else if(currentGameMode === 'TEAM_5V5') { startTeam5v5(); }
         else if(currentGameMode === 'FREE_ROAM') {
             document.getElementById('classic-stats').style.display = 'none';
             player3D = { x: 433, y: 300, z: 0, vz: 0 };
@@ -3063,6 +3349,9 @@
         } else if (currentGameMode === 'TIME_ATTACK') {
             currentGameMode = 'FREE_ROAM';
             document.getElementById('modeBtnText').innerText = "FREE ROAM";
+        } else if (currentGameMode === 'FREE_ROAM') {
+            currentGameMode = 'TEAM_5V5';
+            document.getElementById('modeBtnText').innerText = "TEAM 5V5";
         } else {
             currentGameMode = 'CLASSIC';
             document.getElementById('modeBtnText').innerText = "CLASSIQUE";
