@@ -201,8 +201,12 @@
         if (state === 'GAMEOVER') {
             if (isSplitscreen) resetGame();
             else openShop();
-        } else if (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING') {
-            startJump();
+        } else if (state === 'IDLE' || state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING' || state === 'TEAM_5V5_DEFENSE') {
+            if (currentGameMode === 'TEAM_5V5' && team5v5Data.possession === 'away') {
+                if (typeof attemptBlock === 'function') attemptBlock();
+            } else {
+                startJump();
+            }
         }
     }
 
@@ -245,6 +249,12 @@
             handleActionPress();
         } else if (type === 'release') {
             if (state === 'JUMPING' || state === 'PRE_JUMP' || state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') releaseShot();
+        } else if (type === 'pass') {
+            if (typeof passBall === 'function') passBall();
+        } else if (type === 'switch_player') {
+            if (typeof switchPlayer === 'function') switchPlayer();
+        } else if (type === 'steal') {
+            if (typeof attemptSteal === 'function') attemptSteal();
         }
         saveContext(game);
     }
@@ -290,12 +300,31 @@
         if(e.code === 'KeyO') { loadContext(game1); openAchievements(); return; }
         if(e.code === 'KeyS') {
             loadContext(game1);
-            if (currentGameMode !== 'FREE_ROAM') {
+            if (currentGameMode !== 'FREE_ROAM' && currentGameMode !== 'TEAM_5V5') {
                 openStats(); return;
             }
         }
         if(e.code === 'KeyL') { loadContext(game1); openLeaderboard(); return; }
         if(e.code === 'KeyC') { loadContext(game1); openChallenges(); return; }
+
+        if (currentGameMode === 'TEAM_5V5') {
+            if (e.code === 'KeyE') {
+                loadContext(game1);
+                if (team5v5Data.possession === 'home') {
+                    doGameAction(game1, 'pass');
+                } else {
+                    doGameAction(game1, 'switch_player');
+                }
+                saveContext(game1);
+            }
+            if (e.code === 'KeyQ') {
+                loadContext(game1);
+                if (team5v5Data.possession === 'away') {
+                    doGameAction(game1, 'steal');
+                }
+                saveContext(game1);
+            }
+        }
 
         // P1 Action
         if (e.code === 'Space' && !spacePressed) {
