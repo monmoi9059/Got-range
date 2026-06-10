@@ -1754,11 +1754,11 @@ var BallRenderer = {
             ctx.fillStyle = "#fff"; ctx.font = fontValue;
             ctx.fillText((playerData.timeAttackHighScore || 0), w / 2 + 25 * s, rowValueY);
         }
-        else if (currentGameMode === 'TEAM_5V5') {
+        else if (currentGameMode === 'TEAM_1V1') {
             ctx.textAlign = "center";
             ctx.fillStyle = "#fff";
             ctx.font = fontValue;
-            const scoreText = `HOME ${team5v5Data.scoreHome} - ${team5v5Data.scoreAway} AWAY`;
+            const scoreText = `HOME ${team1v1Data.scoreHome} - ${team1v1Data.scoreAway} AWAY`;
             ctx.fillText(scoreText, w / 2, rowValueY);
         }
 
@@ -7616,7 +7616,7 @@ var BallRenderer = {
         let isAI = p.isAI || false;
 
         // Force team colors and skins for AI
-        if (isAI && currentGameMode === 'TEAM_5V5') {
+        if (isAI && currentGameMode === 'TEAM_1V1') {
             skin = p.isHome ? playerData.currentSkin : 'human_kobe24';
         }
 
@@ -10117,12 +10117,12 @@ var BallRenderer = {
             RenderEngine.Queue.add('hoop', hoopProj.depth, hoopProj.x, hoopProj.y, hoopProj.scale);
         }
 
-        if (currentGameMode === 'TEAM_5V5') {
-            if (typeof team5v5Data !== 'undefined') {
+        if (currentGameMode === 'TEAM_1V1') {
+            if (typeof team1v1Data !== 'undefined') {
                 const drawTeam = (teamArr, isHome) => {
                     teamArr.forEach((tm, idx) => {
                         // Skip main player logic for active player, draw them separately with interpolation
-                        if (isHome && idx === team5v5Data.activePlayerIdx) {
+                        if (isHome && idx === team1v1Data.activePlayerIdx) {
                             return;
                         }
 
@@ -10144,8 +10144,8 @@ var BallRenderer = {
                         }
                     });
                 };
-                drawTeam(team5v5Data.homeTeam, true);
-                drawTeam(team5v5Data.awayTeam, false);
+                drawTeam(team1v1Data.homeTeam, true);
+                drawTeam(team1v1Data.awayTeam, false);
             }
         }
 
