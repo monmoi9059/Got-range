@@ -3781,7 +3781,6 @@ var BallRenderer = {
              }
 
              let isEating = false;
-             let isPassing = false;
              let animProgress = 0;
              let bounce = 0;
 
@@ -3811,7 +3810,7 @@ var BallRenderer = {
              p.y += bounce;
 
              if (typeof drawCatDecor === 'function') {
-                 drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing);
+                 drawCatDecor(ctx, p, s, skinData, stance, animProgress);
              }
         }
         else if (type === 'crowd') {
@@ -10390,7 +10389,7 @@ var BallRenderer = {
         ctx.beginPath(); ctx.moveTo(x + r*0.2, y + r*0.3); ctx.lineTo(x + r*0.8, y + r*0.3); ctx.stroke();
     }
 
-    function drawCatDecor(ctx, p, s, skinData, stance, animProgress, isPassing) {
+    function drawCatDecor(ctx, p, s, skinData, stance, animProgress) {
         const furColor = skinData ? (skinData.furColor || '#D2B48C') : '#D2B48C';
         const bellyColor = skinData ? (skinData.bellyColor || '#F5F5DC') : '#F5F5DC';
         const earColor = skinData ? skinData.earColor : null;
