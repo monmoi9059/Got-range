@@ -356,7 +356,7 @@ let lastDisplayedContestTime = -1;
     var activeBalls = [];
     var tacosOnGround = []; // New array for tacos
     var timeAttackData = { timer: 60, score: 0, highScore: 0, active: false };
-    var team5v5Data = { timer: 180, scoreHome: 0, scoreAway: 0, active: false, homeTeam: [], awayTeam: [], activePlayerIdx: 0, possession: 'home', state: 'OFFENSE' };
+    var team1v1Data = { timer: 180, scoreHome: 0, scoreAway: 0, active: false, homeTeam: [], awayTeam: [], activePlayerIdx: 0, possession: 'home', state: 'OFFENSE' };
     var particles = [];
 
     // Expose for debugging
@@ -781,7 +781,7 @@ let lastDisplayedContestTime = -1;
             distanceLevel: 1,
             contestData: { timer: 60, score: 0, rack: 1, ballsInRack: 0, isActive: false },
             timeAttackData: { timer: 60, score: 0, active: false },
-            team5v5Data: { timer: 180, scoreHome: 0, scoreAway: 0, active: false, homeTeam: [], awayTeam: [], activePlayerIdx: 0, possession: 'home', state: 'OFFENSE' },
+            team1v1Data: { timer: 180, scoreHome: 0, scoreAway: 0, active: false, homeTeam: [], awayTeam: [], activePlayerIdx: 0, possession: 'home', state: 'OFFENSE' },
             animState: { la: Math.PI/2 - 0.2, ra: Math.PI/2 + 0.2, lfa: Math.PI/2 - 0.1, rfa: Math.PI/2 + 0.1, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
             animTarget: { la: 0, ra: 0, lfa: 0, rfa: 0, w: 0, la_z: 0, ra_z: 0, lfa_z: 0, rfa_z: 0 },
             breathingPhase: 0,
@@ -826,7 +826,7 @@ let lastDisplayedContestTime = -1;
         ctxObj.distanceLevel = distanceLevel;
         ctxObj.contestData = contestData;
         ctxObj.timeAttackData = timeAttackData;
-        ctxObj.team5v5Data = team5v5Data;
+        ctxObj.team1v1Data = team1v1Data;
         ctxObj.animState = g_animState;
         ctxObj.animTarget = g_animTarget;
         ctxObj.breathingPhase = g_breathingPhase;
@@ -871,7 +871,7 @@ let lastDisplayedContestTime = -1;
         distanceLevel = ctxObj.distanceLevel;
         contestData = ctxObj.contestData;
         timeAttackData = ctxObj.timeAttackData;
-        team5v5Data = ctxObj.team5v5Data;
+        team1v1Data = ctxObj.team1v1Data;
         g_animState = ctxObj.animState;
         g_animTarget = ctxObj.animTarget;
         g_breathingPhase = ctxObj.breathingPhase;
