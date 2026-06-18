@@ -669,6 +669,14 @@
             feedbackTimer = 30;
             team1v1Data.state = 'OFFENSE';
             state = 'IDLE';
+            // Reset positions
+            player3D.x = 600;
+            player3D.y = 400;
+            player3D.z = 0; player3D.vz = 0;
+            if (team1v1Data.awayTeam[0]) {
+                team1v1Data.awayTeam[0].x = 600;
+                team1v1Data.awayTeam[0].y = 100;
+            }
         } else if (currentGameMode === 'FREE_ROAM') {
              if (currentStreak >= 3) { feedback = `SÉRIE DE ${currentStreak}!`; } else { feedback = "Swish (+1)"; }
              feedbackTimer = 30; state = 'IDLE';
@@ -1157,7 +1165,7 @@
         let activePlayer = team1v1Data.homeTeam[team1v1Data.activePlayerIdx];
 
         // Sync active player to player3D movement
-        if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING' || state === 'IDLE') {
+        if (state === 'FREE_ROAM_MOVING' || state === 'FREE_ROAM_SPRINTING' || state === 'IDLE' || state === 'TEAM_1V1_DEFENSE' || state === 'SHOOTING') {
             activePlayer.x = player3D.x;
             activePlayer.y = player3D.y;
         }
@@ -1168,7 +1176,8 @@
 
         // Away Team AI
         let aiBallCarrier = team1v1Data.awayTeam.find(p => p.hasBall);
-        if (team1v1Data.possession === 'away' && !aiBallCarrier) {
+        let ballInAir = activeBalls.some(b => b.isAI);
+        if (team1v1Data.possession === 'away' && !aiBallCarrier && !ballInAir) {
             team1v1Data.awayTeam[0].hasBall = true;
             aiBallCarrier = team1v1Data.awayTeam[0];
         }
@@ -1186,17 +1195,50 @@
                 if (dist < 150 && Math.random() < 0.015) {
                     // AI Shoots
                     ai.hasBall = false;
-                    if (Math.random() < 0.5) { // 50% accuracy
-                        team1v1Data.scoreAway += 2;
-                        feedback = "AI MARQUE!";
-                        // make it take it
-                        team1v1Data.possession = 'away';
-                    } else {
-                        feedback = "AI RATE!";
-                        // missed, turnover
-                        team1v1Data.possession = 'home';
+
+                    // Create an actual ball for the AI
+                    let b = {
+                        x: ai.x,
+                        y: ai.y,
+                        z: 120, // Hand height
+                        vx: 0, vy: 0, vz: 0,
+                        active: true,
+                        isFire: false,
+                        trail: [],
+                        rotationX: 0,
+                        isAI: true // Tag it so we know who shot it
+                    };
+
+                    const dx = HOOP_POS.x - ai.x;
+                    const dy = HOOP_POS.y - ai.y;
+                    const dSq = dx*dx + dy*dy;
+                    const distToHoop = Math.sqrt(dSq);
+
+                    let vel = distToHoop * 0.035;
+                    let targetZ = 150;
+                    let dz = targetZ - b.z;
+                    let time = distToHoop / vel;
+                    let requiredVz = (dz + 0.5 * GRAVITY * time * time) / time;
+
+                    // 50% accuracy logic via timing error equivalent
+                    let accuracyMultiplier = (Math.random() < 0.5) ? 1.0 : (1.0 + (Math.random() * 0.2 - 0.1));
+                    let sideMiss = (Math.random() < 0.5) ? (Math.random() * 0.1 - 0.05) : 0;
+
+                    // Block interference
+                    if (state === 'JUMPING') {
+                        let blockDist = Math.sqrt((player3D.x - ai.x)**2 + (player3D.y - ai.y)**2);
+                        if (blockDist < 100) {
+                            accuracyMultiplier *= 1.3; // significantly reduce accuracy
+                            sideMiss += (Math.random() * 0.4 - 0.2);
+                        }
                     }
-                    feedbackTimer = 60;
+
+                    b.vx = (dx / distToHoop) * vel * accuracyMultiplier + sideMiss;
+                    b.vy = (dy / distToHoop) * vel * accuracyMultiplier + sideMiss;
+                    b.vz = requiredVz * accuracyMultiplier;
+
+                    activeBalls.push(b);
+                    AudioSystem.playShoot();
                 }
             }
         } else {
@@ -1218,7 +1260,7 @@
     }
 
     function updateFreeRoam(dt) {
-        if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING' && state !== 'FREE_ROAM_LAYUP' && state !== 'FREE_ROAM_DUNK') return;
+        if (state !== 'IDLE' && state !== 'FREE_ROAM_MOVING' && state !== 'FREE_ROAM_SPRINTING' && state !== 'FREE_ROAM_LAYUP' && state !== 'FREE_ROAM_DUNK' && state !== 'TEAM_1V1_DEFENSE' && !(currentGameMode === 'TEAM_1V1' && state === 'SHOOTING')) return;
 
         if (state === 'FREE_ROAM_LAYUP' || state === 'FREE_ROAM_DUNK') {
             // Handle animation progression for layup/dunk
@@ -1442,7 +1484,7 @@
             }
         }
 
-        if(currentGameMode === 'FREE_ROAM' && state !== 'GAMEOVER') {
+        if((currentGameMode === 'FREE_ROAM' || currentGameMode === 'TEAM_1V1') && state !== 'GAMEOVER') {
             if(typeof updateFreeRoam === 'function') updateFreeRoam(dt);
         }
 
