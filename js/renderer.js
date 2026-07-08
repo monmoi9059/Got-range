@@ -1181,7 +1181,7 @@ var BallRenderer = {
     function getJoint(x, y, length, angle) { return { x: x + Math.cos(angle) * length, y: y + Math.sin(angle) * length }; }
     function invalidateBackgroundCache() {
         bgCache = null;
-        if(mountainLayers) mountainLayers.forEach(l => l.gradient = null);
+        if(mountainLayers) { for(let j=0; j<mountainLayers.length; j++) mountainLayers[j].gradient = null; }
     }
 
     function resizeGame() {
@@ -2068,7 +2068,7 @@ var BallRenderer = {
 
     function getBounds(points) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        points.forEach(p => { if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; });
+        for(let j=0; j<points.length; j++) { let p = points[j]; if(p.x<minX)minX=p.x; if(p.y<minY)minY=p.y; if(p.x>maxX)maxX=p.x; if(p.y>maxY)maxY=p.y; }
         return {minX, minY, maxX, maxY};
     }
     RenderEngine.getBounds = getBounds;
@@ -2810,7 +2810,7 @@ var BallRenderer = {
         if (options.clothingType && options.clothingType !== 'none' && !isFurry && points.length > 2) {
              const expansion = 3 * scale;
              let centroidX = 0, centroidY = 0;
-             points.forEach(p => { centroidX+=p.x; centroidY+=p.y; });
+             for(let j=0; j<points.length; j++) { let p = points[j]; centroidX+=p.x; centroidY+=p.y; }
              centroidX /= points.length; centroidY /= points.length;
 
              for(let i=0; i<points.length; i++) {
@@ -3195,7 +3195,7 @@ var BallRenderer = {
                     ctx.quadraticCurveTo(cx - hW/2 - rOffset*0.5, (waistY + hipY)/2, points[5].x, points[5].y);
                     ctx.quadraticCurveTo(cx - wW/2 - rOffset, (shoulderY + waistY)/2, points[0].x, points[0].y);
                 } else {
-                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    for(let j=0; j<points.length; j++) { let p = points[j]; if(j>0) ctx.lineTo(p.x, p.y); }
                 }
                 ctx.closePath();
             }
@@ -3219,7 +3219,7 @@ var BallRenderer = {
                 } else {
                     ctx.beginPath();
                     ctx.moveTo(points[0].x, points[0].y);
-                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    for(let j=0; j<points.length; j++) { let p = points[j]; if(j>0) ctx.lineTo(p.x, p.y); }
                     ctx.closePath();
                 }
                 ctx.clip();
@@ -3252,7 +3252,7 @@ var BallRenderer = {
                 } else {
                     ctx.beginPath();
                     ctx.moveTo(points[0].x, points[0].y);
-                    points.forEach((p, i) => { if(i>0) ctx.lineTo(p.x, p.y); });
+                    for(let j=0; j<points.length; j++) { let p = points[j]; if(j>0) ctx.lineTo(p.x, p.y); }
                     ctx.closePath();
                 }
                 ctx.clip();
@@ -4300,14 +4300,14 @@ var BallRenderer = {
             // Bottom Ring
             ctx.beginPath();
             let first=true;
-            projNetBot.forEach(pt => { if(!pt) return; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            for(let j=0; j<projNetBot.length; j++) { let pt = projNetBot[j]; if(!pt) continue; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); }
             ctx.closePath(); ctx.stroke();
 
             // Rim (Orange Thick Loop)
             ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 4 * s;
             ctx.beginPath();
             first = true;
-            projRim.forEach(pt => { if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); });
+            for(let j=0; j<projRim.length; j++) { let pt = projRim[j]; if(first) { ctx.moveTo(pt.x, pt.y); first=false; } else ctx.lineTo(pt.x, pt.y); }
             ctx.closePath(); ctx.stroke();
 
             // Glow Rim if on fire
@@ -9727,7 +9727,7 @@ var BallRenderer = {
 
         g_mountainCanvas = [];
 
-        mountainLayers.forEach(layer => {
+        for(let _j=0; _j<mountainLayers.length; _j++) { let layer = mountainLayers[_j];
             const c = document.createElement('canvas');
             c.width = maxWidth;
             c.height = 400; // Fixed height buffer
@@ -9747,12 +9747,12 @@ var BallRenderer = {
 
             ctx2.beginPath();
             ctx2.moveTo(layer.points[0].x, hY);
-            layer.points.forEach(p => { ctx2.lineTo(p.x, hY - p.y); });
+            for(let j=0; j<layer.points.length; j++) { let p = layer.points[j]; ctx2.lineTo(p.x, hY - p.y); }
             ctx2.lineTo(layer.points[layer.points.length-1].x, hY);
             ctx2.fill();
 
             g_mountainCanvas.push({ cvs: c, w: maxWidth, hY: hY });
-        });
+        }
 
         return g_mountainCanvas;
     }
@@ -9870,7 +9870,7 @@ var BallRenderer = {
 
             const mountainScale = 1.0 / (1.0 + (distanceLevel - 1) * 0.01);
 
-            mountainLayers.forEach((layer, idx) => {
+            for(let _j=0; _j<mountainLayers.length; _j++) { let layer = mountainLayers[_j]; let idx = _j;
                  const shift = (camX + camY) * layer.speed;
                  const loopWidth = 2000 * mountainScale;
                  const offset = shift % loopWidth;
@@ -9882,23 +9882,23 @@ var BallRenderer = {
                      drawMountainLayerCached(idx, horizonY, currentX, mountainScale);
                      currentX += loopWidth;
                  }
-            });
+            }
         }
 
         // CLOUDS
         if (currentGameMode === 'CLASSIC') {
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
-            clouds.forEach(c => {
+            for(let _j=0; _j<clouds.length; _j++) { let c = clouds[_j];
                  // c.x updated in updateEnvironment
                  let xPos = c.x;
                  let yPos = c.y;
                  ctx.beginPath();
-                 c.puffs.forEach(p => {
+                 for(let _k=0; _k<c.puffs.length; _k++) { let p = c.puffs[_k];
                      ctx.moveTo(xPos + p.dx * c.scale, yPos + p.dy * c.scale);
                      ctx.arc(xPos + p.dx * c.scale, yPos + p.dy * c.scale, p.r * c.scale, 0, Math.PI*2);
-                 });
+                 }
                  ctx.fill();
-            });
+            }
         }
 
         if (bgCache.floorImage) {
@@ -10103,13 +10103,13 @@ var BallRenderer = {
 
         // Draw Tacos on Ground
         if (typeof tacosOnGround !== 'undefined') {
-            tacosOnGround.forEach(t => {
+            for(let _j=0; _j<tacosOnGround.length; _j++) { let t = tacosOnGround[_j];
                  const proj = project(t.x, t.y, 0); // Ground level
                  if (proj) {
                      const item = RenderEngine.Queue.add('taco', proj.depth, proj.x, proj.y, proj.scale);
                      item.rotation = t.rotation;
                  }
-            });
+            }
         }
 
         const hoopProj = project(HOOP_POS.x, HOOP_POS.y, HOOP_POS.z);
@@ -10120,10 +10120,10 @@ var BallRenderer = {
         if (currentGameMode === 'TEAM_5V5') {
             if (typeof team5v5Data !== 'undefined') {
                 const drawTeam = (teamArr, isHome) => {
-                    teamArr.forEach((tm, idx) => {
+                    for(let _j=0; _j<teamArr.length; _j++) { let tm = teamArr[_j]; let idx = _j;
                         // Skip main player logic for active player, draw them separately with interpolation
                         if (isHome && idx === team5v5Data.activePlayerIdx) {
-                            return;
+                            continue;
                         }
 
                         const tProj = project(tm.x, tm.y, tm.z);
@@ -10142,7 +10142,7 @@ var BallRenderer = {
                         if (tShadowProj) {
                             RenderEngine.Queue.add('player_shadow', tShadowProj.depth + 0.1, tShadowProj.x, tShadowProj.y, tShadowProj.scale);
                         }
-                    });
+                    }
                 };
                 drawTeam(team5v5Data.homeTeam, true);
                 drawTeam(team5v5Data.awayTeam, false);
@@ -10162,7 +10162,7 @@ var BallRenderer = {
             RenderEngine.Queue.add('player_shadow', shadowProj.depth + 0.1, shadowProj.x, shadowProj.y, shadowProj.scale);
         }
 
-        activeBalls.forEach(b => {
+        for(let _j=0; _j<activeBalls.length; _j++) { let b = activeBalls[_j];
             if (b.active) {
                 const bX = (b.lastX !== undefined) ? lerp(b.lastX, b.x, alpha) : b.x;
                 const bY = (b.lastY !== undefined) ? lerp(b.lastY, b.y, alpha) : b.y;
@@ -10184,9 +10184,9 @@ var BallRenderer = {
                     item.ballRef = b;
                 }
             }
-        });
+        }
 
-        particles.forEach(p => {
+        for(let _j=0; _j<particles.length; _j++) { let p = particles[_j];
              const proj = project(p.x, p.y, p.z);
              if(proj) {
                  if (p.type === 'text') {
@@ -10205,7 +10205,7 @@ var BallRenderer = {
                      item.color = p.color;
                  }
              }
-        });
+        }
 
         RenderEngine.Queue.render(ctx);
 

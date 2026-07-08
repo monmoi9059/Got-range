@@ -1147,7 +1147,7 @@
                 feedback = "VOL!";
                 feedbackTimer = 30;
                 // AI loses ball
-                team5v5Data.awayTeam.forEach(p => p.hasBall = false);
+                for(let j=0; j<team5v5Data.awayTeam.length; j++) { let p = team5v5Data.awayTeam[j]; p.hasBall = false; }
                 activePlayer.hasBall = true;
             } else {
                 feedback = "RATÉ!";
@@ -1395,13 +1395,13 @@
         if (typeof lastPreJumpTimer === 'undefined') lastPreJumpTimer = preJumpTimer;
         lastPreJumpTimer = preJumpTimer;
 
-        activeBalls.forEach(b => {
+        for(let _j=0; _j<activeBalls.length; _j++) { let b = activeBalls[_j];
             if (b.lastX === undefined) { b.lastX = b.x; b.lastY = b.y; b.lastZ = b.z; b.lastRotX = b.rotationX; }
             b.lastX = b.x;
             b.lastY = b.y;
             b.lastZ = b.z;
             b.lastRotX = b.rotationX;
-        });
+        }
 
         if (resetTimer > 0) {
             resetTimer -= dt;
@@ -3494,10 +3494,10 @@
     const FIXED_STEP = 1000 / 60; // 60 FPS physics (16.666ms)
 
     function updateEnvironment(dt) {
-        clouds.forEach(c => {
+        for(let _j=0; _j<clouds.length; _j++) { let c = clouds[_j];
              c.x += c.speed * dt;
              if(c.x > canvas.width + 200) c.x = -200;
-        });
+        }
         if (typeof boatSystem !== 'undefined') {
             boatSystem.update(dt);
         }
